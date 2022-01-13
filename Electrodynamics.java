@@ -1,9 +1,3 @@
-/*
- * Brandon Li 
- * Microwave simulation for 2210
- * 11/14/2021
- */
-
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -87,7 +81,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 	double c = 1/Math.sqrt(eps0*mu0);
 	double csq = 1/(eps0*mu0);
 	double D = 2.0;
-	double Lambda = 2.0;
+	double Lambda = 5.0;
 	double q = 1.0;
 	double sigma = c*(dt/ds);
 	double sigmasq = sigma*sigma;
@@ -98,7 +92,6 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 	double obstacleradius = 1.4;
 	
 	double time = 0.0;
-	int iterationmultiplier = 1;
 	
 	//boolean paused = true;
 	boolean advanceframe = false;
@@ -131,6 +124,15 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 	boolean drawingcharge = false;
 	//double brushsize = 0.5;
 	int lastsimspeed = 0;
+	
+	boolean linemode = false;
+	int lineorientation = 0;
+	int mouseX = 0;
+	int mouseY = 250;
+	int mouseXstart = 0;
+	int mouseYstart = 250;
+	int mouseButton = 0;
+	boolean mouseIsPressed = false;
 
 	public static void main(String[] args) {
 		Electrodynamics w = new Electrodynamics();
@@ -201,6 +203,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			try {
 				Thread.sleep(17);
 			} catch (InterruptedException e) {}
+			int iterationmultiplier = opts.gui_simspeed_2.getValue();
 			for (int i = 0; i < iterationmultiplier ; i++) {
 				this.Physics();
 				this.Physics();
@@ -229,8 +232,6 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 				bz [i][j] = 0.0;
 				bzp [i][j] = 0.0;
 
-				//rho[i][j] = (1+Math.signum(200.0 - (x-25)*(x-25) - (y-25)*(y-25)));
-				//rho[i][j] = 100.0*(1+Math.signum(1.0 - (x-25)*(x-25) - (y-25)*(y-25)));
 
 				jx [i][j] = 0.0;
 				jy [i][j] = 0.0;
@@ -240,6 +241,9 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 				poisson2 [i][j] = 0.0;
 				
 				if (resetall) {
+					//rho[i][j] = (1+Math.signum(200.0 - (x-25)*(x-25) - (y-25)*(y-25)));
+					//double dist = Math.sqrt((x-25)*(x-25) + (y-25)*(y-25));
+					//rho[i][j] = 100.0*Math.exp(-dist*dist);
 					rho [i][j] = 0.0;
 					conductivityx[i][j] = 0.0;
 					conductivityy[i][j] = 0.0;
@@ -250,19 +254,21 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		}
 
 
-		for (int i = 1; i < nx-2; i++)
-		{
-			for (int j = 1; j < ny-1; j++)
+		if (resetall) {
+			for (int i = 1; i < nx-2; i++)
 			{
-				conductivityx[i][j] = 1.0;
+				for (int j = 1; j < ny-1; j++)
+				{
+					conductivityx[i][j] = 1.0;
+				}
 			}
-		}
 
-		for (int i = 1; i < nx-1; i++)
-		{
-			for (int j = 1; j < ny-2; j++)
+			for (int i = 1; i < nx-1; i++)
 			{
-				conductivityy[i][j] = 1.0;
+				for (int j = 1; j < ny-2; j++)
+				{
+					conductivityy[i][j] = 1.0;
+				}
 			}
 		}
 
@@ -274,6 +280,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 	
 	public void handleMouseInput() {
 		int brush = opts.gui_brush.getSelectedIndex();
+		int brushshape = opts.gui_brush_1.getSelectedIndex();
 		if (mouseIsPressed && brush == brush_addcharge) {
 			if (!drawingcharge) {
 				drawingcharge = true;
@@ -326,7 +333,11 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 					ab.scalarmult(t);
 					p.addmult(ab, -1);
 					//double r = Math.sqrt((cx-mx)*(cx-mx) + (cy-my)*(cy-my));
-					double r = Math.sqrt(p.dot(p));
+					double r = 0;
+					if (brushshape == 0)
+						r = Math.sqrt(p.dot(p));
+					else
+						r = Math.max(Math.abs(p.x), Math.abs(p.y));
 					if (r <= brushsize) {
 						if (brush == brush_addinsulator) {
 							double newconductivity = 0.0;
@@ -462,10 +473,10 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 				{
 					for (int j = 1; j < ny-1; j++)
 					{
-						jx[i][j] = (-D*(rho[i+1][j] - rho[i][j])/ds +  + emfx[i][j])*conductivityx[i][j];
-						ex[i][j] = ex[i][j] + csq*(bz[i][j]-bz[i][j-1])*dt/ds - jx[i][j]/eps0*dt;
+						jx[i][j] = (-D*(rho[i+1][j] - rho[i][j])/ds + emfx[i][j] + 0.5*Lambda*ex[i][j])*conductivityx[i][j];
+						ex[i][j] = (ex[i][j] + csq*(bz[i][j]-bz[i][j-1])*dt/ds - jx[i][j]/eps0*dt)/(1+0.5*dt*Lambda/eps0*conductivityx[i][j]);
+						jx[i][j] += 0.5*ex[i][j]*Lambda*conductivityx[i][j];
 						
-						jx[i][j] += ex[i][j]*Lambda;
 						//ex[i][j] = (ex[i][j] + csq*(bz[i][j]-bz[i][j-1])*dt/ds)/(1+dt*Lambda/eps0*conductivityx[i][j]);
 						//jx[i][j] = dt*Lambda/eps0*conductivityx[i][j]*ex[i][j];
 					}
@@ -475,8 +486,10 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 				{
 					for (int j = 0; j < ny-1; j++)
 					{
-						jy[i][j] = (-D*(rho[i][j+1] - rho[i][j])/ds + ey[i][j]*Lambda + emfy[i][j])*conductivityy[i][j];
-						ey[i][j] = ey[i][j] + -csq*(bz[i][j]-bz[i-1][j])*dt/ds - jy[i][j]/eps0*dt;
+						jy[i][j] = (-D*(rho[i][j+1] - rho[i][j])/ds + emfy[i][j] + 0.5*Lambda*ey[i][j])*conductivityy[i][j];
+						ey[i][j] = (ey[i][j] + -csq*(bz[i][j]-bz[i-1][j])*dt/ds - jy[i][j]/eps0*dt)/(1+0.5*dt*Lambda/eps0*conductivityy[i][j]);
+						jy[i][j] += 0.5*ey[i][j]*Lambda*conductivityy[i][j];
+						
 						//ey[i][j] = (ey[i][j] + -csq*(bz[i][j]-bz[i-1][j])*dt/ds)/(1+dt*Lambda/eps0*conductivityx[i][j]);
 						//jy[i][j] = dt*Lambda/eps0*conductivityy[i][j]*ey[i][j];
 					}
@@ -487,7 +500,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 				correctEfield();
 			}
 			
-			 bz[100][100] = Math.sin(time*100.0);
+			// bz[100][100] = 10.0*Math.sin(time*100.0);
 			
 			/* Boundary */
 			time += dt/2.0;
@@ -514,7 +527,6 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			}
 		}
 		
-
 		double err = 0;
 		for (int i = 1; i < nx-1; i++) {
 			for (int j = 1; j < ny-1; j++) {
@@ -795,7 +807,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 				Color c = Color.WHITE;
 				if (scalarview == 0) {
 					//c = getcol(ex, 0, ey, 30);
-					c = getcol(clamp(ex, 0, 999), 0, clamp(-ex, 0, 999), 30);
+					c = getcol(ex, 0, ey, 30);
 				}
 				else if (scalarview == 1) {
 					//c = getcol(0, bz, 0, 30);
@@ -862,10 +874,18 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 
 		double brushsize = 1.5*Math.pow(10.0, opts.gui_brushsize.getValue()/10.0);
 		int r = (int)(scalefactor*brushsize/ds);
+		int brushshape = opts.gui_brush_1.getSelectedIndex();
+		if (brushshape == 0) {
 		g.setColor(new Color(50, 50, 50));
 		g.drawOval(mouseX - r+1, mouseY - r+1, 2*r-2, 2*r-2);
 		g.setColor(new Color(200, 200, 200));
 		g.drawOval(mouseX - r, mouseY - r, 2*r, 2*r);
+		} else {
+			g.setColor(new Color(50, 50, 50));
+			g.drawRect(mouseX - r+1, mouseY - r+1, 2*r-2, 2*r-2);
+			g.setColor(new Color(200, 200, 200));
+			g.drawRect(mouseX - r, mouseY - r, 2*r, 2*r);
+		}
 		t5.stop();
 		//g.setColor(.)
 	}
@@ -890,10 +910,6 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		return val;
 	}
 	
-	int mouseX = 0;
-	int mouseY = 250;
-	int mouseButton = 0;
-	boolean mouseIsPressed = false;
 	PointerInfo p = MouseInfo.getPointerInfo();
 
 	@Override
@@ -906,18 +922,57 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 	public void mouseExited(MouseEvent arg0) {}
 
 	@Override
-	public void mousePressed(MouseEvent arg0) {
+	public void mousePressed(MouseEvent e) {
 		mouseIsPressed = true;
-		mouseButton = arg0.getButton();
+		mouseButton = e.getButton();
+		if (e.isShiftDown()) {
+			linemode = true;
+			mxp = (mouseX/scalefactor)*ds;
+			myp = (mouseY/scalefactor)*ds;
+		}else
+			linemode = false;
+		lineorientation = 0;
+		mouseXstart = e.getX();
+		mouseYstart = e.getY();
 	}
 	@Override
-	public void mouseReleased(MouseEvent arg0) {
-		mouseIsPressed = false;}
+	public void mouseReleased(MouseEvent e) {
+		mouseIsPressed = false;
+		if (e.isShiftDown())
+			linemode = true;
+		else
+			linemode = false;	
+		lineorientation = 0;
+	}
 
 	@Override
-	public void mouseDragged(MouseEvent arg0) {
-		mouseX = arg0.getX();
-		mouseY = arg0.getY();
+	public void mouseDragged(MouseEvent e) {
+		if (!linemode) {
+			mouseX = e.getX();
+			mouseY = e.getY();
+		} else {
+			if (lineorientation == 0) {
+				int deltax = e.getX() - mouseXstart;
+				int deltay = e.getY() - mouseYstart;
+				if (deltax > 10) {
+					lineorientation = 1;
+				} else if (deltax < -10) {
+					lineorientation = 1;
+				} else if (deltay > 10) {
+					lineorientation = 2;
+				} else if (deltay < -10) {
+					lineorientation = 2;
+				}
+			} else {
+				if (lineorientation == 1) {
+					mouseY = mouseYstart;
+					mouseX = e.getX();
+				} else if (lineorientation == 2) {
+					mouseX = mouseXstart;
+					mouseY = e.getY();
+				}
+			}
+		}
 	}
 
 	@Override
@@ -1016,8 +1071,14 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			opts.gui_brightness.setValue(opts.gui_brightness.getValue()-1);
         }
     };
+    private Action key_tab = new AbstractAction(null) {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+    		opts.gui_brush_1.setSelectedIndex((opts.gui_brush_1.getSelectedIndex()+1)%2);
+        }
+    };
     
-	public Action[] keys = {key_p, key_f, key_1, key_2, key_3, key_4, key_5, key_sh1, key_sh2, key_sh3, key_c, key_r, key_m, key_eq, key_minus};
+	public Action[] keys = {key_p, key_f, key_1, key_2, key_3, key_4, key_5, key_sh1, key_sh2, key_sh3, key_c, key_r, key_m, key_eq, key_minus, key_tab};
 	public KeyStroke[] keystrokes = {
 			KeyStroke.getKeyStroke(KeyEvent.VK_P, 0),
 			KeyStroke.getKeyStroke(KeyEvent.VK_F, 0),
@@ -1033,7 +1094,8 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			KeyStroke.getKeyStroke(KeyEvent.VK_R, 0),
 			KeyStroke.getKeyStroke(KeyEvent.VK_M, 0),
 			KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, 0),
-			KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, 0)};
+			KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, 0),
+			KeyStroke.getKeyStroke(KeyEvent.VK_Q, 0)};
     
 	@Override
 	public void mouseWheelMoved(MouseWheelEvent e) {
