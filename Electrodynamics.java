@@ -42,10 +42,15 @@ import javax.swing.filechooser.FileFilter;
 
 public class Electrodynamics implements Runnable, MouseListener, MouseMotionListener, MouseWheelListener, ActionListener {
 	
-	//different aspect ratios, multithreading
-	//Units: cm, ns
-	
-	double[][] display;
+	//different aspect ratios, multithreading, change size
+	/*
+	 * Demonstrations: Skin effect, LRC circuit, Simple circuit/speed of light demo,
+	 * AC circuit (effect of cap/inductance), inductor, capacitor,
+	 * mutual inductance/transformer, dielectric,
+	 * charge escaping from center of conductor,
+	 * optical fiber, antenna communication, faraday cage, ohm's law,
+	 * rc circuit, lr circuit, resonant frequency, circuit maze, conductors at equilibrium
+	 */
 	
 	/* Physical fields */
 	double[][] ex; //x component of E field
@@ -68,48 +73,39 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 
 	/* Material properties */
 	Material[][] materials;
-	double[][] conductivityx;
-	double[][] conductivityy;
+	double[][] mobilityfactorx;
+	double[][] mobilityfactory;
 	double[][] emfx;
 	double[][] emfy;
-	double[][] eps_rx;
-	double[][] eps_ry;
-	double[][] mu_rz;
+	double[][] eps_rx; //Dielectric x
+	double[][] eps_ry; //Dielectric y
+	double[][] mu_rz; //Relative permeability
 
 	/* Auxiliary fields */
-	double[][] dx; //displacement
-	double[][] dy;
+	double[][] dx; //Displacement x
+	double[][] dy; //Displacement y
 	double[][] hz; //H field
-	double[][] sx; //poynting
-	double[][] sy;
-	double[][] u; //energy
+	double[][] sx; //Poynting x
+	double[][] sy; //Poynting y
+	double[][] u; //Energy density
 	
 	/* Domain size parameters */
-	double xmin = 0;
-	double xmax = 50;
-	double ymin = 0;
-	double ymax = 50;
-	double width = xmax-xmin;
-	double height = ymax-ymin;
+	double width = 50;
+	double height = width;
 	double ds = 0.2;
 	double dt = 0;
 	int nx = (int)(width/ds)+1;
 	int ny = (int)(height/ds)+1;
-	//public static int nx = 257;
-	//public static int ny = 257;
-	
-	int interiorpoints = (nx-2)*(ny-2);
 	
 	/* Physical constants */
+	//double eps0 = 8.85e-12;
+	//double mu0 = 1.257e-6;
 	double eps0 = 1/30.0;
 	double mu0 = 1/30.0;
 	double c = 1/Math.sqrt(eps0*mu0);
 	double csq = 1/(eps0*mu0);
-	double D = 2.0;
-	double Lambda = 5.0;
-	double q = 1.0;
-	double sigma = c*(dt/ds);
-	double sigmasq = sigma*sigma;
+	double D = 2.0; //Diffusivity of charge carriers
+	double Lambda = 10.0; //Conductivity of material
 	double tauminus = 1-c*dt/ds;
 	double tauplus = 1+c*dt/ds;
 	double maxdt = 0.95*ds/(Math.sqrt(2)*c);
@@ -122,7 +118,10 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 	boolean advanceframe = false;
 	boolean clear = false;
 	boolean reset = false;
-	boolean measure = false;
+	boolean save = false;
+	boolean load = false;
+//	boolean emfactive = true;
+//	boolean switchactive = false;
 
 	/* Graphics */
 	RenderCanvas r;
@@ -131,6 +130,8 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 	int scalefactor = 3;
 	int imgwidth = 0;
 	int imgheight = 0;
+	int targetfps = 60;
+	int frameduration = 1000/targetfps;
 	
 	/* Timing */
 	Timer t1 = new Timer("Poisson 1", false);
@@ -146,6 +147,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 	int brush_addemf = 2;
 	int brush_adddielectric = 3;
 	int brush_addparamagnet = 4;
+	int brush_addswitch = 5;
 	boolean drawingcharge = false;
 	boolean linemode = false;
 	int lineorientation = 0;
@@ -155,20 +157,20 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 	int mouseYstart = 250;
 	int mouseButton = 0;
 	boolean mouseIsPressed = false;
+	double mxp = 0.0;
+	double myp = 0.0;
 
+	String fileextension = ".ed";
+	
 	public static void main(String[] args) {
 		Electrodynamics w = new Electrodynamics();
 		w.run();
 	}
 	
 	public Electrodynamics() {
-		//System.out.println("CFL condition: ds/sqrt(2)dt = " + (ds/(1.414*dt)) + ", c = " + c);
-		System.out.println(maxdt);
-		System.out.println(ds*ds/(4*D));
-		System.out.println(maxdt*Lambda/eps0);
-		opts = new MainWindow();
-		display = new double[nx][ny];
+		checkCFL();
 		
+		opts = new MainWindow();
 
 		ex = new double[nx][ny];
 		ey = new double[nx][ny];
@@ -178,7 +180,6 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		jy = new double[nx][ny];
 
 		bzp = new double[nx][ny];
-		
 
 		deltarho = new double[nx][ny];
 		deltarhoMG = new double[nx][ny];
@@ -186,8 +187,8 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		poisson2 = new double[nx][ny];
 		
 		materials = new Material[nx][ny];
-		conductivityx = new double[nx][ny];
-		conductivityy = new double[nx][ny];
+		mobilityfactorx = new double[nx][ny];
+		mobilityfactory = new double[nx][ny];
 		emfx = new double[nx][ny];
 		emfy = new double[nx][ny];
 		eps_rx = new double[nx][ny];
@@ -215,7 +216,6 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		imgheight = (int)Math.ceil(scalefactor*ny);
 		screen = (BufferedImage) opts.createImage(imgwidth, imgheight);
 		
-		
 		opts.add(r, BorderLayout.CENTER);
 		r.addMouseListener(this);
 		r.addMouseMotionListener(this);
@@ -225,6 +225,9 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		opts.gui_resetall.addActionListener(this);
 		opts.gui_save.addActionListener(this);
 		opts.gui_open.addActionListener(this);
+		opts.gui_emf.addActionListener(this);
+		opts.gui_switch.addActionListener(this);
+		
 		opts.pack();
 		
 		for (int i = 0; i < keys.length; i++) {
@@ -238,10 +241,19 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 
 	@Override
 	public void run() {
+		long tstart = 0, deltat = 0;
+		
 		while (true) {
+			
+			int sleepduration = (int) (frameduration-deltat/1000000);
+			if (sleepduration < 1)
+				sleepduration = 1;
+			
 			try {
-				Thread.sleep(16);
+				Thread.sleep(sleepduration);
 			} catch (InterruptedException e) {}
+
+			tstart = System.nanoTime();
 			
 			int iterationmultiplier = opts.gui_simspeed_2.getValue();
 			
@@ -257,8 +269,6 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			if (opts.gui_simspeed.getValue() != lastsimspeed) {
 				lastsimspeed = opts.gui_simspeed.getValue();
 				dt = maxdt*(lastsimspeed/20.0);
-				sigma = c*(dt/ds);
-				sigmasq = sigma*sigma;
 				tauminus = 1-c*dt/ds;
 				tauplus = 1+c*dt/ds;
 			}
@@ -273,7 +283,30 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			
 			calcAuxillaryFields();
 			
+			if (save) {
+				writeFile();
+				save = false;
+			}
+			
+			if (load) {
+				readFile();
+				load = false;
+			}
+			
 			r.repaint();
+			
+			deltat = System.nanoTime()-tstart;
+		}
+	}
+	
+	public void checkCFL() {
+		if (c > ds/(Math.sqrt(2)*dt)) {
+			System.out.println("Error: Wave speed too high. Ratio = " + (c/(ds/(Math.sqrt(2*dt)))));
+			System.exit(0);
+		}
+		if (dt > ds*ds/(4*D)) {
+			System.out.println("Error: Diffusion coefficient too high. Ratio = " + dt/(ds*ds/(4*D)));
+			System.exit(0);
 		}
 	}
 
@@ -287,17 +320,14 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		{
 			for (int j = 0; j < ny; j++)
 			{
-				display[i][j]=0.0;
 				ex [i][j] = 0.0;
 				ey [i][j] = 0.0;
-
 				bz [i][j] = 0.0;
-				bzp [i][j] = 0.0;
-
-
+				rho [i][j] = 0.0;
 				jx [i][j] = 0.0;
 				jy [i][j] = 0.0;
 
+				bzp [i][j] = 0.0;
 
 				poisson1 [i][j] = 0.0;
 				poisson2 [i][j] = 0.0;
@@ -315,50 +345,27 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 					//rho[i][j] = (1+Math.signum(200.0 - (x-25)*(x-25) - (y-25)*(y-25)));
 					//double dist = Math.sqrt((x-25)*(x-25) + (y-25)*(y-25));
 					//rho[i][j] = 100.0*Math.exp(-dist*dist);
-					rho [i][j] = 0.0;
 					
 					if (materials[i][j] == null)
 						materials[i][j] = new Material();
 					else
 						materials[i][j].reset();
 					
-					conductivityx[i][j] = 0.0;
-					conductivityy[i][j] = 0.0;
+					mobilityfactorx[i][j] = 0.0;
+					mobilityfactory[i][j] = 0.0;
 					emfx[i][j] = 0.0;
 					emfy[i][j] = 0.0;
-					//double dist2 = Math.sqrt((x-25)*(x-25) + (y-30)*(y-30));
 					eps_rx[i][j] = 1.0;
 					eps_ry[i][j] = 1.0;
 					mu_rz[i][j] = 1.0;
-					
+
+					//double dist2 = Math.sqrt((x-25)*(x-25) + (y-30)*(y-30));
 					//epsx[i][j] = 1 + 10.0*sigmoid(-(dist2-2.0));
 					//epsy[i][j] = 1 + 10.0*sigmoid(-(dist2-2.0));
 				}
 			}
 		}
-
-
-		if (resetall) {
-			/*for (int i = 1; i < nx-2; i++)
-			{
-				for (int j = 1; j < ny-1; j++)
-				{
-					conductivityx[i][j] = 1.0;
-				}
-			}
-
-			for (int i = 1; i < nx-1; i++)
-			{
-				for (int j = 1; j < ny-2; j++)
-				{
-					conductivityy[i][j] = 1.0;
-				}
-			}*/
-		}
 	}
-	
-	public double mxp = 0.0;
-	public double myp = 0.0;
 	
 	public void handleMouseInput() {
 		int brush = opts.gui_brush.getSelectedIndex();
@@ -380,13 +387,13 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		opts.gui_label_direction.setText("Brush direction: " + directionval*(360/24) + " deg");
 		double angle = Math.PI * directionval/12.0;
 
-		double mx = (mouseX/scalefactor)*ds;
-		double my = (mouseY/scalefactor)*ds;
+		double mx = ((mouseX+1)/(double)scalefactor)*ds;
+		double my = ((mouseY+1)/(double)scalefactor)*ds;
 		
 		if (mouseIsPressed) {
 			
 			double brushsize = 1.5*Math.pow(10.0, opts.gui_brushsize.getValue()/10.0);
-			double intensity = 1.0*Math.pow(10.0, opts.gui_brushsize.getValue()/10.0);
+			double intensity = 1.0*Math.pow(10.0, opts.gui_brushintensity2.getValue()/10.0);
 			
 			for (int i = 1; i < nx-1; i++)
 			{
@@ -451,7 +458,16 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 									materials[i][j].type = Material.m_paramagnet;
 									materials[i][j].mur = 1+intensity;
 								}
-							}
+							} else if (brush == brush_addswitch) {
+								if (mouseButton == MouseEvent.BUTTON1 && materials[i][j].type == Material.m_vacuum) {
+									materials[i][j].reset();
+									materials[i][j].type = Material.m_switch;
+									if (opts.gui_switch.isSelected())
+										materials[i][j].conductivity = 1.0;
+									else
+										materials[i][j].conductivity = Material.switch_low_val;
+								}
+							} 
 							
 							if (mouseButton == MouseEvent.BUTTON3) {
 								materials[i][j].reset();
@@ -470,8 +486,6 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		}
 		mxp = mx;
 		myp = my;
-		//u[mouseX/RenderCanvas.INTERVAL][mouseY/RenderCanvas.INTERVAL] = 10.0;//10.0*Math.sin(time*20.0);
-			//10.0*Math.sin(time*20.0);
 	}
 	
 	public void updateMaterial(int orientation, int i, int j) {
@@ -486,9 +500,11 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			if (j2 == ny-1)
 				j2 = ny-2;
 			
-			conductivityx[i][j] = Math.max(materials[i1][j1].conductivity, materials[i2][j2].conductivity);
+			mobilityfactorx[i][j] = Math.max(materials[i1][j1].conductivity, materials[i2][j2].conductivity);
 			emfx[i][j] = Math.max(materials[i1][j1].emfx, materials[i2][j2].emfx);
 			eps_rx[i][j] = Math.max(materials[i1][j1].epsr, materials[i2][j2].epsr);
+			if (mobilityfactorx[i][j] > 0)
+				eps_rx[i][j] = 1;
 		} else if (orientation == 1) {
 			int i1 = i;
 			int j1 = j;
@@ -500,9 +516,11 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			if (i2 == nx-1)
 				i2 = nx-2;
 			
-			conductivityy[i][j] = Math.max(materials[i1][j1].conductivity, materials[i2][j2].conductivity);
+			mobilityfactory[i][j] = Math.max(materials[i1][j1].conductivity, materials[i2][j2].conductivity);
 			emfy[i][j] = Math.max(materials[i1][j1].emfy, materials[i2][j2].emfy);
 			eps_ry[i][j] = Math.max(materials[i1][j1].epsr, materials[i2][j2].epsr);
+			if (mobilityfactory[i][j] > 0)
+				eps_ry[i][j] = 1;
 		}
 	}
 
@@ -512,7 +530,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		
 		stepnumber++;
 
-		/*Interior*/
+		/*Interior B field & charge*/
 		
 		for (int i = 1; i < nx-2; i++)
 		{
@@ -545,12 +563,10 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		}
 
 		/* Corners */
-		//double sqrt2 = Math.sqrt(2);
-		//bz[0][0] = ((sqrt2*dt/ds)*(-bz[1][1] - bzp[1][1] + bzp[0][0]) + bzp[0][0]+ bzp[0][1]+ bzp[1][0]+ bzp[1][1] - bz[0][1] - bz[1][0] - bz[1][1])/(1-sqrt2*dt/ds);
-		bz[0][0] = 0.5*(bz[1][0] + bz[0][1]);
-		bz[nx-2][0] = 0.5*(bz[nx-3][0] + bz[nx-2][1]);
-		bz[0][ny-2] = 0.5*(bz[0][ny-3] + bz[1][ny-2]);
-		bz[nx-2][ny-2] = 0.5*(bz[nx-3][ny-2] + bz[nx-2][ny-3]);
+		bz[0][0] = 0.25*(bz[1][0] + bz[0][1]) + 0.5*bzp[0][0];
+		bz[nx-2][0] = 0.25*(bz[nx-3][0] + bz[nx-2][1]) + 0.5*bzp[nx-2][0];
+		bz[0][ny-2] = 0.25*(bz[0][ny-3] + bz[1][ny-2]) + 0.5*bzp[0][ny-2];
+		bz[nx-2][ny-2] = 0.25*(bz[nx-3][ny-2] + bz[nx-2][ny-3]) + 0.5*bzp[nx-2][ny-2];
 
 		for (int i = 0; i <= 1; i++)
 			for (int j = 0; j < ny; j++)
@@ -568,8 +584,8 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			for (int j = ny-3; j <= ny-2; j++)
 				bzp[i][j] = bz[i][j];
 
-		/*E field*/
 		
+		/*E field and current*/
 		
 		phase += 10.0*Math.pow(10.0, opts.gui_emf_freq.getValue()/15.0) * dt;
 		double emffactor = 1.0;
@@ -583,10 +599,10 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		{
 			for (int j = 1; j < ny-1; j++)
 			{
-				jx[i][j] = (-D*(rho[i+1][j] - rho[i][j])/ds + emfx[i][j]*emffactor + 0.5*Lambda*ex[i][j])*conductivityx[i][j];
+				jx[i][j] = (-D*(rho[i+1][j] - rho[i][j])/ds + emfx[i][j]*emffactor + 0.5*Lambda*ex[i][j])*mobilityfactorx[i][j];
 				ex[i][j] = (ex[i][j] + (csq*(bz[i][j]/mu_rz[i][j]-bz[i][j-1]/mu_rz[i][j-1])/ds - jx[i][j]/eps0)*(dt/eps_rx[i][j]))
-						/(1+0.5*dt*Lambda/(eps0*eps_rx[i][j])*conductivityx[i][j]);
-				jx[i][j] += 0.5*ex[i][j]*Lambda*conductivityx[i][j];
+						/(1+0.5*dt*Lambda/(eps0*eps_rx[i][j])*mobilityfactorx[i][j]);
+				jx[i][j] += 0.5*ex[i][j]*Lambda*mobilityfactorx[i][j];
 			}
 		}
 
@@ -594,10 +610,10 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		{
 			for (int j = 0; j < ny-1; j++)
 			{
-				jy[i][j] = (-D*(rho[i][j+1] - rho[i][j])/ds + emfy[i][j]*emffactor + 0.5*Lambda*ey[i][j])*conductivityy[i][j];
+				jy[i][j] = (-D*(rho[i][j+1] - rho[i][j])/ds + emfy[i][j]*emffactor + 0.5*Lambda*ey[i][j])*mobilityfactory[i][j];
 				ey[i][j] = (ey[i][j] + (-csq*(bz[i][j]/mu_rz[i][j]-bz[i-1][j]/mu_rz[i-1][j])/ds - jy[i][j]/eps0)*(dt/eps_ry[i][j]))
-						/(1+0.5*dt*Lambda/(eps0*eps_ry[i][j])*conductivityy[i][j]);
-				jy[i][j] += 0.5*ey[i][j]*Lambda*conductivityy[i][j];
+						/(1+0.5*dt*Lambda/(eps0*eps_ry[i][j])*mobilityfactory[i][j]);
+				jy[i][j] += 0.5*ey[i][j]*Lambda*mobilityfactory[i][j];
 			}
 		}
 
@@ -617,7 +633,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			{
 				for (int j = 1; j < ny-2; j++)
 				{
-					hz[i][j] = bz[i][j]/mu_rz[i][j];
+					hz[i][j] = bz[i][j]/(mu_rz[i][j]*mu0);
 				}
 			}
 		}
@@ -630,8 +646,8 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 					u[i][j] = (ex[i][j]*ex[i][j]*eps_rx[i][j]
 							+ ex[i][j+1]*ex[i][j+1]*eps_rx[i][j+1]
 									+ ey[i][j]*ey[i][j]*eps_ry[i][j]
-											+ey[i+1][j]*ey[i+1][j]*eps_ry[i+1][j])/8
-							+ bz[i][j]*bz[i][j]/(2*mu_rz[i][j]);
+											+ey[i+1][j]*ey[i+1][j]*eps_ry[i+1][j])*eps0/4.0
+							+ bz[i][j]*bz[i][j]/(2*mu_rz[i][j]*mu0);
 				}
 			}
 		}
@@ -641,7 +657,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			{
 				for (int j = 1; j < ny-1; j++)
 				{
-					dx[i][j] = eps_rx[i][j]*ex[i][j];
+					dx[i][j] = eps_rx[i][j]*ex[i][j]*eps0;
 				}
 			}
 
@@ -649,7 +665,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			{
 				for (int j = 0; j < ny-1; j++)
 				{
-					dy[i][j] = eps_ry[i][j]*ey[i][j];
+					dy[i][j] = eps_ry[i][j]*ey[i][j]*eps0;
 				}
 			}
 		}
@@ -659,7 +675,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			{
 				for (int j = 1; j < ny-1; j++)
 				{
-					sy[i][j] = -ex[i][j]*0.5*(bz[i][j]/mu_rz[i][j] + bz[i][j-1]/mu_rz[i][j-1]);
+					sy[i][j] = -ex[i][j]*0.5*(bz[i][j]/mu_rz[i][j] + bz[i][j-1]/mu_rz[i][j-1])/mu0;
 				}
 			}
 
@@ -667,7 +683,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			{
 				for (int j = 0; j < ny-1; j++)
 				{
-					sx[i][j] = ey[i][j]*0.5*(bz[i][j]/mu_rz[i][j] + bz[i-1][j]/mu_rz[i-1][j]);
+					sx[i][j] = ey[i][j]*0.5*(bz[i][j]/mu_rz[i][j] + bz[i-1][j]/mu_rz[i-1][j])/mu0;
 				}
 			}
 		}
@@ -938,6 +954,28 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		return va*(1.0-fy) + vb*fy;
 	}
 
+	public void updateUserControl() {
+
+		for (int i = 1; i < nx-1; i++)
+		{
+			for (int j = 1; j < ny-1; j++)
+			{
+				if (materials[i][j].type == Material.m_switch) {
+					if (opts.gui_switch.isSelected()) {
+						materials[i][j].conductivity = 1.0;
+					} else {
+						materials[i][j].conductivity = Material.switch_low_val;
+					}
+				}
+
+				updateMaterial(0, i, j);
+				updateMaterial(0, i, j+1);
+				updateMaterial(1, i, j);
+				updateMaterial(1, i+1, j);
+			}
+		}
+	}
+
 	public double getex(double x, double y) {
 		return bilinearinterp(ex, x - 0.5, y);
 	}
@@ -1096,50 +1134,46 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		Graphics2D g = (Graphics2D) screen.getGraphics();
 		g.setColor(new Color(50, 50, 50));
 		g.fillRect(0, 0, imgwidth, imgheight);
-		double scalingconstant = 0.5*Math.pow(10.0, opts.gui_brightness.getValue()/10.0);
+		double scalingconstant = 10.0*Math.pow(10.0, opts.gui_brightness.getValue()/10.0);
 		int scalarview = opts.gui_view.getSelectedIndex();
 		int vectorview = opts.gui_view_vec.getSelectedIndex();
 		setalphaBG(0);
 		setalphaFG(1);
-		for (int i = 0; i < nx; i++) {
-			for (int j = 0; j < ny; j++) {
-				int x = i;
-				int y = j;
+		for (int i = 0; i < nx-1; i++) {
+			for (int j = 0; j < ny-1; j++) {
+				double x = i;
+				double y = j;
 
 				if (scalarview == 0) {
-					if (i < nx-1 && j < ny-1) {
-						double exg = 0.5*(ex[i][j]+ex[i][j+1])*scalingconstant;
-						double eyg = 0.5*(ey[i][j]+ey[i+1][j])*scalingconstant;
-						setcol(exg, 0, eyg, 30);
-					}
+					double exg = 0.5*(ex[i][j]+ex[i][j+1])*scalingconstant;
+					double eyg = 0.5*(ey[i][j]+ey[i+1][j])*scalingconstant;
+					setcol(Math.abs(exg), 0, Math.abs(eyg), 30);
 				}
 				else if (scalarview == 1) {
 					double bzg = this.bz[i][j]*c*scalingconstant;
 					setcol(clamp(bzg, 0, 999), 0, clamp(-bzg, 0, 999), 30);
 				}
 				else if (scalarview == 2) {
-					x -= 0.5;
-					y -= 0.5;
-					double rhog = rho[i][j]*5*ds*scalingconstant;
+					//x -= 0.5;
+					//y -= 0.5;
+					double rhog = (rho[i][j]+rho[i+1][j]+rho[i][j+1]+rho[i+1][j+1])*2*ds*scalingconstant;
 					setcol(clamp(rhog, 0, 999), 0, clamp(-rhog, 0, 999), 30);
 				}
 				else if (scalarview == 3) {
-					if (i < nx-1 && j < ny-1) {
-						double jxg = 0.5*(jx[i][j]+jx[i][j+1])*scalingconstant;
-						double jyg = 0.5*(jy[i][j]+jy[i+1][j])*scalingconstant;
-						setcol(jxg, 0, jyg, 30);
-					}
+					double jxg = 0.5*(jx[i][j]+jx[i][j+1])*scalingconstant/Lambda;
+					double jyg = 0.5*(jy[i][j]+jy[i+1][j])*scalingconstant/Lambda;
+					setcol(Math.abs(jxg), 0, Math.abs(jyg), 30);
 				}
 				else if (scalarview == 4) {
-					double hzg = this.hz[i][j]*c*scalingconstant;
+					double hzg = this.hz[i][j]*c*mu0*scalingconstant;
 					setcol(clamp(hzg, 0, 999), 0, clamp(-hzg, 0, 999), 30);
 				}
 				else if (scalarview == 5) {
-					double ug = this.u[i][j]*scalingconstant;
+					double ug = this.u[i][j]*scalingconstant*5;
 					setcol(0, ug, 0, 30);
 				}
 				
-				fillRectangle((int)(x*scalefactor), (int)(y*scalefactor), (int)Math.ceil(scalefactor), (int)Math.ceil(scalefactor));
+				fillRectangle((int)(x*scalefactor), (int)(y*scalefactor), scalefactor, scalefactor);
 			}
 		}
 
@@ -1147,22 +1181,24 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		setalphaFG(0.5);
 		for (int i = 0; i < nx; i++) {
 			for (int j = 0; j < ny; j++) {
-				if (materials[i][j].conductivity > 0.5) {
+				if (materials[i][j].type == Material.m_conductor) {
 					setColor(180, 180, 180);
-					fillRectangle((int)(i*scalefactor), (int)(j*scalefactor), scalefactor, scalefactor);
-				}
-				if (materials[i][j].epsr > 1) {
+				} else if (materials[i][j].type == Material.m_dielectric) {
 					setColor(90, 50, 0);
-					fillRectangle((int)(i*scalefactor), (int)(j*scalefactor), scalefactor, scalefactor);
-				}
-				if (materials[i][j].mur > 1) {
+				} else if (materials[i][j].type == Material.m_paramagnet) {
 					setColor(77, 120, 100);
-					fillRectangle((int)(i*scalefactor), (int)(j*scalefactor), scalefactor, scalefactor);
-				}
-				if (materials[i][j].emfx*materials[i][j].emfx + materials[i][j].emfy*materials[i][j].emfy > 0) {
+				} else if (materials[i][j].type == Material.m_battery) {
 					setColor(180, 0, 180);
-					fillRectangle((int)(i*scalefactor), (int)(j*scalefactor), scalefactor, scalefactor);
+				} else if (materials[i][j].type == Material.m_switch) {
+					if (opts.gui_switch.isSelected()) {
+						setColor(190, 190, 190);
+					} else {
+						setColor(30, 30, 30);
+					}
 				}
+
+				if (materials[i][j].type != Material.m_vacuum)
+					fillRectangle((int)(i*scalefactor), (int)(j*scalefactor), scalefactor, scalefactor);
 			}
 		}
 
@@ -1171,7 +1207,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		
 		double arrowlength = scalefactor;
 
-		double vectorscalingconstant = 5.0*Math.pow(10.0, opts.gui_brightness_1.getValue()/10.0);
+		double vectorscalingconstant = 10.0*Math.pow(10.0, opts.gui_brightness_1.getValue()/10.0);
 		for (int i = 0; i < 50; i++) {
 			for (int j = 0; j < 50; j++) {
 				double x = (nx-1)*(i+0.5)/50;
@@ -1184,7 +1220,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 				else if (vectorview == 1)
 					arrow = new Vector(getjx(x, y)/Lambda, getjy(x, y)/Lambda);
 				else if (vectorview == 2)
-					arrow = new Vector(getdx(x, y), getdy(x, y));
+					arrow = new Vector(getdx(x, y)/eps0, getdy(x, y)/eps0);
 				else if (vectorview == 3)
 					arrow = new Vector(getsx(x, y), getsy(x, y));
 
@@ -1211,41 +1247,16 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			}
 		}
 
-		
-		g.setColor(Color.WHITE);
-
 		((Graphics2D)g).setRenderingHint(
-		        RenderingHints.KEY_TEXT_ANTIALIASING,
-		        RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+				RenderingHints.KEY_TEXT_ANTIALIASING,
+				RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-		double mx = (mouseX/scalefactor);
-		double my = (mouseY/scalefactor);
-		int mi = (int)Math.floor(mx);
-		int mj = (int)Math.floor(my);
-		Material mat = materials[mi][mj];
-		
-		int vspacing = 12;
-		int voffset = 1;
-		int hoffset = 5;
-		double eg = length(getex(mx,my), getey(mx,my));
-		double bg = getbz(mx, my);
-		double rhog = getrho(mx, my);
-		double jg = length(getjx(mx,my), getjy(mx,my));
-		g.drawString("E: " + getSI(eg, "V/m"), hoffset, voffset + 1*vspacing);
-		g.drawString("B: " + getSI(bg, "T"), hoffset, voffset + 2*vspacing);
-		g.drawString("\u03c1: " + getSI(rhog, "C/m^3"), hoffset, voffset + 3*vspacing);
-		g.drawString("J: " + getSI(jg, "A/m^2"), hoffset, voffset + 4*vspacing);
-		g.drawString("\u03c3: " + getSI(mat.conductivity, "S"), hoffset, voffset + 5*vspacing);
-		g.drawString("emf: " + getSI(length(mat.emfx, mat.emfy), "V/m"), hoffset, voffset + 6*vspacing);
-		g.drawString("\u03b5r: " + getSI(mat.epsr, ""), hoffset, voffset + 7*vspacing);
-		g.drawString("\u03bcr: " + getSI(mat.mur, ""), hoffset, voffset + 8*vspacing);
-		
 		double brushsize = 1.5*Math.pow(10.0, opts.gui_brushsize.getValue()/10.0);
 		int r = (int)(scalefactor*brushsize/ds);
 		int brushshape = opts.gui_brush_1.getSelectedIndex();
 		if (brushshape == 0) {
 		g.setColor(new Color(50, 50, 50));
-		g.drawOval(mouseX - r+1, mouseY - r+1, 2*r-2, 2*r-2);
+		g.drawOval(mouseX - r+1, mouseY - r+1, 2*r, 2*r);
 		g.setColor(new Color(200, 200, 200));
 		g.drawOval(mouseX - r, mouseY - r, 2*r, 2*r);
 		} else {
@@ -1254,8 +1265,54 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			g.setColor(new Color(200, 200, 200));
 			g.drawRect(mouseX - r, mouseY - r, 2*r, 2*r);
 		}
+		
+		
+		g.setColor(Color.WHITE);
+
+
+		if (opts.gui_tooltip.isSelected()) {
+			double mx = (mouseX/(double)scalefactor);
+			double my = (mouseY/(double)scalefactor);
+			int mi = (int)Math.floor(mx);
+			int mj = (int)Math.floor(my);
+			
+			if (mi < 0)
+				mi = 0;
+			if (mi >= nx-1)
+				mi = nx-2;
+			if (mj < 0)
+				mj = 0;
+			if (mj >= ny-1)
+				mj = ny-2;
+			
+			Material mat = materials[mi][mj];
+
+			int vspacing = 12;
+			int voffset = 1 + mouseY;
+			int hoffset = 5 + mouseX+15;
+			double eg = length(getex(mx,my), getey(mx,my));
+			double bg = getbz(mx, my);
+			double rhog = getrho(mx, my);
+			double jg = length(getjx(mx,my), getjy(mx,my));
+			drawString("E: " + getSI(eg, "V/m"), hoffset, voffset + 1*vspacing, g);
+			drawString("B: " + getSI(bg, "T"), hoffset, voffset + 2*vspacing, g);
+			drawString("\u03c1: " + getSI(rhog, "C/m^3"), hoffset, voffset + 3*vspacing, g);
+			drawString("J: " + getSI(jg, "A/m^2"), hoffset, voffset + 4*vspacing, g);
+			drawString("\u03c3: " + getSI(mat.conductivity, "S"), hoffset, voffset + 5*vspacing, g);
+			drawString("emf: " + getSI(length(mat.emfx, mat.emfy), "V/m"), hoffset, voffset + 6*vspacing, g);
+			drawString("\u03b5r: " + getSI(mat.epsr, ""), hoffset, voffset + 7*vspacing, g);
+			drawString("\u03bcr: " + getSI(mat.mur, ""), hoffset, voffset + 8*vspacing, g);
+		}
+		
 		t5.stop();
 		//g.setColor(.)
+	}
+	
+	public void drawString(String str, int x, int y, Graphics g) {
+		g.setColor(Color.DARK_GRAY);
+		g.drawString(str, x+1, y+1);
+		g.setColor(Color.WHITE);
+		g.drawString(str, x, y);
 	}
 
 	public void setcol(double r, double g, double b, int base) {
@@ -1300,7 +1357,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			return String.format("%.1f", quantity*1e-9) + " G" + unit;
 	}
 	
-	public boolean load()
+	public boolean readFile()
 	{
 
 		JFileChooser fd = new JFileChooser();
@@ -1309,13 +1366,12 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 				if (f.isDirectory()) {
 					return true;
 				}
-				return true;
-				//if (f.getName().endsWith(".txt")) return true;
-				//return false;
+				if (f.getName().endsWith(fileextension)) return true;
+				return false;
 			}
 			@Override
 			public String getDescription() {
-				return ".txt";
+				return fileextension;
 			}
 		});
 		fd.setVisible(true);
@@ -1326,42 +1382,59 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			FileInputStream fstr = new FileInputStream(infile);
 			ObjectInputStream ostr = new ObjectInputStream(fstr);
 
-			time = ostr.readDouble();
-			phase = ostr.readDouble();
-			opts.gui_paused.setSelected(ostr.readBoolean());
-			opts.gui_view.setSelectedIndex(ostr.readInt());
-			opts.gui_view_vec.setSelectedIndex(ostr.readInt());
-			opts.gui_emftype.setSelectedIndex(ostr.readInt());
-			opts.gui_simspeed.setValue(ostr.readInt());
-			opts.gui_simspeed_2.setValue(ostr.readInt());
-			opts.gui_brightness.setValue(ostr.readInt());
-			opts.gui_brightness_1.setValue(ostr.readInt());
-			opts.gui_emf.setSelected(ostr.readBoolean());
-			opts.gui_emf_freq.setValue(ostr.readInt());
-			opts.gui_brush.setSelectedIndex(ostr.readInt());
-			opts.gui_brush_1.setSelectedIndex(ostr.readInt());
-			opts.gui_brushsize.setValue(ostr.readInt());
-			opts.gui_brushintensity2.setValue(ostr.readInt());
-			opts.gui_direction.setValue(ostr.readInt());
+			int version = ostr.readInt();
 
-			(ex) = (double[][]) ostr.readObject();
-			(ey) = (double[][]) ostr.readObject();
-			(bz) = (double[][]) ostr.readObject();
-			(rho) = (double[][]) ostr.readObject();
-			(jx) = (double[][]) ostr.readObject();
-			(jy) = (double[][]) ostr.readObject();
-			(bzp) = (double[][]) ostr.readObject();
-			(materials) = (Material[][]) ostr.readObject();
-			(conductivityx) = (double[][]) ostr.readObject();
-			(conductivityy) = (double[][]) ostr.readObject();
-			(emfx) = (double[][]) ostr.readObject();
-			(emfy) = (double[][]) ostr.readObject();
-			(eps_rx) = (double[][]) ostr.readObject();
-			(eps_ry) = (double[][]) ostr.readObject();
-			(mu_rz) = (double[][]) ostr.readObject();
-			
+			if (version == 1) {
+				time = ostr.readDouble();
+				phase = ostr.readDouble();
+				opts.gui_paused.setSelected(ostr.readBoolean());
+				opts.gui_tooltip.setSelected(ostr.readBoolean());
+				opts.gui_view.setSelectedIndex(ostr.readInt());
+				opts.gui_view_vec.setSelectedIndex(ostr.readInt());
+				opts.gui_emftype.setSelectedIndex(ostr.readInt());
+				opts.gui_simspeed.setValue(ostr.readInt());
+				opts.gui_simspeed_2.setValue(ostr.readInt());
+				opts.gui_brightness.setValue(ostr.readInt());
+				opts.gui_brightness_1.setValue(ostr.readInt());
+				opts.gui_emf_freq.setValue(ostr.readInt());
+				opts.gui_emf.setSelected(ostr.readBoolean());
+				opts.gui_switch.setSelected(ostr.readBoolean());
+				opts.gui_brush.setSelectedIndex(ostr.readInt());
+				opts.gui_brush_1.setSelectedIndex(ostr.readInt());
+				opts.gui_brushsize.setValue(ostr.readInt());
+				opts.gui_brushintensity2.setValue(ostr.readInt());
+				opts.gui_direction.setValue(ostr.readInt());
+
+				(ex) = (double[][]) ostr.readObject();
+				(ey) = (double[][]) ostr.readObject();
+				(bz) = (double[][]) ostr.readObject();
+				(rho) = (double[][]) ostr.readObject();
+				(jx) = (double[][]) ostr.readObject();
+				(jy) = (double[][]) ostr.readObject();
+				(bzp) = (double[][]) ostr.readObject();
+				(materials) = (Material[][]) ostr.readObject();
+				(mobilityfactorx) = (double[][]) ostr.readObject();
+				(mobilityfactory) = (double[][]) ostr.readObject();
+				(emfx) = (double[][]) ostr.readObject();
+				(emfy) = (double[][]) ostr.readObject();
+				(eps_rx) = (double[][]) ostr.readObject();
+				(eps_ry) = (double[][]) ostr.readObject();
+				(mu_rz) = (double[][]) ostr.readObject();
+			}
+
 			prescaleDielectric();
+			updateUserControl();
 			
+			if (opts.gui_emf.isSelected())
+				opts.gui_emf.setText("EMF: On");
+			else
+				opts.gui_emf.setText("EMF: Off");
+				
+			if (opts.gui_switch.isSelected())
+				opts.gui_switch.setText("Switch: Closed");
+			else 
+				opts.gui_switch.setText("Switch: Open");
+
 			ostr.close();
 			fstr.close();
 		} catch (FileNotFoundException e) {
@@ -1374,7 +1447,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		return true;
 	}
 
-	public boolean save()
+	public boolean writeFile()
 	{
 		JFileChooser fd = new JFileChooser();
 		fd.setFileFilter(new FileFilter(){
@@ -1382,25 +1455,29 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 				if (f.isDirectory()) {
 					return true;
 				}
-				if (f.getName().endsWith(".txt")) return true;
+				if (f.getName().endsWith(fileextension)) return true;
 				return false;
 			}
 			@Override
 			public String getDescription() {
-				return ".txt";
+				return fileextension;
 			}
 		});
 		fd.showSaveDialog(opts);
 		File outfile = fd.getSelectedFile();
 		if (outfile == null) return false;
+		if (!outfile.getName().endsWith(fileextension))
+			outfile = new File(outfile.getAbsolutePath() + fileextension);
 		try {
 			FileOutputStream fstr = new FileOutputStream(outfile);
 			ObjectOutputStream ostr = new ObjectOutputStream(fstr);
 			
+			ostr.writeInt(1);
 			ostr.writeDouble(time);
 			ostr.writeDouble(phase);
 			
 			ostr.writeBoolean(opts.gui_paused.isSelected());
+			ostr.writeBoolean(opts.gui_tooltip.isSelected());
 			ostr.writeInt(opts.gui_view.getSelectedIndex());
 			ostr.writeInt(opts.gui_view_vec.getSelectedIndex());
 			ostr.writeInt(opts.gui_emftype.getSelectedIndex());
@@ -1408,8 +1485,9 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			ostr.writeInt(opts.gui_simspeed_2.getValue());
 			ostr.writeInt(opts.gui_brightness.getValue());
 			ostr.writeInt(opts.gui_brightness_1.getValue());
-			ostr.writeBoolean(opts.gui_emf.isSelected());
 			ostr.writeInt(opts.gui_emf_freq.getValue());
+			ostr.writeBoolean(opts.gui_emf.isSelected());
+			ostr.writeBoolean(opts.gui_switch.isSelected());
 			ostr.writeInt(opts.gui_brush.getSelectedIndex());
 			ostr.writeInt(opts.gui_brush_1.getSelectedIndex());
 			ostr.writeInt(opts.gui_brushsize.getValue());
@@ -1424,8 +1502,8 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			ostr.writeObject(jy);
 			ostr.writeObject(bzp);
 			ostr.writeObject(materials);
-			ostr.writeObject(conductivityx);
-			ostr.writeObject(conductivityy);
+			ostr.writeObject(mobilityfactorx);
+			ostr.writeObject(mobilityfactory);
 			ostr.writeObject(emfx);
 			ostr.writeObject(emfy);
 			ostr.writeObject(eps_rx);
@@ -1459,10 +1537,12 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 	public void mousePressed(MouseEvent e) {
 		mouseIsPressed = true;
 		mouseButton = e.getButton();
+		mouseX = e.getX();
+		mouseY = e.getY();
 		if (e.isShiftDown()) {
 			linemode = true;
-			mxp = (mouseX/scalefactor)*ds;
-			myp = (mouseY/scalefactor)*ds;
+			mxp = ((mouseX+1)/(double)scalefactor)*ds;
+			myp = ((mouseY+1)/(double)scalefactor)*ds;
 		}else
 			linemode = false;
 		lineorientation = 0;
@@ -1655,7 +1735,7 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 
 		@Override
         public void actionPerformed(ActionEvent e) {
-			measure = !measure;
+			//measure = !measure;
         }
     };
     private Action key_eq = new AbstractAction(null) {
@@ -1726,9 +1806,23 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 		else if (e.getSource() == opts.gui_resetall)
 			reset = true;
 		else if (e.getSource() == opts.gui_save)
-			save();
+			save = true;
 		else if (e.getSource() == opts.gui_open)
-			load();
+			load = true;
+		else if (e.getSource() == opts.gui_emf) {
+			if (opts.gui_emf.isSelected()) {
+				opts.gui_emf.setText("EMF: On");
+			} else {
+				opts.gui_emf.setText("EMF: Off");
+			}
+		} else if (e.getSource() == opts.gui_switch) {
+			if (opts.gui_switch.isSelected()) {
+				opts.gui_switch.setText("Switch: Closed");
+			} else {
+				opts.gui_switch.setText("Switch: Open");
+			}
+			updateUserControl();
+		}
 	}
 
 }
@@ -1857,11 +1951,14 @@ class Material implements Serializable {
 	static int m_dielectric = 2;
 	static int m_battery = 3;
 	static int m_paramagnet = 4;
+	static int m_switch = 5;
+	
+	static double switch_low_val = 0;
 	
 	int type = 0;
 	
 	public void reset() {
-		type = 0;
+		type = m_vacuum;
 		conductivity = 0;
 		emfx = 0;
 		emfy = 0;
