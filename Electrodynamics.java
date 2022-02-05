@@ -1568,14 +1568,11 @@ public class Electrodynamics implements Runnable, MouseListener, MouseMotionList
 			if (lineorientation == 0) {
 				int deltax = e.getX() - mouseXstart;
 				int deltay = e.getY() - mouseYstart;
-				if (deltax > 10) {
-					lineorientation = 1;
-				} else if (deltax < -10) {
-					lineorientation = 1;
-				} else if (deltay > 10) {
-					lineorientation = 2;
-				} else if (deltay < -10) {
-					lineorientation = 2;
+				if (Math.abs(deltax) > 10 || Math.abs(deltay) > 10) {
+					if (Math.abs(deltax) > Math.abs(deltay))
+						lineorientation = 1;
+					else
+						lineorientation = 2;
 				}
 			} else {
 				if (lineorientation == 1) {
