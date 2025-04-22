@@ -1,6 +1,25 @@
 Semiconductor Simulation Program
 ================================
 
+Running the Program
+-------------------
+
+1.  Make sure you have the latest version of Java installed.
+2.  If SemiSim crashes when loading a file:
+    *   Make sure you have a 64-bit version of Java installed.
+
+Mac OS
+------
+
+1.  If you see "_SemiSim.jar cannot be opened because it is from an unidentified developer_":
+    *   Right click "SemiSim.jar" and click **Open**.
+    *   Click **Open** again on the popup window.
+2.  If you are unable to see and open files:
+    *   Go into **System Preferences → Security → Privacy → Full Disk Access**.
+    *   Add `/System/Library/CoreServices/Jar Launcher.app` to the list and give it disk access.
+
+* * *
+
 This program demonstrates the behavior of semiconductor devices. Press **"Open"** to load one of the demonstrations and use the mouse to interact.
 
 Tools
