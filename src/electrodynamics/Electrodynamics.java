@@ -1,7 +1,6 @@
 package electrodynamics;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.EventQueue;
@@ -47,11 +46,9 @@ import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
-import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
-import javax.swing.ListCellRenderer;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.filechooser.FileFilter;
@@ -120,7 +117,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	double[][] phi;				// Electric scalar potential
 
 	double[][] G;				// Generation rate
-	double[][] F_n;				// Total chemical potential of electrons
+	double[][] F_n;				// Total chemical potential of electrons (quasi-Fermi level minus the electrostatic potential)
 	double[][] F_p;				// Total chemical potential of holes
 	double[][] grad_E0x_n;		// Gradient of chemical energy
 	double[][] grad_E0y_n;
@@ -132,7 +129,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	double[][] grad_Fy_p;
 	double[][] Q;				// Heat dissipation rate
 	double[][] S;				// Free energy dissipation rate
-	double[][] F;				// Average total electrochemical potential (quasi Fermi level)
+	double[][] F;				// Average total electrochemical potential
 
 	boolean updateMiscFields = false;
 	double[][] debug;
@@ -657,8 +654,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 
 					if (clipboard[i][j] == null)
 						clipboard[i][j] = new Material();
-					else
-						clipboard[i][j].erase();
 					
 					F0_n[i][j] = 0;
 					F0_p[i][j] = 0;
@@ -826,6 +821,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 						+ (-(Ey[i+1][j] - Ey[i][j]) + (Ex[i][j+1] - Ex[i][j]))*dt/(ds*mu_z[i][j])
 						+ Hz_dissipation*dt*Hz_laplacian[i][j])
 						/(1+0.5*dt*sigma/mu_z[i][j]);
+				
+				// Includes unphysical magnetic monopole current term to make absorption very effective
 			}
 		}
 
@@ -934,16 +931,52 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		advanceframe = false;
 	}
 	
+	LogLUT lut = new LogLUT();
+	
 	public double logmean(double x, double y)
 	{
 		if (x <= 0 || y <= 0)
 			return 0;
 		
 		//My approximation
-		if (Math.abs((x-y)/(x+y)) <  0.5)
+		if (Math.abs((x-y)/(x+y)) <  1e-3)
 			return (2/3.0)*Math.sqrt(x*y) + (1/6.0)*(x+y);
 
-		return (x-y)/Math.log(x/y);
+		return (x-y)/lut.log(x/y);
+		//return (x-y)/Math.log(x/y);
+	}
+	
+	// Quick and dirty way to calculate log precisely (relative error < 10^-9)
+	class LogLUT {
+		//int min_exponent = -1022;
+		//int orders = 2045;
+		int min_exponent = -100;
+		int orders = 200;
+		//int divisions = 4;
+		int length;
+		long A = (long)0b1111111111 << 52;
+		
+		double[] x;
+		double[] log_x;
+		
+		public LogLUT() {
+			length = orders*4;
+			x = new double[length];
+			log_x = new double[length];
+			
+			for (int i = 0; i < length; i++) {
+				x[i] = Math.pow(2, min_exponent+i/4)*(1+(i%4)/4.0);
+				log_x[i] = Math.log(x[i]);
+			}
+		}
+		
+		public double log(double y) {
+			int exp = Math.getExponent(y);
+			double mantissa = Double.longBitsToDouble(A|Double.doubleToRawLongBits(y)&(~0x7ff0000000000000l));
+			int i = (int)(((exp-min_exponent)<<2) + 4*mantissa - 3.5);
+			double w = y/x[i];
+			return (w-1)/(0.66666666666666667*Math.sqrt(w) + 0.16666666666666667*(w+1)) + log_x[i];
+		}
 	}
 	
 	public void updateAllMaterials() {
@@ -1644,7 +1677,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 						{
 							for (int j = 0; j < ny; j++)
 							{
-								if (i > mx0 && i < mx1 && j > my0 && j < my1)
+								if (i >= mx0 && i <= mx1 && j >= my0 && j <= my1)
 									selected[i][j] = true;
 								else
 									selected[i][j] = false;
@@ -4036,10 +4069,10 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 
 	enum ScalarView {
 		NONE("No scalar overlay"),
-		E_FIELD("View E field"),
+		E_FIELD("View E field magnitude"),
 		B_FIELD("View B field"),
 		CHARGE("View \u03c1: Net charge density"),
-		CURRENT("View J: Total current"),
+		CURRENT("View J: Total current magnitude"),
 		H_FIELD("View H field"),
 		POTENTIAL("View \u03d5: Electric scalar potential"),
 		ENERGY("View u: Electromagnetic energy density"),
