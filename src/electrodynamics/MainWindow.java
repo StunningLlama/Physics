@@ -235,7 +235,7 @@ public class MainWindow extends JFrame {
 		gui_simspeed_2.setMinimum(1);
 		gui_simspeed_2.setValue(10);
 		gui_simspeed_2.setOrientation(JScrollBar.HORIZONTAL);
-		gui_simspeed_2.setMaximum(30);
+		gui_simspeed_2.setMaximum(60);
 		gui_simspeed_2.setBlockIncrement(1);
 		gui_simspeed_2.setBounds(10, 374, 171, 17);
 		panel.add(gui_simspeed_2);

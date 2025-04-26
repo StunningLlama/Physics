@@ -36,7 +36,9 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Random;
 import java.util.TimerTask;
+import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CyclicBarrier;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -77,7 +79,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	// On the fly adjust material parameters
 	// Option: change vf density and toggle vf/lines
 	// Change size & sim parameters
-	// Multithreading???
 	// Interactions with light
 	// Interact with field
 	// Band structure diagrams
@@ -275,6 +276,16 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	boolean sign_violation = false;
 
 	
+	/* Multithreading */
+	
+	int n_threads = Runtime.getRuntime().availableProcessors();
+	//int n_threads = 5;
+	CyclicBarrier start_barrier = new CyclicBarrier(n_threads + 1);
+	CyclicBarrier stop_barrier = new CyclicBarrier(n_threads + 1);
+	CyclicBarrier mid_barrier = new CyclicBarrier(n_threads);
+	ArrayList<SimulationThread> sim_threads = new ArrayList<SimulationThread>();
+	
+	
 	/* Graphics */
 	
 	RenderCanvas r;
@@ -393,6 +404,14 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 
 		Electrodynamics w = new Electrodynamics();
 		java.util.Timer t = new java.util.Timer();
+		for (int i = 0; i < w.n_threads; i++) {
+			w.sim_threads.add(w.new SimulationThread(i, w.n_threads, w.nx));
+		}
+
+		for (int i = 0; i < w.n_threads; i++) {
+			w.sim_threads.get(i).start();
+		}
+		
 		t.schedule(w, 0, w.frameduration);
 	}
 
@@ -479,7 +498,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 
 			if (!opts.gui_paused.isSelected() || advanceframe) {
 				for (int i = 0; i < iterationmultiplier ; i++) {
-					this.iterateSimulation();
+					start_barrier.await();
+					stop_barrier.await();
 				}
 
 				if (frame % 2 == 0)
@@ -796,139 +816,182 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		}
 	}
 	
-	public void iterateSimulation() {
-
-		t6.start();
+	class SimulationThread extends Thread {
 		
-		stepnumber++;
-
-		/* Interior B field & charge */
-		for (int i = 1; i < nx-2; i++)
-		{
-			for (int j = 1; j < ny-2; j++)
-			{
-				Hz_laplacian[i][j] = (Hz[i+1][j]+Hz[i][j+1]+Hz[i-1][j]+Hz[i][j-1]-4*Hz[i][j])/(ds*ds);
-			}
+		int i_min;
+		int i_max;
+		int n_thread;
+		
+		public SimulationThread(int n, int n_threads, int nx) {
+			i_min = (n*nx)/n_threads;
+			i_max = (n+1)*nx/n_threads-1;
+			n_thread = n;
+			System.out.println("Thread " + n_thread + ": " + i_min + " < i <= " + i_max);
 		}
 		
-		for (int i = 0; i < nx-1; i++)
-		{
-			for (int j = 0; j < ny-1; j++)
-			{
-				double sigma = absorptivity[i][j]*mu_z[i][j]*absorbing_coeff;
-				
-				Hz[i][j] = (Hz[i][j]*(1-0.5*dt*sigma/mu_z[i][j])
-						+ (-(Ey[i+1][j] - Ey[i][j]) + (Ex[i][j+1] - Ex[i][j]))*dt/(ds*mu_z[i][j])
-						+ Hz_dissipation*dt*Hz_laplacian[i][j])
-						/(1+0.5*dt*sigma/mu_z[i][j]);
-				
-				// Includes unphysical magnetic monopole current term to make absorption very effective
+		@Override
+		public void run() {
+			try {
+				while (true) {
+					start_barrier.await();
+					
+					if (n_thread == 0) {
+						t6.start();
+
+						stepnumber++;
+					}
+
+					/* Interior B field & charge */
+					for (int i = 1; i < nx-2; i++)
+					{
+						if (i >= i_min && i <= i_max) {
+							for (int j = 1; j < ny-2; j++)
+							{
+								Hz_laplacian[i][j] = (Hz[i+1][j]+Hz[i][j+1]+Hz[i-1][j]+Hz[i][j-1]-4*Hz[i][j])/(ds*ds);
+							}
+						}
+					}
+					
+					mid_barrier.await();
+
+					for (int i = 0; i < nx-1; i++)
+					{
+						if (i >= i_min && i <= i_max) {
+							for (int j = 0; j < ny-1; j++)
+							{
+								double sigma = absorptivity[i][j]*mu_z[i][j]*absorbing_coeff;
+
+								Hz[i][j] = (Hz[i][j]*(1-0.5*dt*sigma/mu_z[i][j])
+										+ (-(Ey[i+1][j] - Ey[i][j]) + (Ex[i][j+1] - Ex[i][j]))*dt/(ds*mu_z[i][j])
+										+ Hz_dissipation*dt*Hz_laplacian[i][j])
+										/(1+0.5*dt*sigma/mu_z[i][j]);
+
+								// Includes unphysical magnetic monopole current term to make absorption very effective
+							}
+						}
+					}
+
+					for (int i = 1; i < nx-1; i++)
+					{
+						if (i >= i_min && i <= i_max) {
+							for (int j = 1; j < ny-1; j++)
+							{	
+								double generation_rate = conducting[i][j]*R[i][j]*(K[i][j] - rho_n[i][j]*rho_p[i][j]/(q_n*q_p));
+
+								rho_n[i][j] = rho_n[i][j] - (Jx_n[i][j]-Jx_n[i-1][j] + Jy_n[i][j]-Jy_n[i][j-1])*dt/ds + dt*q_n*generation_rate;
+								rho_p[i][j] = rho_p[i][j] - (Jx_p[i][j]-Jx_p[i-1][j] + Jy_p[i][j]-Jy_p[i][j-1])*dt/ds + dt*q_p*generation_rate;
+								rho_abs[i][j] = rho_abs[i][j] - (Jx_abs[i][j]-Jx_abs[i-1][j] + Jy_abs[i][j]-Jy_abs[i][j-1])*dt/ds;
+
+								rho_free[i][j] = rho_abs[i][j]+rho_n[i][j]+rho_p[i][j]+rho_back[i][j];
+
+								double E_avg = Math.sqrt(0.5*(Ex[i][j]*Ex[i][j] + Ex[i-1][j]*Ex[i-1][j] + Ey[i][j]*Ey[i][j] + Ey[i][j-1]*Ey[i][j-1]));
+								mobility_factor[i][j] = Math.min(1, E_sat/E_avg);
+							}
+						}
+					}
+
+					mid_barrier.await();
+
+					for (int i = 0; i < nx-1; i++)
+					{
+						if (i >= i_min && i <= i_max) {
+							for (int j = 1; j < ny-1; j++)
+							{
+								double ex_prev = Ex[i][j];
+
+								double mf = Math.min(mobility_factor[i+1][j], mobility_factor[i][j]);
+								//double mobility_factor = Math.min(1, E_sat/Math.abs(Ex[i][j]));
+
+								double sigma_n = conducting_x[i][j]*mf*mu_electron*logmean(-rho_n[i+1][j],-rho_n[i][j]);
+								double sigma_p = conducting_x[i][j]*mf*mu_hole*logmean(rho_p[i+1][j], rho_p[i][j]);
+
+								Jx_abs[i][j] = 0;
+
+								Jx_n[i][j] = conducting_x[i][j]*(-mf*D_electron*(rho_n[i+1][j] - rho_n[i][j])/ds
+										+ sigma_n*(emfx[i][j] + cmfx_n[i][j]/q_n));
+
+								Jx_p[i][j] = conducting_x[i][j]*(-mf*D_hole*(rho_p[i+1][j] - rho_p[i][j])/ds
+										+ sigma_p*(emfx[i][j] + cmfx_p[i][j]/q_p));
+
+								double sigma = sigma_n + sigma_p + absorptivity_x[i][j]*epsx[i][j]*absorbing_coeff;
+
+								double jx = Jx_abs[i][j] + Jx_n[i][j] + Jx_p[i][j];
+
+								Ex[i][j] = (Ex[i][j]*(1-0.5*dt*sigma/epsx[i][j]) + ((Hz[i][j]-Hz[i][j-1])/ds - jx)*dt/epsx[i][j])
+										/(1+0.5*dt*sigma/epsx[i][j]);
+
+								Jx_abs[i][j] += 0.5*(absorptivity_x[i][j]*epsx[i][j]*absorbing_coeff)*(ex_prev + Ex[i][j]);
+								Jx_n[i][j] += 0.5*sigma_n*(ex_prev + Ex[i][j]);
+								Jx_p[i][j] += 0.5*sigma_p*(ex_prev + Ex[i][j]);
+							}
+						}
+					}
+					
+					for (int i = 1; i < nx-1; i++)
+					{
+						if (i >= i_min && i <= i_max) {
+							for (int j = 0; j < ny-1; j++)
+							{
+								double ey_prev = Ey[i][j];
+
+								double mf = Math.min(mobility_factor[i][j+1], mobility_factor[i][j]);
+								//double mobility_factor = Math.min(1, E_sat/Math.abs(Ey[i][j]));
+
+								double sigma_n = conducting_y[i][j]*mf*mu_electron*logmean(-rho_n[i][j+1],-rho_n[i][j]);
+								double sigma_p = conducting_y[i][j]*mf*mu_hole*logmean(rho_p[i][j+1], rho_p[i][j]);
+
+								Jy_abs[i][j] = 0;
+
+								Jy_n[i][j] = conducting_y[i][j]*(-mf*D_electron*(rho_n[i][j+1] - rho_n[i][j])/ds
+										+ sigma_n*(emfy[i][j] + cmfy_n[i][j]/q_n));
+
+								Jy_p[i][j] = conducting_y[i][j]*(-mf*D_hole*(rho_p[i][j+1] - rho_p[i][j])/ds
+										+ sigma_p*(emfy[i][j] + cmfy_p[i][j]/q_p));
+
+								double sigma = sigma_n + sigma_p + absorptivity_y[i][j]*epsy[i][j]*absorbing_coeff;
+
+								double jy = Jy_abs[i][j] + Jy_n[i][j] + Jy_p[i][j];
+
+								Ey[i][j] = (Ey[i][j]*(1-0.5*dt*sigma/epsy[i][j]) + (-(Hz[i][j]-Hz[i-1][j])/ds - jy)*dt/epsy[i][j])
+										/(1+0.5*dt*sigma/epsy[i][j]);
+
+								Jy_abs[i][j] += 0.5*(absorptivity_y[i][j]*epsy[i][j]*absorbing_coeff)*(ey_prev + Ey[i][j]);
+								Jy_n[i][j] += 0.5*sigma_n*(ey_prev + Ey[i][j]);
+								Jy_p[i][j] += 0.5*sigma_p*(ey_prev + Ey[i][j]);
+							}
+						}
+					}
+
+					if (n_thread == 0) {
+						for (int j = 0; j < ny-1; j++)
+						{
+							Ey[0][j] = 0;
+							Ey[nx-1][j] = 0;
+						}
+
+						for (int i = 0; i < nx-1; i++)
+						{
+							Ex[i][0] = 0;
+							Ex[i][ny-1] = 0;
+						}
+
+						t6.stop();
+
+						if (stepnumber%500 == 0) {
+							multigridSolve(true, false);
+						}
+
+						time += dt;
+
+						advanceframe = false;
+					}
+					
+					stop_barrier.await();
+				}
+			} catch (InterruptedException | BrokenBarrierException e) {
+				e.printStackTrace();
 			}
 		}
-
-		for (int i = 1; i < nx-1; i++)
-		{
-			for (int j = 1; j < ny-1; j++)
-			{	
-				double generation_rate = conducting[i][j]*R[i][j]*(K[i][j] - rho_n[i][j]*rho_p[i][j]/(q_n*q_p));
-				
-				rho_n[i][j] = rho_n[i][j] - (Jx_n[i][j]-Jx_n[i-1][j] + Jy_n[i][j]-Jy_n[i][j-1])*dt/ds + dt*q_n*generation_rate;
-				rho_p[i][j] = rho_p[i][j] - (Jx_p[i][j]-Jx_p[i-1][j] + Jy_p[i][j]-Jy_p[i][j-1])*dt/ds + dt*q_p*generation_rate;
-				rho_abs[i][j] = rho_abs[i][j] - (Jx_abs[i][j]-Jx_abs[i-1][j] + Jy_abs[i][j]-Jy_abs[i][j-1])*dt/ds;
-				
-				rho_free[i][j] = rho_abs[i][j]+rho_n[i][j]+rho_p[i][j]+rho_back[i][j];
-				
-				double E_avg = Math.sqrt(0.5*(Ex[i][j]*Ex[i][j] + Ex[i-1][j]*Ex[i-1][j] + Ey[i][j]*Ey[i][j] + Ey[i][j-1]*Ey[i][j-1]));
-				mobility_factor[i][j] = Math.min(1, E_sat/E_avg);
-			}
-		}
-
-		for (int i = 0; i < nx-1; i++)
-		{
-			for (int j = 1; j < ny-1; j++)
-			{
-				double ex_prev = Ex[i][j];
-				
-				double mf = Math.min(mobility_factor[i+1][j], mobility_factor[i][j]);
-				//double mobility_factor = Math.min(1, E_sat/Math.abs(Ex[i][j]));
-				
-				double sigma_n = conducting_x[i][j]*mf*mu_electron*logmean(-rho_n[i+1][j],-rho_n[i][j]);
-				double sigma_p = conducting_x[i][j]*mf*mu_hole*logmean(rho_p[i+1][j], rho_p[i][j]);
-
-				Jx_abs[i][j] = 0;
-
-				Jx_n[i][j] = conducting_x[i][j]*(-mf*D_electron*(rho_n[i+1][j] - rho_n[i][j])/ds
-						+ sigma_n*(emfx[i][j] + cmfx_n[i][j]/q_n));
-				
-				Jx_p[i][j] = conducting_x[i][j]*(-mf*D_hole*(rho_p[i+1][j] - rho_p[i][j])/ds
-						+ sigma_p*(emfx[i][j] + cmfx_p[i][j]/q_p));
-				
-				double sigma = sigma_n + sigma_p + absorptivity_x[i][j]*epsx[i][j]*absorbing_coeff;
-				
-				double jx = Jx_abs[i][j] + Jx_n[i][j] + Jx_p[i][j];
-				
-				Ex[i][j] = (Ex[i][j]*(1-0.5*dt*sigma/epsx[i][j]) + ((Hz[i][j]-Hz[i][j-1])/ds - jx)*dt/epsx[i][j])
-						/(1+0.5*dt*sigma/epsx[i][j]);
-				
-				Jx_abs[i][j] += 0.5*(absorptivity_x[i][j]*epsx[i][j]*absorbing_coeff)*(ex_prev + Ex[i][j]);
-				Jx_n[i][j] += 0.5*sigma_n*(ex_prev + Ex[i][j]);
-				Jx_p[i][j] += 0.5*sigma_p*(ex_prev + Ex[i][j]);
-			}
-		}
-
-		for (int i = 1; i < nx-1; i++)
-		{
-			for (int j = 0; j < ny-1; j++)
-			{
-				double ey_prev = Ey[i][j];
-
-				double mf = Math.min(mobility_factor[i][j+1], mobility_factor[i][j]);
-				//double mobility_factor = Math.min(1, E_sat/Math.abs(Ey[i][j]));
-				
-				double sigma_n = conducting_y[i][j]*mf*mu_electron*logmean(-rho_n[i][j+1],-rho_n[i][j]);
-				double sigma_p = conducting_y[i][j]*mf*mu_hole*logmean(rho_p[i][j+1], rho_p[i][j]);
-
-				Jy_abs[i][j] = 0;
-				
-				Jy_n[i][j] = conducting_y[i][j]*(-mf*D_electron*(rho_n[i][j+1] - rho_n[i][j])/ds
-						+ sigma_n*(emfy[i][j] + cmfy_n[i][j]/q_n));
-				
-				Jy_p[i][j] = conducting_y[i][j]*(-mf*D_hole*(rho_p[i][j+1] - rho_p[i][j])/ds
-						+ sigma_p*(emfy[i][j] + cmfy_p[i][j]/q_p));
-				
-				double sigma = sigma_n + sigma_p + absorptivity_y[i][j]*epsy[i][j]*absorbing_coeff;
-				
-				double jy = Jy_abs[i][j] + Jy_n[i][j] + Jy_p[i][j];
-				
-				Ey[i][j] = (Ey[i][j]*(1-0.5*dt*sigma/epsy[i][j]) + (-(Hz[i][j]-Hz[i-1][j])/ds - jy)*dt/epsy[i][j])
-						/(1+0.5*dt*sigma/epsy[i][j]);
-				
-				Jy_abs[i][j] += 0.5*(absorptivity_y[i][j]*epsy[i][j]*absorbing_coeff)*(ey_prev + Ey[i][j]);
-				Jy_n[i][j] += 0.5*sigma_n*(ey_prev + Ey[i][j]);
-				Jy_p[i][j] += 0.5*sigma_p*(ey_prev + Ey[i][j]);
-			}
-		}
-		
-		for (int j = 0; j < ny-1; j++)
-		{
-			Ey[0][j] = 0;
-			Ey[nx-1][j] = 0;
-		}
-
-		for (int i = 0; i < nx-1; i++)
-		{
-			Ex[i][0] = 0;
-			Ex[i][ny-1] = 0;
-		}
-		
-		t6.stop();
-
-		if (stepnumber%200 == 0) {
-			multigridSolve(true, false);
-		}
-
-		time += dt;
-		advanceframe = false;
 	}
 	
 	LogLUT lut = new LogLUT();
@@ -4258,7 +4321,7 @@ class Timer {
 			long tend = System.nanoTime();
 			long diff = tend - tstart;
 			time = diff/1e9;
-			avgtime = avgtime*0.95+time*0.05;
+			avgtime = avgtime*0.99+time*0.01;
 		}
 	}
 
