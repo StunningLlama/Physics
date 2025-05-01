@@ -238,6 +238,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	
 	double dielectric_eps_r = 5.0;
 	double ferromagnet_mu_r = 5.0;
+	double staticcharge_density = 10.0;
 	
 	double E_sat = 5e5;					// Maximum electric field before velocity saturates
 	
@@ -301,7 +302,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	double alphaBG = 0;
 	double alphaFG = 0;
 	Random rand = new Random();
-	
+
+	ArrayList<Text> texts = new ArrayList<Text>();
 	Font bigfont = new Font(Font.SANS_SERIF, Font.PLAIN, 15);
 	Font regularfont = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
 	int scalefactor;
@@ -374,6 +376,9 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	
 	Brush prev_brush;
 	double brushsize = 0;
+	int prev_EMF_setting = 0;
+	BoundaryCondition prev_boundary = null;
+	
 	boolean[][] under_brush;
 	boolean[][] selected;
 	boolean[][] selected_EMF;
@@ -392,6 +397,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	public static File outfile;
 	int saveversion = 1;
 	String fileextension = ".semisim";
+	String startingpath = ".";
 	
 
 	public static void main(String[] args) {
@@ -440,7 +446,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		opts.gui_material.addActionListener(this);
 		
 		opts.gui_material.removeItem(MaterialType.ABSORBER);
-		opts.gui_material.removeItem(MaterialType.SWITCH);
+		//opts.gui_material.removeItem(MaterialType.SWITCH);
 		
 		opts.gui_view.removeItem(ScalarView.DEBUG);
 		
@@ -994,8 +1000,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		}
 	}
 	
-	LogLUT lut = new LogLUT();
-	
 	public double logmean(double x, double y)
 	{
 		if (x <= 0 || y <= 0)
@@ -1008,6 +1012,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		return (x-y)/lut.log(x/y);
 		//return (x-y)/Math.log(x/y);
 	}
+
+	LogLUT lut = new LogLUT();
 	
 	// Quick and dirty way to calculate log precisely (relative error < 10^-9)
 	class LogLUT {
@@ -1057,14 +1063,14 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			for (int j = 0; j < ny; j++)
 			{
 				rho_back[i][j] = materials[i][j].rho_back;
-				conducting[i][j] = materials[i][j].conducting;
+				conducting[i][j] = materials[i][j].conducting*materials[i][j].activated;
 			}
 		}
 		for (int i = 0; i < nx-1; i++)
 		{
 			for (int j = 1; j < ny-1; j++)
 			{
-				conducting_x[i][j] = Math.min(materials[i+1][j].conducting, materials[i][j].conducting);
+				conducting_x[i][j] = Math.min(materials[i+1][j].conducting*materials[i+1][j].activated, materials[i][j].conducting*materials[i][j].activated);
 				emfx[i][j] = 0.5*(materials[i+1][j].emf*Math.cos(materials[i+1][j].emf_direction)*materials[i+1][j].activated
 						+ materials[i][j].emf*Math.cos(materials[i][j].emf_direction)*materials[i][j].activated);
 				epsx[i][j] = eps0*0.5*(materials[i+1][j].eps_r + materials[i][j].eps_r);
@@ -1076,7 +1082,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		{
 			for (int j = 0; j < ny-1; j++)
 			{
-				conducting_y[i][j] = Math.min(materials[i][j+1].conducting, materials[i][j].conducting);
+				conducting_y[i][j] = Math.min(materials[i][j+1].conducting*materials[i][j+1].activated, materials[i][j].conducting*materials[i][j].activated);
 				emfy[i][j] = 0.5*(materials[i][j+1].emf*Math.sin(materials[i][j+1].emf_direction)*materials[i][j+1].activated
 						+ materials[i][j].emf*Math.sin(materials[i][j].emf_direction)*materials[i][j].activated);
 				epsy[i][j] = eps0*0.5*(materials[i][j+1].eps_r + materials[i][j].eps_r);
@@ -1090,7 +1096,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		{
 			for (int j = 0; j < ny; j++)
 			{
-				if (K[i][j] > 0) {
+				if (K[i][j] > 0 || materials[i][j].type == MaterialType.SWITCH) {
 					if (rho_n[i][j] == 0 && rho_p[i][j] == 0) {
 						rho_n[i][j] = calcEquilibriumElectronCharge(rho_back[i][j], K[i][j]);
 						rho_p[i][j] = calcEquilibriumHoleCharge(rho_back[i][j], K[i][j]);
@@ -1342,6 +1348,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		
 		if (material == MaterialType.DIELECTRIC) materials[i][j].eps_r = dielectric_eps_r;
 		else if (material == MaterialType.FERROMAGNET) materials[i][j].mu_r = ferromagnet_mu_r;
+		else if (material == MaterialType.POS_CHARGE) materials[i][j].rho_back = staticcharge_density;
+		else if (material == MaterialType.NEG_CHARGE) materials[i][j].rho_back = -staticcharge_density;
 		
 		if (MaterialType.isConducting(material))
 		{
@@ -1457,6 +1465,26 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			opts.gui_parameter2.setVisible(false);
 			opts.gui_parameter2_text.setVisible(false);
 			opts.gui_parameter2_text.setText("");
+		}
+		
+		
+		if (Brush.isMaterialModifyingBrush(brush) && brush != Brush.FILL) {
+			opts.gui_brush_1.setVisible(true);
+			opts.gui_brush_highlight.setVisible(true);
+			opts.gui_brushsize.setVisible(true);
+			opts.lblBrushSize.setVisible(true);
+		} else {
+			opts.gui_brush_1.setVisible(false);
+			opts.gui_brush_highlight.setVisible(false);
+			opts.gui_brushsize.setVisible(false);
+			opts.lblBrushSize.setVisible(false);
+		}
+		
+
+		if (Brush.isMaterialModifyingBrush(brush) && brush != Brush.ERASE) {
+			opts.gui_material.setVisible(true);
+		} else {
+			opts.gui_material.setVisible(false);
 		}
 		
 		if (brush_changed) {
@@ -1602,7 +1630,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			}
 			
 
-			if (mousebutton == MouseEvent.BUTTON3)
+			if (mousebutton == MouseEvent.BUTTON3 || brush == Brush.ERASE)
 				mat = MaterialType.VACUUM;
 
 			if (!(mousebutton == MouseEvent.BUTTON2 || alt_down)) {
@@ -1650,38 +1678,34 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			break;
 
 		case INTERACT:
-			if (materials[mx_index][my_index].type == MaterialType.EMF)
+			if (materials[mx_index][my_index].type == MaterialType.EMF || materials[mx_index][my_index].type == MaterialType.SWITCH)
 				r.setCursor(HAND_CURSOR);
 			else
 				r.setCursor(DEFAULT_CURSOR);
 			
 			if (pressing) {
-				if (selected_EMF[mx_index][my_index]) {
-					for (int i = 0; i < nx; i++)
+				boolean turn_on_EMF = !selected_EMF[mx_index][my_index];
+				
+				for (int i = 0; i < nx; i++)
+				{
+					for (int j = 0; j < ny; j++)
 					{
-						for (int j = 0; j < ny; j++)
-						{
-							selected_EMF[i][j] = false;
-						}
+						selected_EMF[i][j] = false;
 					}
-					EMF_selected = false;
-				} else  {
-					for (int i = 0; i < nx; i++)
-					{
-						for (int j = 0; j < ny; j++)
-						{
-							selected_EMF[i][j] = false;
-						}
-					}
-					if (materials[mx_index][my_index].type == MaterialType.EMF) {
-						floodFillSelectEMF(mx_index, my_index, true);
-						EMF_selected = true;
-						int setting = (int)(Math.round(50*materials[mx_index][my_index].emf/max_EMF));
-						opts.gui_parameter3.setValue(setting);
-						prev_EMF_setting = setting;
-					} else {
-						EMF_selected = false;
-					}
+				}
+				EMF_selected = false;
+
+				if (materials[mx_index][my_index].type == MaterialType.EMF && turn_on_EMF) {
+					floodFillSelectEMF(mx_index, my_index, true);
+					EMF_selected = true;
+					int setting = (int)(Math.round(50*materials[mx_index][my_index].emf/max_EMF));
+					opts.gui_parameter3.setValue(setting);
+					prev_EMF_setting = setting;
+				}
+				
+				if (materials[mx_index][my_index].type == MaterialType.SWITCH) {
+					this.floodFillToggleSwitch(mx_index, my_index, 1-materials[mx_index][my_index].activated);
+					update = true;
 				}
 			}
 			break;
@@ -1885,9 +1909,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		mxp_realspace = mx_realspace;
 		myp_realspace = my_realspace;
 	}
-
-	int prev_EMF_setting = 0;
-	BoundaryCondition prev_boundary = null;
 	
 	public void drawMaterialLine(double x1, double y1, double x2, double y2, Brush brush, BrushShape brushshape, MaterialType mat, double brushsize, double EMF_angle) {
 		Vector a = new Vector(0, 0);
@@ -2239,15 +2260,15 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 				}
 			}
 
-			double err = 0;
+			double num = 0;
+			double denom = 0;
 			for (int i = 1; i < nx-1; i++) {
 				for (int j = 1; j < ny-1; j++) {
-					err += Math.abs(((epsx[i-1][j]+epsx[i][j]+epsy[i][j-1]+epsy[i][j])*MG_phi1[i][j]
-							- (MG_phi1[i-1][j]*epsx[i-1][j] + MG_phi1[i+1][j]*epsx[i][j] + MG_phi1[i][j-1]*epsy[i][j-1] + MG_phi1[i][j+1]*epsy[i][j]))
-							/(ds*ds) - MG_rho0[i][j])/eps0;
+					num += MG_rho0[i][j]*MG_rho0[i][j];
+					denom += rho_free[i][j]*rho_free[i][j];
 				}
 			}
-			System.out.println("Poisson residual: " + err);
+			System.out.println("Starting poisson residual: " + Math.sqrt(num/denom));
 		}
 		if (computePhi) {
 			for (int i = 1; i < nx-1; i++) {
@@ -2361,15 +2382,17 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		}
 
 		if (correctEfield) {
-			double err = 0;
+
+			double num = 0;
+			double denom = 0;
 			for (int i = 1; i < nx-1; i++) {
 				for (int j = 1; j < ny-1; j++) {
-					err += Math.abs(((epsx[i-1][j]+epsx[i][j]+epsy[i][j-1]+epsy[i][j])*MG_phi1[i][j]
-							- (MG_phi1[i-1][j]*epsx[i-1][j] + MG_phi1[i+1][j]*epsx[i][j] + MG_phi1[i][j-1]*epsy[i][j-1] + MG_phi1[i][j+1]*epsy[i][j]))
-							/(ds*ds) - MG_rho0[i][j])/eps0;
+					double drho = ((Ex[i][j]*epsx[i][j]-Ex[i-1][j]*epsx[i-1][j] + Ey[i][j]*epsy[i][j]-Ey[i][j-1]*epsy[i][j-1])/ds) - rho_free[i][j];
+					num += drho*drho;
+					denom += rho_free[i][j]*rho_free[i][j];
 				}
 			}
-			System.out.println("Poisson residual: " + err);
+			System.out.println("Poisson residual: " + Math.sqrt(num/denom));
 		}
 		if (computePhi)
 		{
@@ -2566,6 +2589,22 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			FloodFillCoordinate coord = queue.remove();
 			if (coord.i >= 0 && coord.i < nx && coord.j >= 0 && coord.j < ny && materials[coord.i][coord.j].type == MaterialType.EMF && selected_EMF[coord.i][coord.j] != select) {
 				selected_EMF[coord.i][coord.j] = select;
+				queue.add(new FloodFillCoordinate(coord.i-1, coord.j));
+				queue.add(new FloodFillCoordinate(coord.i+1, coord.j));
+				queue.add(new FloodFillCoordinate(coord.i, coord.j-1));
+				queue.add(new FloodFillCoordinate(coord.i, coord.j+1));
+			}
+		}
+	}
+	
+	public void floodFillToggleSwitch(int i, int j, int active) {
+		Queue<FloodFillCoordinate> queue = new LinkedList<FloodFillCoordinate>();
+		queue.add(new FloodFillCoordinate(i, j));
+		
+		while (queue.size() > 0) {
+			FloodFillCoordinate coord = queue.remove();
+			if (coord.i >= 0 && coord.i < nx && coord.j >= 0 && coord.j < ny && materials[coord.i][coord.j].type == MaterialType.SWITCH && materials[coord.i][coord.j].activated != active) {
+				materials[coord.i][coord.j].activated = active;
 				queue.add(new FloodFillCoordinate(coord.i-1, coord.j));
 				queue.add(new FloodFillCoordinate(coord.i+1, coord.j));
 				queue.add(new FloodFillCoordinate(coord.i, coord.j-1));
@@ -2971,6 +3010,11 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 					int delta_b = MaterialType.EMF.color_b+offset;
 					setColor(delta_r, delta_g, delta_b);
 					
+					setPixel(i, j);
+				} else if (!(materials[i][j].activated == 1)) {
+					setalphaBG(0.25);
+					setalphaFG(0.75);
+					setColor(0, 0, 0);
 					setPixel(i, j);
 				}
 				
@@ -3407,8 +3451,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	public void startNewStringLayer() {
 		texts.clear();
 	}
-	
-	ArrayList<Text> texts = new ArrayList<Text>();
 
 	public void drawString(String str1, int x, int y, Graphics g) {
 		texts.add(new Text(str1, x, y, false, false, false));
@@ -3471,8 +3513,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		else
 			return String.format(precision, quantity*1e-12) + " T" + unit;
 	}
-	
-	String startingpath = ".";
 	
 	public boolean readFile()
 	{
@@ -4066,8 +4106,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			updateMiscFields = true;
 		} else if (e.getSource() == opts.gui_brush) {
 			brush_changed = true;
-		} else if (e.getSource() == opts.gui_material) {
-			opts.gui_brush.setSelectedItem(Brush.DRAW);
 		}
 	}
 	
@@ -4412,6 +4450,8 @@ enum MaterialType
 	SEMI_LIGHT_N_TYPE	("Lightly doped N-type semiconductor",	137, 188, 204, 120),
 	DIELECTRIC			("Dielectric",							 81, 171,  51, 120),
 	FERROMAGNET			("Ferromagnet",							116, 50, 117, 120),
+	POS_CHARGE			("Positive static charge",				116, 50, 50, 120),
+	NEG_CHARGE			("Negative static charge",				50, 50, 117, 120),
 	DECO				("Decoration",							255, 255, 255, 255),
 	ABSORBER			("Absorber",							 50,  50,  50),
 	VACUUM				("Vacuum",								 20,  20,  20);
