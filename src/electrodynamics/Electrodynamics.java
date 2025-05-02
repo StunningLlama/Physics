@@ -172,7 +172,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	/* Multigrid Poisson eq solver */
 	
 	double[][] MG_rho0;
-	double[][] MG_rho;
+	double[][][] MG_rho;
 	double[][][] MG_epsx;
 	double[][][] MG_epsy;
 	double[][] MG_eps_avg;
@@ -259,7 +259,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	double ds;					// Spatial discretization
 	double dt;					// Timestep
 	double depth = 1e-3;		// Extent of circuit in z-dimension, only used to get reasonable values for current probe
-	int default_resolution = 250;
+	int default_resolution = 256;
 	int nx;						// Number of grid points in x-dimension
 	int ny;						// Number of grid points in y-dimension
 	int absorber_width;
@@ -621,7 +621,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		
 		
 		MG_rho0 = new double[nx][ny];
-		MG_rho = new double[nx][ny];
+		MG_rho = new double[11][nx][ny];
 		MG_epsx = new double[11][nx][ny];
 		MG_epsy = new double[11][nx][ny];
 		MG_eps_avg = new double[nx][ny];
@@ -2225,14 +2225,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	}
 	
 	public void prescaleDielectric() {
-		int maxfineness = (int)Math.floor(Math.log(nx)/Math.log(2));
-		for (int fineness = 2; fineness <= maxfineness; fineness++) {
-			int nxcgint = (1 << fineness) - 1;
-			int nycgint = (1 << fineness) - 1;
-			double gridsize = width/(1 << fineness);
-			downscale(epsx, MG_epsx[fineness], nx-2, ny-1, nxcgint, nycgint+1, ds/2.0, 0, ds, gridsize/2.0, 0, gridsize);
-			downscale(epsy, MG_epsy[fineness], nx-1, ny-2, nxcgint+1, nycgint, 0, ds/2.0, ds, 0, gridsize/2.0, gridsize);
-		}
+		downscale_Ex(epsx, MG_epsx, 8);
+		downscale_Ey(epsy, MG_epsy, 8);
 	}
 	
 	public void multigridSolve(boolean correctEfield, boolean computePhi) {
@@ -2248,7 +2242,9 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		for (int i = 0; i < nx; i++) {
 			for (int j = 0; j < ny; j++) {
 				MG_phi1[i][j] = 0;
-				MG_rho[i][j] = 0;
+				for (int k = 0; k <= 8; k++) {
+					MG_rho[k][i][j] = 0;
+				}
 			}
 		}
 
@@ -2278,87 +2274,60 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			}
 		}
 		
-		int nxint = nx-2;
-		int nyint = ny-2;
-		
 		int[] stepsarray = {0, 0, 200, 200, 200, 200, 200, 50, 20, 20, 20};
 		
-		int maxfineness = (int)Math.floor(Math.log(nx)/Math.log(2));
+		int maxfineness = 8;
+		downscale(MG_rho0, MG_rho, maxfineness);
+		
 		for (int fineness = 2; fineness <= maxfineness; fineness++) {
-			int nxcgint = (1 << fineness) - 1;
-			int nycgint = (1 << fineness) - 1;
-			double gridsize = width/(1 << fineness);
-			
-
-			downscale(MG_rho0, MG_rho, nx-1, ny-1, nxcgint+1, nycgint+1, 0, 0, ds, 0, 0, gridsize);
+			int nx_tmp = (1 << fineness);
+			int ny_tmp = (1 << fineness);
+			double gridsize = this.default_width/(1 << fineness);
 			
 			int poissonsteps = stepsarray[fineness];
 			double alpha = (gridsize*gridsize);
-			double beta = 4;
 
-			JacobiIteration(poissonsteps, nxcgint, nycgint, alpha, beta, gridsize, fineness, debug, computePhi);
+			JacobiIteration(poissonsteps, nx_tmp, ny_tmp, alpha, fineness, computePhi);
 
-			if (fineness < maxfineness) {
+			if (fineness == maxfineness)
+				break;
 
-				for (int i = 0; i < nxcgint+2; i++) {
-					for (int j = 0; j < nycgint+2; j++) {
-						MG_phi2[i][j] = MG_phi1[i][j];
-					}
+			for (int i = 0; i < nx_tmp; i++) {
+				for (int j = 0; j < ny_tmp; j++) {
+					MG_phi2[i][j] = MG_phi1[i][j];
 				}
+			}
 
-				nxcgint = (1 << (fineness+1)) - 1;
-				nycgint = (1 << (fineness+1)) - 1;
-				gridsize = width/(1 << (fineness+1));
-
-
-				for (int i = 1; i < nxcgint+1; i++)
-				{
-					for (int j = 1; j < nycgint+1; j++) {
-						MG_phi1[i][j] = bilinearinterp(MG_phi2, i/2.0, j/2.0);
-					}
+			for (int i = 0; i < 2*nx_tmp; i++)
+			{
+				for (int j = 0; j < 2*nx_tmp; j++) {
+					MG_phi1[i][j] = 0;
 				}
-
-
-				for (int i = 0; i < nxcgint+2; i++) {
-					MG_phi2[i][0] = 0;
-					MG_phi2[i][nycgint+1] = 0;
+			}
+			
+			for (int i = 0; i < nx_tmp; i++)
+			{
+				for (int j = 0; j < nx_tmp; j++) {
+					MG_phi1[2*i][2*j] = MG_phi2[i][j];
+					MG_phi1[2*i+1][2*j] = MG_phi2[i][j];
+					MG_phi1[2*i][2*j+1] = MG_phi2[i][j];
+					MG_phi1[2*i+1][2*j+1] = MG_phi2[i][j];
 				}
-				for (int j = 0; j < nycgint+2; j++) {
-					MG_phi2[0][j] = 0;
-					MG_phi2[nxcgint+1][j] = 0;
+			}
+			
+			/*for (int i = 1; i < 2*nx_tmp-1; i++)
+			{
+				for (int j = 1; j < 2*nx_tmp-1; j++) {
+					MG_phi1[i][j] = this.bilinearinterp(MG_phi2, (i-0.5)/2.0, (j-0.5)/2.0);
 				}
-			} else {
-				for (int i = 0; i < nxcgint+2; i++) {
-					for (int j = 0; j < nycgint+2; j++) {
-						MG_phi2[i][j] = MG_phi1[i][j];
-					}
+			}*/
+			
+			for (int i = 0; i < 2*nx_tmp; i++) {
+				for (int j = 0; j < 2*ny_tmp; j++) {
+					MG_phi2[i][j] = MG_phi1[i][j];
 				}
-
-				for (int i = 1; i < nxint+1; i++)
-				{
-					for (int j = 1; j < nyint+1; j++) {
-						MG_phi1[i][j] = bilinearinterp(MG_phi2, i*(double)(nxcgint+1.0)/((double)nx-1.0), j*(double)(nycgint+1.0)/((double)ny-1.0));
-					}
-				}
-				
 			}
 		}
-		
-
-		int poissonsteps = stepsarray[maxfineness+1];
-
-		double alpha = (ds*ds);
-		double beta = 4;
-
-		for (int i = 0; i < nx; i++) {
-			for (int j = 0; j < ny; j++) {
-				MG_rho[i][j] = MG_rho0[i][j];
-				MG_epsx[maxfineness+1][i][j] = epsx[i][j];
-				MG_epsy[maxfineness+1][i][j] = epsy[i][j];
-			}
-		}
-		
-		JacobiIteration(poissonsteps, nxint, nyint, alpha, beta, ds, maxfineness+1, debug, computePhi);
 
 		if (correctEfield) {
 			for (int i = 0; i < nx-1; i++)
@@ -2392,6 +2361,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 					denom += rho_free[i][j]*rho_free[i][j];
 				}
 			}
+			
 			System.out.println("Poisson residual: " + Math.sqrt(num/denom));
 		}
 		if (computePhi)
@@ -2416,85 +2386,111 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	}
 	
 
-	public void JacobiIteration(int steps, int xbound, int ybound, double alpha, double beta, double gridsize, int fineness, boolean debug, boolean calcPhi) {
+	public void JacobiIteration(int steps, int xbound, int ybound, double alpha, int fineness, boolean calcPhi) {
 
 		if (calcPhi) {
 			for (int poissonit = 0; poissonit < steps; poissonit++) {
-				for (int i = 1; i < xbound+1; i++) {
-					for (int j = 1; j < ybound+1; j++) {
-						MG_phi2[i][j] = (MG_phi1[i-1][j] + MG_phi1[i+1][j] + MG_phi1[i][j-1] + MG_phi1[i][j+1] + MG_rho[i][j]*alpha)/4.0;
+				for (int i = 1; i < xbound-1; i++) {
+					for (int j = 1; j < ybound-1; j++) {
+						MG_phi2[i][j] = ((MG_phi1[i-1][j] + MG_phi1[i+1][j] + MG_phi1[i][j-1] + MG_phi1[i][j+1]) + MG_rho[fineness][i][j]*alpha)/4.0;
 					}
 				}
-				for (int i = 1; i < xbound+1; i++) {
-					for (int j = 1; j < ybound+1; j++) {
-						MG_phi1[i][j] = ((MG_phi2[i-1][j] + MG_phi2[i+1][j] + MG_phi2[i][j-1] + MG_phi2[i][j+1]) + MG_rho[i][j]*alpha)/4.0;
+				for (int i = 1; i < xbound-1; i++) {
+					for (int j = 1; j < ybound-1; j++) {
+						MG_phi1[i][j] = ((MG_phi2[i-1][j] + MG_phi2[i+1][j] + MG_phi2[i][j-1] + MG_phi2[i][j+1]) + MG_rho[fineness][i][j]*alpha)/4.0;
 					}
 				}
 			}
 		} else {
-			for (int i = 1; i < xbound+1; i++) {
-				for (int j = 1; j < ybound+1; j++) {
+			for (int i = 1; i < xbound-1; i++) {
+				for (int j = 1; j < ybound-1; j++) {
 					MG_eps_avg[i][j] = (MG_epsx[fineness][i-1][j]+MG_epsx[fineness][i][j]+MG_epsy[fineness][i][j-1]+MG_epsy[fineness][i][j]);
 				}
 			}
 			
 			for (int poissonit = 0; poissonit < steps; poissonit++) {
-				for (int i = 1; i < xbound+1; i++) {
-					for (int j = 1; j < ybound+1; j++) {
-						MG_phi2[i][j] = ((MG_phi1[i-1][j]*MG_epsx[fineness][i-1][j]
+				for (int i = 1; i < xbound-1; i++) {
+					for (int j = 1; j < ybound-1; j++) {
+						MG_phi2[i][j] = (0.1*MG_phi1[i][j] + ((MG_phi1[i-1][j]*MG_epsx[fineness][i-1][j]
 								+ MG_phi1[i+1][j]*MG_epsx[fineness][i][j]
-								+ MG_phi1[i][j-1]*MG_epsy[fineness][i][j-1]
-								+ MG_phi1[i][j+1]*MG_epsy[fineness][i][j])
-								+ MG_rho[i][j]*alpha)/MG_eps_avg[i][j];
+										+ MG_phi1[i][j-1]*MG_epsy[fineness][i][j-1]
+												+ MG_phi1[i][j+1]*MG_epsy[fineness][i][j])
+								+ MG_rho[fineness][i][j]*alpha)/MG_eps_avg[i][j])/1.1;
 					}
 				}
-				for (int i = 1; i < xbound+1; i++) {
-					for (int j = 1; j < ybound+1; j++) {
-						MG_phi1[i][j] = ((MG_phi2[i-1][j]*MG_epsx[fineness][i-1][j]
+				for (int i = 1; i < xbound-1; i++) {
+					for (int j = 1; j < ybound-1; j++) {
+						MG_phi1[i][j] = (0.1*MG_phi2[i][j] + ((MG_phi2[i-1][j]*MG_epsx[fineness][i-1][j]
 								+ MG_phi2[i+1][j]*MG_epsx[fineness][i][j]
-								+ MG_phi2[i][j-1]*MG_epsy[fineness][i][j-1]
-								+ MG_phi2[i][j+1]*MG_epsy[fineness][i][j])
-								+ MG_rho[i][j]*alpha)/MG_eps_avg[i][j];
+										+ MG_phi2[i][j-1]*MG_epsy[fineness][i][j-1]
+												+ MG_phi2[i][j+1]*MG_epsy[fineness][i][j])
+								+ MG_rho[fineness][i][j]*alpha)/MG_eps_avg[i][j])/1.1;
 					}
 				}
 			}
 		}
 	}
-	
-	public void downscale(double[][] source, double[][] dest, int sx, int sy, int dx, int dy, double soffsetx, double soffsety, double sspacing, double doffsetx, double doffsety, double dspacing) {
-		for (int i = 0; i <= dx; i++) {
-			for (int j = 0; j < dy; j++) {
-				dest[i][j] = 0;
+
+	public void downscale(double[][] source, double[][][] dest, int steps) {
+		for (int i = 0; i < nx; i++) {
+			for (int j = 0; j < ny; j++) {
+				dest[steps][i][j] = source[i][j];
 			}
 		}
-		double scalefactor = (sspacing*sspacing/(dspacing*dspacing));
-		for (int i = 0; i <= sx; i++) {
-			for (int j = 0; j <= sy; j++) {
-				double cx = (i*sspacing + soffsetx - doffsetx)/dspacing;
-				double cy = (j*sspacing + soffsety - doffsety)/dspacing;
-				int xfloor = (int)Math.floor(cx);
-				int yfloor = (int)Math.floor(cy);
-				double fx = cx - xfloor;
-				double fy = cy - yfloor;
-				if (xfloor < 0) {
-					xfloor = 0;
-					fx = 0.0;
-				} else if (xfloor >= dx) {
-					xfloor = dx - 1;
-					fx = 1.0;
+		int nx_d = nx;
+		int ny_d = ny;
+		for (int k = steps-1; k >= 0; k--) {
+			nx_d = nx_d/2;
+			ny_d = ny_d/2;
+
+			for (int i = 0; i < nx_d; i++) {
+				for (int j = 0; j < ny_d; j++) {
+					dest[k][i][j] = 0.25*(dest[k+1][2*i][2*j]+dest[k+1][2*i+1][2*j]+dest[k+1][2*i][2*j+1]+dest[k+1][2*i+1][2*j+1]);
 				}
-				if (yfloor < 0) {
-					yfloor = 0;
-					fy = 0.0;
-				} else if (yfloor >= dy) {
-					yfloor = dy - 1;
-					fy = 1.0;
+			}
+		}
+	}
+	
+	public void downscale_Ex(double[][] source, double[][][] dest, int steps) {
+		for (int i = 0; i < nx-1; i++) {
+			for (int j = 0; j < ny; j++) {
+				dest[steps][i][j] = source[i][j];
+			}
+		}
+		int nx_d = nx;
+		int ny_d = ny;
+		for (int k = steps-1; k >= 0; k--) {
+			nx_d = nx_d/2;
+			ny_d = ny_d/2;
+
+			for (int i = 0; i < nx_d-1; i++) {
+				for (int j = 0; j < ny_d; j++) {
+					dest[k][i][j] = 0.125*(dest[k+1][2*i][2*j]+dest[k+1][2*i][2*j+1]
+							+2*dest[k+1][2*i+1][2*j]+2*dest[k+1][2*i+1][2*j+1]
+							+dest[k+1][2*i+2][2*j]+dest[k+1][2*i+2][2*j+1]);
 				}
-				double srcval = source[i][j]*scalefactor;
-				dest[xfloor][yfloor] += srcval*(1-fx)*(1-fy);
-				dest[xfloor+1][yfloor] += srcval*fx*(1-fy);
-				dest[xfloor][yfloor+1] += srcval*(1-fx)*fy;
-				dest[xfloor+1][yfloor+1] += srcval*fx*fy;
+			}
+		}
+	}
+	
+	public void downscale_Ey(double[][] source, double[][][] dest, int steps) {
+		for (int i = 0; i < nx; i++) {
+			for (int j = 0; j < ny-1; j++) {
+				dest[steps][i][j] = source[i][j];
+			}
+		}
+		int nx_d = nx;
+		int ny_d = ny;
+		for (int k = steps-1; k >= 0; k--) {
+			nx_d = nx_d/2;
+			ny_d = ny_d/2;
+
+			for (int i = 0; i < nx_d; i++) {
+				for (int j = 0; j < ny_d-1; j++) {
+					dest[k][i][j] = 0.125*(dest[k+1][2*i][2*j]+dest[k+1][2*i+1][2*j]
+							+2*dest[k+1][2*i][2*j+1]+2*dest[k+1][2*i+1][2*j+1]
+							+dest[k+1][2*i][2*j+2]+dest[k+1][2*i+1][2*j+2]);
+				}
 			}
 		}
 	}
