@@ -76,11 +76,9 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	 */
 	
 	//TODO:
-	// On the fly adjust material parameters
 	// Option: change vf density and toggle vf/lines
 	// Change size & sim parameters
 	// Interactions with light
-	// Interact with field
 	// Band structure diagrams
 	// Undo/redo
 	
@@ -255,7 +253,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	
 	/* Domain parameters */
 	
-	double default_width = 2.5e-5;
+	double default_width = 2.56e-5;
 	double width;				// Width, in SI
 	double ds;					// Spatial discretization
 	double dt;					// Timestep
@@ -533,6 +531,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			r.repaint();
 		} catch (Exception e) {
 			JOptionPane.showConfirmDialog(opts, e.getMessage(), "Error", JOptionPane.OK_OPTION);
+			e.printStackTrace();
 			System.exit(-1);
 		}
 	}
@@ -2277,8 +2276,9 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 				}
 			}
 		}
-		
-		int[] stepsarray = {0, 0, 200, 200, 200, 200, 200, 50, 20};
+
+		//int[] stepsarray = {0, 0, 200, 200, 200, 200, 200, 50, 20};
+		int[] stepsarray = {0, 0, 100, 100, 100, 100, 50, 25, 20};
 		
 		downscale(MG_rho0, MG_rho, log2_resolution);
 		
@@ -2375,12 +2375,12 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			for (int poissonit = 0; poissonit < steps; poissonit++) {
 				for (int i = 1; i < xmax-1; i++) {
 					for (int j = 1; j < ymax-1; j++) {
-						MG_phi2[i][j] = (0.1*MG_phi1[i][j]*((MG_phi1[i-1][j] + MG_phi1[i+1][j] + MG_phi1[i][j-1] + MG_phi1[i][j+1]) + MG_rho[fineness][i][j]*alpha)/4.0)/1.1;
+						MG_phi2[i][j] = (0.1*MG_phi1[i][j] + ((MG_phi1[i-1][j] + MG_phi1[i+1][j] + MG_phi1[i][j-1] + MG_phi1[i][j+1]) + MG_rho[fineness][i][j]*alpha)/4.0)/1.1;
 					}
 				}
 				for (int i = 1; i < xmax-1; i++) {
 					for (int j = 1; j < ymax-1; j++) {
-						MG_phi1[i][j] = (0.1*MG_phi2[i][j]*((MG_phi2[i-1][j] + MG_phi2[i+1][j] + MG_phi2[i][j-1] + MG_phi2[i][j+1]) + MG_rho[fineness][i][j]*alpha)/4.0)/1.1;
+						MG_phi1[i][j] = (0.1*MG_phi2[i][j] + ((MG_phi2[i-1][j] + MG_phi2[i+1][j] + MG_phi2[i][j-1] + MG_phi2[i][j+1]) + MG_rho[fineness][i][j]*alpha)/4.0)/1.1;
 					}
 				}
 			}
@@ -3632,29 +3632,39 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		return true;
 	}
 
-	public <T> T[][] validateArraySize(T[][] array) throws RuntimeException {
-		if (array.length != nx)
-			throw new RuntimeException("Array size mismatch.");
+	public Material[][] validateArraySize(Material[][] array) throws RuntimeException {
+		Material[][] field = new Material[nx][ny];
 		
 		for (int i = 0; i < array.length; i++) {
-			if (array[i].length != ny)
-				throw new RuntimeException("Array size mismatch.");
+			for (int j = 0; j < array[i].length; j++) {
+				if (i < nx && j < ny) {
+					field[i][j] = array[i][j];
+				}
+			}
 		}
-		return array;
+		
+		for (int i = 0; i < nx; i++) {
+			for (int j = 0; j < ny; j++) {
+				if (field[i][j] == null || field[i][j].type == MaterialType.ABSORBER)
+					field[i][j] = new Material();
+			}
+		}
+		
+		return field;
 	}
 	
 	public double[][] validateArraySize(double[][] array) throws RuntimeException {
-		if (array == null)
-			return new double[nx][ny];
-		
-		if (array.length != nx)
-			throw new RuntimeException("Array size mismatch.");
+		double[][] field = new double[nx][ny];
 		
 		for (int i = 0; i < array.length; i++) {
-			if (array[i].length != ny)
-				throw new RuntimeException("Array size mismatch.");
+			for (int j = 0; j < array[i].length; j++) {
+				if (i < nx && j < ny) {
+					field[i][j] = array[i][j];
+				}
+			}
 		}
-		return array;
+		
+		return field;
 	}
 	
 	public boolean writeFile()
