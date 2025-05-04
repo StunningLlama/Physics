@@ -451,7 +451,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		
 		opts.pack();
 		
-		addKeyBinds(opts.contentPane);
+		addKeyBinds(r);
 		
 		InputMap im = (InputMap)UIManager.get("Button.focusInputMap");
 		im.put(KeyStroke.getKeyStroke("pressed SPACE"), "none");
@@ -4002,7 +4002,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
     };
 
     public void addKeyBinds(JPanel contentPane) {
-    	InputMap map = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    	InputMap map = contentPane.getInputMap(JComponent.WHEN_FOCUSED);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_P, 0), key_pause);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), key_pause);
     	contentPane.getActionMap().put(key_pause, key_pause);
@@ -4087,8 +4087,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		else if (e.getSource() == opts.gui_help)
 			help.setVisible(true);
 		else if (e.getSource() == opts.gui_editdesc) {
-			opts.textPane.setEnabled(!opts.textPane.isEnabled());
-			opts.textPane.setEditable(opts.textPane.isEnabled());
+			opts.textPane.setEditable(!opts.textPane.isEditable());
 		} else if (e.getSource() == opts.gui_view) {
 			updateMiscFields = true;
 		} else if (e.getSource() == opts.gui_view_vec) {

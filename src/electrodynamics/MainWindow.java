@@ -117,7 +117,7 @@ public class MainWindow extends JFrame {
 		panel.add(gui_brushsize);
 		
 		gui_simspeed = new JScrollBar();
-		gui_simspeed.setValue(10);
+		gui_simspeed.setValue(20);
 		gui_simspeed.setBlockIncrement(1);
 		gui_simspeed.setMaximum(30);
 		gui_simspeed.setOrientation(JScrollBar.HORIZONTAL);
@@ -263,7 +263,7 @@ public class MainWindow extends JFrame {
 		panel.add(scrollPane);
 		
 		textPane = new JTextArea();
-		textPane.setEnabled(false);
+		textPane.setWrapStyleWord(true);
 		textPane.setText("Description of simulation scenario");
 		textPane.setFont(new Font("SansSerif", Font.PLAIN, 13));
 		textPane.setMargin(new Insets(4, 4, 4, 4));
