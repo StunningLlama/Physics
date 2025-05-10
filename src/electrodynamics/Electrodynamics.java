@@ -1,3 +1,7 @@
+// Copyright (c) Brandon Li 2025
+// This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
+// See LICENSE.txt for full license details.
+
 package electrodynamics;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -81,6 +85,9 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	// Interactions with light
 	// Band structure diagrams
 	// Undo/redo
+	
+	// Make colors more distinguishable
+	// Add more instructions
 	
 	/* Dynamical simulation variables */
 	
@@ -235,8 +242,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	double n_heavy_doping_concentration = 2.5e20;
 	double p_heavy_doping_concentration = 2.5e20;
 	
-	double dielectric_eps_r = 5.0;
-	double ferromagnet_mu_r = 5.0;
+	double dielectric_eps_r = 25.0;
+	double ferromagnet_mu_r = 25.0;
 	double staticcharge_density = 10.0;
 	
 	double E_sat = 5e5;					// Maximum electric field before velocity saturates
@@ -3291,6 +3298,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 				drawTwoColumnString("J" , 							getSI(length(bilinearinterp(Jx_free,mx_t-0.5,my_t), bilinearinterp(Jy_free,mx_t,my_t-0.5)), "A/m^2"),	hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("F\u2099" , 					getSI(bilinearinterp(F_n,mx_t, my_t)/q_n+bilinearinterp(phi,mx_t, my_t)-W_semi/eVtoJ, "V"),	hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("F\u209a" , 					getSI(bilinearinterp(F_p,mx_t, my_t)/q_p+bilinearinterp(phi,mx_t, my_t)-W_semi/eVtoJ, "V"),	hoffset, voffset + line*vspacing, g); line++;
+				//drawTwoColumnString("E\u2099" , 					getSI(bilinearinterp(E0_n,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
+				//drawTwoColumnString("E\u209a" , 					getSI(bilinearinterp(E0_p,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("F" , 							getSI(bilinearinterp(F,mx_t, my_t), "V"),		hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("CMF\u2099" ,					getSI(length(bilinearinterp(cmfx_n,mx_t-0.5,my_t), bilinearinterp(cmfy_n,mx_t,my_t-0.5))/q_n, "V/m"),			hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("CMF\u209A" , 					getSI(length(bilinearinterp(cmfx_p,mx_t-0.5,my_t), bilinearinterp(cmfy_n,mx_t,my_t-0.5))/q_p, "V/m"),			hoffset, voffset + line*vspacing, g); line++;
@@ -3615,7 +3624,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			opts.textPane.setEditable(false);
 			opts.textPane.setCaretPosition(0);
 			constructBoundary();
-			initializeAllMaterials();
 			updateAllMaterials();
 			calcMiscFields(true);
 
