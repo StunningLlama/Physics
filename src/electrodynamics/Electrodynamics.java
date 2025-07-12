@@ -243,7 +243,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	double p_heavy_doping_concentration = 2.5e20;
 	
 	double dielectric_eps_r = 25.0;
-	double ferromagnet_mu_r = 25.0;
+	double ferromagnet_mu_r = 250.0;
 	double staticcharge_density = 10.0;
 	
 	double E_sat = 5e5;					// Maximum electric field before velocity saturates
@@ -256,6 +256,9 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	List<VoltageProbe> voltageprobes;
 	List<CurrentProbe> currentprobes;
 	VoltageProbe ground = null;
+	String datafilename = "probedata.txt";
+	public File datafile;
+	public PrintWriter datastream;
 	
 	
 	/* Domain parameters */
@@ -299,6 +302,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	MainWindow opts;
 	HelpDialog help;
 	BufferedImage screen;
+	double[][] scalarfield;
 	float[][] image_r;
 	float[][] image_g;
 	float[][] image_b;
@@ -317,6 +321,11 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	int imgheight = 0;
 	int targetframerate = 60;
 	int frameduration = 1000/targetframerate;
+	
+	ArrayList<Dot> dots = new ArrayList<Dot>();
+	int numdots = 1000;
+	
+	int probetexttimer = 0;
 	
 	
 	/* Performance profiling */
@@ -344,6 +353,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
     boolean shift_down = false;
     boolean ctrl_down = false;
     boolean alt_down = false;
+    boolean logdata = false;
     
 	
 	/* Mouse controls */
@@ -467,6 +477,16 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		
 		help = new HelpDialog();
 		help.setVisible(false);
+		
+
+		datafile = new File(datafilename);
+		
+		try {
+			datastream = new PrintWriter(new FileOutputStream(datafile));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		
 	}
 	
 	public void detect64Bit() {
@@ -655,7 +675,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		text_x = 0;
 		text_y = 0;
 		texting = false;
-		
+
+		scalarfield = new double[nx][ny];
 		image_r = new float[nx][ny];
 		image_g = new float[nx][ny];
 		image_b = new float[nx][ny];
@@ -1130,7 +1151,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			{
 				Jx_n[i][j] *= conducting_x[i][j];
 				Jx_p[i][j] *= conducting_x[i][j];
-				Jx_abs[i][j] *= (materials[i][j].absorptivity > 0)? 1:0;
+				Jx_abs[i][j] *= (absorptivity_x[i][j] > 0)? 1:0;
 			}
 		}
 
@@ -2154,16 +2175,40 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 				}
 			}
 		}
+
+		if (ground != null)
+			ground.potential = F[ground.x][ground.y];
 		
 		for (VoltageProbe p: voltageprobes) {
 			p.potential = F[p.x][p.y];
 		}
 		
-		if (ground != null)
-			ground.potential = F[ground.x][ground.y];
-		
 		for (CurrentProbe p: currentprobes) {
 			p.current = calcCurrent(p.x1, p.y1, p.x2, p.y2);
+		}
+		
+		if (logdata) {
+			String data = "";
+			data += ("t = " + getSI(time, "s"));
+			
+			for (VoltageProbe p: voltageprobes) {
+				if (ground != null)
+					data += (", V(" + p.x + ", " + p.y + ") = " + getSI(p.potential-ground.potential, "V"));
+				else
+					data += (", V(" + p.x + ", " + p.y + ") = " + getSI(p.potential, "V"));
+			}
+			
+			for (CurrentProbe p: currentprobes) {
+				data += (", I(" + p.x1 + ", " + p.y1 + ", " + p.x2 + ", " + p.y2 + ") = " + getSI(p.current*depth, "A"));
+			}
+			
+			data += "\n";
+			
+			datastream.print(data);
+			datastream.flush();
+			
+			probetexttimer = 30;
+			logdata = false;
 		}
 
 		updateMiscFields = false;
@@ -2242,8 +2287,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	public void multigridSolve(boolean correctEfield, boolean computePhi) {
 		assert(!(correctEfield && computePhi));
 		
-		boolean debug = false;
-		
 		if (correctEfield)
 			t4.start();
 		if (computePhi)
@@ -2252,6 +2295,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		for (int i = 0; i < nx; i++) {
 			for (int j = 0; j < ny; j++) {
 				MG_phi1[i][j] = 0;
+				MG_phi2[i][j] = 0;
 				for (int k = 0; k <= log2_resolution; k++) {
 					MG_rho[k][i][j] = 0;
 				}
@@ -2490,6 +2534,41 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		int yfloor = (int)Math.floor(y);
 		double fx = x - xfloor;
 		double fy = y - yfloor;
+		if (Math.abs(x-Math.round(x)) < 1e-2 && Math.abs(y-Math.round(y)) < 1e-2) {
+			int i = (int)Math.round(x);
+			int j = (int)Math.round(y);
+			if (i < 0) i = 0;
+			if (j < 0) j = 0;
+			if (i >= nx) i = nx - 1;
+			if (j >= ny) j = ny - 1;
+			return array[i][j];
+		}
+		
+		if (xfloor < 0) {
+			xfloor = 0;
+			fx = 0.0;
+		} else if (xfloor >= nx - 1) {
+			xfloor = nx - 2;
+			fx = 1.0;
+		}
+		if (yfloor < 0) {
+			yfloor = 0;
+			fy = 0.0;
+		} else if (yfloor >= ny - 1) {
+			yfloor = ny - 2;
+			fy = 1.0;
+		}
+		double va = array[xfloor][yfloor]*(1.0-fx) + array[xfloor+1][yfloor]*fx;
+		double vb = array[xfloor][yfloor+1]*(1.0-fx) + array[xfloor+1][yfloor+1]*fx;
+		
+		return va*(1.0-fy) + vb*fy;
+	}
+	
+	public double bilinearinterp(int[][] array, double x, double y) {
+		int xfloor = (int)Math.floor(x);
+		int yfloor = (int)Math.floor(y);
+		double fx = x - xfloor;
+		double fy = y - yfloor;
 		if (Math.abs(x-Math.round(x)) < 1e-2 || Math.abs(y-Math.round(y)) < 1e-2) {
 			int i = (int)Math.round(x);
 			int j = (int)Math.round(y);
@@ -2633,6 +2712,59 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		}
 		t9.stop();
 	}
+	
+	public void drawRectangle(int x, int y, int w, int h) {
+		try {
+			int[] imgData = ((DataBufferInt)screen.getRaster().getDataBuffer()).getData();
+			int scansize = scalefactor*nx;
+			for (int i = x; i < x+w; i++) {
+				for (int j = y; j < y+h; j++) {
+					int rgb =  imgData[i+j*scansize];
+					int r = ((int)(((rgb>>16)&255)*alphaBG + 255*col_r*alphaFG));
+					int g = ((int)(((rgb>>8)&255)*alphaBG + 255*col_g*alphaFG));
+					int b = ((int)(((rgb)&255)*alphaBG + 255*col_b*alphaFG));
+					if (r > 255)
+						r = 255;
+					if (g > 255)
+						g = 255;
+					if (b > 255)
+						b = 255;
+					imgData[i+j*scansize] = 255<<24 | r << 16 | g << 8 | b;
+				}
+			}
+		} catch (ArrayIndexOutOfBoundsException e) {
+			return;
+		}
+	}
+
+	public void drawContours(double[][] field, double s) {
+		try {
+			int[] imgData = ((DataBufferInt)screen.getRaster().getDataBuffer()).getData();
+			int scansize = scalefactor*nx;
+			for (int i = 0; i < scalefactor*nx; i++) {
+				for (int j = 0; j < scalefactor*ny; j++) {
+					//int rgb =  imgData[i+j*scansize];
+					double u = s*bilinearinterp(field, (double)i/scalefactor, (double)j/scalefactor);
+					if (((u%1)+1.5)%1 < 0.1) {
+						imgData[i+j*scansize] = 0xffffffff;
+					}
+					/*int r = ((int)(((rgb>>16)&255)*alphaBG + 255*col_r*alphaFG));
+					int g = ((int)(((rgb>>8)&255)*alphaBG + 255*col_g*alphaFG));
+					int b = ((int)(((rgb)&255)*alphaBG + 255*col_b*alphaFG));
+					if (r > 255)
+						r = 255;
+					if (g > 255)
+						g = 255;
+					if (b > 255)
+						b = 255;
+					imgData[i+j*scansize] = 255<<24 | r << 16 | g << 8 | b;*/
+				}
+			}
+		} catch (ArrayIndexOutOfBoundsException e) {
+			return;
+		}
+	}
+
 	
 	public void drawLine(int x0, int y0, int x1, int y1, boolean draw_starting_point) {
 		try {
@@ -2803,8 +2935,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	public void render() {
 		t5.start();
 		Graphics2D g = (Graphics2D) screen.getGraphics();
-		double scalingconstant = 10.0*Math.pow(10.0, opts.gui_brightness.getValue()/10.0);
-
 
 		for (int i = 0; i < nx; i++) {
 			for (int j = 0; j < ny; j++) {
@@ -2865,109 +2995,134 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 				}
 			}
 		}
-
-		if ((ScalarView) opts.gui_view.getSelectedItem() != ScalarView.NONE) {
+		
+		ScalarView scalarview = (ScalarView) opts.gui_view.getSelectedItem();
+		
+		if (scalarview != ScalarView.NONE) {
 			setalphaBG(1.0);
 			setalphaFG(1.0);
 			for (int i = 1; i < nx-1; i++) {
 				for (int j = 1; j < ny-1; j++) {
-
-					switch ((ScalarView) opts.gui_view.getSelectedItem()) {
+					switch (scalarview) {
 					case NONE:
-						setColorFloat(0, 0, 0);
 						break;
 					case B_FIELD:
-						float v;
-						v = (float)(parity*0.25*(Bz[i][j]+Bz[i-1][j]+Bz[i][j-1]+Bz[i-1][j-1])*1e5*scalingconstant);
-						setColorFloat(v, Math.abs(v), -v);
+						scalarfield[i][j] = (parity*0.25*(Bz[i][j]+Bz[i-1][j]+Bz[i][j-1]+Bz[i-1][j-1]));
 						break;
 					case E_FIELD:
-						double vx = 0.5*(Ex[i][j]+Ex[i][j+1])*scalingconstant/1e5;
-						double vy = 0.5*(Ey[i][j]+Ey[i+1][j])*scalingconstant/1e5;
-						setColorFloat(0, (float)(length(vx, vy)), 0);
+						scalarfield[i][j] = length(0.5*(Ex[i][j]+Ex[i][j+1]), 0.5*(Ey[i][j]+Ey[i+1][j]));
 						break;
 					case H_FIELD:
-						v = (float)(parity*Hz[i][j]*mu0*1e5*scalingconstant);
-						setColorFloat(v, Math.abs(v), -v);
+						scalarfield[i][j] = parity*Hz[i][j];
 						break;
 					case CURRENT:
-						vx = 0.5*(Jx_free[i][j]+Jx_free[i-1][j])*scalingconstant;
-						vy = 0.5*(Jy_free[i][j]+Jy_free[i][j-1])*scalingconstant;
-						setColorFloat(0, (float)(length(vx, vy)/1e7), 0);
+						scalarfield[i][j] = length(0.5*(Jx_free[i][j]+Jx_free[i-1][j]), 0.5*(Jy_free[i][j]+Jy_free[i][j-1]));
 						break;
 					case POTENTIAL:
-						v = (float)(phi[i][j]*scalingconstant);
-						setColorFloat(v, 0, -v);
+						scalarfield[i][j] = phi[i][j];
 						break;
 					case CHARGE:
-						v = (float)(rho_free[i][j]*scalingconstant);
-						float rc = Math.min(Math.max(v, 0), 1);
-						float bc = Math.min(Math.max(-v, 0), 1);
-						float gc = Math.min(rc, bc);
-
-						setalphaBG(1-0.5*gc);
-						//setalphaFG(gc);
-						setColorFloat(rc, gc, bc);
+						scalarfield[i][j] = rho_free[i][j];
 						break;
 					case BACKGROUND_CHARGE:
-						v = (float)(rho_back[i][j]*scalingconstant);
-						setColorFloat(v, 0, -v);
+						scalarfield[i][j] = rho_back[i][j];
 						break;
 					case ELECTRON_CHARGE:
-						v = (float)(rho_n[i][j]*scalingconstant);
-						setColorFloat(v, 0, -v);
+						scalarfield[i][j] = rho_n[i][j];
 						break;
 					case HOLE_CHARGE:
-						v = (float)(rho_p[i][j]*scalingconstant);
-						setColorFloat(v, 0, -v);
+						scalarfield[i][j] = rho_p[i][j];
 						break;
 					case COMBINED_CHARGE:
-						rc = (float)(clamp(0.2*Math.log(rho_p[i][j]*scalingconstant), 0, 1));
-						bc = (float)(clamp(0.2*Math.log(-rho_n[i][j]*scalingconstant), 0, 1));
-						gc = Math.min(rc, bc);
+						scalarfield[i][j] = rho_n[i][j]+rho_p[i][j];
+						break;
+					case ENERGY:
+						scalarfield[i][j] = u[i][j];
+						break;
+					case ENTROPY:
+						scalarfield[i][j] = S[i][j];
+						break;
+					case HEAT:
+						scalarfield[i][j] = Q[i][j];
+						break;
+					case ELECTRON_POTENTIAL:
+						scalarfield[i][j] = conducting[i][j]*(F_n[i][j]/q_n+phi[i][j]-W_semi/eVtoJ);
+						break;
+					case HOLE_POTENTIAL:
+						scalarfield[i][j] = conducting[i][j]*(F_p[i][j]/q_p+phi[i][j]-W_semi/eVtoJ);
+						break;
+					case DEBUG:
+						scalarfield[i][j] = (visited[i][j]? 1:0);
+						break;
+					case RECOMBINATION:
+						scalarfield[i][j] = -G[i][j];
+						break;
+					case AVERAGE_POTENTIAL:
+						scalarfield[i][j] = F[i][j];
+						break;
+					case LIGHT:
+						scalarfield[i][j] = -materials[i][j].semiconducting*this.G[i][j];
+						break;
+					}
+				}
+			}
+		}
+		
+		ScalarView.ColorScheme colorScheme = ((ScalarView) opts.gui_view.getSelectedItem()).colorScheme;
+		float scalingconstant = (float) (10.0*Math.pow(10.0, opts.gui_brightness.getValue()/10.0)/scalarview.scale);
+		if (colorScheme == ScalarView.ColorScheme.RED_BLUE) {
+			for (int i = 1; i < nx-1; i++) {
+				for (int j = 1; j < ny-1; j++) {
+					setColorFloat((float) scalarfield[i][j]*scalingconstant, 0, -(float) scalarfield[i][j]*scalingconstant);
+					setPixel(i, j);
+				}
+			}
+		} else if (colorScheme == ScalarView.ColorScheme.CYAN_YELLOW) {
+			for (int i = 1; i < nx-1; i++) {
+				for (int j = 1; j < ny-1; j++) {
+					setColorFloat((float) scalarfield[i][j]*scalingconstant, Math.abs((float) scalarfield[i][j]*scalingconstant), -(float) scalarfield[i][j]*scalingconstant);
+					setPixel(i, j);
+				}
+			}
+		} else if (colorScheme == ScalarView.ColorScheme.GREEN) {
+			for (int i = 1; i < nx-1; i++) {
+				for (int j = 1; j < ny-1; j++) {
+					setColorFloat(0, Math.abs((float) scalarfield[i][j]*scalingconstant), 0);
+					setPixel(i, j);
+				}
+			}
+		} else if (colorScheme == ScalarView.ColorScheme.WHITE) {
+			for (int i = 1; i < nx-1; i++) {
+				for (int j = 1; j < ny-1; j++) {
+					setColorFloat((float) scalarfield[i][j]*scalingconstant, (float) scalarfield[i][j]*scalingconstant, (float) scalarfield[i][j]*scalingconstant);
+					setPixel(i, j);
+				}
+			}
+		} else if (colorScheme == ScalarView.ColorScheme.OTHER) {
+			if (scalarview == ScalarView.COMBINED_CHARGE) {
+				for (int i = 1; i < nx-1; i++) {
+					for (int j = 1; j < ny-1; j++) {
+						float rc = (float)(clamp(0.2*Math.log(rho_p[i][j]*scalingconstant), 0, 1));
+						float bc = (float)(clamp(0.2*Math.log(-rho_n[i][j]*scalingconstant), 0, 1));
+						float gc = Math.min(rc, bc);
 						double it = Math.max(rc, bc);
 						setalphaBG(1-0.5*gc);
 						setalphaFG(0.6*it);
 						setColorFloat(rc, gc, bc);
-						break;
-					case ENERGY:
-						v = (float)(u[i][j]*scalingconstant);
-						setColorFloat(0, v, 0);
-						break;
-					case ENTROPY:
-						v = (float)(S[i][j]*scalingconstant/1e12);
-						setColorFloat(v, Math.abs(v), -v);
-						break;
-					case HEAT:
-						v = (float)(Q[i][j]*scalingconstant/1e12);
-						setColorFloat(v, Math.abs(v), -v);
-						break;
-					case ELECTRON_POTENTIAL:
-						v = (float)(conducting[i][j]*(F_n[i][j]/q_n+phi[i][j]-W_semi/eVtoJ)*scalingconstant);
-						setColorFloat(v, Math.abs(v), -v);
-						break;
-					case HOLE_POTENTIAL:
-						v = (float)(conducting[i][j]*(F_p[i][j]/q_p+phi[i][j]-W_semi/eVtoJ)*scalingconstant);
-						setColorFloat(v, Math.abs(v), -v);
-						break;
-					case DEBUG:
-						v = (float)((visited[i][j]? 1:0)*scalingconstant);
-						setColorFloat(v, 0, -v);
-						break;
-					case RECOMBINATION:
-						v = (float)(-G[i][j]/1e30*scalingconstant);
-						setColorFloat(v, Math.abs(v), -v);
-						break;
-					case AVERAGE_POTENTIAL:
-						v = (float)(F[i][j]*scalingconstant);
-						setColorFloat(v, Math.abs(v), -v);
-						break;
-					case LIGHT:
-						v = (float)(-materials[i][j].semiconducting*this.G[i][j]/1e30*scalingconstant);
-						setColorFloat(v, v, v);
-						break;
+						setPixel(i, j);
 					}
-					setPixel(i, j);
+				}
+			}  else if (scalarview == ScalarView.CHARGE) {
+				for (int i = 1; i < nx-1; i++) {
+					for (int j = 1; j < ny-1; j++) {
+						float rc = Math.min(Math.max((float) scalarfield[i][j]*scalingconstant, 0), 1);
+						float bc = Math.min(Math.max(-(float) scalarfield[i][j]*scalingconstant, 0), 1);
+						float gc = Math.min(rc, bc);
+
+						setalphaBG(1-0.5*gc);
+						setColorFloat(rc, gc, bc);
+						setPixel(i, j);
+					}
 				}
 			}
 		}
@@ -3073,11 +3228,9 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			
 			double arrowlength = 10.0/scalefactor;
 
-			double vectorscalingconstant = 0.01*Math.pow(10.0, opts.gui_brightness_vec.getValue()/5.0);
+			double vectorscalingconstant = 0;
 			
 			VectorMode vector_display_mode = (VectorMode)opts.gui_view_vec_mode.getSelectedItem();
-			
-			rand.setSeed(4);
 			
 			int density = 75;
 
@@ -3091,6 +3244,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 
 			double[][] vf_x = null;
 			double[][] vf_y = null;
+			boolean isCurrent = false;
 			
 			switch ((VectorView) opts.gui_view_vec.getSelectedItem()) {
 			case NONE:
@@ -3106,14 +3260,17 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			case ELECTRON_CURRENT:
 				vf_x = Jx_n;
 				vf_y = Jy_n;
+				isCurrent = true;
 				break;
 			case HOLE_CURRENT:
 				vf_x = Jx_p;
 				vf_y = Jy_p;
+				isCurrent = true;
 				break;
 			case TOTAL_CURRENT:
 				vf_x = Jx_free;
 				vf_y = Jy_free;
+				isCurrent = true;
 				break;
 			case POYNTING:
 				vf_x = Sx;
@@ -3124,84 +3281,136 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 				vf_y = emfy;
 				break;
 			}
-			
-			
-			Vector ctr = new Vector(0,0);
-			Vector arrow = new Vector(0,0);
-			Vector tip1 = new Vector(0,0);
-			Vector tip2 = new Vector(0,0);
-			Vector body1 = new Vector(0,0);
-			Vector body2 = new Vector(0,0);
-			
-			for (int i = 0; i < density; i++) {
-				for (int j = 0; j < density; j++) {
 
-					//double x = (nx-1)*(i+0.5)/50;
-					//double y = (ny-1)*(j+0.5)/50;
-					double x = nx*(i+randomness*(rand.nextFloat()-0.5))/density;
-					double y = ny*(j+randomness*(rand.nextFloat()-0.5))/density;
-					
-					
-					if (vector_display_mode == VectorMode.LINES && vf_x != null) {
-						for (int sign = -1; sign <= 1; sign += 2) {
-							
-							double prevx = x;
-							double prevy = y;
-							double dx = 0;
-							double dy = 0;
-							
-							for (int k = 0; k < 10; k++) {
+			if (vf_x != null)
+			{
+				Vector ctr = new Vector(0,0);
+				Vector arrow = new Vector(0,0);
+				Vector tip1 = new Vector(0,0);
+				Vector tip2 = new Vector(0,0);
+				Vector body1 = new Vector(0,0);
+				Vector body2 = new Vector(0,0);
+
+				if (vector_display_mode == VectorMode.LINES) {
+					vectorscalingconstant = 0.01*Math.pow(10.0, opts.gui_brightness_vec.getValue()/5.0);
+					rand.setSeed(4);
+					for (int i = 0; i < density; i++) {
+						for (int j = 0; j < density; j++) {
+
+							//double x = (nx-1)*(i+0.5)/50;
+							//double y = (ny-1)*(j+0.5)/50;
+							double x = nx*(i+randomness*(rand.nextFloat()-0.5))/density;
+							double y = ny*(j+randomness*(rand.nextFloat()-0.5))/density;
+							for (int sign = -1; sign <= 1; sign += 2) {
+
+								double prevx = x;
+								double prevy = y;
+								double dx = 0;
+								double dy = 0;
+
+								for (int k = 0; k < 10; k++) {
 									dx = bilinearinterp(vf_x, prevx-0.5, prevy);
 									dy = bilinearinterp(vf_y, prevx, prevy-0.5);
 
-								double fieldmagnitude = Math.sqrt(dx*dx+dy*dy);
-								setalphaFG(0.1*Math.sqrt(1/(0.1*k*k+1.0)*vectorscalingconstant*fieldmagnitude));
-								
-								if (fieldmagnitude != 0) {
-									dx /= fieldmagnitude;
-									dy /= fieldmagnitude;
+									double fieldmagnitude = Math.sqrt(dx*dx+dy*dy);
+									setalphaFG(0.1*Math.sqrt(1/(0.1*k*k+1.0)*vectorscalingconstant*fieldmagnitude));
+
+									if (fieldmagnitude != 0) {
+										dx /= fieldmagnitude;
+										dy /= fieldmagnitude;
+									}
+
+									//setcol(fieldmagnitude, fieldmagnitude, fieldmagnitude, 30);
+									setColorFloat(1.0f, 1.0f, 1.0f);
+
+									double nextx = prevx + dx*arrowlength*0.25*sign;
+									double nexty = prevy + dy*arrowlength*0.25*sign;
+
+									drawLine((int)((prevx+0.5)*scalefactor), (int)((prevy+0.5)*scalefactor), (int)((nextx+0.5)*scalefactor), (int)((nexty+0.5)*scalefactor), k == 0 && sign == 1);
+
+									prevx = nextx;
+									prevy = nexty;
 								}
-								
-								//setcol(fieldmagnitude, fieldmagnitude, fieldmagnitude, 30);
-								setColorFloat(1.0f, 1.0f, 1.0f);
-
-								double nextx = prevx + dx*arrowlength*0.25*sign;
-								double nexty = prevy + dy*arrowlength*0.25*sign;
-
-								drawLine((int)((prevx+0.5)*scalefactor), (int)((prevy+0.5)*scalefactor), (int)((nextx+0.5)*scalefactor), (int)((nexty+0.5)*scalefactor), k == 0 && sign == 1);
-
-								prevx = nextx;
-								prevy = nexty;
 							}
 						}
-					} else if (vector_display_mode == VectorMode.ARROWS && vf_x != null) {
-						ctr.x = x+0.5;
-						ctr.y = y+0.5;
 
-						arrow.x = bilinearinterp(vf_x,x-0.5, y);
-						arrow.y = bilinearinterp(vf_y,x, y-0.5);
-
-						double fieldmagnitude = Math.max(0.1, vectorscalingconstant*Math.sqrt(arrow.dot(arrow)));
-						arrow.normalize();
-						tip1.copy(arrow);
-						tip2.copy(arrow);
-						tip1.rotate(Math.PI*5.0/6.0);
-						tip2.rotate(Math.PI*7.0/6.0);
-						
-						body1.copy(ctr);
-						body1.addmult(arrow, -0.5*arrowlength);
-						body2.copy(ctr);
-						body2.addmult(arrow, 0.5*arrowlength);
-						tip1.scalarmult(0.35*arrowlength);
-						tip1.add(body2);
-						tip2.scalarmult(0.35*arrowlength);
-						tip2.add(body2);
-						setColorFloat((float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude);
-						setalphaFG(0.1*Math.sqrt(fieldmagnitude));
-						drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true);
-						drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip1.x*scalefactor), (int)(tip1.y*scalefactor), false);
-						drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip2.x*scalefactor), (int)(tip2.y*scalefactor), false);
 					}
+				} else if (vector_display_mode == VectorMode.ARROWS) {
+					vectorscalingconstant = 0.01*Math.pow(10.0, opts.gui_brightness_vec.getValue()/5.0);
+					rand.setSeed(4);
+					for (int i = 0; i < density; i++) {
+						for (int j = 0; j < density; j++) {
+
+							//double x = (nx-1)*(i+0.5)/50;
+							//double y = (ny-1)*(j+0.5)/50;
+							double x = nx*(i+randomness*(rand.nextFloat()-0.5))/density;
+							double y = ny*(j+randomness*(rand.nextFloat()-0.5))/density;
+							ctr.x = x+0.5;
+							ctr.y = y+0.5;
+
+							arrow.x = bilinearinterp(vf_x,x-0.5, y);
+							arrow.y = bilinearinterp(vf_y,x, y-0.5);
+
+							double fieldmagnitude = Math.max(0.1, vectorscalingconstant*Math.sqrt(arrow.dot(arrow)));
+							arrow.normalize();
+							tip1.copy(arrow);
+							tip2.copy(arrow);
+							tip1.rotate(Math.PI*5.0/6.0);
+							tip2.rotate(Math.PI*7.0/6.0);
+
+							body1.copy(ctr);
+							body1.addmult(arrow, -0.5*arrowlength);
+							body2.copy(ctr);
+							body2.addmult(arrow, 0.5*arrowlength);
+							tip1.scalarmult(0.35*arrowlength);
+							tip1.add(body2);
+							tip2.scalarmult(0.35*arrowlength);
+							tip2.add(body2);
+							setColorFloat((float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude);
+							setalphaFG(0.1*Math.sqrt(fieldmagnitude));
+							drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true);
+							drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip1.x*scalefactor), (int)(tip1.y*scalefactor), false);
+							drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip2.x*scalefactor), (int)(tip2.y*scalefactor), false);
+						}
+					}
+				} else if (vector_display_mode == VectorMode.DOTS) {
+					vectorscalingconstant = 0.00001*Math.pow(10.0, opts.gui_brightness_vec.getValue()/10.0);
+					dots.removeIf(d -> d.time < 0 || d.x < 0 || d.y < 0 || d.x >= nx || d.y >= ny);
+					for (int i = 0; i < (numdots-dots.size()); i++) {
+						Dot d = new Dot();
+						d.x = nx*rand.nextDouble();
+						d.y = ny*rand.nextDouble();
+						d.lifespan = 50+50*rand.nextDouble();
+						d.time = d.lifespan;
+						if (!isCurrent || bilinearinterp(conducting, d.x, d.y) > 0)
+						dots.add(d);
+					}
+
+					setColorFloat(1, 1, 1);
+					for (Dot d : dots) {
+						double dx = 0;
+						double dy = 0;
+						int steps = 5;
+
+						for (int k = 0; k < steps; k++) {
+							dx = bilinearinterp(vf_x,d.x-0.5, d.y);
+							dy = bilinearinterp(vf_y,d.x, d.y-0.5);
+							double s = Math.max(1.0, Math.sqrt(dx*dx+dy*dy)*vectorscalingconstant/steps);
+							d.x += dx*vectorscalingconstant/(steps*s);
+							d.y += dy*vectorscalingconstant/(steps*s);
+						}
+						
+						double p = d.time/d.lifespan - 0.5;
+						
+						double fieldmagnitude = Math.min(1, Math.max(0.1, 5*vectorscalingconstant*Math.sqrt(dx*dx+dy*dy))/(20*p*p+1.0));
+						setalphaFG(fieldmagnitude);
+						this.drawRectangle((int)(d.x*scalefactor)-2, (int)(d.y*scalefactor)-2, 5, 5);
+						
+						
+						d.time -= 1;
+					}
+				} else if (vector_display_mode == VectorMode.CONTOUR) {
+					drawContours(scalarfield, 5*scalingconstant);
 				}
 			}
 		}
@@ -3209,9 +3418,9 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		/* Draw text */
 
 		((Graphics2D)g).setRenderingHint(
-				RenderingHints.KEY_TEXT_ANTIALIASING,
-				RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-		
+		RenderingHints.KEY_TEXT_ANTIALIASING,
+		RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
 		for (VoltageProbe p: voltageprobes) {
 			if (ground != null)
 				drawStringWithBackgroundAndBorder("V = " + getSI(p.potential - ground.potential, "V"), p.x*scalefactor-5, p.y*scalefactor - 12, g);
@@ -3221,11 +3430,11 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 
 		if (ground != null)
 			drawStringWithBackgroundAndBorder("Ground = " + getSI(ground.potential - ground.potential, "V"), ground.x*scalefactor-5, ground.y*scalefactor - 12, g);
-		
+
 		for (CurrentProbe p: currentprobes) {
 			double xa = 0.5*(p.x1+p.x2)*scalefactor;
 			double ya = 0.5*(p.y1+p.y2)*scalefactor;
-			
+
 			double dx = p.x2 - p.x1;
 			double dy = p.y2 - p.y1;
 			double len = length(dx, dy);
@@ -3334,6 +3543,11 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			drawStringWithBackground(t6.name + " " + getSI(t6.avgtime*opts.gui_simspeed_2.getValue(), "s"), hoffset, voffset + line*vspacing, g); line++;
 			drawStringWithBackground(t7.name + " " + getSI(t7.avgtime, "s"), hoffset, voffset + line*vspacing, g); line++;
 			drawStringWithBackground(t8.name + " " + getSI(t8.avgtime, "s"), hoffset, voffset + line*vspacing, g); line++;
+		}
+		
+		if (probetexttimer > 0) {
+			drawStringWithBackground("Data saved to " + datafilename, hoffset, voffset + line*vspacing, g); line++;
+			probetexttimer--;
 		}
 
 		drawStringBackgrounds(g);
@@ -4008,6 +4222,13 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			alt_down = false;
         }
     };
+    @SuppressWarnings("serial")
+    private Action key_logdata = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent e) {
+			logdata = true;
+        }
+    };
 
     public void addKeyBinds(JPanel contentPane) {
     	InputMap map = contentPane.getInputMap(JComponent.WHEN_FOCUSED);
@@ -4074,6 +4295,9 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, 0, true), key_alt_up);
     	contentPane.getActionMap().put(key_alt_up, key_alt_up);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, 0), key_logdata);
+    	contentPane.getActionMap().put(key_logdata, key_logdata);
     	
     }
     
@@ -4165,31 +4389,40 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	};
 
 	enum ScalarView {
-		NONE("No scalar overlay"),
-		E_FIELD("View E field magnitude"),
-		B_FIELD("View B field"),
-		CHARGE("View \u03c1: Net charge density"),
-		CURRENT("View J: Total current magnitude"),
-		H_FIELD("View H field"),
-		POTENTIAL("View \u03d5: Electric scalar potential"),
-		ENERGY("View u: Electromagnetic energy density"),
-		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density"),
-		HOLE_CHARGE("View \u03c1\u209A: Hole charge density"),
-		COMBINED_CHARGE("View: Combined electron+hole charge density"),
-		BACKGROUND_CHARGE("View \u03c1\u2080: Background charge density"),
-		HEAT("View Q: Heat dissipation"),
-		ENTROPY("View s: Entropy generation (Free energy dissipation)"),
-		ELECTRON_POTENTIAL("View F\u2099: Electron chemical potential"),
-		HOLE_POTENTIAL("View F\u209A: Hole chemical potential"),
-		AVERAGE_POTENTIAL("View F: Average electrochemical potential"),
-		RECOMBINATION("View R: Recombination rate"),
-		LIGHT("View: Emitted light"),
-		DEBUG("Debug");
+		NONE("No scalar overlay",															ColorScheme.OTHER,			1),
+		E_FIELD("View E field magnitude",													ColorScheme.GREEN,			1),
+		B_FIELD("View B field",																ColorScheme.CYAN_YELLOW,	1e-5),
+		CHARGE("View \u03c1: Net charge density",											ColorScheme.OTHER,			1e5),
+		CURRENT("View J: Total current magnitude",											ColorScheme.GREEN,			1e7),
+		H_FIELD("View H field",																ColorScheme.CYAN_YELLOW,	1e-5/1.257e-6),
+		POTENTIAL("View \u03d5: Electric scalar potential", 								ColorScheme.RED_BLUE,		1),
+		ENERGY("View u: Electromagnetic energy density",									ColorScheme.GREEN,			1),
+		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density",						ColorScheme.RED_BLUE,		1),
+		HOLE_CHARGE("View \u03c1\u209A: Hole charge density",								ColorScheme.RED_BLUE,		1),
+		COMBINED_CHARGE("View: Combined electron+hole charge density",						ColorScheme.OTHER,			1),
+		BACKGROUND_CHARGE("View \u03c1\u2080: Background charge density",					ColorScheme.RED_BLUE,		1),
+		HEAT("View Q: Heat dissipation",													ColorScheme.CYAN_YELLOW,	1e12),
+		ENTROPY("View s: Entropy generation (Free energy dissipation)",						ColorScheme.CYAN_YELLOW,	1e12),
+		ELECTRON_POTENTIAL("View F\u2099: Electron chemical potential (quasi Fermi level)",	ColorScheme.CYAN_YELLOW, 	1),
+		HOLE_POTENTIAL("View F\u209A: Hole chemical potential (quasi Fermi level)",			ColorScheme.CYAN_YELLOW, 	1),
+		AVERAGE_POTENTIAL("View F: Average electrochemical potential",						ColorScheme.CYAN_YELLOW,	1),
+		RECOMBINATION("View R: Recombination rate",											ColorScheme.CYAN_YELLOW,	1e30),
+		LIGHT("View: Emitted light",														ColorScheme.WHITE,			1e30),
+		DEBUG("Debug",																		ColorScheme.RED_BLUE,		1);
+		
+		enum ColorScheme {
+			RED_BLUE, CYAN_YELLOW, GREEN, WHITE, OTHER;
+		}
 		
 		String name;
-		ScalarView(String name)
+		ColorScheme colorScheme;
+		double scale; //Typical order of magnitude of the quantity
+		
+		ScalarView(String name, ColorScheme colorScheme, double scale)
 		{
 			this.name = name;
+			this.colorScheme = colorScheme;
+			this.scale = scale;
 		}
 		
 		@Override
@@ -4222,7 +4455,9 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	
 	enum VectorMode {
 		ARROWS("Show vectors"),
-		LINES("Show lines");
+		LINES("Show lines"),
+		DOTS("Show dots"),
+		CONTOUR("Show scalar contour lines");
 		
 		String name;
 		VectorMode(String name)
@@ -4277,7 +4512,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 				text_x -= 6;
 				for (int i = 0; i < 5; i++) {
 					for (int j = 0; j < 7; j++) {
-						if (materials[text_x+i+1][text_y+j].type == MaterialType.DECO) {
+						if (text_x+i+1 >= 0 && text_x+i+1 < nx && text_y+j >= 0 && text_y+j < ny
+								&& materials[text_x+i+1][text_y+j].type == MaterialType.DECO) {
 							materials[text_x+i+1][text_y+j].erase();
 						}
 					}
@@ -4305,6 +4541,13 @@ class VoltageProbe {
 	int y;
 	
 	double potential = 0;
+}
+
+class Dot {
+	double x;
+	double y;
+	double lifespan;
+	double time;
 }
 
 class RenderCanvas extends JPanel {

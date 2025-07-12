@@ -109,7 +109,7 @@ public class MainWindow extends JFrame {
 		panel.add(gui_reset);
 		
 		gui_paused = new JCheckBox("Paused");
-		gui_paused.setSelected(true);
+		gui_paused.setSelected(false);
 		gui_paused.setBounds(10, 11, 101, 23);
 		panel.add(gui_paused);
 		
