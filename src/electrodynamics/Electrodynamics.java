@@ -80,7 +80,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	 */
 	
 	//TODO:
-	// Option: change vf density and toggle vf/lines
 	// Change size & sim parameters
 	// Interactions with light
 	// Band structure diagrams
@@ -294,6 +293,10 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	CyclicBarrier stop_barrier = new CyclicBarrier(n_threads + 1);
 	CyclicBarrier mid_barrier = new CyclicBarrier(n_threads);
 	ArrayList<SimulationThread> sim_threads = new ArrayList<SimulationThread>();
+
+	CyclicBarrier graphics_start_barrier = new CyclicBarrier(n_threads + 1);
+	CyclicBarrier graphics_end_barrier = new CyclicBarrier(n_threads + 1);
+	ArrayList<GraphicsThread> graphics_threads = new ArrayList<GraphicsThread>();
 	
 	
 	/* Graphics */
@@ -302,16 +305,17 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	MainWindow opts;
 	HelpDialog help;
 	BufferedImage screen;
+	int[] imgData;
 	double[][] scalarfield;
+	double[][] gradscalarfield;
 	float[][] image_r;
 	float[][] image_g;
 	float[][] image_b;
 	float col_r = 0;
 	float col_g = 0;
 	float col_b = 0;
-	double alphaBG = 0;
-	double alphaFG = 0;
-	Random rand = new Random();
+	float alphaBG = 0;
+	float alphaFG = 0;
 
 	ArrayList<Text> texts = new ArrayList<Text>();
 	Font bigfont = new Font(Font.SANS_SERIF, Font.PLAIN, 15);
@@ -323,7 +327,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	int frameduration = 1000/targetframerate;
 	
 	ArrayList<Dot> dots = new ArrayList<Dot>();
-	int numdots = 1000;
+	int numdots = 2000;
 	
 	int probetexttimer = 0;
 	
@@ -431,7 +435,12 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		}
 
 		for (int i = 0; i < w.n_threads; i++) {
+			w.graphics_threads.add(w.new GraphicsThread(i, w.n_threads));
+		}
+
+		for (int i = 0; i < w.n_threads; i++) {
 			w.sim_threads.get(i).start();
+			w.graphics_threads.get(i).start();
 		}
 		
 		t.schedule(w, 0, w.frameduration);
@@ -667,6 +676,11 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 
 		voltageprobes = new CopyOnWriteArrayList<VoltageProbe>();		
 		currentprobes = new CopyOnWriteArrayList<CurrentProbe>();
+		
+		dots.clear();
+		for (int i = 0; i < numdots; i++) {
+			dots.add(new Dot());
+		}
 
 		resetFields(true);
 		multigridSolve(true, false);
@@ -677,6 +691,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		texting = false;
 
 		scalarfield = new double[nx][ny];
+		gradscalarfield = new double[nx][ny];
 		image_r = new float[nx][ny];
 		image_g = new float[nx][ny];
 		image_b = new float[nx][ny];
@@ -689,6 +704,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		opts.setVisible(true);
 		
 		screen = (BufferedImage) opts.createImage(imgwidth, imgheight);
+		imgData = ((DataBufferInt)screen.getRaster().getDataBuffer()).getData();
 	}
 	
 	public void resetFields(boolean resetall) {
@@ -2193,13 +2209,13 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			
 			for (VoltageProbe p: voltageprobes) {
 				if (ground != null)
-					data += (", V(" + p.x + ", " + p.y + ") = " + getSI(p.potential-ground.potential, "V"));
+					data += (", V(" + getSI(p.x*ds, "m") + ", " + getSI(width-(p.y+1)*ds, "m") + ") = " + getSI(p.potential-ground.potential, "V"));
 				else
-					data += (", V(" + p.x + ", " + p.y + ") = " + getSI(p.potential, "V"));
+					data += (", V(" + getSI(p.x*ds, "m") + ", " + getSI(width-(p.y+1)*ds, "m") + ") = " + getSI(p.potential, "V"));
 			}
 			
 			for (CurrentProbe p: currentprobes) {
-				data += (", I(" + p.x1 + ", " + p.y1 + ", " + p.x2 + ", " + p.y2 + ") = " + getSI(p.current*depth, "A"));
+				data += (", I(" + getSI(p.x1*ds, "m") + ", " + getSI(width-(p.y1+1)*ds, "m") + " - " + getSI(p.x2*ds, "m") + ", " + getSI(width-(p.y2+1)*ds, "m") + ") = " + getSI(p.current*depth, "A"));
 			}
 			
 			data += "\n";
@@ -2678,12 +2694,31 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		}
 	}
 	
-	public void drawPixelRectangle(int x, int y, int w, int h) {
-		for (int i = x; i < x+w; i++) {
-			for (int j = y; j < y+h; j++) {
-				setPixel(i, j);
-			}
+	public void setalphaBG(double alpha) {
+		alphaBG = (float)alpha;
+	}
+	
+	public void setalphaFG(double alpha) {
+		alphaFG = (float)alpha;
+	}
+	
+	public void setColor(int r, int g, int b) {
+		col_r = r/255f;
+		col_g = g/255f;
+		col_b = b/255f;
+	}
+	
+	public void setColorFloat(float r, float g, float b) {
+		if (!(r+b+g < Float.MAX_VALUE)) {
+			col_r = 0;
+			col_g = 0;
+			col_b = 0;
+			return;
 		}
+		float scale = 1f/max(r, g, b, 1f);
+		col_r = Math.max(r*scale, 0);
+		col_g = Math.max(g*scale, 0);
+		col_b = Math.max(b*scale, 0);
 	}
 	
 	public void setPixel(int i, int j) {
@@ -2695,10 +2730,49 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		image_b[i][j] = (float)(image_b[i][j]*alphaBG + col_b*alphaFG);
 	}
 	
+	public void drawPixelLine(int x0, int y0, int x1, int y1) {
+		int dy = y1 - y0;
+		int dx = x1 - x0;
+		float t = (float) 0.5;
+
+		setPixel(x0, y0);
+
+		if (Math.abs(dx) > Math.abs(dy)) {
+			float m = (float) dy / (float) dx;
+			t += y0;
+			dx = (dx < 0) ? -1 : 1;
+			m *= dx;
+			while (x0 != x1) {
+				x0 += dx;
+				t += m;
+
+				setPixel(x0, (int)t);
+			}
+		} else {
+			float m = (float) dx / (float) dy;
+			t += x0;
+			dy = (dy < 0) ? -1 : 1;
+			m *= dy;
+			while (y0 != y1) {
+				y0 += dy;
+				t += m;
+
+				setPixel((int)t, y0);
+			}
+		}
+	}
+	
+	public void drawPixelRectangle(int x, int y, int w, int h) {
+		for (int i = x; i < x+w; i++) {
+			for (int j = y; j < y+h; j++) {
+				setPixel(i, j);
+			}
+		}
+	}
+	
 	public void stampPixelData() {
 		t9.start();
 		int scansize = nx*scalefactor;
-		int[] imgData = ((DataBufferInt)screen.getRaster().getDataBuffer()).getData();
 		for (int x = 0; x < nx*scalefactor; x++) {
 			for (int y = 0; y < ny*scalefactor; y++) {
 				int i = x/scalefactor;
@@ -2712,10 +2786,52 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		}
 		t9.stop();
 	}
+
+	public void drawPixel(int x, int y) {
+		drawPixel(x, y, col_r, col_g, col_b, alphaFG, alphaBG);
+	}
 	
+	public void drawPixel(int x, int y, float col_r, float col_g, float col_b, float alphaFG, float alphaBG) {
+		int scansize = scalefactor*nx;
+		int rgb =  imgData[x+y*scansize];
+		int r = ((int)(((rgb>>16)&255)*alphaBG + 255*col_r*alphaFG));
+		int g = ((int)(((rgb>>8)&255)*alphaBG + 255*col_g*alphaFG));
+		int b = ((int)(((rgb)&255)*alphaBG + 255*col_b*alphaFG));
+		if (r > 255)
+			r = 255;
+		if (g > 255)
+			g = 255;
+		if (b > 255)
+			b = 255;
+		imgData[x+y*scansize] = 255<<24 | r << 16 | g << 8 | b;
+	}
+	
+	public void drawPixelWithContrast(int x, int y, float col_r, float col_g, float col_b, float alphaFG, float alphaBG) {
+		int scansize = scalefactor*nx;
+		int rgb =  imgData[x+y*scansize];
+		if (((rgb>>16)&255) + ((rgb>>8)&255) + ((rgb)&255) > 512) {
+			alphaBG = 1-alphaFG;
+			alphaFG = 0;
+		}
+		
+		int r = ((int)(((rgb>>16)&255)*alphaBG + 255*col_r*alphaFG));
+		int g = ((int)(((rgb>>8)&255)*alphaBG + 255*col_g*alphaFG));
+		int b = ((int)(((rgb)&255)*alphaBG + 255*col_b*alphaFG));
+		if (r > 255)
+			r = 255;
+		if (g > 255)
+			g = 255;
+		if (b > 255)
+			b = 255;
+		imgData[x+y*scansize] = 255<<24 | r << 16 | g << 8 | b;
+	}
+
 	public void drawRectangle(int x, int y, int w, int h) {
+		drawRectangle(x, y, w, h, col_r, col_g, col_b, alphaFG, alphaBG);
+	}
+	
+	public void drawRectangle(int x, int y, int w, int h, float col_r, float col_g, float col_b, float alphaFG, float alphaBG) {
 		try {
-			int[] imgData = ((DataBufferInt)screen.getRaster().getDataBuffer()).getData();
 			int scansize = scalefactor*nx;
 			for (int i = x; i < x+w; i++) {
 				for (int j = y; j < y+h; j++) {
@@ -2736,39 +2852,13 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			return;
 		}
 	}
-
-	public void drawContours(double[][] field, double s) {
-		try {
-			int[] imgData = ((DataBufferInt)screen.getRaster().getDataBuffer()).getData();
-			int scansize = scalefactor*nx;
-			for (int i = 0; i < scalefactor*nx; i++) {
-				for (int j = 0; j < scalefactor*ny; j++) {
-					//int rgb =  imgData[i+j*scansize];
-					double u = s*bilinearinterp(field, (double)i/scalefactor, (double)j/scalefactor);
-					if (((u%1)+1.5)%1 < 0.1) {
-						imgData[i+j*scansize] = 0xffffffff;
-					}
-					/*int r = ((int)(((rgb>>16)&255)*alphaBG + 255*col_r*alphaFG));
-					int g = ((int)(((rgb>>8)&255)*alphaBG + 255*col_g*alphaFG));
-					int b = ((int)(((rgb)&255)*alphaBG + 255*col_b*alphaFG));
-					if (r > 255)
-						r = 255;
-					if (g > 255)
-						g = 255;
-					if (b > 255)
-						b = 255;
-					imgData[i+j*scansize] = 255<<24 | r << 16 | g << 8 | b;*/
-				}
-			}
-		} catch (ArrayIndexOutOfBoundsException e) {
-			return;
-		}
-	}
-
 	
 	public void drawLine(int x0, int y0, int x1, int y1, boolean draw_starting_point) {
+		drawLine(x0, y0, x1, y1, draw_starting_point, col_r, col_g, col_b, alphaFG, alphaBG);
+	}
+	
+	public void drawLine(int x0, int y0, int x1, int y1, boolean draw_starting_point, float col_r, float col_g, float col_b, float alphaFG, float alphaBG) {
 		try {
-			int[] imgData = ((DataBufferInt)screen.getRaster().getDataBuffer()).getData();
 			int scansize = scalefactor*nx;
 			
 			int dy = y1 - y0;
@@ -2843,57 +2933,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			return;
 		}
 	}
-
-	public void drawPixelLine(int x0, int y0, int x1, int y1) {
-		int dy = y1 - y0;
-		int dx = x1 - x0;
-		float t = (float) 0.5;
-
-		setPixel(x0, y0);
-
-		if (Math.abs(dx) > Math.abs(dy)) {
-			float m = (float) dy / (float) dx;
-			t += y0;
-			dx = (dx < 0) ? -1 : 1;
-			m *= dx;
-			while (x0 != x1) {
-				x0 += dx;
-				t += m;
-
-				setPixel(x0, (int)t);
-			}
-		} else {
-			float m = (float) dx / (float) dy;
-			t += x0;
-			dy = (dy < 0) ? -1 : 1;
-			m *= dy;
-			while (y0 != y1) {
-				y0 += dy;
-				t += m;
-
-				setPixel((int)t, y0);
-			}
-		}
-	}
-	
-	public void setColor(int r, int g, int b) {
-		col_r = r/255f;
-		col_g = g/255f;
-		col_b = b/255f;
-	}
-	
-	public void setColorFloat(float r, float g, float b) {
-		if (!(r+b+g < Float.MAX_VALUE)) {
-			col_r = 0;
-			col_g = 0;
-			col_b = 0;
-			return;
-		}
-		float scale = 1f/max(r, g, b, 1f);
-		col_r = Math.max(r*scale, 0);
-		col_g = Math.max(g*scale, 0);
-		col_b = Math.max(b*scale, 0);
-	}
 	
 	public float max(float x, float y, float z) {
 		return Math.max(Math.max(x, y), z);
@@ -2923,13 +2962,16 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		if (val > max) return max;
 		return val;
 	}
-
-	public void setalphaBG(double alpha) {
-		alphaBG = alpha;
-	}
 	
-	public void setalphaFG(double alpha) {
-		alphaFG = alpha;
+	public double bump(double x, double w) {
+		if (x <= 0 || x >= 1) return 0;
+		if (x <= (1-w) && x >= w) return 1;
+		
+		double y = x/w;
+		if (x > (1-w))
+			y = (1.0-x)/w;
+		
+		return 3*y*y - 2*y*y*y;
 	}
 	
 	public void render() {
@@ -3067,38 +3109,43 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 				}
 			}
 		}
-		
-		ScalarView.ColorScheme colorScheme = ((ScalarView) opts.gui_view.getSelectedItem()).colorScheme;
+
+		for (int i = 1; i < nx-1; i++) {
+			for (int j = 1; j < ny-1; j++) {
+				gradscalarfield[i][j] = length(scalarfield[i+1][j]-scalarfield[i-1][j], scalarfield[i][j+1]-scalarfield[i][j-1])/(2*ds);
+			}
+		}
+		ScalarView.ColorScheme colorscheme = ((ScalarView) opts.gui_view.getSelectedItem()).colorscheme;
 		float scalingconstant = (float) (10.0*Math.pow(10.0, opts.gui_brightness.getValue()/10.0)/scalarview.scale);
-		if (colorScheme == ScalarView.ColorScheme.RED_BLUE) {
+		if (colorscheme == ScalarView.ColorScheme.RED_BLUE) {
 			for (int i = 1; i < nx-1; i++) {
 				for (int j = 1; j < ny-1; j++) {
 					setColorFloat((float) scalarfield[i][j]*scalingconstant, 0, -(float) scalarfield[i][j]*scalingconstant);
 					setPixel(i, j);
 				}
 			}
-		} else if (colorScheme == ScalarView.ColorScheme.CYAN_YELLOW) {
+		} else if (colorscheme == ScalarView.ColorScheme.CYAN_YELLOW) {
 			for (int i = 1; i < nx-1; i++) {
 				for (int j = 1; j < ny-1; j++) {
 					setColorFloat((float) scalarfield[i][j]*scalingconstant, Math.abs((float) scalarfield[i][j]*scalingconstant), -(float) scalarfield[i][j]*scalingconstant);
 					setPixel(i, j);
 				}
 			}
-		} else if (colorScheme == ScalarView.ColorScheme.GREEN) {
+		} else if (colorscheme == ScalarView.ColorScheme.GREEN) {
 			for (int i = 1; i < nx-1; i++) {
 				for (int j = 1; j < ny-1; j++) {
 					setColorFloat(0, Math.abs((float) scalarfield[i][j]*scalingconstant), 0);
 					setPixel(i, j);
 				}
 			}
-		} else if (colorScheme == ScalarView.ColorScheme.WHITE) {
+		} else if (colorscheme == ScalarView.ColorScheme.WHITE) {
 			for (int i = 1; i < nx-1; i++) {
 				for (int j = 1; j < ny-1; j++) {
 					setColorFloat((float) scalarfield[i][j]*scalingconstant, (float) scalarfield[i][j]*scalingconstant, (float) scalarfield[i][j]*scalingconstant);
 					setPixel(i, j);
 				}
 			}
-		} else if (colorScheme == ScalarView.ColorScheme.OTHER) {
+		} else if (colorscheme == ScalarView.ColorScheme.OTHER) {
 			if (scalarview == ScalarView.COMBINED_CHARGE) {
 				for (int i = 1; i < nx-1; i++) {
 					for (int j = 1; j < ny-1; j++) {
@@ -3222,196 +3269,16 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		
 		
 		/* Draw vectors */
-		
+
 		if ((VectorView) opts.gui_view_vec.getSelectedItem() != VectorView.NONE) {
 			setalphaBG(1.0);
-			
-			double arrowlength = 10.0/scalefactor;
-
-			double vectorscalingconstant = 0;
-			
-			VectorMode vector_display_mode = (VectorMode)opts.gui_view_vec_mode.getSelectedItem();
-			
-			int density = 75;
-
-			double randomness = 0;
-			
-			if (vector_display_mode == VectorMode.ARROWS) {
-				randomness = 0.5;
-			} else if (vector_display_mode == VectorMode.LINES) {
-				randomness = 0.75;
-			}
-
-			double[][] vf_x = null;
-			double[][] vf_y = null;
-			boolean isCurrent = false;
-			
-			switch ((VectorView) opts.gui_view_vec.getSelectedItem()) {
-			case NONE:
-				break;
-			case D_FIELD:
-				vf_x = Dx;
-				vf_y = Dy;
-				break;
-			case E_FIELD:
-				vf_x = Ex;
-				vf_y = Ey;
-				break;
-			case ELECTRON_CURRENT:
-				vf_x = Jx_n;
-				vf_y = Jy_n;
-				isCurrent = true;
-				break;
-			case HOLE_CURRENT:
-				vf_x = Jx_p;
-				vf_y = Jy_p;
-				isCurrent = true;
-				break;
-			case TOTAL_CURRENT:
-				vf_x = Jx_free;
-				vf_y = Jy_free;
-				isCurrent = true;
-				break;
-			case POYNTING:
-				vf_x = Sx;
-				vf_y = Sy;
-				break;
-			case EMF:
-				vf_x = emfx;
-				vf_y = emfy;
-				break;
-			}
-
-			if (vf_x != null)
-			{
-				Vector ctr = new Vector(0,0);
-				Vector arrow = new Vector(0,0);
-				Vector tip1 = new Vector(0,0);
-				Vector tip2 = new Vector(0,0);
-				Vector body1 = new Vector(0,0);
-				Vector body2 = new Vector(0,0);
-
-				if (vector_display_mode == VectorMode.LINES) {
-					vectorscalingconstant = 0.01*Math.pow(10.0, opts.gui_brightness_vec.getValue()/5.0);
-					rand.setSeed(4);
-					for (int i = 0; i < density; i++) {
-						for (int j = 0; j < density; j++) {
-
-							//double x = (nx-1)*(i+0.5)/50;
-							//double y = (ny-1)*(j+0.5)/50;
-							double x = nx*(i+randomness*(rand.nextFloat()-0.5))/density;
-							double y = ny*(j+randomness*(rand.nextFloat()-0.5))/density;
-							for (int sign = -1; sign <= 1; sign += 2) {
-
-								double prevx = x;
-								double prevy = y;
-								double dx = 0;
-								double dy = 0;
-
-								for (int k = 0; k < 10; k++) {
-									dx = bilinearinterp(vf_x, prevx-0.5, prevy);
-									dy = bilinearinterp(vf_y, prevx, prevy-0.5);
-
-									double fieldmagnitude = Math.sqrt(dx*dx+dy*dy);
-									setalphaFG(0.1*Math.sqrt(1/(0.1*k*k+1.0)*vectorscalingconstant*fieldmagnitude));
-
-									if (fieldmagnitude != 0) {
-										dx /= fieldmagnitude;
-										dy /= fieldmagnitude;
-									}
-
-									//setcol(fieldmagnitude, fieldmagnitude, fieldmagnitude, 30);
-									setColorFloat(1.0f, 1.0f, 1.0f);
-
-									double nextx = prevx + dx*arrowlength*0.25*sign;
-									double nexty = prevy + dy*arrowlength*0.25*sign;
-
-									drawLine((int)((prevx+0.5)*scalefactor), (int)((prevy+0.5)*scalefactor), (int)((nextx+0.5)*scalefactor), (int)((nexty+0.5)*scalefactor), k == 0 && sign == 1);
-
-									prevx = nextx;
-									prevy = nexty;
-								}
-							}
-						}
-
-					}
-				} else if (vector_display_mode == VectorMode.ARROWS) {
-					vectorscalingconstant = 0.01*Math.pow(10.0, opts.gui_brightness_vec.getValue()/5.0);
-					rand.setSeed(4);
-					for (int i = 0; i < density; i++) {
-						for (int j = 0; j < density; j++) {
-
-							//double x = (nx-1)*(i+0.5)/50;
-							//double y = (ny-1)*(j+0.5)/50;
-							double x = nx*(i+randomness*(rand.nextFloat()-0.5))/density;
-							double y = ny*(j+randomness*(rand.nextFloat()-0.5))/density;
-							ctr.x = x+0.5;
-							ctr.y = y+0.5;
-
-							arrow.x = bilinearinterp(vf_x,x-0.5, y);
-							arrow.y = bilinearinterp(vf_y,x, y-0.5);
-
-							double fieldmagnitude = Math.max(0.1, vectorscalingconstant*Math.sqrt(arrow.dot(arrow)));
-							arrow.normalize();
-							tip1.copy(arrow);
-							tip2.copy(arrow);
-							tip1.rotate(Math.PI*5.0/6.0);
-							tip2.rotate(Math.PI*7.0/6.0);
-
-							body1.copy(ctr);
-							body1.addmult(arrow, -0.5*arrowlength);
-							body2.copy(ctr);
-							body2.addmult(arrow, 0.5*arrowlength);
-							tip1.scalarmult(0.35*arrowlength);
-							tip1.add(body2);
-							tip2.scalarmult(0.35*arrowlength);
-							tip2.add(body2);
-							setColorFloat((float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude);
-							setalphaFG(0.1*Math.sqrt(fieldmagnitude));
-							drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true);
-							drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip1.x*scalefactor), (int)(tip1.y*scalefactor), false);
-							drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip2.x*scalefactor), (int)(tip2.y*scalefactor), false);
-						}
-					}
-				} else if (vector_display_mode == VectorMode.DOTS) {
-					vectorscalingconstant = 0.00001*Math.pow(10.0, opts.gui_brightness_vec.getValue()/10.0);
-					dots.removeIf(d -> d.time < 0 || d.x < 0 || d.y < 0 || d.x >= nx || d.y >= ny);
-					for (int i = 0; i < (numdots-dots.size()); i++) {
-						Dot d = new Dot();
-						d.x = nx*rand.nextDouble();
-						d.y = ny*rand.nextDouble();
-						d.lifespan = 50+50*rand.nextDouble();
-						d.time = d.lifespan;
-						if (!isCurrent || bilinearinterp(conducting, d.x, d.y) > 0)
-						dots.add(d);
-					}
-
-					setColorFloat(1, 1, 1);
-					for (Dot d : dots) {
-						double dx = 0;
-						double dy = 0;
-						int steps = 5;
-
-						for (int k = 0; k < steps; k++) {
-							dx = bilinearinterp(vf_x,d.x-0.5, d.y);
-							dy = bilinearinterp(vf_y,d.x, d.y-0.5);
-							double s = Math.max(1.0, Math.sqrt(dx*dx+dy*dy)*vectorscalingconstant/steps);
-							d.x += dx*vectorscalingconstant/(steps*s);
-							d.y += dy*vectorscalingconstant/(steps*s);
-						}
-						
-						double p = d.time/d.lifespan - 0.5;
-						
-						double fieldmagnitude = Math.min(1, Math.max(0.1, 5*vectorscalingconstant*Math.sqrt(dx*dx+dy*dy))/(20*p*p+1.0));
-						setalphaFG(fieldmagnitude);
-						this.drawRectangle((int)(d.x*scalefactor)-2, (int)(d.y*scalefactor)-2, 5, 5);
-						
-						
-						d.time -= 1;
-					}
-				} else if (vector_display_mode == VectorMode.CONTOUR) {
-					drawContours(scalarfield, 5*scalingconstant);
+			try {
+				if (graphics_threads.size() == n_threads) {
+					graphics_start_barrier.await();
+					graphics_end_barrier.await();
 				}
+			} catch (InterruptedException | BrokenBarrierException e) {
+				e.printStackTrace();
 			}
 		}
 
@@ -3571,6 +3438,252 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		}
 		
 		t5.stop();
+	}
+
+
+	class GraphicsThread extends Thread {
+
+		int n_thread;
+		int n_threads;
+		Random rand = new Random();
+
+		public GraphicsThread(int n, int n_threads) {
+			n_thread = n;
+			this.n_threads = n_threads;
+			System.out.println("Graphics thread " + n_thread);
+		}
+
+		int lower(int n_max) {
+			return Math.min((n_thread*n_max)/n_threads, n_max);
+		}
+
+		int upper(int n_max) {
+			return Math.min(((n_thread+1)*n_max)/n_threads, n_max);
+		}
+		
+		
+		@Override
+		public void run() {
+			try {
+				while (true) {
+					graphics_start_barrier.await();
+
+					double arrowlength = 10.0/scalefactor;
+
+					double vectorscalingconstant = 0;
+					
+					VectorMode vector_display_mode = (VectorMode)opts.gui_view_vec_mode.getSelectedItem();
+					
+					int density = 75;
+
+					double randomness = 0;
+					
+					if (vector_display_mode == VectorMode.ARROWS) {
+						randomness = 0.5;
+					} else if (vector_display_mode == VectorMode.LINES) {
+						randomness = 0.75;
+					}
+
+					double[][] vf_x = null;
+					double[][] vf_y = null;
+					boolean isCurrent = false;
+					
+					switch ((VectorView) opts.gui_view_vec.getSelectedItem()) {
+					case NONE:
+						break;
+					case D_FIELD:
+						vf_x = Dx;
+						vf_y = Dy;
+						break;
+					case E_FIELD:
+						vf_x = Ex;
+						vf_y = Ey;
+						break;
+					case ELECTRON_CURRENT:
+						vf_x = Jx_n;
+						vf_y = Jy_n;
+						isCurrent = true;
+						break;
+					case HOLE_CURRENT:
+						vf_x = Jx_p;
+						vf_y = Jy_p;
+						isCurrent = true;
+						break;
+					case TOTAL_CURRENT:
+						vf_x = Jx_free;
+						vf_y = Jy_free;
+						isCurrent = true;
+						break;
+					case POYNTING:
+						vf_x = Sx;
+						vf_y = Sy;
+						break;
+					case EMF:
+						vf_x = emfx;
+						vf_y = emfy;
+						break;
+					}
+
+					if (vf_x != null)
+					{
+						Vector ctr = new Vector(0,0);
+						Vector arrow = new Vector(0,0);
+						Vector tip1 = new Vector(0,0);
+						Vector tip2 = new Vector(0,0);
+						Vector body1 = new Vector(0,0);
+						Vector body2 = new Vector(0,0);
+
+						if (vector_display_mode == VectorMode.LINES) {
+							vectorscalingconstant = 0.01*Math.pow(10.0, opts.gui_brightness_vec.getValue()/5.0)/((VectorView) opts.gui_view_vec.getSelectedItem()).scale;;
+							rand.setSeed(n_thread);
+							for (int i = lower(density); i < upper(density); i++) {
+								for (int j = 0; j < density; j++) {
+
+									//double x = (nx-1)*(i+0.5)/50;
+									//double y = (ny-1)*(j+0.5)/50;
+									double x = nx*(i+randomness*(rand.nextFloat()-0.5))/density;
+									double y = ny*(j+randomness*(rand.nextFloat()-0.5))/density;
+									for (int sign = -1; sign <= 1; sign += 2) {
+
+										double prevx = x;
+										double prevy = y;
+										double dx = 0;
+										double dy = 0;
+
+										for (int k = 0; k < 10; k++) {
+											dx = bilinearinterp(vf_x, prevx-0.5, prevy);
+											dy = bilinearinterp(vf_y, prevx, prevy-0.5);
+
+											double fieldmagnitude = Math.sqrt(dx*dx+dy*dy);
+											double alphaFG = bump(0.5*(1.0-k/9.0), 0.5)*Math.min(1, vectorscalingconstant*fieldmagnitude);
+
+											if (fieldmagnitude != 0) {
+												dx /= fieldmagnitude;
+												dy /= fieldmagnitude;
+											}
+
+											double nextx = prevx + dx*arrowlength*0.25*sign;
+											double nexty = prevy + dy*arrowlength*0.25*sign;
+
+											drawLine((int)((prevx+0.5)*scalefactor), (int)((prevy+0.5)*scalefactor), (int)((nextx+0.5)*scalefactor), (int)((nexty+0.5)*scalefactor), k == 0 && sign == 1,
+												1f, 1f, 1f, (float) alphaFG, 1f);
+
+											prevx = nextx;
+											prevy = nexty;
+										}
+									}
+								}
+
+							}
+						} else if (vector_display_mode == VectorMode.ARROWS) {
+							vectorscalingconstant = 0.01*Math.pow(10.0, opts.gui_brightness_vec.getValue()/5.0)/((VectorView) opts.gui_view_vec.getSelectedItem()).scale;;
+							rand.setSeed(n_thread);
+							for (int i = lower(density); i < upper(density); i++) {
+								for (int j = 0; j < density; j++) {
+
+									//double x = (nx-1)*(i+0.5)/50;
+									//double y = (ny-1)*(j+0.5)/50;
+									double x = nx*(i+randomness*(rand.nextFloat()-0.5))/density;
+									double y = ny*(j+randomness*(rand.nextFloat()-0.5))/density;
+									ctr.x = x+0.5;
+									ctr.y = y+0.5;
+
+									arrow.x = bilinearinterp(vf_x,x-0.5, y);
+									arrow.y = bilinearinterp(vf_y,x, y-0.5);
+
+									double fieldmagnitude = Math.max(0.1, vectorscalingconstant*Math.sqrt(arrow.dot(arrow)));
+									arrow.normalize();
+									tip1.copy(arrow);
+									tip2.copy(arrow);
+									tip1.rotate(Math.PI*5.0/6.0);
+									tip2.rotate(Math.PI*7.0/6.0);
+
+									body1.copy(ctr);
+									body1.addmult(arrow, -0.5*arrowlength);
+									body2.copy(ctr);
+									body2.addmult(arrow, 0.5*arrowlength);
+									tip1.scalarmult(0.35*arrowlength);
+									tip1.add(body2);
+									tip2.scalarmult(0.35*arrowlength);
+									tip2.add(body2);
+									double alphaFG = (0.1*Math.sqrt(fieldmagnitude));
+									drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true,
+										(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip1.x*scalefactor), (int)(tip1.y*scalefactor), false,
+										(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip2.x*scalefactor), (int)(tip2.y*scalefactor), false,
+										(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+								}
+							}
+						} else if (vector_display_mode == VectorMode.DOTS) {
+							vectorscalingconstant = Math.pow(10.0, opts.gui_brightness_vec.getValue()/10.0)/((VectorView) opts.gui_view_vec.getSelectedItem()).scale;
+							int lower = lower(dots.size());
+							int upper = upper(dots.size());
+							for (int i = lower; i < upper; i++) {
+								Dot d = dots.get(i);
+								if (d.time <= 0 || d.x < 0 || d.y < 0 || d.x >= nx || d.y >= ny) {
+									d.x = nx*rand.nextDouble();
+									d.y = ny*rand.nextDouble();
+									d.lifespan = 50+50*rand.nextDouble();
+									d.time = d.lifespan;
+									if (isCurrent && bilinearinterp(conducting, d.x, d.y) == 0) {
+										d.lifespan = 0;
+										d.time = 0;
+									}
+								}
+							}
+
+							setColorFloat(1, 1, 1);
+							for (int i = lower; i < upper; i++) {
+								Dot d = dots.get(i);
+								if (d.time > 0) {
+									double dx = 0;
+									double dy = 0;
+									int steps = 10;
+
+									for (int k = 0; k < steps; k++) {
+										dx = bilinearinterp(vf_x,d.x-0.5, d.y)*1e-6*vectorscalingconstant/steps;
+										dy = bilinearinterp(vf_y,d.x, d.y-0.5)*1e-6*vectorscalingconstant/steps;
+										double maxspeed = 0.5;
+										double factor = Math.min(1, maxspeed/Math.sqrt(dx*dx+dy*dy));
+										d.x += dx*factor;
+										d.y += dy*factor;
+									}
+
+									double p = d.time/d.lifespan;
+
+									double fieldmagnitude = Math.min(1, Math.max(0.1, 10*Math.sqrt(dx*dx+dy*dy)))*bump(p, 1/3.0);
+									double alphaFG = fieldmagnitude;
+									drawRectangle((int)(d.x*scalefactor)-1, (int)(d.y*scalefactor)-1, 3, 3,
+										1f, 1f, 1f, (float)alphaFG, 1f);
+
+
+									d.time -= 1;
+								}
+							}
+						} else if (vector_display_mode == VectorMode.CONTOUR) {
+							float scalingconstant = (float) (10.0*Math.pow(10.0, opts.gui_brightness.getValue()/10.0)/((ScalarView)opts.gui_view.getSelectedItem()).scale);
+							double spacing = 0.2/scalingconstant;
+							double contourwidth = 1e-7;
+							
+							for (int i = lower(scalefactor*nx); i < upper(scalefactor*nx); i++) {
+								for (int j = 0; j < scalefactor*ny; j++) {
+									double u = bilinearinterp(scalarfield, (double)i/scalefactor, (double)j/scalefactor)/spacing;
+									double v = bilinearinterp(gradscalarfield, (double)i/scalefactor, (double)j/scalefactor)/spacing;
+									double f = ((((u%1)+1.5)%1)/Math.abs(v))/contourwidth;
+									if (f < 1) {
+										drawPixel(i, j, 1f, 1f, 1f, (float)(2*Math.min(f, 1-f)), 1f);
+									}
+								}
+							}
+						}
+					}
+					graphics_end_barrier.await();
+				}
+			} catch (InterruptedException | BrokenBarrierException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	class Text {
@@ -4415,13 +4528,13 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		}
 		
 		String name;
-		ColorScheme colorScheme;
+		ColorScheme colorscheme;
 		double scale; //Typical order of magnitude of the quantity
 		
 		ScalarView(String name, ColorScheme colorScheme, double scale)
 		{
 			this.name = name;
-			this.colorScheme = colorScheme;
+			this.colorscheme = colorScheme;
 			this.scale = scale;
 		}
 		
@@ -4432,19 +4545,22 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	};
 
 	enum VectorView {
-		NONE("No vector overlay"),
-		E_FIELD("View E field"),
-		D_FIELD("View D field"),
-		ELECTRON_CURRENT("View J\u2099: Electron current"),
-		HOLE_CURRENT("View J\u209A: Hole current"),
-		TOTAL_CURRENT("View J: Total current"),
-		EMF("View \u2130: External electromotive force"),
-		POYNTING("View S: Poynting vector");
+		NONE("No vector overlay",							1),
+		E_FIELD("View E field",								1),
+		D_FIELD("View D field",								8.85e-12),
+		ELECTRON_CURRENT("View J\u2099: Electron current",	1),
+		HOLE_CURRENT("View J\u209A: Hole current",			1),
+		TOTAL_CURRENT("View J: Total current",				1),
+		EMF("View \u2130: External electromotive force",	1),
+		POYNTING("View S: Poynting vector",					1);
 		
 		String name;
-		VectorView(String name)
+		double scale;
+		
+		VectorView(String name, double scale)
 		{
 			this.name = name;
+			this.scale = scale;
 		}
 		
 		@Override
@@ -4528,26 +4644,26 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 }
 
 class CurrentProbe {
-	int x1;
-	int y1;
-	int x2;
-	int y2;
+	int x1 = 0;
+	int y1 = 0;
+	int x2 = 0;
+	int y2 = 0;
 	
 	double current = 0;
 }
 
 class VoltageProbe {
-	int x;
-	int y;
+	int x = 0;
+	int y = 0;
 	
 	double potential = 0;
 }
 
 class Dot {
-	double x;
-	double y;
-	double lifespan;
-	double time;
+	double x = 0;
+	double y = 0;
+	double lifespan = 0;
+	double time = 0;
 }
 
 class RenderCanvas extends JPanel {
