@@ -2434,7 +2434,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		if (computePhi)
 			t7.stop();
 	}
-	
 
 	public void JacobiIteration(int steps, int xmax, int ymax, double alpha, int fineness, boolean calcPhi) {
 
@@ -3049,13 +3048,13 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 					case NONE:
 						break;
 					case B_FIELD:
-						scalarfield[i][j] = (parity*0.25*(Bz[i][j]+Bz[i-1][j]+Bz[i][j-1]+Bz[i-1][j-1]));
+						scalarfield[i][j] = parity*0.25*(Bz[i][j]+Bz[i-1][j]+Bz[i][j-1]+Bz[i-1][j-1]);
 						break;
 					case E_FIELD:
 						scalarfield[i][j] = length(0.5*(Ex[i][j]+Ex[i][j+1]), 0.5*(Ey[i][j]+Ey[i+1][j]));
 						break;
 					case H_FIELD:
-						scalarfield[i][j] = parity*Hz[i][j];
+						scalarfield[i][j] = parity*0.25*(Hz[i][j]+Hz[i-1][j]+Hz[i][j-1]+Hz[i-1][j-1]);
 						break;
 					case CURRENT:
 						scalarfield[i][j] = length(0.5*(Jx_free[i][j]+Jx_free[i-1][j]), 0.5*(Jy_free[i][j]+Jy_free[i][j-1]));
@@ -3536,6 +3535,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 						if (vector_display_mode == VectorMode.LINES) {
 							vectorscalingconstant = 0.01*Math.pow(10.0, opts.gui_brightness_vec.getValue()/5.0)/((VectorView) opts.gui_view_vec.getSelectedItem()).scale;;
 							rand.setSeed(n_thread);
+							density = 75;
 							for (int i = lower(density); i < upper(density); i++) {
 								for (int j = 0; j < density; j++) {
 
@@ -3550,12 +3550,14 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 										double dx = 0;
 										double dy = 0;
 
-										for (int k = 0; k < 10; k++) {
+										
+										int steps = 30;
+										for (int k = 0; k < steps; k++) {
 											dx = bilinearinterp(vf_x, prevx-0.5, prevy);
 											dy = bilinearinterp(vf_y, prevx, prevy-0.5);
 
 											double fieldmagnitude = Math.sqrt(dx*dx+dy*dy);
-											double alphaFG = bump(0.5*(1.0-k/9.0), 0.5)*Math.min(1, vectorscalingconstant*fieldmagnitude);
+											double alphaFG = bump(0.5*(1.0-k/(double)(steps-1)), 0.5)*Math.min(1, vectorscalingconstant*fieldmagnitude);
 
 											if (fieldmagnitude != 0) {
 												dx /= fieldmagnitude;
@@ -3654,7 +3656,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 
 									double fieldmagnitude = Math.min(1, Math.max(0.1, 10*Math.sqrt(dx*dx+dy*dy)))*bump(p, 1/3.0);
 									double alphaFG = fieldmagnitude;
-									drawRectangle((int)(d.x*scalefactor)-1, (int)(d.y*scalefactor)-1, 3, 3,
+									drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
 										1f, 1f, 1f, (float)alphaFG, 1f);
 
 
@@ -3668,8 +3670,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 							
 							for (int i = lower(scalefactor*nx); i < upper(scalefactor*nx); i++) {
 								for (int j = 0; j < scalefactor*ny; j++) {
-									double u = bilinearinterp(scalarfield, (double)i/scalefactor, (double)j/scalefactor)/spacing;
-									double v = bilinearinterp(gradscalarfield, (double)i/scalefactor, (double)j/scalefactor)/spacing;
+									double u = bilinearinterp(scalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5)/spacing;
+									double v = bilinearinterp(gradscalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5)/spacing;
 									double f = ((((u%1)+1.5)%1)/Math.abs(v))/contourwidth;
 									if (f < 1) {
 										drawPixel(i, j, 1f, 1f, 1f, (float)(2*Math.min(f, 1-f)), 1f);
@@ -4714,7 +4716,7 @@ class Timer {
 			long tend = System.nanoTime();
 			long diff = tend - tstart;
 			time = diff/1e9;
-			avgtime = avgtime*0.99+time*0.01;
+			avgtime = avgtime*0.95+time*0.05;
 		}
 	}
 
