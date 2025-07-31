@@ -8,12 +8,9 @@ import java.awt.EventQueue;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
-import javax.swing.JTextPane;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import java.awt.Insets;
-import java.awt.Font;
+import javax.swing.JTextPane;
+import javax.swing.border.EmptyBorder;
 
 public class HelpDialog extends JFrame {
 

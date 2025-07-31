@@ -52,7 +52,6 @@ import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
@@ -60,8 +59,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.filechooser.FileFilter;
-
-import org.jfree.chart.ChartPanel;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -87,7 +84,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	// Change size & sim parameters
 	// Undo/redo
 	
-	// Make colors more distinguishable
 	// Add more instructions
 	
 	/* Dynamical simulation variables */
@@ -2170,7 +2166,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		{
 			for (int j = 1; j < ny-1; j++)
 			{
-				Jx_free[i][j] = Jx_abs[i][j] + Jx_n[i][j] + Jx_p[i][j];
+				Jx_free[i][j] = Jx_n[i][j] + Jx_p[i][j];
 				Dx[i][j] = epsx[i][j]*Ex[i][j];
 				Sy[i][j] = -Ex[i][j]*0.5*(Hz[i][j] + Hz[i][j-1]);
 			}
@@ -2180,7 +2176,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		{
 			for (int j = 0; j < ny-1; j++)
 			{
-				Jy_free[i][j] = Jy_abs[i][j] + Jy_n[i][j] + Jy_p[i][j];
+				Jy_free[i][j] = Jy_n[i][j] + Jy_p[i][j];
 				Dy[i][j] = epsy[i][j]*Ey[i][j];
 				Sx[i][j] = Ey[i][j]*0.5*(Hz[i][j] + Hz[i-1][j]);
 			}
@@ -3716,6 +3712,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 								}
 							}
 						} else if (vector_display_mode == VectorMode.DOTS) {
+							boolean paused = opts.gui_paused.isSelected();
+							
 							vectorscalingconstant = Math.pow(10.0, opts.gui_brightness_vec.getValue()/10.0)/((VectorView) opts.gui_view_vec.getSelectedItem()).scale;
 							int lower = lower(dots.size());
 							int upper = upper(dots.size());
@@ -3741,24 +3739,24 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 									double dy = 0;
 									int steps = 10;
 
-									for (int k = 0; k < steps; k++) {
-										dx = bilinearinterp(vf_x,d.x-0.5, d.y)*1e-6*vectorscalingconstant/steps;
-										dy = bilinearinterp(vf_y,d.x, d.y-0.5)*1e-6*vectorscalingconstant/steps;
-										double maxspeed = 0.5;
-										double factor = Math.min(1, maxspeed/Math.sqrt(dx*dx+dy*dy));
-										d.x += dx*factor;
-										d.y += dy*factor;
+									if (!paused) {
+										for (int k = 0; k < steps; k++) {
+											dx = bilinearinterp(vf_x,d.x-0.5, d.y)*1e-6*vectorscalingconstant/steps;
+											dy = bilinearinterp(vf_y,d.x, d.y-0.5)*1e-6*vectorscalingconstant/steps;
+											double maxspeed = 0.5;
+											double factor = Math.min(1, maxspeed/Math.sqrt(dx*dx+dy*dy));
+											d.x += dx*factor;
+											d.y += dy*factor;
+										}
+										
+										double p = d.time/d.lifespan;
+										d.brightness = Math.min(1, Math.max(0.1, 10*Math.sqrt(dx*dx+dy*dy)))*bump(p, 1/3.0);
+										d.time -= 1;
 									}
 
-									double p = d.time/d.lifespan;
-
-									double fieldmagnitude = Math.min(1, Math.max(0.1, 10*Math.sqrt(dx*dx+dy*dy)))*bump(p, 1/3.0);
-									double alphaFG = fieldmagnitude;
+									double alphaFG = d.brightness;
 									drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
 										1f, 1f, 1f, (float)alphaFG, 1f);
-
-
-									d.time -= 1;
 								}
 							}
 						} else if (vector_display_mode == VectorMode.CONTOUR) {
@@ -4546,19 +4544,19 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	enum Brush {
 		INTERACT("Interact"),
 		DRAW("Draw"),
-		VOLTAGE("Add voltage probe"),
-		CURRENT("Add current probe"),
-		GROUND("Add ground"),
+		VOLTAGE("Voltage probe"),
+		CURRENT("Current probe"),
+		GROUND("Ground"),
 		DELETEPROBE("Delete probe"),
-		BANDS("Draw bandstructure"),
-		LIGHT("Shine light"),
+		BANDS("Band structure"),
+		LIGHT("Flashlight"),
 		REPLACE("Replace"),
 		LINE("Line"),
 		FILL("Fill"),
 		ERASE("Eraser"),
-		SELECT("Select & Move"),
-		FLOODSELECT("Select region"),
-		TEXT("Add text");
+		SELECT("Select and move"),
+		FLOODSELECT("Flood select"),
+		TEXT("Text");
 		
 		String name;
 		Brush(String name)
@@ -4767,6 +4765,7 @@ class Dot {
 	double y = 0;
 	double lifespan = 0;
 	double time = 0;
+	double brightness = 0;
 }
 
 class RenderCanvas extends JPanel {
