@@ -52,12 +52,16 @@ import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.filechooser.FileFilter;
+
+import org.jfree.chart.ChartPanel;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -81,8 +85,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	
 	//TODO:
 	// Change size & sim parameters
-	// Interactions with light
-	// Band structure diagrams
 	// Undo/redo
 	
 	// Make colors more distinguishable
@@ -152,6 +154,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	double[][] K;			// Charge carrier equilibrium constant
 	double[][] E_a;			// Activation energy of recombination
 	double[][] R;			// Recombination rate constant
+	double[][] L;			// Carrier generation due to incoming light
 	
 	double[][] cmfx_n;		// Chemical-motive force for electrons
 	double[][] cmfy_n;
@@ -230,6 +233,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	double arrhenius_prefactor = recombination_cross_section*Math.sqrt(8*kT/(Math.PI*m_electron/2));
 	double E_a_semi = -Math.log(recombination_rate_semi/arrhenius_prefactor);
 	double E_a_metal = -Math.log(recombination_rate_metal/arrhenius_prefactor);
+	
+	double flashlight_strength = 1e31;
 	
 	double q_n = -e_charge;				// Charge of single electron
 	double q_p = e_charge;				// Charge of single hole
@@ -330,6 +335,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 	int numdots = 2000;
 	
 	int probetexttimer = 0;
+	
+	BandPlot bandplot;
 	
 	
 	/* Performance profiling */
@@ -450,6 +457,10 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		opts = new MainWindow();
 		r = new RenderCanvas(this);
 		r.setFocusable(true);
+
+		bandplot = new BandPlot();
+		bandplot.createPlot();
+		bandplot.frame.setVisible(false);
 		
 		detect64Bit();
 
@@ -495,7 +506,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
-		
 	}
 	
 	public void detect64Bit() {
@@ -618,6 +628,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		E0_p = new double[nx][ny];
 		E_a = new double[nx][ny];
 		R = new double[nx][ny];
+		L = new double[nx][ny];
 		cmfx_n = new double[nx][ny];
 		cmfy_n = new double[nx][ny];
 		cmfx_p = new double[nx][ny];
@@ -737,6 +748,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 					K[i][j] = 0;
 					E_a[i][j] = 0;
 					R[i][j] = 0;
+					L[i][j] = 0;
 					
 					cmfx_n[i][j] = 0;
 					cmfy_n[i][j] = 0;
@@ -820,6 +832,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			currentprobes.clear();
 			ground = null;
 
+			bandplot.frame.setVisible(false);
+			
 			opts.setTitle("Brandon's semiconductor simulator");
 		}
 		
@@ -929,7 +943,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 						if (i >= i_min && i <= i_max) {
 							for (int j = 1; j < ny-1; j++)
 							{	
-								double generation_rate = conducting[i][j]*R[i][j]*(K[i][j] - rho_n[i][j]*rho_p[i][j]/(q_n*q_p));
+								double generation_rate = conducting[i][j]*(R[i][j]*(K[i][j] - rho_n[i][j]*rho_p[i][j]/(q_n*q_p)) + L[i][j]);
 
 								rho_n[i][j] = rho_n[i][j] - (Jx_n[i][j]-Jx_n[i-1][j] + Jy_n[i][j]-Jy_n[i][j-1])*dt/ds + dt*q_n*generation_rate;
 								rho_p[i][j] = rho_p[i][j] - (Jx_p[i][j]-Jx_p[i-1][j] + Jy_p[i][j]-Jy_p[i][j-1])*dt/ds + dt*q_p*generation_rate;
@@ -1515,7 +1529,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		}
 		
 		
-		if (Brush.isMaterialModifyingBrush(brush) && brush != Brush.FILL) {
+		if (Brush.isBrushShapeImportant(brush)) {
 			opts.gui_brush_1.setVisible(true);
 			opts.gui_brush_highlight.setVisible(true);
 			opts.gui_brushsize.setVisible(true);
@@ -1639,6 +1653,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		case REPLACE:
 		case ERASE:
 		case FILL:
+		case LIGHT:
 
 			if ((mousebutton == MouseEvent.BUTTON2 || alt_down) && pressing) {
 				opts.gui_material.setSelectedItem(materials[mx_index][my_index].type);
@@ -1689,7 +1704,40 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 					if (pressing) {
 						floodFillSet(mx_index, my_index, materials[mx_index][my_index].type, mat, angle);
 					}
-				} else if (mouse_pressed) {
+				} else if (brush == Brush.LIGHT) {
+					if (mouse_pressed) {
+						for (int i = 0; i < nx; i++)
+						{
+							for (int j = 0; j < ny; j++)
+							{
+								double cx = 0;
+								double cy = 0;
+								cx = i*ds;
+								cy = j*ds;
+
+								double px = (cx-mx_realspace);
+								double py = (cy-my_realspace);
+								double r = 0;
+
+								if (brushshape == BrushShape.CIRCLE)
+									r = Math.sqrt(px*px+py*py);
+								else if (brushshape == BrushShape.SQUARE)
+									r = Math.max(Math.abs(px), Math.abs(py));
+								L[i][j] = (r <= brushsize)? flashlight_strength : 0;
+							}
+						}
+					} else if (releasing) {
+
+						for (int i = 0; i < nx; i++)
+						{
+							for (int j = 0; j < ny; j++)
+							{
+								L[i][j] = 0;
+							}
+						}
+					}
+				}
+				else if (mouse_pressed) {
 					drawMaterialLine(mxp_realspace, myp_realspace, mx_realspace, my_realspace, brush, brushshape, mat, brushsize, angle);
 				}
 			}
@@ -1935,6 +1983,39 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 				ground.y = my_index;
 			}
 			break;
+		case BANDS:
+			if (releasing) {
+				bandplot.x1 = mx_start_index;
+				bandplot.y1 = my_start_index;
+				bandplot.x2 = mx_index;
+				bandplot.y2 = my_index;
+				bandplot.frame.setVisible(true);
+			}
+			break;
+		default:
+			break;
+		}
+		
+
+		if (bandplot.frame.isVisible() && frame%10 == 0) {
+
+			SwingUtilities.invokeLater(() -> {
+				bandplot.E_n_data.clear();
+				bandplot.E_p_data.clear();
+				bandplot.F_n_data.clear();
+				bandplot.F_p_data.clear();
+
+				for (int n = 0; n <= 100; n++) {
+					double t = (double)n/100.0;
+					double x = t*(bandplot.x2 - bandplot.x1) + bandplot.x1;
+					double y = t*(bandplot.y2 - bandplot.y1) + bandplot.y1;
+
+					bandplot.E_n_data.add(t, -(bilinearinterp(E0_n, x, y)/q_n+bilinearinterp(phi, x, y)));
+					bandplot.E_p_data.add(t, -(bilinearinterp(E0_p, x, y)/q_p+bilinearinterp(phi, x, y)));
+					bandplot.F_n_data.add(t, -(bilinearinterp(F_n, x, y)/q_n+bilinearinterp(phi, x, y)));
+					bandplot.F_p_data.add(t, -(bilinearinterp(F_p, x, y)/q_p+bilinearinterp(phi, x, y)));
+				}
+			});
 		}
 		
 		if (brush != Brush.TEXT)
@@ -1944,7 +2025,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 
 		setEMFs();
 		
-		if (releasing || (BoundaryCondition)opts.gui_bc.getSelectedItem() != prev_boundary || update) {
+		if ((releasing && Brush.isBrushShapeImportant(brush)) || (BoundaryCondition)opts.gui_bc.getSelectedItem() != prev_boundary || update) {
 
 			constructBoundary();
 			updateAllMaterials();
@@ -2377,13 +2458,6 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 					MG_phi1[2*i+1][2*j+1] = MG_phi2[i][j];
 				}
 			}
-			
-			/*for (int i = 1; i < 2*nx_tmp-1; i++)
-			{
-				for (int j = 1; j < 2*nx_tmp-1; j++) {
-					MG_phi1[i][j] = this.bilinearinterp(MG_phi2, (i-0.5)/2.0, (j-0.5)/2.0);
-				}
-			}*/
 			
 			for (int i = 0; i < 2*nx_tmp; i++) {
 				for (int j = 0; j < 2*ny_tmp; j++) {
@@ -3221,6 +3295,13 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 					setPixel(i, j);
 				}
 
+				if (L[i][j] > 0)
+				{
+					setalphaBG(0.5);
+					setalphaFG(0.75);
+					setColorFloat(1, 1, 1);
+					setPixel(i, j);
+				}
 			}
 		}
 		
@@ -3229,7 +3310,7 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		setalphaFG(1);
 		setColorFloat(0.7f, 0.7f, 0.7f);
 		
-		if (brush == Brush.LINE && mouse_pressed) {
+		if ((brush == Brush.LINE || brush == Brush.BANDS) && mouse_pressed) {
 			drawPixelLine(mx_start_index, my_start_index, mx_index, my_index);
 		}
 
@@ -3255,6 +3336,23 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		
 		for (CurrentProbe p: currentprobes) {
 			drawPixelLine(p.x1, p.y1, p.x2, p.y2);
+		}
+		
+		
+
+		setalphaFG(1.0);
+		setColorFloat(1.0f, 1.0f, 1.0f);
+		
+		if (bandplot != null && bandplot.frame.isVisible()) {
+			drawPixelRectangle((int)bandplot.x1-1, (int)bandplot.y1-1, 3, 3);
+			drawPixelRectangle((int)bandplot.x2-1, (int)bandplot.y2-1, 3, 3);
+		}
+
+		setalphaFG(1.0);
+		setColorFloat(1.0f, 1.0f, 1.0f);
+
+		if (bandplot != null && bandplot.frame.isVisible()) {
+			drawPixelLine((int)bandplot.x1, (int)bandplot.y1, (int)bandplot.x2, (int)bandplot.y2);
 		}
 		
 		setalphaFG(0.8);
@@ -4452,6 +4550,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 		CURRENT("Add current probe"),
 		GROUND("Add ground"),
 		DELETEPROBE("Delete probe"),
+		BANDS("Draw bandstructure"),
+		LIGHT("Shine light"),
 		REPLACE("Replace"),
 		LINE("Line"),
 		FILL("Fill"),
@@ -4483,7 +4583,8 @@ public class Electrodynamics extends TimerTask implements MouseListener, MouseMo
 			return (brush == Brush.DRAW
 					|| brush == Brush.LINE
 					|| brush == Brush.REPLACE
-					|| brush == Brush.ERASE);
+					|| brush == Brush.ERASE
+					|| brush == Brush.LIGHT);
 		}
 	};
 

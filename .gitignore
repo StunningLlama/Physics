@@ -2,3 +2,4 @@ bin/
 build/
 .DS_store
 probedata.txt
+/target/
