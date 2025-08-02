@@ -13,33 +13,11 @@ import javax.swing.JTextPane;
 import javax.swing.border.EmptyBorder;
 
 public class HelpDialog extends JFrame {
-
-	/**
-	 * 
-	 */
+	
 	private static final long serialVersionUID = -58876812350742907L;
 	
 	private JPanel contentPane;
 
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					HelpDialog frame = new HelpDialog();
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
-
-	/**
-	 * Create the frame.
-	 */
 	public HelpDialog() {
 		setTitle("Help dialog");
 		setBounds(100, 100, 458, 388);

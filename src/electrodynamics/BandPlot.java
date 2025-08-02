@@ -45,7 +45,7 @@ public class BandPlot {
         ChartPanel chartPanel = new ChartPanel(fig.chart);
 
         // Create window
-        frame = new JFrame("Band structure plot");
+        frame = new JFrame("Band diagram");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.add(chartPanel);
         frame.setSize(600, 400);
