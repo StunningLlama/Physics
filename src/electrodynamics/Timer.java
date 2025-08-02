@@ -5,35 +5,48 @@
 package electrodynamics;
 
 // Tool for measuring performance of subroutines
-class Timer {
-	long tstart = 0;
-	String name;
-	boolean enabled = true;
-	boolean outputavg = false;
-	double avgtime = 0;
-	double time = 0;
-	static boolean allEnabled = false;
-	
+public class Timer {
+
+	private long tstart = 0;
+	private String name;
+	private boolean enabled = true;
+	private double avgtime = 0;
+	private double time = 0;
+
+	public static boolean allEnabled = false;
+
 	public Timer(String name, boolean enabled) {
 		this.name = name;
 		this.enabled = enabled;
 	}
 
-	void start() {
+	public void start() {
 		if (enabled) {
 			tstart = System.nanoTime();
 		}
 	}
 
-	void disableOutput() {
+	public void disableOutput() {
 		enabled = false;
 	}
-	
-	void enableOutput() {
+
+	public void enableOutput() {
 		enabled = true;
 	}
 
-	void stop() {
+	public double getTime() {
+		return time;
+	}
+
+	public double getAverageTime() {
+		return avgtime;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void stop() {
 		if (allEnabled && enabled) {
 			long tend = System.nanoTime();
 			long diff = tend - tstart;
@@ -42,7 +55,7 @@ class Timer {
 		}
 	}
 
-	void stop(String msg) {
+	public void stop(String msg) {
 		if (allEnabled && enabled) {
 			long tend = System.nanoTime();
 			long diff = tend - tstart;

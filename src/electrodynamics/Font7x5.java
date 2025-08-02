@@ -64,7 +64,7 @@ public class Font7x5 {
         FONT_MAP.put('x', new byte[]{0b00000, 0b00000, 0b10001, 0b01010, 0b00100, 0b01010, 0b10001});
         FONT_MAP.put('y', new byte[]{0b00000, 0b00000, 0b10001, 0b10001, 0b01111, 0b00001, 0b01110});
         FONT_MAP.put('z', new byte[]{0b00000, 0b00000, 0b11111, 0b00010, 0b00100, 0b01000, 0b11111});
-        
+
         FONT_MAP.put('0', new byte[]{0b01110, 0b10001, 0b10011, 0b10101, 0b11001, 0b10001, 0b01110});
         FONT_MAP.put('1', new byte[]{0b00100, 0b01100, 0b00100, 0b00100, 0b00100, 0b00100, 0b01110});
         FONT_MAP.put('2', new byte[]{0b01110, 0b10001, 0b00001, 0b00010, 0b00100, 0b01000, 0b11111});
@@ -124,7 +124,7 @@ public class Font7x5 {
             System.out.println();
         }
     }
-    
+
     public static int getPixel(char c, int i, int j) {
         byte[] bitmap = getCharacter(c);
         byte row = bitmap[j];

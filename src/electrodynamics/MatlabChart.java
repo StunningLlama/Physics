@@ -19,28 +19,28 @@ import org.jfree.chart.block.BlockBorder;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.title.LegendTitle;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.chart.ui.RectangleAnchor;
 import org.jfree.chart.ui.RectangleEdge;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
 
 
 public class MatlabChart {
-    
+
     Font font;
     JFreeChart chart;
     LegendTitle legend;
     ArrayList<Color> colors;
     ArrayList<Stroke> strokes;
     XYSeriesCollection dataset;
-    
+
     public MatlabChart() {
         font = JFreeChart.DEFAULT_TITLE_FONT;
-        colors = new ArrayList<Color>();
-        strokes = new ArrayList<Stroke>();
+        colors = new ArrayList<>();
+        strokes = new ArrayList<>();
         dataset = new XYSeriesCollection();
     }
-    
+
     public void plot(double[] x, double[] y, String spec, float lineWidth, String title) {
         final XYSeries series = new XYSeries(title);
         for (int i = 0; i < x.length; i++)
@@ -48,14 +48,14 @@ public class MatlabChart {
         dataset.addSeries(series);
         FindColor(spec,lineWidth);
     }
-    
+
     public XYSeries plot(String spec, float lineWidth, String title) {
         XYSeries series = new XYSeries(title);
         dataset.addSeries(series);
         FindColor(spec,lineWidth);
         return series;
     }
-    
+
     public void RenderPlot() {
         // Create chart
         JFreeChart chart = null;
@@ -76,13 +76,13 @@ public class MatlabChart {
         chart.removeLegend();
         this.chart = chart;
     }
-    
+
     public void CheckExists() {
         if (chart == null) {
             throw new IllegalArgumentException("First plot something in the chart before you modify it.");
         }
     }
-    
+
     public void font(String name, int fontSize) {
         CheckExists();
         font = new Font(name, Font.PLAIN, fontSize);
@@ -93,32 +93,32 @@ public class MatlabChart {
         chart.getXYPlot().getRangeAxis().setTickLabelFont(font);
         legend.setItemFont(font);
     }
-    
+
     public void title(String title) {
         CheckExists();
         chart.setTitle(title);
     }
-    
+
     public void xlim(double l, double u) {
         CheckExists();
         chart.getXYPlot().getDomainAxis().setRange(l, u);
     }
-    
+
     public void ylim(double l, double u) {
         CheckExists();
         chart.getXYPlot().getRangeAxis().setRange(l, u);
     }
-    
+
     public void xlabel(String label) {
         CheckExists();
         chart.getXYPlot().getDomainAxis().setLabel(label);
     }
-    
+
     public void ylabel(String label) {
         CheckExists();
         chart.getXYPlot().getRangeAxis().setLabel(label);
     }
-    
+
     public void legend(String position) {
         CheckExists();
         legend.setItemFont(font);
@@ -170,7 +170,7 @@ public class MatlabChart {
             chart.getXYPlot().addAnnotation(ta);
         }
     }
-    
+
     public void grid(String xAxis, String yAxis) {
         CheckExists();
         if (xAxis.equalsIgnoreCase("on")){
@@ -190,22 +190,22 @@ public class MatlabChart {
             chart.getXYPlot().setRangeMinorGridlinesVisible(false);
         }
     }
-    
+
     public void saveas(String fileName, int width, int height) {
         CheckExists();
-        File file = new File(fileName); 
+        File file = new File(fileName);
         try {
             ChartUtils.saveChartAsJPEG(file,this.chart,width,height);
         } catch (IOException e) {
             e.printStackTrace();
-        }  
+        }
     }
-    
+
     public void FindColor(String spec, float lineWidth) {
         float dash[] = {5.0f};
         float dot[] = {lineWidth};
         Color color = Color.RED;                    // Default color is red
-        Stroke stroke = new BasicStroke(lineWidth); // Default stroke is line   
+        Stroke stroke = new BasicStroke(lineWidth); // Default stroke is line
         if (spec.contains("-"))
             stroke = new BasicStroke(lineWidth);
         else if (spec.contains(":"))

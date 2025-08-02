@@ -4,7 +4,6 @@
 
 package electrodynamics;
 import java.awt.BorderLayout;
-import java.awt.EventQueue;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -13,9 +12,9 @@ import javax.swing.JTextPane;
 import javax.swing.border.EmptyBorder;
 
 public class HelpDialog extends JFrame {
-	
+
 	private static final long serialVersionUID = -58876812350742907L;
-	
+
 	private JPanel contentPane;
 
 	public HelpDialog() {
@@ -25,14 +24,14 @@ public class HelpDialog extends JFrame {
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		contentPane.setLayout(new BorderLayout(0, 0));
 		setContentPane(contentPane);
-		
+
 		JPanel panel = new JPanel();
 		contentPane.add(panel, BorderLayout.CENTER);
 		panel.setLayout(new BorderLayout(0, 0));
-		
+
 		JScrollPane scrollPane = new JScrollPane();
 		panel.add(scrollPane);
-		
+
 		JTextPane txtpnThisProgramDemonstrates = new JTextPane();
 		txtpnThisProgramDemonstrates.setContentType("text/html");
 		txtpnThisProgramDemonstrates.setText("<h1>Simulation details</h1>"

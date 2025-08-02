@@ -5,34 +5,34 @@
 package electrodynamics;
 
 // Two-dimensional vector
-class Vector {
-	double x;
-	double y;
-	
+public class Vector {
+	public double x;
+	public double y;
+
 	public Vector(double x, double y) {
 		this.x = x;
 		this.y = y;
 	}
-	
+
 	public Vector copy() {
 		return new Vector(x, y);
 	}
-	
+
 	public void copy(Vector b) {
 		this.x = b.x;
 		this.y = b.y;
 	}
-	
+
 	public void initialize(double x, double y) {
 		this.x = x;
 		this.y = y;
 	}
-	
+
 	public void add(Vector b) {
 		x += b.x;
 		y += b.y;
 	}
-	
+
 	public void scalarmult(double c) {
 		x *= c;
 		y *= c;
@@ -42,14 +42,14 @@ class Vector {
 		x += b.x * c;
 		y += b.y * c;
 	}
-	
+
 	public void rotate(double theta) {
 		double xf = x*Math.cos(theta) + y*Math.sin(theta);
 		double yf = -x*Math.sin(theta) + y*Math.cos(theta);
 		x = xf;
 		y = yf;
 	}
-	
+
 	public void normalize() {
 		double magnitude = Math.sqrt(x*x+y*y);
 		if (magnitude != 0) {
