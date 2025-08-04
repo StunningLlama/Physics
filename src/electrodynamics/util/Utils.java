@@ -2,7 +2,7 @@
 // This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
 // See LICENSE.txt for full license details.
 
-package electrodynamics;
+package electrodynamics.util;
 
 public class Utils {
 	public static double length(double x, double y) {

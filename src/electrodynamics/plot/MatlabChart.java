@@ -1,6 +1,6 @@
 // Source: https://stackoverflow.com/questions/38931111/how-to-make-plots-in-java-like-in-matlab-same-syntax
 
-package electrodynamics;
+package electrodynamics.plot;
 
 import java.awt.BasicStroke;
 import java.awt.Color;

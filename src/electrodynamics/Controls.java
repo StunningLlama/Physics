@@ -26,80 +26,87 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 
+import electrodynamics.Renderer.ScalarView;
+import electrodynamics.Renderer.VectorView;
 import electrodynamics.Simulation.BoundaryCondition;
+import electrodynamics.plot.Plot;
+import electrodynamics.util.Font7x5;
+import electrodynamics.util.Timer;
+import electrodynamics.util.Utils;
+import electrodynamics.util.Vector;
 
 public class Controls implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
 	Simulation e;
 	
 	/* Keyboard controls */
 
-	boolean advanceframe = false;
-	boolean clear = false;
-	boolean reset = false;
-	boolean save = false;
-	boolean load = false;
-	boolean debugging = false;
-	boolean cut = false;
-	boolean copy = false;
-	boolean paste = false;
-	boolean delete = false;
-    boolean shift_down = false;
-    boolean ctrl_down = false;
-    boolean alt_down = false;
-    boolean logdata = false;
+	public boolean advanceframe = false;
+	public boolean clear = false;
+	public boolean reset = false;
+	public boolean save = false;
+	public boolean load = false;
+	public boolean debugging = false;
+	public boolean cut = false;
+	public boolean copy = false;
+	public boolean paste = false;
+	public boolean delete = false;
+    public boolean shift_down = false;
+    public boolean ctrl_down = false;
+    public boolean alt_down = false;
+    public boolean logdata = false;
 
 
 	/* Mouse controls */
 
 	PointerInfo pointerinfo = MouseInfo.getPointerInfo();
-	boolean mouse_pressed = false;
-	boolean mouse_pressed_prev = false;
-	boolean modifier_pressed = false;
-	boolean moving_selection = false;
-	boolean dragging_selection = false;
-	boolean brush_changed = false;
+	public boolean mouse_pressed = false;
+	public boolean mouse_pressed_prev = false;
+	public boolean modifier_pressed = false;
+	public boolean moving_selection = false;
+	public boolean dragging_selection = false;
+	public boolean brush_changed = false;
 
-	int mousebutton = 0;
-	int mx = 0;
-	int my = 0;
-	int mx_start = 0;
-	int my_start = 0;
+	public int mousebutton = 0;
+	public int mx = 0;
+	public int my = 0;
+	public int mx_start = 0;
+	public int my_start = 0;
 
-	int mx_index = 0;
-	int my_index = 0;
-	int mx_start_index = 0;
-	int my_start_index = 0;
+	public int mx_index = 0;
+	public int my_index = 0;
+	public int mx_start_index = 0;
+	public int my_start_index = 0;
 
-	double mx_realspace = 0;
-	double my_realspace = 0;
-	double mxp_realspace = 0;
-	double myp_realspace = 0;
-	double mx_start_realspace = 0;
-	double my_start_realspace = 0;
+	public double mx_realspace = 0;
+	public double my_realspace = 0;
+	public double mxp_realspace = 0;
+	public double myp_realspace = 0;
+	public double mx_start_realspace = 0;
+	public double my_start_realspace = 0;
 
-	int delta_mx_index = 0;
-	int delta_my_index = 0;
+	public int delta_mx_index = 0;
+	public int delta_my_index = 0;
 
-	boolean EMF_selected = false;
-	double max_EMF = 5e5;
+	public boolean EMF_selected = false;
+	public double max_EMF = 5e5;
 
-	Controls.Brush prev_brush;
-	double brushsize = 0;
-	int prev_EMF_setting = 0;
+	Brush prev_brush;
+	public double brushsize = 0;
+	public int prev_EMF_setting = 0;
 	BoundaryCondition prev_boundary = null;
 
-	boolean[][] under_brush;
-	boolean[][] selected;
-	boolean[][] selected_EMF;
+	public boolean[][] under_brush;
+	public boolean[][] selected;
+	public boolean[][] selected_EMF;
 
-	Material[][] selection;
-	Material[][] clipboard;
+	public Material[][] selection;
+	public Material[][] clipboard;
 
-	int text_x = 0;
-	int text_y = 0;
-	boolean texting = false;
+	public int text_x = 0;
+	public int text_y = 0;
+	public boolean texting = false;
 
-	double flashlight_strength = 1e31;
+	public double flashlight_strength = 1e31;
 
 	Cursor HAND_CURSOR = new Cursor(Cursor.HAND_CURSOR);
 	Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
@@ -122,8 +129,8 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 	}
 	
 	public void handleMouseInput() {
-		Controls.Brush brush = (Controls.Brush) e.opts.gui_brush.getSelectedItem();
-		Controls.BrushShape brushshape = (Controls.BrushShape) e.opts.gui_brush_1.getSelectedItem();
+		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
+		BrushShape brushshape = (BrushShape) e.opts.gui_brush_1.getSelectedItem();
 
 		boolean pressing = false;
 		boolean releasing = false;
@@ -132,7 +139,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 			if (!mouse_pressed_prev) {
 				pressing = true;
 				e.canvas.requestFocus();
-				if (Controls.Brush.isMaterialModifyingBrush(brush) || brush == Controls.Brush.SELECT)
+				if (Brush.isMaterialModifyingBrush(brush) || brush == Brush.SELECT)
 					e.opts.gui_paused.setSelected(true);
 			}
 		} else {
@@ -146,25 +153,25 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		if (!mouse_pressed && !releasing) {
 
 			if (ctrl_down || shift_down) {
-				if (!modifier_pressed && Controls.Brush.isMaterialModifyingBrush(brush)) {
+				if (!modifier_pressed && Brush.isMaterialModifyingBrush(brush)) {
 					modifier_pressed = true;
 					prev_brush = brush;
 
 					if (ctrl_down) {
-						e.opts.gui_brush.setSelectedItem(Controls.Brush.FILL);
-						brush = (Controls.Brush) e.opts.gui_brush.getSelectedItem();
+						e.opts.gui_brush.setSelectedItem(Brush.FILL);
+						brush = (Brush) e.opts.gui_brush.getSelectedItem();
 					}
 					else if (shift_down) {
-						e.opts.gui_brush.setSelectedItem(Controls.Brush.LINE);
-						brush = (Controls.Brush) e.opts.gui_brush.getSelectedItem();
+						e.opts.gui_brush.setSelectedItem(Brush.LINE);
+						brush = (Brush) e.opts.gui_brush.getSelectedItem();
 					}
 					//r.requestFocus();
 				}
 			} else {
 				if (modifier_pressed) {
 					modifier_pressed = false;
-					e.opts.gui_brush.setSelectedItem(Controls.Brush.DRAW);
-					brush = (Controls.Brush) e.opts.gui_brush.getSelectedItem();
+					e.opts.gui_brush.setSelectedItem(Brush.DRAW);
+					brush = (Brush) e.opts.gui_brush.getSelectedItem();
 					//r.requestFocus();
 				}
 			}
@@ -192,13 +199,13 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		if (mx_start_index >= e.nx) mx_start_index = e.nx-1;
 		if (my_start_index >= e.ny) my_start_index = e.ny-1;
 
-		e.opts.gui_stepsizelbl.setText("Step size: " + Utils.getSI(e.dt, "s"));
-		e.opts.gui_stepslbl.setText("Steps/frame: " + e.opts.gui_simspeed_2.getValue());
+		e.opts.gui_stepsizelbl.setText("Timestep: " + Utils.getSI(e.dt, "s"));
+		e.opts.gui_stepslbl.setText("Sim steps/frame: " + e.opts.gui_simspeed_2.getValue());
 
 		brushsize = ((e.ds*e.nx)/500)*(Math.pow(10.0, e.opts.gui_brushsize.getValue()/500.0) + e.opts.gui_brushsize.getValue()/100.0);
 		e.opts.lblBrushSize.setText("Brush size: " + (int)Math.ceil(brushsize/e.ds));
 
-		if (!Controls.Brush.isMaterialModifyingBrush(brush))
+		if (!Brush.isMaterialModifyingBrush(brush))
 		{
 			e.opts.gui_parameter2.setVisible(false);
 			e.opts.gui_parameter2_text.setVisible(false);
@@ -206,7 +213,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		}
 
 
-		if (Controls.Brush.isBrushShapeImportant(brush)) {
+		if (Brush.isBrushShapeImportant(brush)) {
 			e.opts.gui_brush_1.setVisible(true);
 			e.opts.gui_brush_highlight.setVisible(true);
 			e.opts.gui_brushsize.setVisible(true);
@@ -219,14 +226,14 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		}
 
 
-		if (Controls.Brush.isMaterialModifyingBrush(brush) && brush != Controls.Brush.ERASE) {
+		if (Brush.isMaterialModifyingBrush(brush) && brush != Brush.ERASE) {
 			e.opts.gui_material.setVisible(true);
 		} else {
 			e.opts.gui_material.setVisible(false);
 		}
 
 		if (brush_changed) {
-			if (!(brush == Controls.Brush.SELECT || brush == Controls.Brush.FLOODSELECT)) {
+			if (!(brush == Brush.SELECT || brush == Brush.FLOODSELECT)) {
 				for (int i = 0; i < e.nx; i++)
 				{
 					for (int j = 0; j < e.ny; j++)
@@ -236,7 +243,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 				}
 			}
 
-			if (brush != Controls.Brush.INTERACT) {
+			if (brush != Brush.INTERACT) {
 				for (int i = 0; i < e.nx; i++)
 				{
 					for (int j = 0; j < e.ny; j++)
@@ -369,19 +376,19 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 			}
 
 
-			if (mousebutton == MouseEvent.BUTTON3 || brush == Controls.Brush.ERASE)
+			if (mousebutton == MouseEvent.BUTTON3 || brush == Brush.ERASE)
 				mat = MaterialType.VACUUM;
 
 			if (!(mousebutton == MouseEvent.BUTTON2 || alt_down)) {
-				if (brush == Controls.Brush.LINE) {
+				if (brush == Brush.LINE) {
 					if (releasing) {
 						drawMaterialLine(mx_start_realspace, my_start_realspace, mx_realspace, my_realspace, brush, brushshape, mat, brushsize, angle);
 					}
-				} else if (brush == Controls.Brush.FILL) {
+				} else if (brush == Brush.FILL) {
 					if (pressing) {
 						floodFillSet(mx_index, my_index, e.materials[mx_index][my_index].type, mat, angle);
 					}
-				} else if (brush == Controls.Brush.LIGHT) {
+				} else if (brush == Brush.LIGHT) {
 					if (mouse_pressed) {
 						for (int i = 0; i < e.nx; i++)
 						{
@@ -396,9 +403,9 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 								double py = (cy-my_realspace);
 								double r = 0;
 
-								if (brushshape == Controls.BrushShape.CIRCLE)
+								if (brushshape == BrushShape.CIRCLE)
 									r = Math.sqrt(px*px+py*py);
-								else if (brushshape == Controls.BrushShape.SQUARE)
+								else if (brushshape == BrushShape.SQUARE)
 									r = Math.max(Math.abs(px), Math.abs(py));
 								e.L[i][j] = (r <= brushsize)? flashlight_strength : 0;
 							}
@@ -419,7 +426,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 				}
 			}
 
-			if (Controls.Brush.isBrushShapeImportant(brush)) {
+			if (Brush.isBrushShapeImportant(brush)) {
 				for (int i = 0; i < e.nx; i++)
 				{
 					for (int j = 0; j < e.ny; j++)
@@ -434,9 +441,9 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 							double py = (cy-my_realspace);
 							double r = 0;
 
-							if (brushshape == Controls.BrushShape.CIRCLE)
+							if (brushshape == BrushShape.CIRCLE)
 								r = Math.sqrt(px*px+py*py);
-							else if (brushshape == Controls.BrushShape.SQUARE)
+							else if (brushshape == BrushShape.SQUARE)
 								r = Math.max(Math.abs(px), Math.abs(py));
 							under_brush[i][j] = (r <= brushsize);
 						}
@@ -484,7 +491,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		case FLOODSELECT:
 		case SELECT:
 			if (pressing) {
-				if (brush == Controls.Brush.FLOODSELECT && !moving_selection) {
+				if (brush == Brush.FLOODSELECT && !moving_selection) {
 					floodFillSelect(mx_index, my_index, e.materials[mx_index][my_index].type, !selected[mx_index][my_index]);
 				}
 				else if (moving_selection && !dragging_selection) {
@@ -522,7 +529,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 					delta_my_index = 0;
 				}
 			} else if (mouse_pressed) {
-				if (brush != Controls.Brush.FLOODSELECT) {
+				if (brush != Brush.FLOODSELECT) {
 					if (dragging_selection) {
 						delta_mx_index = mx_index - mx_start_index;
 						delta_my_index = my_index - my_start_index;
@@ -545,7 +552,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 					}
 				}
 			} else if (releasing) {
-				if (brush != Controls.Brush.FLOODSELECT) {
+				if (brush != Brush.FLOODSELECT) {
 					delta_mx_index = mx_index - mx_start_index;
 					delta_my_index = my_index - my_start_index;
 					if (dragging_selection) {
@@ -661,47 +668,30 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 			}
 			break;
 		case BANDS:
-			if (releasing) {
-				e.bandplot.x1 = mx_start_index;
-				e.bandplot.y1 = my_start_index;
-				e.bandplot.x2 = mx_index;
-				e.bandplot.y2 = my_index;
-				e.bandplot.frame.setVisible(true);
-			}
+			if (releasing) e.bandplot.createPlot(e);
+			break;
+		case SCALARPLOT:
+			if (releasing) e.scalarplot.createPlot(e);
+			break;
+		case CARRIERPLOT:
+			if (releasing) e.carrierplot.createPlot(e);
 			break;
 		default:
 			break;
 		}
 
-
-		if (e.bandplot.frame.isVisible() && e.frame%10 == 0) {
-
-			e.bandplot.E_n_data.clear();
-			e.bandplot.E_p_data.clear();
-			e.bandplot.F_n_data.clear();
-			e.bandplot.F_p_data.clear();
-
-			for (int n = 0; n <= 100; n++) {
-				double t = n/100.0;
-				double x = t*(e.bandplot.x2 - e.bandplot.x1) + e.bandplot.x1;
-				double y = t*(e.bandplot.y2 - e.bandplot.y1) + e.bandplot.y1;
-
-				// Add chemical energy and electrostatic energy to get band energy
-				e.bandplot.E_n_data.add(t, -(bilinearinterp(e.E0_n, x, y)/e.q_n+bilinearinterp(e.phi, x, y)));
-				e.bandplot.E_p_data.add(t, -(bilinearinterp(e.E0_p, x, y)/e.q_p+bilinearinterp(e.phi, x, y)));
-				e.bandplot.F_n_data.add(t, -(bilinearinterp(e.F_n, x, y)/e.q_n+bilinearinterp(e.phi, x, y)));
-				e.bandplot.F_p_data.add(t, -(bilinearinterp(e.F_p, x, y)/e.q_p+bilinearinterp(e.phi, x, y)));
-			}
-		}
-
-		if (brush != Controls.Brush.TEXT)
+		if (brush != Brush.TEXT)
 		{
 			texting = false;
+		}
+		
+		for (Plot p : e.plots) {
+			p.updatePlot(e);
 		}
 
 		setEMFs();
 
-		if ((releasing && Controls.Brush.isBrushShapeImportant(brush)) || (BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary || update) {
+		if ((releasing && Brush.isBrushShapeImportant(brush)) || (BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary || update) {
 
 			e.constructBoundary();
 			e.updateAllMaterials();
@@ -714,7 +704,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		myp_realspace = my_realspace;
 	}
 
-	public void drawMaterialLine(double x1, double y1, double x2, double y2, Controls.Brush brush, Controls.BrushShape brushshape, MaterialType mat, double brushsize, double EMF_angle) {
+	public void drawMaterialLine(double x1, double y1, double x2, double y2, Brush brush, BrushShape brushshape, MaterialType mat, double brushsize, double EMF_angle) {
 		Vector a = new Vector(0, 0);
 		Vector b = new Vector(0, 0);
 		Vector p = new Vector(0, 0);
@@ -742,14 +732,14 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 				ab.scalarmult(t);
 				p.addmult(ab, -1);
 				double r = 0;
-				if (brushshape == Controls.BrushShape.CIRCLE)
+				if (brushshape == BrushShape.CIRCLE)
 					r = Math.sqrt(p.dot(p));
-				else if (brushshape == Controls.BrushShape.SQUARE)
+				else if (brushshape == BrushShape.SQUARE)
 					r = Math.max(Math.abs(p.x), Math.abs(p.y));
 				if (r <= brushsize) {
 					if (mat == MaterialType.VACUUM) {
 						e.materials[i][j].erase();
-					} else if (e.materials[i][j].type == MaterialType.VACUUM || brush == Controls.Brush.REPLACE) {
+					} else if (e.materials[i][j].type == MaterialType.VACUUM || brush == Brush.REPLACE) {
 						e.materials[i][j].erase();
 						e.initializeMaterial(i, j, mat);
 						if (mat == MaterialType.EMF) e.materials[i][j].emf_direction = EMF_angle;
@@ -763,7 +753,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		int EMF_setting = e.opts.gui_parameter3.getValue();
 		double new_EMF = max_EMF*EMF_setting/50.0;
 
-		if (e.opts.gui_brush.getSelectedItem() == Controls.Brush.INTERACT && EMF_selected) {
+		if (e.opts.gui_brush.getSelectedItem() == Brush.INTERACT && EMF_selected) {
 			e.opts.gui_parameter3.setVisible(true);
 			e.opts.gui_parameter3_text.setVisible(true);
 			e.opts.gui_parameter3_text.setText("EMF: " + Utils.getSI(new_EMF, "V/m"));
@@ -1002,20 +992,20 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
         }
     };
 
-    Renderer.ScalarView prev_scalar_view = Renderer.ScalarView.NONE;
-    Renderer.VectorView prev_vector_view = Renderer.VectorView.NONE;
+    ScalarView prev_scalar_view = ScalarView.NONE;
+    VectorView prev_vector_view = VectorView.NONE;
 
     @SuppressWarnings("serial")
     private Action key_scalar_view = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
 			if (texting) return;
-    		if (e.opts.gui_view.getSelectedItem() == Renderer.ScalarView.NONE)
+    		if (e.opts.gui_view.getSelectedItem() == ScalarView.NONE)
     			e.opts.gui_view.setSelectedItem(prev_scalar_view);
     		else
     		{
-    			prev_scalar_view = (Renderer.ScalarView) e.opts.gui_view.getSelectedItem();
-    			e.opts.gui_view.setSelectedItem(Renderer.ScalarView.NONE);
+    			prev_scalar_view = (ScalarView) e.opts.gui_view.getSelectedItem();
+    			e.opts.gui_view.setSelectedItem(ScalarView.NONE);
     		}
         }
     };
@@ -1025,12 +1015,12 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		@Override
         public void actionPerformed(ActionEvent ev) {
 			if (texting) return;
-    		if (e.opts.gui_view_vec.getSelectedItem() == Renderer.VectorView.NONE)
+    		if (e.opts.gui_view_vec.getSelectedItem() == VectorView.NONE)
     			e.opts.gui_view_vec.setSelectedItem(prev_vector_view);
     		else
     		{
-    			prev_vector_view = (Renderer.VectorView) e.opts.gui_view_vec.getSelectedItem();
-    			e.opts.gui_view_vec.setSelectedItem(Renderer.VectorView.NONE);
+    			prev_vector_view = (VectorView) e.opts.gui_view_vec.getSelectedItem();
+    			e.opts.gui_view_vec.setSelectedItem(VectorView.NONE);
     		}
         }
     };
@@ -1249,11 +1239,11 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		}
 	}
 
-	enum BrushShape {
+	public enum BrushShape {
 		CIRCLE("Circle brush"),
 		SQUARE("Square brush");
 	
-		String name;
+		public String name;
 		BrushShape(String name)
 		{
 			this.name = name;
@@ -1265,14 +1255,16 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		}
 	}
 
-	enum Brush {
+	public enum Brush {
 		INTERACT("Interact"),
 		DRAW("Draw"),
 		VOLTAGE("Voltage probe"),
 		CURRENT("Current probe"),
 		GROUND("Ground"),
 		DELETEPROBE("Delete probe"),
-		BANDS("Band diagram"),
+		BANDS("Plot bands"),
+		SCALARPLOT("Plot scalar field"),
+		CARRIERPLOT("Plot carriers"),
 		LIGHT("Flashlight"),
 		REPLACE("Replace"),
 		LINE("Line"),
@@ -1282,7 +1274,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		FLOODSELECT("Flood select"),
 		TEXT("Text");
 	
-		String name;
+		public String name;
 		Brush(String name)
 		{
 			this.name = name;
@@ -1307,6 +1299,10 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 					|| brush == Brush.REPLACE
 					|| brush == Brush.ERASE
 					|| brush == Brush.LIGHT);
+		}
+		
+		public static boolean drawLine(Brush brush) {
+			return (brush == Brush.LINE || brush == Brush.BANDS || brush == Brush.SCALARPLOT || brush == Brush.CARRIERPLOT);
 		}
 	}
 }

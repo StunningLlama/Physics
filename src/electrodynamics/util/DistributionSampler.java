@@ -2,7 +2,7 @@
 // This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
 // See LICENSE.txt for full license details.
 
-package electrodynamics;
+package electrodynamics.util;
 
 // Generates random samples from a spatial distribution
 
@@ -149,18 +149,18 @@ public class DistributionSampler {
 
 		return va*(1.0-fy) + vb*fy;
 	}
-}
 
-interface GenFunc {
-	void generate(Coord c);
-}
+	public class Coord {
+		public double x;
+		public double y;
 
-class Coord {
-	double x;
-	double y;
+		public Coord(double x, double y) {
+			this.x = x;
+			this.y = y;
+		}
+	}
 
-	public Coord(double x, double y) {
-		this.x = x;
-		this.y = y;
+	public interface GenFunc {
+		void generate(Coord c);
 	}
 }

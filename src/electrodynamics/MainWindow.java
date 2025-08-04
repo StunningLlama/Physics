@@ -164,11 +164,11 @@ public class MainWindow extends JFrame {
 		panel.add(gui_view);
 		addTooltips(gui_view);
 
-		gui_stepsizelbl = new JLabel("Step size");
+		gui_stepsizelbl = new JLabel("Timestep");
 		gui_stepsizelbl.setBounds(20, 318, 161, 14);
 		panel.add(gui_stepsizelbl);
 
-		JLabel label5 = new JLabel("Scalar Brightness");
+		JLabel label5 = new JLabel("Scalar brightness");
 		label5.setBounds(20, 424, 150, 14);
 		panel.add(label5);
 
@@ -232,7 +232,7 @@ public class MainWindow extends JFrame {
 		panel.add(gui_brush_1);
 		addTooltips(gui_brush_1);
 
-		gui_stepslbl = new JLabel("Steps/Frame");
+		gui_stepslbl = new JLabel("Sim steps/frame");
 		gui_stepslbl.setBounds(20, 371, 144, 14);
 		panel.add(gui_stepslbl);
 

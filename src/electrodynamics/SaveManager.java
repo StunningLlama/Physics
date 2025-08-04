@@ -189,6 +189,7 @@ public class SaveManager {
 
 				e.setResolution(e.default_resolution);
 				e.setWidth(e.default_width);
+				e.resetFields(true);
 
 				while (fstr.hasNext()) {
 	                String name = fstr.nextName();

@@ -2,7 +2,7 @@
 // This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
 // See LICENSE.txt for full license details.
 
-package electrodynamics;
+package electrodynamics.util;
 
 // Fast accurate approximation of log based on:
 // https://math.stackexchange.com/questions/5050163/surprisingly-good-approximation-of-fracx-1-ln-x

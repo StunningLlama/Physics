@@ -23,6 +23,14 @@ import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import electrodynamics.Renderer.ScalarView;
+import electrodynamics.plot.BandPlot;
+import electrodynamics.plot.CarrierPlot;
+import electrodynamics.plot.Plot;
+import electrodynamics.plot.ScalarPlot;
+import electrodynamics.util.Timer;
+import electrodynamics.util.Utils;
+
 public class Simulation extends TimerTask implements ActionListener {
 	/*
 	 * Demos:
@@ -44,14 +52,18 @@ public class Simulation extends TimerTask implements ActionListener {
 	
 	/* Parts */
 	
-	RenderCanvas canvas;
-	MainWindow opts;
-	AdvancedOptions adv_opts;
-	HelpDialog help;
-	Renderer renderer;
-	Controls controls;
-	BandPlot bandplot;
-	SaveManager savemanager;
+	public RenderCanvas canvas;
+	public MainWindow opts;
+	public AdvancedOptions adv_opts;
+	public HelpDialog help;
+	public Renderer renderer;
+	public Controls controls;
+	public SaveManager savemanager;
+	
+	public ArrayList<Plot> plots = new ArrayList<>();
+	public BandPlot bandplot;
+	public ScalarPlot scalarplot;
+	public CarrierPlot carrierplot;
 	
 	
 	/* Multithreading */
@@ -70,206 +82,206 @@ public class Simulation extends TimerTask implements ActionListener {
 	
 	/* Domain parameters */
 
-	int default_resolution = 256;
-	double default_width = 2.56e-5;
+	public int default_resolution = 256;
+	public double default_width = 2.56e-5;
 	
-	int resolution;
-	int nx;						// Number of grid points in x-dimension
-	int ny;						// Number of grid points in y-dimension
-	double width;				// Width, in SI
-	double ds;					// Spatial discretization
-	double dt;					// Timestep
-	double depth = 1e-3;		// Extent of circuit in z-dimension, only used to get reasonable values for current probe
+	public int resolution;
+	public int nx;						// Number of grid popublic ints in x-dimension
+	public int ny;						// Number of grid popublic ints in y-dimension
+	public double width;				// Width, in SI
+	public double ds;					// Spatial discretization
+	public double dt;					// Timestep
+	public double depth = 1e-3;		// Extent of circuit in z-dimension, only used to get reasonable values for current probe
 	
-	int absorber_width;
-	double absorbing_coeff;
-	double Hz_dissipation;
-	double dt_maximum;
-	int parity = -1;			// Negative sign resulting from flipped y-axis in graphics coordinate system
+	public int absorber_width;
+	public double absorbing_coeff;
+	public double Hz_dissipation;
+	public double dt_maximum;
+	public int parity = -1;			// Negative sign resulting from flipped y-axis in graphics coordinate system
 
-	double time = 0.0;
-	long stepnumber = 0;
-	long frame = 0;
-	int lastsimspeed = 0;
-	int iteration_multiplier = 0;
+	public double time = 0.0;
+	public long stepnumber = 0;
+	public long frame = 0;
+	public int lastsimspeed = 0;
+	public int iteration_multiplier = 0;
 
-	double error_detection_threshold = 1e-5;
-	boolean sign_violation = false;
+	public double error_detection_threshold = 1e-5;
+	public boolean sign_violation = false;
 	
-	boolean advsettings_tweaked = false;
+	public boolean advsettings_tweaked = false;
 
 	
 	/* Physical constants */
 
-	double eps0 = 8.85e-12;
-	double mu0 = 1.257e-6;
-	double c = 1/Math.sqrt(eps0*mu0);
-	double k = 1.381e-23;
-	double e_charge = 1.6e-19;
-	double e_mass = 9e-31;
-	double eVtoJ = e_charge;			// eV to J conversion factor
-	double q_n = -e_charge;				// Charge of single electron
-	double q_p = e_charge;				// Charge of single hole
+	public double eps0 = 8.85e-12;
+	public double mu0 = 1.257e-6;
+	public double c = 1/Math.sqrt(eps0*mu0);
+	public double k = 1.381e-23;
+	public double e_charge = 1.6e-19;
+	public double e_mass = 9e-31;
+	public double eVtoJ = e_charge;			// eV to J conversion factor
+	public double q_n = -e_charge;				// Charge of single electron
+	public double q_p = e_charge;				// Charge of single hole
 
 	
 	/* Material properties */
 
-	double T = 297.61;									// System temperature
-	double beta = 1/(k*T);
+	public double T = 297.61;									// System temperature
+	public double beta = 1/(k*T);
 	
-	double mu_electron = 0.1400*1500;					// Electron mobility
-	double D_electron = mu_electron/(beta*e_charge);	// Diffusion constant, determined by Einstein relation
+	public double mu_electron = 0.1400*1500;					// Electron mobility
+	public double D_electron = mu_electron/(beta*e_charge);	// Diffusion constant, determined by Einstein relation
 
-	double mu_hole = 0.5*mu_electron;					// Hole mobility, slightly lower than electron
-	double D_hole = mu_hole/(beta*e_charge);
+	public double mu_hole = 0.5*mu_electron;					// Hole mobility, slightly lower than electron
+	public double D_hole = mu_hole/(beta*e_charge);
 
-	double ni_semi = 1e16;					// Semiconductor equilibrium concentration
-	double W_semi = 4.7*eVtoJ;				// Semiconductor work function
-	double E_b_semi = 1.12*eVtoJ;			// Semiconductor band gap
-	double recomb_rate_semi = 1e7/ni_semi;
+	public double ni_semi = 1e16;					// Semiconductor equilibrium concentration
+	public double W_semi = 4.7*eVtoJ;				// Semiconductor work function
+	public double E_b_semi = 1.12*eVtoJ;			// Semiconductor band gap
+	public double recomb_rate_semi = 1e7/ni_semi;
 
-	double ni_metal = 5e20;					// Metal charge carrier concentratio
-	double ni_metal_high = 2.5*ni_metal;
-	double ni_metal_low = 0.25*ni_metal;
-	double W_metal_default = 4.7*eVtoJ;		// Metal work function, same as semiconductor
-	double W_metal_high = W_semi + 0.3*eVtoJ;
-	double W_metal_low = W_semi - 0.3*eVtoJ;
-	double E_b_metal = 1.12*eVtoJ;			// Same as semiconductor
-	double recomb_rate_metal = 1e8/ni_semi;
+	public double ni_metal = 5e20;					// Metal charge carrier concentratio
+	public double ni_metal_high = 2.5*ni_metal;
+	public double ni_metal_low = 0.25*ni_metal;
+	public double W_metal_default = 4.7*eVtoJ;		// Metal work function, same as semiconductor
+	public double W_metal_high = W_semi + 0.3*eVtoJ;
+	public double W_metal_low = W_semi - 0.3*eVtoJ;
+	public double E_b_metal = 1.12*eVtoJ;			// Same as semiconductor
+	public double recomb_rate_metal = 1e8/ni_semi;
 
-	// Only reason activation energy needed is to smoothly interpolate rate constant
-	double recomb_cross_section = 1e-10;
-	double arrhenius_prefactor = recomb_cross_section*Math.sqrt(8*(k*T)/(Math.PI*e_mass/2));
-	double E_a_semi = -Math.log(recomb_rate_semi/arrhenius_prefactor);
-	double E_a_metal = -Math.log(recomb_rate_metal/arrhenius_prefactor);
+	// Only reason activation energy needed is to smoothly public interpolate rate constant
+	public double recomb_cross_section = 1e-10;
+	public double arrhenius_prefactor = recomb_cross_section*Math.sqrt(8*(k*T)/(Math.PI*e_mass/2));
+	public double E_a_semi = -Math.log(recomb_rate_semi/arrhenius_prefactor);
+	public double E_a_metal = -Math.log(recomb_rate_metal/arrhenius_prefactor);
 
-	double n_default_doping_concentration = 5e19;
-	double p_default_doping_concentration = 5e19;
-	double n_light_doping_concentration = 1e19;
-	double p_light_doping_concentration = 1e19;
-	double n_heavy_doping_concentration = 2.5e20;
-	double p_heavy_doping_concentration = 2.5e20;
+	public double n_default_doping_concentration = 5e19;
+	public double p_default_doping_concentration = 5e19;
+	public double n_light_doping_concentration = 1e19;
+	public double p_light_doping_concentration = 1e19;
+	public double n_heavy_doping_concentration = 2.5e20;
+	public double p_heavy_doping_concentration = 2.5e20;
 
-	double dielectric_eps_r = 25.0;
-	double ferromagnet_mu_r = 250.0;
-	double staticcharge_density = 10.0;
+	public double dielectric_eps_r = 25.0;
+	public double ferromagnet_mu_r = 250.0;
+	public double staticcharge_density = 10.0;
 
-	double E_sat = 5e5;						// Electric field at which carrier velocity saturates
+	public double E_sat = 5e5;						// Electric field at which carrier velocity saturates
 
-	int junction_size = 3;					// Free energy smoothing distance: junction_size < 3 causes instability
+	public int junction_size = 3;					// Free energy smoothing distance: junction_size < 3 causes instability
 	
 	
 	/* Dynamical simulation variables */
 
-	double[][] Ex;			// x component of E field
-	double[][] Ey;			// y component of E field
-	double[][] Hz;			// z component of B field
-	double[][] Hz_laplacian;
+	public double[][] Ex;			// x component of E field
+	public double[][] Ey;			// y component of E field
+	public double[][] Hz;			// z component of B field
+	public double[][] Hz_laplacian;
 
-	double[][] rho_n;		// Electrons
-	double[][] rho_p;		// Holes
-	double[][] rho_back;	// Background
-	double[][] rho_abs;		// Absorber charge
-	double[][] rho_free;	// Total free charges
-	double[][] mobility_factor;
+	public double[][] rho_n;		// Electrons
+	public double[][] rho_p;		// Holes
+	public double[][] rho_back;	// Background
+	public double[][] rho_abs;		// Absorber charge
+	public double[][] rho_free;	// Total free charges
+	public double[][] mobility_factor;
 
-	double[][] Jx_n;		// Electron current
-	double[][] Jy_n;
-	double[][] Jx_p;		// Hole current
-	double[][] Jy_p;
-	double[][] Jx_abs;		// Absorber current
-	double[][] Jy_abs;
-	double[][] Jx_free;		// Total free current
-	double[][] Jy_free;
+	public double[][] Jx_n;		// Electron current
+	public double[][] Jy_n;
+	public double[][] Jx_p;		// Hole current
+	public double[][] Jy_p;
+	public double[][] Jx_abs;		// Absorber current
+	public double[][] Jy_abs;
+	public double[][] Jx_free;		// Total free current
+	public double[][] Jy_free;
 
 	/* Miscellaneous fields used for display */
 
-	double[][] Dx;				// Electric displacement field
-	double[][] Dy;
-	double[][] Bz;				// B field
-	double[][] Sx;				// Poynting vector
-	double[][] Sy;
-	double[][] u;				// EM energy density
-	double[][] phi;				// Electric scalar potential
+	public double[][] Dx;				// Electric displacement field
+	public double[][] Dy;
+	public double[][] Bz;				// B field
+	public double[][] Sx;				// Poynting vector
+	public double[][] Sy;
+	public double[][] u;				// EM energy density
+	public double[][] phi;				// Electric scalar potential
 
-	double[][] G;				// Generation rate
-	double[][] R;				// Recombination rate
-	double[][] F_n;				// Total chemical potential of electrons (quasi-Fermi level minus the electrostatic potential)
-	double[][] F_p;				// Total chemical potential of holes
-	double[][] grad_E0x_n;		// Gradient of chemical energy
-	double[][] grad_E0y_n;
-	double[][] grad_E0x_p;
-	double[][] grad_E0y_p;
-	double[][] grad_Fx_n;		// Gradient of total chemical potential
-	double[][] grad_Fy_n;
-	double[][] grad_Fx_p;
-	double[][] grad_Fy_p;
-	double[][] Q;				// Heat dissipation rate
-	double[][] S;				// Free energy dissipation rate
-	double[][] F;				// Average total electrochemical potential
+	public double[][] G;				// Generation rate
+	public double[][] R;				// Recombination rate
+	public double[][] F_n;				// Total chemical potential of electrons (quasi-Fermi level minus the electrostatic potential)
+	public double[][] F_p;				// Total chemical potential of holes
+	public double[][] grad_E0x_n;		// Gradient of chemical energy
+	public double[][] grad_E0y_n;
+	public double[][] grad_E0x_p;
+	public double[][] grad_E0y_p;
+	public double[][] grad_Fx_n;		// Gradient of total chemical potential
+	public double[][] grad_Fy_n;
+	public double[][] grad_Fx_p;
+	public double[][] grad_Fy_p;
+	public double[][] Q;				// Heat dissipation rate
+	public double[][] S;				// Free energy dissipation rate
+	public double[][] F;				// Average total electrochemical potential
 
-	boolean updateMiscFields = false;
-	double[][] debug;
+	public boolean updateMiscFields = false;
+	public double[][] debug;
 
 	
 	/* Material parameters */
 
-	Material[][] materials;
+	public Material[][] materials;
 
-	double[][] F0_n;		// Standard chemical potential of electrons
-	double[][] F0_p;		// Standard chemical potential of holes
-	double[][] E0_n;		// Standard chemical energy of electrons
-	double[][] E0_p;		// Standard chemical energy of holes
-	double[][] K;			// Charge carrier equilibrium constant
-	double[][] E_a;			// Activation energy of recombination
-	double[][] r;			// Recombination rate constant
-	double[][] L;			// Carrier generation due to incoming light
+	public double[][] F0_n;		// Standard chemical potential of electrons
+	public double[][] F0_p;		// Standard chemical potential of holes
+	public double[][] E0_n;		// Standard chemical energy of electrons
+	public double[][] E0_p;		// Standard chemical energy of holes
+	public double[][] K;			// Charge carrier equilibrium constant
+	public double[][] E_a;			// Activation energy of recombination
+	public double[][] r;			// Recombination rate constant
+	public double[][] L;			// Carrier generation due to incoming light
 
-	double[][] cmfx_n;		// Chemical-motive force for electrons
-	double[][] cmfy_n;
+	public double[][] cmfx_n;		// Chemical-motive force for electrons
+	public double[][] cmfy_n;
 
-	double[][] cmfx_p;		// Chemical-motive force for holes
-	double[][] cmfy_p;
+	public double[][] cmfx_p;		// Chemical-motive force for holes
+	public double[][] cmfy_p;
 
-	double[][] emfx;		// External electromotive force
-	double[][] emfy;
-	double[][] epsx;		// Dielectric constant
-	double[][] epsy;
-	double[][] mu_z;		// Relative permeability
+	public double[][] emfx;		// External electromotive force
+	public double[][] emfy;
+	public double[][] epsx;		// Dielectric constant
+	public double[][] epsy;
+	public double[][] mu_z;		// Relative permeability
 
-	int[][] conducting;		// Does the material have partially filled bands
-	int[][] conducting_x;
-	int[][] conducting_y;
+	public int[][] conducting;		// Does the material have partially filled bands
+	public int[][] conducting_x;
+	public int[][] conducting_y;
 
-	double[][] absorptivity;
-	double[][] absorptivity_x;
-	double[][] absorptivity_y;
+	public double[][] absorptivity;
+	public double[][] absorptivity_x;
+	public double[][] absorptivity_y;
 
 	
 	/* Multigrid Poisson eq solver */
 
-	int log2_resolution;
-	double[][] MG_rho0;
-	double[][][] MG_rho;
-	double[][][] MG_epsx;
-	double[][][] MG_epsy;
-	double[][] MG_eps_avg;
-	double[][] MG_phi1;
-	double[][] MG_phi2;
+	public int log2_resolution;
+	public double[][] MG_rho0;
+	public double[][][] MG_rho;
+	public double[][][] MG_epsx;
+	public double[][][] MG_epsy;
+	public double[][] MG_eps_avg;
+	public double[][] MG_phi1;
+	public double[][] MG_phi2;
 
 	
 	/* Pathfinding */
 
-	int[][] distance;
-	boolean[][] visited;
+	public int[][] distance;
+	public boolean[][] visited;
 	
 	
 	/* Probes */
 
-	List<VoltageProbe> voltageprobes;
-	List<CurrentProbe> currentprobes;
-	VoltageProbe ground = null;
-	String datafilename = "probedata.txt";
+	public List<VoltageProbe> voltageprobes;
+	public List<CurrentProbe> currentprobes;
+	public VoltageProbe ground = null;
+	public String datafilename = "probedata.txt";
 	public File datafile;
 	public PrintWriter datastream;
 
@@ -329,9 +341,9 @@ public class Simulation extends TimerTask implements ActionListener {
 		canvas = new RenderCanvas(this);
 		canvas.setFocusable(true);
 
-		bandplot = new BandPlot();
-		bandplot.createPlot();
-		bandplot.frame.setVisible(false);
+		bandplot = new BandPlot(); plots.add(bandplot);
+		scalarplot = new ScalarPlot(); plots.add(scalarplot);
+		carrierplot = new CarrierPlot(); plots.add(carrierplot);
 
 		detect64Bit();
 
@@ -359,7 +371,7 @@ public class Simulation extends TimerTask implements ActionListener {
 		opts.gui_material.removeItem(MaterialType.ABSORBER);
 		//opts.gui_material.removeItem(MaterialType.SWITCH);
 
-		opts.gui_view.removeItem(Renderer.ScalarView.DEBUG);
+		opts.gui_view.removeItem(ScalarView.DEBUG);
 
 		opts.pack();
 
@@ -708,7 +720,9 @@ public class Simulation extends TimerTask implements ActionListener {
 			currentprobes.clear();
 			ground = null;
 
-			bandplot.frame.setVisible(false);
+			for (Plot p: plots) {
+				p.frame.setVisible(false);
+			}
 
 			opts.setTitle("Brandon's semiconductor simulator");
 		}
@@ -939,7 +953,7 @@ public class Simulation extends TimerTask implements ActionListener {
 	}
 	
 	public void calcMiscFields(boolean updatePhi) {
-		Renderer.ScalarView view_scalar = (Renderer.ScalarView) opts.gui_view.getSelectedItem();
+		ScalarView view_scalar = (ScalarView) opts.gui_view.getSelectedItem();
 
 		//Always find potentials
 		if (updatePhi)
@@ -1023,7 +1037,7 @@ public class Simulation extends TimerTask implements ActionListener {
 			}
 		}
 
-		if (view_scalar == Renderer.ScalarView.HEAT) {
+		if (view_scalar == ScalarView.HEAT) {
 			for (int i = 0; i < nx-1; i++)
 			{
 				for (int j = 1; j < ny-1; j++)
@@ -1061,7 +1075,7 @@ public class Simulation extends TimerTask implements ActionListener {
 			}
 		}
 
-		if (view_scalar == Renderer.ScalarView.ENTROPY) {
+		if (view_scalar == ScalarView.ENTROPY) {
 			for (int i = 0; i < nx-1; i++)
 			{
 				for (int j = 1; j < ny-1; j++)
