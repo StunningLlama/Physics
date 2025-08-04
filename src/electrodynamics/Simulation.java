@@ -292,23 +292,23 @@ public class Simulation extends TimerTask implements ActionListener {
 			e.printStackTrace();
 		}
 
-		Simulation w = new Simulation();
+		Simulation sim = new Simulation();
 		java.util.Timer master_timer = new java.util.Timer();
-		javax.swing.Timer executor = new javax.swing.Timer(0, w);
+		javax.swing.Timer executor = new javax.swing.Timer(0, sim);
 		executor.setRepeats(false);
 		executor.setCoalesce(true);
 		
-		for (int i = 0; i < w.n_threads; i++) {
-			w.sim_threads.add(w.new SimulationThread(i, w.n_threads, w.nx));
+		for (int i = 0; i < sim.n_threads; i++) {
+			sim.sim_threads.add(sim.new SimulationThread(i, sim.n_threads, sim.nx));
 		}
 
-		for (int i = 0; i < w.n_threads; i++) {
-			w.graphics_threads.add(w.renderer.new GraphicsThread(i, w.n_threads));
+		for (int i = 0; i < sim.n_threads; i++) {
+			sim.graphics_threads.add(sim.renderer.new GraphicsThread(i, sim.n_threads));
 		}
 
-		for (int i = 0; i < w.n_threads; i++) {
-			w.sim_threads.get(i).start();
-			w.graphics_threads.get(i).start();
+		for (int i = 0; i < sim.n_threads; i++) {
+			sim.sim_threads.get(i).start();
+			sim.graphics_threads.get(i).start();
 		}
 
 		master_timer.scheduleAtFixedRate(new TimerTask() {
@@ -316,7 +316,7 @@ public class Simulation extends TimerTask implements ActionListener {
 			public void run() {
 				executor.start();
 			}
-		}, 0, w.renderer.frameduration);
+		}, 0, sim.renderer.frameduration);
 		
 		//t.start();
 	}

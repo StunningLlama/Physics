@@ -70,7 +70,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>electrodynamics.Electrodynamics</mainClass>
+							<mainClass>electrodynamics.Simulation</mainClass>
 						</manifest>
 					</archive>
 
