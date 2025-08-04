@@ -12,11 +12,13 @@ public class Timer {
 	private boolean enabled = true;
 	private double avgtime = 0;
 	private double time = 0;
+	private double coeff = 1;
 
 	public static boolean allEnabled = false;
 
-	public Timer(String name, boolean enabled) {
+	public Timer(String name, int smoothing, boolean enabled) {
 		this.name = name;
+		this.coeff = 1.0/smoothing;
 		this.enabled = enabled;
 	}
 
@@ -34,10 +36,6 @@ public class Timer {
 		enabled = true;
 	}
 
-	public double getTime() {
-		return time;
-	}
-
 	public double getAverageTime() {
 		return avgtime;
 	}
@@ -51,7 +49,7 @@ public class Timer {
 			long tend = System.nanoTime();
 			long diff = tend - tstart;
 			time = diff/1e9;
-			avgtime = avgtime*0.95+time*0.05;
+			avgtime = avgtime*(1-coeff)+time*coeff;
 		}
 	}
 
@@ -60,7 +58,7 @@ public class Timer {
 			long tend = System.nanoTime();
 			long diff = tend - tstart;
 			time = diff/1e9;
-			avgtime = avgtime*0.95+time*0.05;
+			avgtime = avgtime*(1-coeff)+time*coeff;
 		}
 	}
 }
