@@ -14,6 +14,8 @@ public class Timer {
 	private double time = 0;
 	private double coeff = 1;
 
+	//private long tmp = System.nanoTime();
+	
 	public static boolean allEnabled = false;
 
 	public Timer(String name, int smoothing, boolean enabled) {
@@ -26,6 +28,7 @@ public class Timer {
 		if (enabled) {
 			tstart = System.nanoTime();
 		}
+		//System.out.println(name + " start " + (tstart-tmp)/1000000.0);
 	}
 
 	public void disableOutput() {
@@ -50,6 +53,7 @@ public class Timer {
 			long diff = tend - tstart;
 			time = diff/1e9;
 			avgtime = avgtime*(1-coeff)+time*coeff;
+			//System.out.println(name + " end " + (tend-tmp)/1000000.0);
 		}
 	}
 
@@ -59,6 +63,7 @@ public class Timer {
 			long diff = tend - tstart;
 			time = diff/1e9;
 			avgtime = avgtime*(1-coeff)+time*coeff;
+			//System.out.println(name + " end " + (tend-tmp)/1000000.0);
 		}
 	}
 }

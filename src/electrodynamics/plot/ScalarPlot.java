@@ -1,9 +1,14 @@
+// Copyright (c) Brandon Li 2025
+// This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
+// See LICENSE.txt for full license details.
+
 package electrodynamics.plot;
 
 import org.jfree.data.xy.XYSeries;
 
 import electrodynamics.Renderer;
 import electrodynamics.Simulation;
+import electrodynamics.util.Utils;
 
 public class ScalarPlot extends Plot {
 
@@ -21,7 +26,7 @@ public class ScalarPlot extends Plot {
 	
 	@Override
 	public void updatePlot(Simulation e) {
-        String title = ((Renderer.ScalarView)e.opts.gui_view.getSelectedItem()).name.split("\\:\\ ")[1];
+        String title = ((Renderer.ScalarView)e.opts.gui_view.getSelectedItem()).name;
         fig.title(title);
         fig.ylabel(((Renderer.ScalarView)e.opts.gui_view.getSelectedItem()).unit);
         
@@ -34,8 +39,7 @@ public class ScalarPlot extends Plot {
 				double x = t*(x2 - x1) + x1;
 				double y = t*(y2 - y1) + y1;
 
-				data.add(t, e.renderer.bilinearinterp(e.renderer.scalarfield, x, y));
-				updatePlot(e);
+				data.add(t, Utils.bilinearinterp(e.renderer.scalarfield, x, y, e.nx, e.ny));
 			}
 		}
 	}

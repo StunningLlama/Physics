@@ -66,6 +66,10 @@ Tools
 *   **Ground:** Specifies the point relative to which probes measure voltage (optional).
 *   **Delete probe:** Click to delete a probe.
 *   **Replace:** Draw over other materials.
+*   **Plot bands:** Click and drag to specify the region being plotted. The plot contains the conduction and valence energy levels as well as the quasi-Fermi levels of electrons in the bands.
+*   **Plot scalar field:** Click and drag to make a plot of the currently selected scalar field.
+*   **Plot carriers:** Click and drag to make a plot of the number density of electrons and holes.
+*   **Flashlight:** Click to shine a light on the region under the cursor.
 *   **Line:** Click and drag to make a line.
 *   **Fill:** Fill a region.
 *   **Erase:** Erase.
@@ -84,6 +88,7 @@ Controls
 *   **S:** Toggle scalar colors
 *   **T:** Toggle tooltip
 *   **G:** Toggle text background
+*   **H:** Toggle user interface
 *   **Mouse wheel:** Change brush size
 *   **Shift:** Draw straight lines
 *   **Ctrl:** Fill area
@@ -94,6 +99,7 @@ Controls
 *   **Left mouse:** Draw material
 *   **Right mouse:** Erase material
 *   **Middle mouse:** Pick material
+*   **R:** Record probe data
 
 Materials
 ---------

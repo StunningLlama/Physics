@@ -27,7 +27,6 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 public class MatlabChart {
 
-    Font font;
     JFreeChart chart;
     LegendTitle legend;
     ArrayList<Color> colors;
@@ -35,7 +34,6 @@ public class MatlabChart {
     XYSeriesCollection dataset;
 
     public MatlabChart() {
-        font = JFreeChart.DEFAULT_TITLE_FONT;
         colors = new ArrayList<>();
         strokes = new ArrayList<>();
         dataset = new XYSeriesCollection();
@@ -83,9 +81,8 @@ public class MatlabChart {
         }
     }
 
-    public void font(String name, int fontSize) {
+    public void font(Font font) {
         CheckExists();
-        font = new Font(name, Font.PLAIN, fontSize);
         chart.getTitle().setFont(font);
         chart.getXYPlot().getDomainAxis().setLabelFont(font);
         chart.getXYPlot().getDomainAxis().setTickLabelFont(font);
@@ -119,7 +116,7 @@ public class MatlabChart {
         chart.getXYPlot().getRangeAxis().setLabel(label);
     }
 
-    public void legend(String position) {
+    public void legend(String position, Font font) {
         CheckExists();
         legend.setItemFont(font);
         legend.setBackgroundPaint(Color.WHITE);

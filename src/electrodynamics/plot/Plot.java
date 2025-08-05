@@ -1,3 +1,7 @@
+// Copyright (c) Brandon Li 2025
+// This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
+// See LICENSE.txt for full license details.
+
 package electrodynamics.plot;
 
 import java.awt.Font;
@@ -12,6 +16,8 @@ import electrodynamics.Simulation;
 public abstract class Plot {
 	public MatlabChart fig;
 	public JFrame frame;
+	public Font boldfont = new Font(Font.SANS_SERIF, Font.BOLD, 12);
+	public Font regularfont = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
 
 	public double x1;
 	public double y1;
@@ -28,9 +34,8 @@ public abstract class Plot {
 		fig.xlabel("");
 		fig.ylabel("");
 		fig.grid("on","on");
-		fig.font("Helvetica",15);
-		fig.legend("northeast");
-		fig.legend.setItemFont(new Font("Helvetica", Font.PLAIN, 11));
+		fig.font(boldfont);
+		fig.legend("northeast", regularfont);
 
 		ChartPanel chartPanel = new ChartPanel(fig.chart);
 

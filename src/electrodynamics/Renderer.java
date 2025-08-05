@@ -45,8 +45,8 @@ public class Renderer {
 	public float alphaFG = 0;
 
 	public ArrayList<Text> texts = new ArrayList<>();
-	Font bigfont = new Font(Font.SANS_SERIF, Font.PLAIN, 15);
-	Font regularfont = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
+	public Font bigfont = new Font(Font.SANS_SERIF, Font.PLAIN, 15);
+	public Font regularfont = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
 	public int scalefactor;
 	public int imgwidth = 0;
 	public int imgheight = 0;
@@ -534,6 +534,16 @@ public class Renderer {
 		}
 		ScalarView.ColorScheme colorscheme = ((ScalarView) e.opts.gui_view.getSelectedItem()).colorscheme;
 		float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/scalarview.scale);
+		
+		
+		/*double scale_min = -1/scalingconstant;
+		double scale_max = 1/scalingconstant;
+		for (int i = e.nx-20; i < e.nx; i++) {
+			double t = (i-(e.nx - 20))/(double)(e.nx - (e.nx-20));
+			scalarfield[i][2] = scale_min + t*(scale_max - scale_min);
+		}*/
+		
+		
 		if (colorscheme == ScalarView.ColorScheme.RED_BLUE) {
 			for (int i = 1; i < e.nx-1; i++) {
 				for (int j = 1; j < e.ny-1; j++) {
@@ -812,13 +822,13 @@ public class Renderer {
 		{
 			for (VoltageProbe p: e.voltageprobes) {
 				if (e.ground != null)
-					drawStringWithBackgroundAndBorder("V = " + Utils.getSI(p.potential - e.ground.potential, "V"), p.x*scalefactor-5, p.y*scalefactor - 12, g);
+					drawStringWithBackgroundAndBorder("V = " + Utils.getSI(p.potential - e.ground.potential, "V", 1e-6), p.x*scalefactor-5, p.y*scalefactor - 12, g);
 				else
-					drawStringWithBackgroundAndBorder("V = " + Utils.getSI(p.potential, "V"), p.x*scalefactor-5, p.y*scalefactor - 12, g);
+					drawStringWithBackgroundAndBorder("V = " + Utils.getSI(p.potential, "V", 1e-6), p.x*scalefactor-5, p.y*scalefactor - 12, g);
 			}
 
 			if (e.ground != null)
-				drawStringWithBackgroundAndBorder("Ground = " + Utils.getSI(e.ground.potential - e.ground.potential, "V"), e.ground.x*scalefactor-5, e.ground.y*scalefactor - 12, g);
+				drawStringWithBackgroundAndBorder("Ground = " + Utils.getSI(e.ground.potential - e.ground.potential, "V", 1e-6), e.ground.x*scalefactor-5, e.ground.y*scalefactor - 12, g);
 
 			for (CurrentProbe p: e.currentprobes) {
 				double xa = 0.5*(p.x1+p.x2)*scalefactor;
@@ -836,7 +846,7 @@ public class Renderer {
 					dy = -2*Math.abs(dy);
 				}
 
-				drawStringWithBackgroundAndBorder("I = " + Utils.getSI(p.current*e.depth, "A"), (int)(xa-8*dy)-5, (int)(ya+12*dx)+5, g);
+				drawStringWithBackgroundAndBorder("I = " + Utils.getSI(p.current*e.depth, "A", 1e-9), (int)(xa-8*dy)-5, (int)(ya+12*dx)+5, g);
 			}
 
 			drawStringBackgrounds(g);
@@ -881,26 +891,26 @@ public class Renderer {
 				if (e.opts.gui_tooltip.isSelected()) {
 					voffset = voffset+3;
 					int line = 2;
-					drawTwoColumnString("E" , 							Utils.getSI(Utils.length(bilinearinterp(e.Ex, mx_t-0.5,my_t), bilinearinterp(e.Ey, mx_t,my_t-0.5)), "V/m"), hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("B" , 							Utils.getSI(e.parity*bilinearinterp(e.Bz, mx_t-0.5, my_t-0.5), "T"),	hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03d5" , 						Utils.getSI(bilinearinterp(e.phi,mx_t, my_t), "V"),					hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u2130" , 						Utils.getSI(mat.emf, "V/m"),										hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("E" , 							Utils.getSI(Utils.length(bilinearinterp(e.Ex, mx_t-0.5,my_t), bilinearinterp(e.Ey, mx_t,my_t-0.5)), "V/m", 1e-6), hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("B" , 							Utils.getSI(e.parity*bilinearinterp(e.Bz, mx_t-0.5, my_t-0.5), "T", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03d5" , 						Utils.getSI(bilinearinterp(e.phi,mx_t, my_t), "V", 1e-6),					hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u2130" , 						Utils.getSI(mat.emf, "V/m", 1e-6),										hoffset, voffset + line*vspacing, g); line++;
 					drawTwoColumnString("\u03b5/\u03b5\u2080" , 		Utils.getSI(mat.eps_r, ""),										hoffset, voffset + line*vspacing, g); line++;
 					drawTwoColumnString("\u03bc/\u03bc\u2080" , 		Utils.getSI(mat.mu_r, ""),											hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1\u2099" , 				Utils.getSI(bilinearinterp(e.rho_n,mx_t, my_t), "C/m^3"),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1\u209A" , 				Utils.getSI(bilinearinterp(e.rho_p,mx_t, my_t), "C/m^3"),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1\u2080",					Utils.getSI(bilinearinterp(e.rho_back,mx_t, my_t), "C/m^3"),		hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1" , 						Utils.getSI(bilinearinterp(e.rho_free,mx_t, my_t), "C/m^3"),		hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("J\u2099" ,						Utils.getSI(Utils.length(bilinearinterp(e.Jx_n,mx_t-0.5,my_t), bilinearinterp(e.Jy_n,mx_t,my_t-0.5)), "A/m^2"),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("J\u209A" , 					Utils.getSI(Utils.length(bilinearinterp(e.Jx_p,mx_t-0.5,my_t), bilinearinterp(e.Jy_p,mx_t,my_t-0.5)), "A/m^2"),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("J" , 							Utils.getSI(Utils.length(bilinearinterp(e.Jx_free,mx_t-0.5,my_t), bilinearinterp(e.Jy_free,mx_t,my_t-0.5)), "A/m^2"),	hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("F\u2099" , 					Utils.getSI(bilinearinterp(e.F_n,mx_t, my_t)/e.q_n+bilinearinterp(e.phi,mx_t, my_t)-e.W_semi/e.eVtoJ, "V"),	hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("F\u209a" , 					Utils.getSI(bilinearinterp(e.F_p,mx_t, my_t)/e.q_p+bilinearinterp(e.phi,mx_t, my_t)-e.W_semi/e.eVtoJ, "V"),	hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03c1\u2099" , 				Utils.getSI(bilinearinterp(e.rho_n,mx_t, my_t), "C/m^3", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03c1\u209A" , 				Utils.getSI(bilinearinterp(e.rho_p,mx_t, my_t), "C/m^3", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03c1\u2080",					Utils.getSI(bilinearinterp(e.rho_back,mx_t, my_t), "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03c1" , 						Utils.getSI(bilinearinterp(e.rho_free,mx_t, my_t), "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("J\u2099" ,						Utils.getSI(Utils.length(bilinearinterp(e.Jx_n,mx_t-0.5,my_t), bilinearinterp(e.Jy_n,mx_t,my_t-0.5)), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("J\u209A" , 					Utils.getSI(Utils.length(bilinearinterp(e.Jx_p,mx_t-0.5,my_t), bilinearinterp(e.Jy_p,mx_t,my_t-0.5)), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("J" , 							Utils.getSI(Utils.length(bilinearinterp(e.Jx_free,mx_t-0.5,my_t), bilinearinterp(e.Jy_free,mx_t,my_t-0.5)), "A/m^2", 1),	hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("F\u2099" , 					Utils.getSI(bilinearinterp(e.F_n,mx_t, my_t)/e.q_n+bilinearinterp(e.phi,mx_t, my_t)-e.W_semi/e.eVtoJ, "V", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("F\u209a" , 					Utils.getSI(bilinearinterp(e.F_p,mx_t, my_t)/e.q_p+bilinearinterp(e.phi,mx_t, my_t)-e.W_semi/e.eVtoJ, "V", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
 					//drawTwoColumnString("E\u2099" , 					Utils.getSI(bilinearinterp(E0_n,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
 					//drawTwoColumnString("E\u209a" , 					Utils.getSI(bilinearinterp(E0_p,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("F" , 							Utils.getSI(bilinearinterp(e.F,mx_t, my_t), "V"),		hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("CMF\u2099" ,					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_n,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_n, "V/m"),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("CMF\u209A" , 					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_p,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_p, "V/m"),			hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("F" , 							Utils.getSI(bilinearinterp(e.F,mx_t, my_t), "V", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("CMF\u2099" ,					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_n,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_n, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("CMF\u209A" , 					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_p,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_p, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
 					drawTwoColumnString("x" , 							Utils.getSI(mx_t*e.ds, "m"),								hoffset, voffset + line*vspacing, g); line++;
 					drawTwoColumnString("y" , 							Utils.getSI(e.ds*e.ny-(my_t+1)*e.ds, "m"),								hoffset, voffset + line*vspacing, g); line++;
 				}

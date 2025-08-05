@@ -9,16 +9,24 @@ public class Utils {
 		return Math.sqrt(x*x+y*y);
 	}
 
+	public static String getSI(double quantity, String unit, double lowerbound) {
+		return getSI(Math.abs(quantity) < lowerbound? 0 : quantity, unit);
+	}
+	
 	public static String getSI(double quantity, String unit) {
 		if (!Double.isFinite(quantity))
 			return Double.toString(quantity) + " " + unit;
 
 		double mag = Math.abs(quantity);
 		String precision = "%.2f";
-		if (mag < 1E-18)
+		if (mag < 1E-27)
 			return "0 " + unit;
+		else if (mag < 1E-21)
+			return String.format(precision, quantity*1e24) + " y" + unit;
+		else if (mag < 1E-18)
+			return String.format(precision, quantity*1e21) + " z" + unit;
 		else if (mag < 1E-15)
-			return String.format("%.2f", quantity*1e15) + " f" + unit;
+			return String.format(precision, quantity*1e18) + " a" + unit;
 		else if (mag < 1E-12)
 			return String.format(precision, quantity*1e15) + " f" + unit;
 		else if (mag < 1E-9)
@@ -37,8 +45,16 @@ public class Utils {
 			return String.format(precision, quantity*1e-6) + " M" + unit;
 		else if (mag < 1E12)
 			return String.format(precision, quantity*1e-9) + " G" + unit;
+		else if (mag < 1E15)
+			return String.format(precision, quantity*1e-12) + " P" + unit;
+		else if (mag < 1E18)
+			return String.format(precision, quantity*1e-15) + " E" + unit;
+		else if (mag < 1E21)
+			return String.format(precision, quantity*1e-18) + " Z" + unit;
+		else if (mag < 1E27)
+			return String.format(precision, quantity*1e-21) + " Y" + unit;
 		else
-			return String.format(precision, quantity*1e-12) + " T" + unit;
+			return "infinity " + unit;
 	}
 	
 	public static double clamp(double val, double min, double max) {
@@ -58,5 +74,75 @@ public class Utils {
 
 		return (x-y)/FastLog.log(x/y);
 		//return (x-y)/Math.log(x/y);
+	}
+	
+	public static double bilinearinterp(double[][] array, double x, double y, int nx, int ny) {
+		int xfloor = (int)Math.floor(x);
+		int yfloor = (int)Math.floor(y);
+		double fx = x - xfloor;
+		double fy = y - yfloor;
+		if (Math.abs(x-Math.round(x)) < 1e-6 && Math.abs(y-Math.round(y)) < 1e-6) {
+			int i = (int)Math.round(x);
+			int j = (int)Math.round(y);
+			if (i < 0) i = 0;
+			if (j < 0) j = 0;
+			if (i >= nx) i = nx - 1;
+			if (j >= ny) j = ny - 1;
+			return array[i][j];
+		}
+
+		if (xfloor < 0) {
+			xfloor = 0;
+			fx = 0.0;
+		} else if (xfloor >= nx - 1) {
+			xfloor = nx - 2;
+			fx = 1.0;
+		}
+		if (yfloor < 0) {
+			yfloor = 0;
+			fy = 0.0;
+		} else if (yfloor >= ny - 1) {
+			yfloor = ny - 2;
+			fy = 1.0;
+		}
+		double va = array[xfloor][yfloor]*(1.0-fx) + array[xfloor+1][yfloor]*fx;
+		double vb = array[xfloor][yfloor+1]*(1.0-fx) + array[xfloor+1][yfloor+1]*fx;
+
+		return va*(1.0-fy) + vb*fy;
+	}
+	
+	public static double bilinearinterp_geometric(double[][] array, double x, double y, int nx, int ny) {
+		int xfloor = (int)Math.floor(x);
+		int yfloor = (int)Math.floor(y);
+		double fx = x - xfloor;
+		double fy = y - yfloor;
+		if (Math.abs(x-Math.round(x)) < 1e-6 && Math.abs(y-Math.round(y)) < 1e-6) {
+			int i = (int)Math.round(x);
+			int j = (int)Math.round(y);
+			if (i < 0) i = 0;
+			if (j < 0) j = 0;
+			if (i >= nx) i = nx - 1;
+			if (j >= ny) j = ny - 1;
+			return array[i][j];
+		}
+
+		if (xfloor < 0) {
+			xfloor = 0;
+			fx = 0.0;
+		} else if (xfloor >= nx - 1) {
+			xfloor = nx - 2;
+			fx = 1.0;
+		}
+		if (yfloor < 0) {
+			yfloor = 0;
+			fy = 0.0;
+		} else if (yfloor >= ny - 1) {
+			yfloor = ny - 2;
+			fy = 1.0;
+		}
+		double va = Math.log(Math.abs(array[xfloor][yfloor]))*(1.0-fx) + Math.log(Math.abs(array[xfloor+1][yfloor]))*fx;
+		double vb = Math.log(Math.abs(array[xfloor][yfloor+1]))*(1.0-fx) + Math.log(Math.abs(array[xfloor+1][yfloor+1]))*fx;
+
+		return Math.exp(va*(1.0-fy) + vb*fy);
 	}
 }
