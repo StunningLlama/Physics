@@ -4,7 +4,6 @@
 
 package electrodynamics.plot;
 
-import org.jfree.chart.axis.LogAxis;
 import org.jfree.chart.axis.LogarithmicAxis;
 import org.jfree.data.xy.XYSeries;
 

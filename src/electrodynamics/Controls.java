@@ -571,6 +571,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 						}
 						moving_selection = false;
 						dragging_selection = false;
+						update = true;
 					} else {
 						if (delta_mx_index == 0 && delta_my_index == 0) {
 							for (int i = 0; i < e.nx; i++)
@@ -691,10 +692,11 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 
 		setEMFs();
 
-		if ((releasing && Brush.isBrushShapeImportant(brush)) || (BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary || update) {
+		if ((releasing && Brush.isMaterialModifyingBrush(brush)) || (BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary || update) {
 
-			e.constructBoundary();
-			e.updateAllMaterials();
+			e.resetFields(false);
+			//e.constructBoundary();
+			//e.updateAllMaterials();
 			e.multigridSolve(true, false);
 		}
 

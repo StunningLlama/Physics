@@ -21,7 +21,7 @@ public class ScalarPlot extends Plot {
 	
 	@Override
 	public void createDataSeries() {
-        data = fig.plot("-", 2.0f, "scalar");
+        data = fig.plot("-k", 2.0f, "scalar");
 	}
 	
 	@Override
