@@ -99,8 +99,8 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 	public boolean[][] selected;
 	public boolean[][] selected_EMF;
 
-	public Material[][] selection;
-	public Material[][] clipboard;
+	public ClipboardMaterial[][] selection;
+	public ClipboardMaterial[][] clipboard;
 
 	public int text_x = 0;
 	public int text_y = 0;
@@ -116,8 +116,8 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 	}
 	
 	void setResolution(int resolution) {
-		selection = new Material[e.nx][e.ny];
-		clipboard = new Material[e.nx][e.ny];
+		selection = new ClipboardMaterial[e.nx][e.ny];
+		clipboard = new ClipboardMaterial[e.nx][e.ny];
 
 		under_brush = new boolean[e.nx][e.ny];
 		selected = new boolean[e.nx][e.ny];
@@ -278,9 +278,11 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 				for (int j = 0; j < e.ny; j++)
 				{
 					if (selected[i][j] && e.materials[i][j].type != MaterialType.VACUUM) {
-						clipboard[i-i_min][j-j_min] = e.materials[i][j].clone();
+						
+						clipboard[i-i_min][j-j_min] = new ClipboardMaterial(e, i, j);
+						
 						if (cut) {
-							e.materials[i][j].erase();
+							e.eraseMaterial(i, j);
 						}
 					}
 					if (cut) {
@@ -323,7 +325,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 				for (int j = 0; j < e.ny; j++)
 				{
 					if (selected[i][j] && e.materials[i][j].type != MaterialType.VACUUM) {
-						e.materials[i][j].erase();
+						e.eraseMaterial(i, j);
 					}
 				}
 			}
@@ -502,12 +504,13 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 							int si = i-delta_mx_index;
 							int sj = j-delta_my_index;
 							if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && selection[si][sj].type != MaterialType.VACUUM) {
-								e.materials[i][j].erase();
-								e.materials[i][j] = selection[si][sj].clone();
+								e.eraseMaterial(i, j);
+								selection[si][sj].paste(e, i, j);
 								selected[i][j] = true;
 							}
 						}
 					}
+					update = true;
 					moving_selection = false;
 					dragging_selection = false;
 				} else if (!moving_selection && selected[mx_index][my_index]) {
@@ -517,12 +520,13 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 						{
 							selection[i][j].erase();
 							if (selected[i][j]) {
-								selection[i][j] = e.materials[i][j].clone();
+								selection[i][j] = new ClipboardMaterial(e, i, j);
 								selected[i][j] = false;
-								e.materials[i][j].erase();
+								e.eraseMaterial(i, j);
 							}
 						}
 					}
+					update = true;
 					moving_selection = true;
 					dragging_selection = true;
 					delta_mx_index = 0;
@@ -563,8 +567,8 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 								int si = i-delta_mx_index;
 								int sj = j-delta_my_index;
 								if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && selection[si][sj].type != MaterialType.VACUUM) {
-									e.materials[i][j].erase();
-									e.materials[i][j] = selection[si][sj].clone();
+									e.eraseMaterial(i, j);
+									selection[si][sj].paste(e, i, j);
 									selected[i][j] = true;
 								}
 							}
@@ -694,9 +698,9 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 
 		if ((releasing && Brush.isMaterialModifyingBrush(brush)) || (BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary || update) {
 
-			e.resetFields(false);
+			//e.resetFields(false);
 			//e.constructBoundary();
-			//e.updateAllMaterials();
+			e.updateAllMaterials(false);
 			e.multigridSolve(true, false);
 		}
 
@@ -740,9 +744,9 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 					r = Math.max(Math.abs(p.x), Math.abs(p.y));
 				if (r <= brushsize) {
 					if (mat == MaterialType.VACUUM) {
-						e.materials[i][j].erase();
+						e.eraseMaterial(i, j);
 					} else if (e.materials[i][j].type == MaterialType.VACUUM || brush == Brush.REPLACE) {
-						e.materials[i][j].erase();
+						e.eraseMaterial(i, j);
 						e.initializeMaterial(i, j, mat);
 						if (mat == MaterialType.EMF) e.materials[i][j].emf_direction = EMF_angle;
 					}
@@ -792,7 +796,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		while (queue.size() > 0) {
 			FloodFillCoordinate coord = queue.remove();
 			if (coord.i >= 0 && coord.i < e.nx && coord.j >= 0 && coord.j < e.ny && e.materials[coord.i][coord.j].type == old_mat && e.materials[coord.i][coord.j].type != new_mat) {
-				e.materials[coord.i][coord.j].erase();
+				e.eraseMaterial(coord.i, coord.j);
 				e.initializeMaterial(coord.i, coord.j, new_mat);
 				if (new_mat == MaterialType.EMF) e.materials[coord.i][coord.j].emf_direction = EMF_angle;
 				queue.add(new FloodFillCoordinate(coord.i-1, coord.j));
@@ -1171,7 +1175,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 				}
 				text_x += 6;
 			}
-			e.updateAllMaterials();
+			e.updateAllMaterials(false);
 		}
 	}
 
@@ -1184,12 +1188,12 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 					for (int j = 0; j < 7; j++) {
 						if (text_x+i+1 >= 0 && text_x+i+1 < e.nx && text_y+j >= 0 && text_y+j < e.ny
 								&& e.materials[text_x+i+1][text_y+j].type == MaterialType.DECO) {
-							e.materials[text_x+i+1][text_y+j].erase();
+							e.eraseMaterial(text_x+i+1,text_y+j);
 						}
 					}
 				}
 			}
-			e.updateAllMaterials();
+			e.updateAllMaterials(false);
 		}
 	}
 

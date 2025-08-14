@@ -14,6 +14,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.TimerTask;
 import java.util.concurrent.BrokenBarrierException;
 
 import javax.swing.JPanel;
@@ -26,7 +27,7 @@ import electrodynamics.util.Timer;
 import electrodynamics.util.Utils;
 import electrodynamics.util.Vector;
 
-public class Renderer {
+public class Renderer extends TimerTask {
 	Simulation e;
 	
 	/* Graphics */
@@ -58,6 +59,7 @@ public class Renderer {
 	int numdots = 2000;
 	double rho_n_max = 0;
 	double rho_p_max = 0;
+	double C_prev = 0;
 
 	int probetexttimer = 0;
 
@@ -103,7 +105,7 @@ public class Renderer {
 		
 		dots.clear();
 		for (int i = 0; i < numdots; i++) {
-			dots.add(new Dot());
+			dots.add(new Dot(0, 0, 0, 0));
 		}
 	}
 	
@@ -387,7 +389,8 @@ public class Renderer {
 		return 3*y*y - 2*y*y*y;
 	}
 
-	public void render() {
+	@Override
+	public void run() {
 		
 		t5.start();
 		Graphics2D g = (Graphics2D) screen.getGraphics();
@@ -490,7 +493,7 @@ public class Renderer {
 						scalarfield[i][j] = e.rho_p[i][j];
 						break;
 					case COMBINED_CHARGE:
-						scalarfield[i][j] = e.rho_n[i][j]+e.rho_p[i][j];
+						scalarfield[i][j] = Double.NaN;
 						break;
 					case ENERGY:
 						scalarfield[i][j] = e.u[i][j];
@@ -739,6 +742,11 @@ public class Renderer {
 			double N_G = rho_G_dist.getTotalAmount()*A*e.e_charge*C*dt_dot;
 			double N_n = rho_n_dist.getTotalAmount()*A*C*dt_dot/tau;
 			double N_p = rho_p_dist.getTotalAmount()*A*C*dt_dot/tau;
+			
+			double N_n_excess = Math.max(C-C_prev, 0)*rho_n_dist.getTotalAmount()*A;
+			double N_p_excess = Math.max(C-C_prev, 0)*rho_p_dist.getTotalAmount()*A;
+			
+			double P_deficit = Math.max(-(C-C_prev)/C_prev, 0);
 
 			for (int i = ccdots.size() - 1; i >= 0; i--) {
 				ChargeCarrierDot d = ccdots.get(i);
@@ -750,54 +758,30 @@ public class Renderer {
 					if (d.species == Species.HOLE) {
 						if (R_tmp > 0 && frand.next() < R_tmp/bilinearinterp(e.rho_p, d.x, d.y)*dt_dot) {
 							ccdots.remove(i);
+							continue;
 						}
 					} else {
 						if (R_tmp > 0 && frand.next() < -R_tmp/bilinearinterp(e.rho_n, d.x, d.y)*dt_dot) {
 							ccdots.remove(i);
+							continue;
 						}
+					}
+					
+					if (P_deficit > 0 && frand.next() < P_deficit) {
+						ccdots.remove(i);
+						continue;
 					}
 				}
 			}
 
-			rho_n_dist.generateSamples(N_n, (c) -> {
-				ChargeCarrierDot d = new ChargeCarrierDot();
-				d.x = c.x;
-				d.y = c.y;
-				d.lifespan = tau;
-				d.time = tau;
-				d.species = Species.ELECTRON;
-				ccdots.add(d);
-			});
-
-			rho_p_dist.generateSamples(N_p, (c) -> {
-				ChargeCarrierDot d = new ChargeCarrierDot();
-				d.x = c.x;
-				d.y = c.y;
-				d.lifespan = tau;
-				d.time = tau;
-				d.species = Species.HOLE;
-				ccdots.add(d);
-			});
-
-			rho_n_dist.generateSamples(N_G, (c) -> {
-				ChargeCarrierDot d = new ChargeCarrierDot();
-				d.x = c.x;
-				d.y = c.y;
-				d.lifespan = tau;
-				d.time = tau*frand.next();
-				d.species = Species.ELECTRON;
-				ccdots.add(d);
-			});
-
-			rho_p_dist.generateSamples(N_G, (c) -> {
-				ChargeCarrierDot d = new ChargeCarrierDot();
-				d.x = c.x;
-				d.y = c.y;
-				d.lifespan = tau;
-				d.time = tau*frand.next();
-				d.species = Species.HOLE;
-				ccdots.add(d);
-			});
+			rho_n_dist.generateSamples(N_n, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, Species.ELECTRON, frand.next())); });
+			rho_p_dist.generateSamples(N_p, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, Species.HOLE, frand.next())); });
+			rho_G_dist.generateSamples(N_G, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.ELECTRON, frand.next())); });
+			rho_G_dist.generateSamples(N_G, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next())); });
+			rho_n_dist.generateSamples(N_n_excess, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.ELECTRON, frand.next())); });
+			rho_p_dist.generateSamples(N_p_excess, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next())); });
+			
+			C_prev = C;
 		}
 
 		if ((VectorView) e.opts.gui_view_vec.getSelectedItem() != VectorView.NONE) {
@@ -943,6 +927,7 @@ public class Renderer {
 				drawStringWithBackground(e.t7.getName() + " " + Utils.getSI(e.t7.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
 				drawStringWithBackground(e.t8.getName() + " " + Utils.getSI(e.t8.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
 				drawStringWithBackground(FPStimer.getName() + " " + Utils.getSI(1/FPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
+				drawStringWithBackground(e.simFPStimer.getName() + " " + Utils.getSI(1/e.simFPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
 			}
 
 			if (probetexttimer > 0) {
@@ -971,9 +956,10 @@ public class Renderer {
 			}
 		}
 
+		e.canvas.repaint();
+
 		t5.stop();
 
-		
 		FPStimer.stop();
 		FPStimer.start();
 	}
@@ -1252,10 +1238,10 @@ public class Renderer {
 									}
 
 									double alphaFG = d.brightness;
-									if (d.species == Species.ELECTRON)
+									if (d.species == Species.ELECTRON/* && -d.random_id*bilinearinterp(e.rho_n, d.x, d.y) < 1*/)
 										drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
 											0.25f, 0.25f, 1f, (float)alphaFG, 1-(float)alphaFG);
-									else if (d.species == Species.HOLE)
+									else if (d.species == Species.HOLE/* && d.random_id*bilinearinterp(e.rho_p, d.x, d.y) < 1*/)
 										drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
 											1f, 0.25f, 0.25f, (float)alphaFG, 1-(float)alphaFG);
 
@@ -1462,9 +1448,9 @@ public class Renderer {
 		ENERGY("View u: Electromagnetic energy density",									"J/m^3",		ColorScheme.GREEN,			1),
 		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density",						"C/m^3",		ColorScheme.RED_BLUE,		1),
 		HOLE_CHARGE("View \u03c1\u209A: Hole charge density",								"C/m^3",		ColorScheme.RED_BLUE,		1),
-		COMBINED_CHARGE("View: Combined electron+hole charge density",						"C/,^3",		ColorScheme.OTHER,			1),
+		COMBINED_CHARGE("View: Combined electron+hole charge density",						"log[C/m^3]",	ColorScheme.OTHER,			1),
 		BACKGROUND_CHARGE("View \u03c1\u2080: Background charge density",					"C/m^3",		ColorScheme.RED_BLUE,		1),
-		HEAT("View Q: Heat dissipation",													"J/(m^3 s)",	ColorScheme.RED_BLUE,		1e12),
+		HEAT("View Q: Heat dissipation",													"W/m^3",		ColorScheme.RED_BLUE,		1e12),
 		ENTROPY("View s: Entropy generation (Free energy dissipation)",						"J/(m^3 s)",	ColorScheme.RED_BLUE,		1e12),
 		ELECTRON_POTENTIAL("View F\u2099: Electron chemical potential (quasi Fermi level)",	"V",			ColorScheme.RED_BLUE, 		1),
 		HOLE_POTENTIAL("View F\u209A: Hole chemical potential (quasi Fermi level)",			"V",			ColorScheme.RED_BLUE, 		1),
@@ -1547,10 +1533,24 @@ public class Renderer {
 		double lifespan = 0;
 		double time = 0;
 		double brightness = 0;
+		
+		public Dot(double x, double y, double lifespan, double time) {
+			this.x = x;
+			this.y = y;
+			this.lifespan = lifespan;
+			this.time = time;
+		}
 	}
 
 	class ChargeCarrierDot extends Dot {
 		Species species;
+		double random_id;
+		
+		public ChargeCarrierDot(double x, double y, double lifespan, double time, Species species, double random_id) {
+			super(x, y, lifespan, time);
+			this.species = species;
+			this.random_id = random_id;
+		}
 	}
 }
 
@@ -1562,7 +1562,6 @@ class RenderCanvas extends JPanel {
 	Simulation parent;
 	@Override
 	public void paintComponent(Graphics real) {
-		parent.renderer.render();
 		real.drawImage(parent.renderer.screen, 0, 0, parent.opts);
 	}
 

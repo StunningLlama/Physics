@@ -279,7 +279,7 @@ public class MainWindow extends JFrame {
 		gui_editdesc.setBounds(196, 701, 165, 23);
 		panel.add(gui_editdesc);
 
-		gui_help = new JButton("Help/About");
+		gui_help = new JButton("Open Manual");
 		gui_help.setBounds(19, 701, 162, 23);
 		panel.add(gui_help);
 

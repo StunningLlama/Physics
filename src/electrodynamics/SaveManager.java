@@ -183,7 +183,7 @@ public class SaveManager {
 				e.opts.textPane.setEditable(false);
 				e.opts.textPane.setCaretPosition(0);
 				e.constructBoundary();
-				e.updateAllMaterials();
+				e.updateAllMaterials(false);
 				e.calcMiscFields(true);
 			} else if (version == 1) {
 
@@ -238,13 +238,14 @@ public class SaveManager {
 	                    default: fstr.skipValue(); break; // skip others
 	                }
 	            }
+				e.opts.gui_interface.setSelected(true);
 				fstr.endObject();
 				fstr.close();
 				
 				e.opts.textPane.setEditable(false);
 				e.opts.textPane.setCaretPosition(0);
 				e.constructBoundary();
-				e.updateAllMaterials();
+				e.updateAllMaterials(false);
 				e.calcMiscFields(true);
 			}
 

@@ -9,7 +9,10 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimerTask;
@@ -49,13 +52,13 @@ public class Simulation extends TimerTask implements ActionListener {
 	//TODO:
 	// Undo/redo
 	// Add more instructions
+	// Fix graphics and sim FPS diff
 	
 	/* Parts */
 	
 	public RenderCanvas canvas;
 	public MainWindow opts;
 	public AdvancedOptions adv_opts;
-	public HelpDialog help;
 	public Renderer renderer;
 	public Controls controls;
 	public SaveManager savemanager;
@@ -293,6 +296,7 @@ public class Simulation extends TimerTask implements ActionListener {
 	Timer t6 = new Timer("Iterate simulation", 20, true);
 	Timer t8 = new Timer("Calc misc fields", 20, true);
 	Timer t9 = new Timer("Debug", 20, false);
+	Timer simFPStimer = new Timer("Simulation FPS", 20, true);
 
 
 
@@ -306,9 +310,10 @@ public class Simulation extends TimerTask implements ActionListener {
 
 		Simulation sim = new Simulation();
 		java.util.Timer master_timer = new java.util.Timer();
-		javax.swing.Timer executor = new javax.swing.Timer(0, sim);
-		executor.setRepeats(false);
-		executor.setCoalesce(true);
+		java.util.Timer graphics_timer = new java.util.Timer();
+		//javax.swing.Timer executor = new javax.swing.Timer(0, sim);
+		//executor.setRepeats(false);
+		//executor.setCoalesce(true);
 		
 		for (int i = 0; i < sim.n_threads; i++) {
 			sim.sim_threads.add(sim.new SimulationThread(i, sim.n_threads, sim.nx));
@@ -323,12 +328,8 @@ public class Simulation extends TimerTask implements ActionListener {
 			sim.graphics_threads.get(i).start();
 		}
 
-		master_timer.scheduleAtFixedRate(new TimerTask() {
-			@Override
-			public void run() {
-				executor.start();
-			}
-		}, 0, sim.renderer.frameduration);
+		master_timer.scheduleAtFixedRate(sim, 0, sim.renderer.frameduration);
+		graphics_timer.scheduleAtFixedRate(sim.renderer, 0, sim.renderer.frameduration);
 		
 		//t.start();
 	}
@@ -385,10 +386,6 @@ public class Simulation extends TimerTask implements ActionListener {
 		InputMap im = (InputMap)UIManager.get("Button.focusInputMap");
 		im.put(KeyStroke.getKeyStroke("pressed SPACE"), "none");
 		im.put(KeyStroke.getKeyStroke("released SPACE"), "none");
-
-
-		help = new HelpDialog();
-		help.setVisible(false);
 
 
 		datafile = new File(datafilename);
@@ -467,7 +464,9 @@ public class Simulation extends TimerTask implements ActionListener {
 				controls.load = false;
 			}
 
-			canvas.repaint();
+			simFPStimer.stop();
+			simFPStimer.start();
+
 		} catch (Exception e) {
 			JOptionPane.showConfirmDialog(opts, e.getMessage(), "Error", JOptionPane.OK_OPTION);
 			e.printStackTrace();
@@ -609,15 +608,15 @@ public class Simulation extends TimerTask implements ActionListener {
 					if (materials[i][j] == null)
 						materials[i][j] = new Material();
 					else
-						materials[i][j].erase();
-
+						eraseMaterial(i, j);
+					
 					if (controls.selection[i][j] == null)
-						controls.selection[i][j] = new Material();
+						controls.selection[i][j] = new ClipboardMaterial();
 					else
 						controls.selection[i][j].erase();
 
 					if (controls.clipboard[i][j] == null)
-						controls.clipboard[i][j] = new Material();
+						controls.clipboard[i][j] = new ClipboardMaterial();
 
 					F0_n[i][j] = 0;
 					F0_p[i][j] = 0;
@@ -731,7 +730,7 @@ public class Simulation extends TimerTask implements ActionListener {
 		constructBoundary();
 
 		initializeAllMaterials();
-		updateAllMaterials();
+		updateAllMaterials(true);
 		checkCFL();
 	}
 
@@ -752,7 +751,7 @@ public class Simulation extends TimerTask implements ActionListener {
 					if (depth > 0) {
 						double stretchfactor = Math.exp(coeff*depth);
 
-						materials[i][j].erase();
+						eraseMaterial(i, j);
 						materials[i][j].type = MaterialType.ABSORBER;
 						materials[i][j].eps_r = stretchfactor;
 						materials[i][j].mu_r = stretchfactor;
@@ -766,7 +765,7 @@ public class Simulation extends TimerTask implements ActionListener {
 				for (int j = 0; j < ny; j++)
 				{
 					if (materials[i][j].type == MaterialType.ABSORBER) {
-						materials[i][j].erase();
+						eraseMaterial(i, j);
 					}
 				}
 			}
@@ -829,6 +828,7 @@ public class Simulation extends TimerTask implements ActionListener {
 						}
 					}
 
+					/* Update charge carriers */
 					for (int i = 1; i < nx-1; i++)
 					{
 						if (i >= i_min && i <= i_max) {
@@ -850,6 +850,7 @@ public class Simulation extends TimerTask implements ActionListener {
 
 					mid_barrier.await();
 
+					/* Update E field and currents */
 					for (int i = 0; i < nx-1; i++)
 					{
 						if (i >= i_min && i <= i_max) {
@@ -921,6 +922,7 @@ public class Simulation extends TimerTask implements ActionListener {
 					}
 
 					if (n_thread == 0) {
+						/* Apply boundary condition */
 						for (int j = 0; j < ny-1; j++)
 						{
 							Ey[0][j] = 0;
@@ -935,6 +937,7 @@ public class Simulation extends TimerTask implements ActionListener {
 
 						t6.stop();
 
+						/* Enforce Gauss law constraint */
 						if (stepnumber%500 == 0) {
 							multigridSolve(true, false);
 						}
@@ -1243,7 +1246,7 @@ public class Simulation extends TimerTask implements ActionListener {
 		}
 	}
 
-	public void updateAllMaterials() {
+	public void updateAllMaterials(boolean updateRho) {
 		for (int i = 1; i < nx-1; i++)
 		{
 			for (int j = 1; j < ny-1; j++)
@@ -1292,7 +1295,7 @@ public class Simulation extends TimerTask implements ActionListener {
 			for (int j = 0; j < ny; j++)
 			{
 				if (K[i][j] > 0 || materials[i][j].type == MaterialType.SWITCH) {
-					if (rho_n[i][j] == 0 && rho_p[i][j] == 0) {
+					if (updateRho || (rho_n[i][j] == 0 && rho_p[i][j] == 0)) {
 						rho_n[i][j] = calcEquilibriumElectronCharge(rho_back[i][j], K[i][j]);
 						rho_p[i][j] = calcEquilibriumHoleCharge(rho_back[i][j], K[i][j]);
 					}
@@ -1429,6 +1432,12 @@ public class Simulation extends TimerTask implements ActionListener {
 		for(int i = 0; i < array.length; i++)
 			newarray[i] = array[i].clone();
 		return newarray;
+	}
+	
+	public void eraseMaterial(int i, int j) {
+		materials[i][j].erase();
+		rho_p[i][j] = 0;
+		rho_n[i][j] = 0;
 	}
 
 	public void initializeAllMaterials() {
@@ -1689,6 +1698,7 @@ public class Simulation extends TimerTask implements ActionListener {
 
 		if (correctEfield)
 			t4.stop();
+		
 		if (computePhi)
 			t7.stop();
 	}
@@ -1816,7 +1826,12 @@ public class Simulation extends TimerTask implements ActionListener {
 		else if (e.getSource() == opts.gui_open)
 			controls.load = true;
 		else if (e.getSource() == opts.gui_help)
-			help.setVisible(true);
+			try {
+				File helpfile = new File("README.html");
+				java.awt.Desktop.getDesktop().browse(helpfile.toURI());
+			} catch (IOException ex) {
+				ex.printStackTrace();
+			}
 		else if (e.getSource() == opts.gui_editdesc) {
 			opts.textPane.setEditable(!opts.textPane.isEditable());
 		} else if (e.getSource() == opts.gui_view) {
@@ -1990,5 +2005,53 @@ class Material implements Cloneable {
 		} catch (CloneNotSupportedException e) {
 			return null;
 		}
+    }
+}
+
+class ClipboardMaterial extends Material {
+	double rho_n = 0;
+	double rho_p = 0;
+	
+	public ClipboardMaterial() {};
+
+	public ClipboardMaterial(Material m) {
+		type = m.type;
+		modified = m.modified;
+		activated = m.activated;
+		conducting = m.conducting;
+		semiconducting = m.semiconducting;
+		emf = m.emf;
+		emf_direction = m.emf_direction;
+		eps_r = m.eps_r;
+		mu_r = m.mu_r;
+		rho_back = m.rho_back;
+		ni = m.ni;
+		W = m.W;
+		Eb = m.Eb;
+		Ea = m.Ea;
+		absorptivity = m.absorptivity;
+	}
+	
+    public ClipboardMaterial(Simulation e, int i, int j) {
+    	this(e.materials[i][j]);
+    	rho_n = e.rho_n[i][j];
+    	rho_p = e.rho_p[i][j];
+    }
+    
+    public void paste(Simulation e, int i, int j) {
+    	e.materials[i][j] = this.clone();
+    	e.rho_n[i][j] = rho_n;
+    	e.rho_p[i][j] = rho_p;
+    }
+	
+	public void erase() {
+		super.erase();
+		rho_n = 0;
+		rho_p = 0;
+	}
+	
+    @Override
+    public ClipboardMaterial clone() {
+        return (ClipboardMaterial) super.clone();
     }
 }
