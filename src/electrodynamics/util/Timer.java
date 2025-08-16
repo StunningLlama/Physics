@@ -15,8 +15,6 @@ public class Timer {
 	private double coeff = 1;
 
 	//private long tmp = System.nanoTime();
-	
-	public static boolean allEnabled = false;
 
 	public Timer(String name, int smoothing, boolean enabled) {
 		this.name = name;
@@ -48,7 +46,7 @@ public class Timer {
 	}
 
 	public void stop() {
-		if (allEnabled && enabled) {
+		if (enabled) {
 			long tend = System.nanoTime();
 			long diff = tend - tstart;
 			time = diff/1e9;
@@ -58,7 +56,7 @@ public class Timer {
 	}
 
 	public void stop(String msg) {
-		if (allEnabled && enabled) {
+		if (enabled) {
 			long tend = System.nanoTime();
 			long diff = tend - tstart;
 			time = diff/1e9;

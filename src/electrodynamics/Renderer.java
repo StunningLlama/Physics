@@ -11,6 +11,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferInt;
 import java.util.ArrayList;
 import java.util.Random;
@@ -32,7 +33,8 @@ public class Renderer extends TimerTask {
 	
 	/* Graphics */
 	
-	BufferedImage screen;
+	BufferedImage img_back;
+	BufferedImage img_front;
 	public int[] imgData;
 	public double[][] scalarfield;
 	public double[][] gradscalarfield;
@@ -53,6 +55,9 @@ public class Renderer extends TimerTask {
 	public int imgheight = 0;
 	public int targetframerate = 60;
 	public int frameduration = 1000/targetframerate;
+	
+	double t_prev = 0;
+	double delta_t = 0;
 
 	ArrayList<Dot> dots = new ArrayList<>();
 	ArrayList<ChargeCarrierDot> ccdots = new ArrayList<>();
@@ -77,7 +82,6 @@ public class Renderer extends TimerTask {
 	
 	Timer FPStimer = new Timer("FPS", 20, true);
 	Timer t5 = new Timer("Graphics", 20, true);
-
 	
 	public Renderer(Simulation e) {
 		this.e = e;
@@ -100,8 +104,9 @@ public class Renderer extends TimerTask {
 		imgheight = (int)Math.ceil(scalefactor*e.ny);
 
 		e.canvas.setPreferredSize(new Dimension(imgwidth, imgheight));
-		screen = (BufferedImage) e.opts.createImage(imgwidth, imgheight);
-		imgData = ((DataBufferInt)screen.getRaster().getDataBuffer()).getData();
+		img_back = (BufferedImage) e.opts.createImage(imgwidth, imgheight);
+		img_front = (BufferedImage) e.opts.createImage(imgwidth, imgheight);
+		imgData = ((DataBufferInt)img_back.getRaster().getDataBuffer()).getData();
 		
 		dots.clear();
 		for (int i = 0; i < numdots; i++) {
@@ -391,9 +396,46 @@ public class Renderer extends TimerTask {
 
 	@Override
 	public void run() {
-		
-		t5.start();
-		Graphics2D g = (Graphics2D) screen.getGraphics();
+		e.rwLock.readLock().lock();
+		try {
+			t5.start();
+			drawPixels();
+			drawVectors();
+			drawText();
+			copyImage(img_back, img_front);
+			e.canvas.repaint();
+			t5.stop();
+
+			FPStimer.stop();
+			FPStimer.start();
+		} finally {
+			e.rwLock.readLock().unlock();
+		}
+	}
+	
+	BufferedImage copyImage(BufferedImage src, BufferedImage dst) {
+	    if (src.getType() != dst.getType() || 
+	        src.getWidth() != dst.getWidth() || 
+	        src.getHeight() != dst.getHeight()) {
+	        throw new IllegalArgumentException("Images must be same size and type");
+	    }
+
+	    DataBuffer srcBuffer = src.getRaster().getDataBuffer();
+	    DataBuffer dstBuffer = dst.getRaster().getDataBuffer();
+
+	    if (srcBuffer instanceof DataBufferInt && dstBuffer instanceof DataBufferInt) {
+	        int[] srcData = ((DataBufferInt) srcBuffer).getData();
+	        int[] dstData = ((DataBufferInt) dstBuffer).getData();
+	        System.arraycopy(srcData, 0, dstData, 0, srcData.length);
+	    } else {
+	        // Fallback if not int-packed
+	        int[] temp = src.getRaster().getPixels(0, 0, src.getWidth(), src.getHeight(), (int[]) null);
+	        dst.getRaster().setPixels(0, 0, dst.getWidth(), dst.getHeight(), temp);
+	    }
+	    return dst;
+	}
+	
+	void drawPixels() {
 
 		for (int i = 0; i < e.nx; i++) {
 			for (int j = 0; j < e.ny; j++) {
@@ -402,10 +444,6 @@ public class Renderer extends TimerTask {
 				image_b[i][j] = 0;
 			}
 		}
-
-		clearStrings();
-
-		/* Draw pixels */
 
 		setalphaBG(0);
 		setalphaFG(1);
@@ -537,16 +575,16 @@ public class Renderer extends TimerTask {
 		}
 		ScalarView.ColorScheme colorscheme = ((ScalarView) e.opts.gui_view.getSelectedItem()).colorscheme;
 		float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/scalarview.scale);
-		
-		
+
+
 		/*double scale_min = -1/scalingconstant;
-		double scale_max = 1/scalingconstant;
-		for (int i = e.nx-20; i < e.nx; i++) {
-			double t = (i-(e.nx - 20))/(double)(e.nx - (e.nx-20));
-			scalarfield[i][2] = scale_min + t*(scale_max - scale_min);
-		}*/
-		
-		
+	double scale_max = 1/scalingconstant;
+	for (int i = e.nx-20; i < e.nx; i++) {
+		double t = (i-(e.nx - 20))/(double)(e.nx - (e.nx-20));
+		scalarfield[i][2] = scale_min + t*(scale_max - scale_min);
+	}*/
+
+
 		if (colorscheme == ScalarView.ColorScheme.RED_BLUE) {
 			for (int i = 1; i < e.nx-1; i++) {
 				for (int j = 1; j < e.ny-1; j++) {
@@ -616,9 +654,9 @@ public class Renderer extends TimerTask {
 						offset = 60*(2*((i+j)%2)-1);
 
 					if ((e.materials[i+1][j].type != MaterialType.EMF
-							|| e.materials[i-1][j].type != MaterialType.EMF
-							|| e.materials[i][j+1].type != MaterialType.EMF
-							| e.materials[i][j-1].type != MaterialType.EMF))
+					|| e.materials[i-1][j].type != MaterialType.EMF
+					|| e.materials[i][j+1].type != MaterialType.EMF
+					| e.materials[i][j-1].type != MaterialType.EMF))
 					{
 						offset = -30;
 					}
@@ -661,7 +699,7 @@ public class Renderer extends TimerTask {
 				}
 			}
 		}
-		
+
 
 		if (e.opts.gui_interface.isSelected())
 		{
@@ -726,47 +764,49 @@ public class Renderer extends TimerTask {
 
 		stampPixelData();
 
-
-		/* Draw vectors */
+	}
+	
+	void drawVectors() {
+		delta_t = e.time - t_prev;
+		t_prev = e.time;
 
 		if ((VectorMode) e.opts.gui_view_vec_mode.getSelectedItem() == VectorMode.SPECIES && !e.opts.gui_paused.isSelected()) {
 
 			double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/20.0);
-			double dt_dot = e.dt*e.iteration_multiplier;
 
 			rho_n_dist.prepare(e.rho_n);
 			rho_p_dist.prepare(e.rho_p);
 			rho_G_dist.prepare(e.G);
 
 			double A = e.ds*e.ds;
-			double N_G = rho_G_dist.getTotalAmount()*A*e.e_charge*C*dt_dot;
-			double N_n = rho_n_dist.getTotalAmount()*A*C*dt_dot/tau;
-			double N_p = rho_p_dist.getTotalAmount()*A*C*dt_dot/tau;
-			
+			double N_G = rho_G_dist.getTotalAmount()*A*e.e_charge*C*delta_t;
+			double N_n = rho_n_dist.getTotalAmount()*A*C*delta_t/tau;
+			double N_p = rho_p_dist.getTotalAmount()*A*C*delta_t/tau;
+
 			double N_n_excess = Math.max(C-C_prev, 0)*rho_n_dist.getTotalAmount()*A;
 			double N_p_excess = Math.max(C-C_prev, 0)*rho_p_dist.getTotalAmount()*A;
-			
+
 			double P_deficit = Math.max(-(C-C_prev)/C_prev, 0);
 
 			for (int i = ccdots.size() - 1; i >= 0; i--) {
 				ChargeCarrierDot d = ccdots.get(i);
-				d.time -= dt_dot;
+				d.time -= delta_t;
 				if (d.time < 0)
 					ccdots.remove(i);
 				else {
 					double R_tmp = bilinearinterp(e.R, d.x, d.y)*e.e_charge;
 					if (d.species == Species.HOLE) {
-						if (R_tmp > 0 && frand.next() < R_tmp/bilinearinterp(e.rho_p, d.x, d.y)*dt_dot) {
+						if (R_tmp > 0 && frand.next() < R_tmp/bilinearinterp(e.rho_p, d.x, d.y)*delta_t) {
 							ccdots.remove(i);
 							continue;
 						}
 					} else {
-						if (R_tmp > 0 && frand.next() < -R_tmp/bilinearinterp(e.rho_n, d.x, d.y)*dt_dot) {
+						if (R_tmp > 0 && frand.next() < -R_tmp/bilinearinterp(e.rho_n, d.x, d.y)*delta_t) {
 							ccdots.remove(i);
 							continue;
 						}
 					}
-					
+
 					if (P_deficit > 0 && frand.next() < P_deficit) {
 						ccdots.remove(i);
 						continue;
@@ -780,7 +820,7 @@ public class Renderer extends TimerTask {
 			rho_G_dist.generateSamples(N_G, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next())); });
 			rho_n_dist.generateSamples(N_n_excess, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.ELECTRON, frand.next())); });
 			rho_p_dist.generateSamples(N_p_excess, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next())); });
-			
+
 			C_prev = C;
 		}
 
@@ -795,9 +835,12 @@ public class Renderer extends TimerTask {
 				e.printStackTrace();
 			}
 		}
-
-		/* Draw text */
-
+	}
+	
+	void drawText() {
+		clearStrings();
+		
+		Graphics2D g = (Graphics2D) img_back.getGraphics();
 		g.setRenderingHint(
 		RenderingHints.KEY_TEXT_ANTIALIASING,
 		RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -909,6 +952,7 @@ public class Renderer extends TimerTask {
 			int hoffset = 5;
 			int line = 1;
 			drawStringWithBackground("Time: " + Utils.getSI(e.time, "s"), hoffset, voffset + line*vspacing, g); line++;
+			drawStringWithBackground("Iterations/s: " + Utils.getSI(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), ""), hoffset, voffset + line*vspacing, g); line++;
 			if (e.opts.gui_paused.isSelected())
 			{
 				drawStringWithBackground("Paused", hoffset, voffset + line*vspacing, g); line++;
@@ -938,6 +982,7 @@ public class Renderer extends TimerTask {
 			drawStringBackgrounds(g);
 			drawStrings(g);
 
+			Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
 			if (!e.opts.gui_brush_highlight.isSelected()) {
 				int r = (int)(scalefactor*e.controls.brushsize/e.ds);
 				int brushshape = e.opts.gui_brush_1.getSelectedIndex();
@@ -955,13 +1000,6 @@ public class Renderer extends TimerTask {
 					}
 			}
 		}
-
-		e.canvas.repaint();
-
-		t5.stop();
-
-		FPStimer.stop();
-		FPStimer.start();
 	}
 
 	class GraphicsThread extends Thread {
@@ -1171,8 +1209,8 @@ public class Renderer extends TimerTask {
 
 									if (!paused) {
 										for (int k = 0; k < steps; k++) {
-											dx = bilinearinterp(vf_x,d.x-0.5, d.y)*1e-6*vectorscalingconstant/steps;
-											dy = bilinearinterp(vf_y,d.x, d.y-0.5)*1e-6*vectorscalingconstant/steps;
+											dx = bilinearinterp(vf_x,d.x-0.5, d.y)*5e-7*vectorscalingconstant/steps;
+											dy = bilinearinterp(vf_y,d.x, d.y-0.5)*5e-7*vectorscalingconstant/steps;
 											double maxspeed = 0.5;
 											double factor = Math.min(1, maxspeed/Math.sqrt(dx*dx+dy*dy));
 											d.x += dx*factor;
@@ -1212,7 +1250,7 @@ public class Renderer extends TimerTask {
 							int upper = upper(ccdots.size());
 
 							int steps = 10;
-							double dt_dot = e.dt*e.iteration_multiplier/steps;
+							double dt_dot = delta_t/steps;
 
 							for (int i = lower; i < upper; i++) {
 								ChargeCarrierDot d = ccdots.get(i);
@@ -1562,7 +1600,9 @@ class RenderCanvas extends JPanel {
 	Simulation parent;
 	@Override
 	public void paintComponent(Graphics real) {
-		real.drawImage(parent.renderer.screen, 0, 0, parent.opts);
+		//synchronized(parent.renderer) {
+			real.drawImage(parent.renderer.img_front, 0, 0, parent.opts);
+		//}
 	}
 
 	public RenderCanvas(Simulation w) {

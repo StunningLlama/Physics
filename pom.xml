@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>SemiSim</groupId>
 	<artifactId>SemiSim</artifactId>
-	<version>1.5</version>
+	<version>1.6</version>
 	<dependencies>
 		<dependency>
 			<groupId>org.jfree</groupId>
@@ -44,6 +44,13 @@
 				<targetPath>${project.build.directory}/examples</targetPath>
 				<includes>
 					<include>**/*.semisim</include>
+				</includes>
+			</resource>
+			<resource>
+				<directory>${basedir}/images</directory>
+				<targetPath>${project.build.directory}/images</targetPath>
+				<includes>
+					<include>**/*.png</include>
 				</includes>
 			</resource>
 			<resource>

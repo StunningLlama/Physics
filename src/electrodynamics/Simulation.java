@@ -11,18 +11,19 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.swing.InputMap;
 import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
@@ -51,8 +52,6 @@ public class Simulation extends TimerTask implements ActionListener {
 
 	//TODO:
 	// Undo/redo
-	// Add more instructions
-	// Fix graphics and sim FPS diff
 	
 	/* Parts */
 	
@@ -82,13 +81,15 @@ public class Simulation extends TimerTask implements ActionListener {
 	CyclicBarrier graphics_end_barrier = new CyclicBarrier(n_threads + 1);
 	ArrayList<Renderer.GraphicsThread> graphics_threads = new ArrayList<>();
 	
+	ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+	
 	
 	/* Domain parameters */
 
 	public int default_resolution = 256;
 	public double default_width = 2.56e-5;
 	
-	public int resolution;
+	public int resolution = 0;
 	public int nx;						// Number of grid popublic ints in x-dimension
 	public int ny;						// Number of grid popublic ints in y-dimension
 	public double width;				// Width, in SI
@@ -280,9 +281,8 @@ public class Simulation extends TimerTask implements ActionListener {
 	
 	
 	/* Probes */
-
-	public List<VoltageProbe> voltageprobes;
-	public List<CurrentProbe> currentprobes;
+	public List<VoltageProbe> voltageprobes = new CopyOnWriteArrayList<>();
+	public List<CurrentProbe> currentprobes = new CopyOnWriteArrayList<>();
 	public VoltageProbe ground = null;
 	public String datafilename = "probedata.txt";
 	public File datafile;
@@ -307,31 +307,36 @@ public class Simulation extends TimerTask implements ActionListener {
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
 			e.printStackTrace();
 		}
-
-		Simulation sim = new Simulation();
-		java.util.Timer master_timer = new java.util.Timer();
-		java.util.Timer graphics_timer = new java.util.Timer();
-		//javax.swing.Timer executor = new javax.swing.Timer(0, sim);
-		//executor.setRepeats(false);
-		//executor.setCoalesce(true);
 		
-		for (int i = 0; i < sim.n_threads; i++) {
-			sim.sim_threads.add(sim.new SimulationThread(i, sim.n_threads, sim.nx));
-		}
+		SwingUtilities.invokeLater(() -> {
+			Simulation sim = new Simulation();
+			
+			java.util.Timer master_timer = new java.util.Timer();
+			java.util.Timer graphics_timer = new java.util.Timer();
+			java.util.Timer misc_timer = new java.util.Timer();
+			//javax.swing.Timer executor = new javax.swing.Timer(0, sim);
+			//executor.setRepeats(false);
+			//executor.setCoalesce(true);
+			
+			for (int i = 0; i < sim.n_threads; i++) {
+				sim.sim_threads.add(sim.new SimulationThread(i, sim.n_threads, sim.nx));
+			}
 
-		for (int i = 0; i < sim.n_threads; i++) {
-			sim.graphics_threads.add(sim.renderer.new GraphicsThread(i, sim.n_threads));
-		}
+			for (int i = 0; i < sim.n_threads; i++) {
+				sim.graphics_threads.add(sim.renderer.new GraphicsThread(i, sim.n_threads));
+			}
 
-		for (int i = 0; i < sim.n_threads; i++) {
-			sim.sim_threads.get(i).start();
-			sim.graphics_threads.get(i).start();
-		}
+			for (int i = 0; i < sim.n_threads; i++) {
+				sim.sim_threads.get(i).start();
+				sim.graphics_threads.get(i).start();
+			}
 
-		master_timer.scheduleAtFixedRate(sim, 0, sim.renderer.frameduration);
-		graphics_timer.scheduleAtFixedRate(sim.renderer, 0, sim.renderer.frameduration);
-		
-		//t.start();
+			master_timer.scheduleAtFixedRate(sim, 0, sim.renderer.frameduration);
+			graphics_timer.scheduleAtFixedRate(sim.renderer, 0, sim.renderer.frameduration);
+			misc_timer.scheduleAtFixedRate(sim.potentialSolver, 0, sim.renderer.frameduration);
+			
+			//t.start();
+		});
 	}
 
 	public Simulation() {
@@ -348,8 +353,7 @@ public class Simulation extends TimerTask implements ActionListener {
 
 		detect64Bit();
 
-		setResolution(default_resolution);
-		setWidth(default_width);
+		setSize(default_resolution, default_width);
 		resetFields(true);
 		
 		opts.add(canvas, BorderLayout.CENTER);
@@ -410,70 +414,94 @@ public class Simulation extends TimerTask implements ActionListener {
 
 	@Override
 	public void run() {
-		try {
-			iteration_multiplier = opts.gui_simspeed_2.getValue();
+		rwLock.readLock().lock();
+        try {
+    		try {
+    			iteration_multiplier = opts.gui_simspeed_2.getValue();
 
-			if (controls.clear) {
-				resetFields(false);
-				multigridSolve(true, false);
-				time = 0.0;
-				controls.clear = false;
-			}
+    			if (controls.clear) {
+    				resetFields(false);
+    				multigridSolve(true, false);
+    				time = 0.0;
+    				controls.clear = false;
+    			}
 
-			if (controls.reset) {
-				int result = JOptionPane.showConfirmDialog(opts, "Do you wish to reset the entire simulation?", "Reset", JOptionPane.YES_NO_OPTION);
-				if (result == JOptionPane.OK_OPTION)
-				{
-					resetFields(true);
-					time = 0.0;
+    			if (controls.reset) {
+    				SwingUtilities.invokeAndWait(() -> {
+        				int result = JOptionPane.showConfirmDialog(opts, "Do you wish to reset the entire simulation?", "Reset", JOptionPane.YES_NO_OPTION);
+        				if (result == JOptionPane.OK_OPTION)
+        				{
+        					resetFields(true);
+        					time = 0.0;
+        				}
+    				});
+    				controls.reset = false;
+    			}
+
+    			if (opts.gui_simspeed.getValue() != lastsimspeed) {
+    				lastsimspeed = opts.gui_simspeed.getValue();
+    				dt = dt_maximum*(lastsimspeed/20.0);
+    			}
+
+    			controls.handleMouseInput();
+
+    			if (!opts.gui_paused.isSelected() || controls.advanceframe) {
+    				for (int i = 0; i < iteration_multiplier ; i++) {
+    					start_barrier.await();
+    					stop_barrier.await();
+    				}
+    				calcMiscFields(false);
+    				frame++;
+    			} else if (updateMiscFields) {
+    				calcMiscFields(false);
+    			}
+
+
+    			if (controls.save) {
+    				savemanager.writeFile();
+    				controls.save = false;
+    			}
+
+    			if (controls.load) {
+    				savemanager.readFile();
+    				controls.load = false;
+    			}
+
+    			simFPStimer.stop();
+    			simFPStimer.start();
+
+    		} catch (Exception e) {
+    			try {
+					SwingUtilities.invokeAndWait(() -> {
+						JOptionPane.showConfirmDialog(opts, e.getMessage(), "Error", JOptionPane.OK_OPTION);
+						e.printStackTrace();
+						System.exit(-1);
+					});
+				} catch (InvocationTargetException | InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
 				}
-				controls.reset = false;
-			}
-
-			if (opts.gui_simspeed.getValue() != lastsimspeed) {
-				lastsimspeed = opts.gui_simspeed.getValue();
-				dt = dt_maximum*(lastsimspeed/20.0);
-			}
-
-			controls.handleMouseInput();
-
-			if (!opts.gui_paused.isSelected() || controls.advanceframe) {
-				for (int i = 0; i < iteration_multiplier ; i++) {
-					start_barrier.await();
-					stop_barrier.await();
-				}
-
-				if (frame % 2 == 0)
-					calcMiscFields(true);
-				else
-					calcMiscFields(false);
-
-				frame++;
-			} else if (updateMiscFields) {
-				calcMiscFields(true);
-			}
-
-
-			if (controls.save) {
-				savemanager.writeFile();
-				controls.save = false;
-			}
-
-			if (controls.load) {
-				savemanager.readFile();
-				controls.load = false;
-			}
-
-			simFPStimer.stop();
-			simFPStimer.start();
-
-		} catch (Exception e) {
-			JOptionPane.showConfirmDialog(opts, e.getMessage(), "Error", JOptionPane.OK_OPTION);
-			e.printStackTrace();
-			System.exit(-1);
-		}
+    		}
+        } finally {
+            rwLock.readLock().unlock();
+        }
 	}
-	
+
+	TimerTask potentialSolver = new TimerTask() {
+		@Override
+		public void run() {
+	        rwLock.readLock().lock();
+	        try {
+				if (!opts.gui_paused.isSelected() || controls.advanceframe || updateMiscFields) {
+					multigridSolve(false, true);
+					//calcMiscFields(true);
+				}
+	        } finally {
+	            rwLock.readLock().unlock();
+	        }
+		}
+	};
+
 	public void updateConstants() {
 		c = 1/Math.sqrt(eps0*mu0);
 		beta = 1/(k*T);
@@ -484,117 +512,129 @@ public class Simulation extends TimerTask implements ActionListener {
 		E_a_metal = -Math.log(recomb_rate_metal/arrhenius_prefactor);
 	}
 
-	public boolean setResolution(int resolution) {
-		if (resolution == this.resolution)
-			return false;
+	public boolean setSize(int resolution, double width) {
 		
-		this.resolution = resolution;
-		nx = resolution;
-		ny = resolution;
-
-		log2_resolution = (int) Math.round(Math.log(resolution)/Math.log(2));
-		assert(1 << log2_resolution == resolution);
-
-		Ex = new double[nx][ny];
-		Ey = new double[nx][ny];
-		Bz = new double[nx][ny];
-		Hz_laplacian = new double[nx][ny];
-		rho_abs = new double[nx][ny];
-		rho_n = new double[nx][ny];
-		rho_p = new double[nx][ny];
-		rho_back = new double[nx][ny];
-		rho_free = new double[nx][ny];
-		mobility_factor = new double[nx][ny];
-
-		Jx_abs = new double[nx][ny];
-		Jy_abs = new double[nx][ny];
-		Jx_n = new double[nx][ny];
-		Jy_n = new double[nx][ny];
-		Jx_p = new double[nx][ny];
-		Jy_p = new double[nx][ny];
-		Jx_free = new double[nx][ny];
-		Jy_free = new double[nx][ny];
-
-		materials = new Material[nx][ny];
-		K = new double[nx][ny];
-		F0_n = new double[nx][ny];
-		F0_p = new double[nx][ny];
-		F_n = new double[nx][ny];
-		F_p = new double[nx][ny];
-		E0_n = new double[nx][ny];
-		E0_p = new double[nx][ny];
-		E_a = new double[nx][ny];
-		r = new double[nx][ny];
-		L = new double[nx][ny];
-		cmfx_n = new double[nx][ny];
-		cmfy_n = new double[nx][ny];
-		cmfx_p = new double[nx][ny];
-		cmfy_p = new double[nx][ny];
-		conducting = new int[nx][ny];
-		conducting_x = new int[nx][ny];
-		conducting_y = new int[nx][ny];
-		absorptivity = new double[nx][ny];
-		absorptivity_x = new double[nx][ny];
-		absorptivity_y = new double[nx][ny];
-		emfx = new double[nx][ny];
-		emfy = new double[nx][ny];
-		epsx = new double[nx][ny];
-		epsy = new double[nx][ny];
-		mu_z = new double[nx][ny];
-
-		Dx = new double[nx][ny];
-		Dy = new double[nx][ny];
-		Hz = new double[nx][ny];
-		Sx = new double[nx][ny];
-		Sy = new double[nx][ny];
-		u = new double[nx][ny];
-		phi = new double[nx][ny];
-
-		G = new double[nx][ny];
-		R = new double[nx][ny];
-		F_n = new double[nx][ny];
-		F_p = new double[nx][ny];
-		grad_E0x_n = new double[nx][ny];
-		grad_E0y_n = new double[nx][ny];
-		grad_E0x_p = new double[nx][ny];
-		grad_E0y_p = new double[nx][ny];
-		grad_Fx_n = new double[nx][ny];
-		grad_Fy_n = new double[nx][ny];
-		grad_Fx_p = new double[nx][ny];
-		grad_Fy_p = new double[nx][ny];
-		Q = new double[nx][ny];
-		S = new double[nx][ny];
-		F = new double[nx][ny];
-		debug = new double[nx][ny];
-
-		MG_rho0 = new double[nx][ny];
-		MG_rho = new double[log2_resolution+1][nx][ny];
-		MG_epsx = new double[log2_resolution+1][nx][ny];
-		MG_epsy = new double[log2_resolution+1][nx][ny];
-		MG_eps_avg = new double[nx][ny];
-		MG_phi1 = new double[nx][ny];
-		MG_phi2 = new double[nx][ny];
-
-		distance = new int[nx][ny];
-		visited = new boolean[nx][ny];
-		
-		voltageprobes = new CopyOnWriteArrayList<>();
-		currentprobes = new CopyOnWriteArrayList<>();
-
-		opts.setVisible(true);
-		
-		controls.setResolution(resolution);
-		renderer.setResolution(resolution);
-		
-		return true;
-	}
-	
-	public void setWidth(double width) {
 		this.width = width;
 		ds = width/resolution;
 		width = nx*ds;
 		dt_maximum = 0.9*ds/(Math.sqrt(2)*c);
 		Hz_dissipation = 0.01*ds*ds/dt_maximum;
+
+		if (resolution == this.resolution) return false;
+			
+		rwLock.writeLock().lock();
+		try {
+			this.resolution = resolution;
+			nx = resolution;
+			ny = resolution;
+
+			log2_resolution = (int) Math.round(Math.log(resolution)/Math.log(2));
+			assert(1 << log2_resolution == resolution);
+
+			Ex = new double[nx][ny];
+			Ey = new double[nx][ny];
+			Bz = new double[nx][ny];
+			Hz_laplacian = new double[nx][ny];
+			rho_abs = new double[nx][ny];
+			rho_n = new double[nx][ny];
+			rho_p = new double[nx][ny];
+			rho_back = new double[nx][ny];
+			rho_free = new double[nx][ny];
+			mobility_factor = new double[nx][ny];
+
+			Jx_abs = new double[nx][ny];
+			Jy_abs = new double[nx][ny];
+			Jx_n = new double[nx][ny];
+			Jy_n = new double[nx][ny];
+			Jx_p = new double[nx][ny];
+			Jy_p = new double[nx][ny];
+			Jx_free = new double[nx][ny];
+			Jy_free = new double[nx][ny];
+
+			materials = new Material[nx][ny];
+			K = new double[nx][ny];
+			F0_n = new double[nx][ny];
+			F0_p = new double[nx][ny];
+			F_n = new double[nx][ny];
+			F_p = new double[nx][ny];
+			E0_n = new double[nx][ny];
+			E0_p = new double[nx][ny];
+			E_a = new double[nx][ny];
+			r = new double[nx][ny];
+			L = new double[nx][ny];
+			cmfx_n = new double[nx][ny];
+			cmfy_n = new double[nx][ny];
+			cmfx_p = new double[nx][ny];
+			cmfy_p = new double[nx][ny];
+			conducting = new int[nx][ny];
+			conducting_x = new int[nx][ny];
+			conducting_y = new int[nx][ny];
+			absorptivity = new double[nx][ny];
+			absorptivity_x = new double[nx][ny];
+			absorptivity_y = new double[nx][ny];
+			emfx = new double[nx][ny];
+			emfy = new double[nx][ny];
+			epsx = new double[nx][ny];
+			epsy = new double[nx][ny];
+			mu_z = new double[nx][ny];
+
+			Dx = new double[nx][ny];
+			Dy = new double[nx][ny];
+			Hz = new double[nx][ny];
+			Sx = new double[nx][ny];
+			Sy = new double[nx][ny];
+			u = new double[nx][ny];
+			phi = new double[nx][ny];
+
+			G = new double[nx][ny];
+			R = new double[nx][ny];
+			F_n = new double[nx][ny];
+			F_p = new double[nx][ny];
+			grad_E0x_n = new double[nx][ny];
+			grad_E0y_n = new double[nx][ny];
+			grad_E0x_p = new double[nx][ny];
+			grad_E0y_p = new double[nx][ny];
+			grad_Fx_n = new double[nx][ny];
+			grad_Fy_n = new double[nx][ny];
+			grad_Fx_p = new double[nx][ny];
+			grad_Fy_p = new double[nx][ny];
+			Q = new double[nx][ny];
+			S = new double[nx][ny];
+			F = new double[nx][ny];
+			debug = new double[nx][ny];
+
+			MG_rho0 = new double[nx][ny];
+			MG_rho = new double[log2_resolution+1][nx][ny];
+			MG_epsx = new double[log2_resolution+1][nx][ny];
+			MG_epsy = new double[log2_resolution+1][nx][ny];
+			MG_eps_avg = new double[nx][ny];
+			MG_phi1 = new double[nx][ny];
+			MG_phi2 = new double[nx][ny];
+
+			distance = new int[nx][ny];
+			visited = new boolean[nx][ny];
+
+			opts.setVisible(true);
+
+			controls.setResolution(resolution);
+			renderer.setResolution(resolution);
+
+			for (int i = 0; i < nx; i++)
+			{
+				for (int j = 0; j < ny; j++)
+				{
+					materials[i][j] = new Material();
+					controls.selection[i][j] = new ClipboardMaterial();
+					controls.clipboard[i][j] = new ClipboardMaterial();
+				}
+			}
+
+			resetFields(true);
+		} finally {
+			rwLock.writeLock().unlock();
+		}
+		
+		return true;
 	}
 
 	public void resetFields(boolean resetall) {
@@ -605,18 +645,10 @@ public class Simulation extends TimerTask implements ActionListener {
 			{
 
 				if (resetall) {
-					if (materials[i][j] == null)
-						materials[i][j] = new Material();
-					else
-						eraseMaterial(i, j);
 					
-					if (controls.selection[i][j] == null)
-						controls.selection[i][j] = new ClipboardMaterial();
-					else
-						controls.selection[i][j].erase();
-
-					if (controls.clipboard[i][j] == null)
-						controls.clipboard[i][j] = new ClipboardMaterial();
+					materials[i][j].erase();
+					controls.selection[i][j].erase();
+					controls.clipboard[i][j].erase();
 
 					F0_n[i][j] = 0;
 					F0_p[i][j] = 0;
@@ -958,7 +990,6 @@ public class Simulation extends TimerTask implements ActionListener {
 	public void calcMiscFields(boolean updatePhi) {
 		ScalarView view_scalar = (ScalarView) opts.gui_view.getSelectedItem();
 
-		//Always find potentials
 		if (updatePhi)
 			multigridSolve(false, true);
 
@@ -1574,133 +1605,136 @@ public class Simulation extends TimerTask implements ActionListener {
 	public void multigridSolve(boolean correctEfield, boolean computePhi) {
 		assert(!(correctEfield && computePhi));
 
-		if (correctEfield)
-			t4.start();
-		if (computePhi)
-			t7.start();
+		synchronized(MG_rho) {
 
-		for (int i = 0; i < nx; i++) {
-			for (int j = 0; j < ny; j++) {
-				MG_phi1[i][j] = 0;
-				MG_phi2[i][j] = 0;
-				for (int k = 0; k <= log2_resolution; k++) {
-					MG_rho[k][i][j] = 0;
-				}
-			}
-		}
+			if (correctEfield)
+				t4.start();
+			if (computePhi)
+				t7.start();
 
-		if (correctEfield)
-		{
-			for (int i = 1; i < nx-1; i++) {
-				for (int j = 1; j < ny-1; j++) {
-					MG_rho0[i][j] = ((Ex[i][j]*epsx[i][j]-Ex[i-1][j]*epsx[i-1][j] + Ey[i][j]*epsy[i][j]-Ey[i][j-1]*epsy[i][j-1])/ds) - rho_free[i][j];
+			for (int i = 0; i < nx; i++) {
+				for (int j = 0; j < ny; j++) {
+					MG_phi1[i][j] = 0;
+					MG_phi2[i][j] = 0;
+					for (int k = 0; k <= log2_resolution; k++) {
+						MG_rho[k][i][j] = 0;
+					}
 				}
 			}
 
-			double num = 0;
-			double denom = 0;
-			for (int i = 1; i < nx-1; i++) {
-				for (int j = 1; j < ny-1; j++) {
-					num += MG_rho0[i][j]*MG_rho0[i][j];
-					denom += rho_free[i][j]*rho_free[i][j];
-				}
-			}
-			System.out.println("Starting poisson residual: " + Math.sqrt(num/denom));
-		}
-		if (computePhi) {
-			for (int i = 1; i < nx-1; i++) {
-				for (int j = 1; j < ny-1; j++) {
-					MG_rho0[i][j] = (Ex[i][j]-Ex[i-1][j] + Ey[i][j]-Ey[i][j-1])/(ds) + (phi[i+1][j]+phi[i][j+1]+phi[i-1][j]+phi[i][j-1]-4*phi[i][j])/(ds*ds);
-				}
-			}
-		}
-
-		//int[] stepsarray = {0, 0, 200, 200, 200, 200, 200, 50, 20};
-		int[] stepsarray = {0, 0, 100, 100, 100, 100, 50, 25, 20};
-		
-		if (log2_resolution <= 1)
-			throw new RuntimeException("Grid size too small!");
-
-		downscale(MG_rho0, MG_rho, log2_resolution);
-
-		for (int fineness = 2; fineness <= log2_resolution; fineness++) {
-			int nx_tmp = (1 << fineness);
-			int ny_tmp = (1 << fineness);
-			double gridsize = width/(1 << fineness);
-
-			int poissonsteps = stepsarray[(fineness > 8)? 8 : fineness];
-			double alpha = (gridsize*gridsize);
-
-			JacobiIteration(poissonsteps, nx_tmp, ny_tmp, alpha, fineness, computePhi);
-
-			if (fineness == log2_resolution)
-				break;
-
-			for (int i = 0; i < nx_tmp; i++) {
-				for (int j = 0; j < ny_tmp; j++) {
-					MG_phi2[i][j] = MG_phi1[i][j];
-				}
-			}
-
-			for (int i = 0; i < nx_tmp; i++)
+			if (correctEfield)
 			{
-				for (int j = 0; j < nx_tmp; j++) {
-					MG_phi1[2*i][2*j] = MG_phi2[i][j];
-					MG_phi1[2*i+1][2*j] = MG_phi2[i][j];
-					MG_phi1[2*i][2*j+1] = MG_phi2[i][j];
-					MG_phi1[2*i+1][2*j+1] = MG_phi2[i][j];
+				for (int i = 1; i < nx-1; i++) {
+					for (int j = 1; j < ny-1; j++) {
+						MG_rho0[i][j] = ((Ex[i][j]*epsx[i][j]-Ex[i-1][j]*epsx[i-1][j] + Ey[i][j]*epsy[i][j]-Ey[i][j-1]*epsy[i][j-1])/ds) - rho_free[i][j];
+					}
+				}
+
+				double num = 0;
+				double denom = 0;
+				for (int i = 1; i < nx-1; i++) {
+					for (int j = 1; j < ny-1; j++) {
+						num += MG_rho0[i][j]*MG_rho0[i][j];
+						denom += rho_free[i][j]*rho_free[i][j];
+					}
+				}
+				System.out.println("Starting poisson residual: " + Math.sqrt(num/denom));
+			}
+			if (computePhi) {
+				for (int i = 1; i < nx-1; i++) {
+					for (int j = 1; j < ny-1; j++) {
+						MG_rho0[i][j] = (Ex[i][j]-Ex[i-1][j] + Ey[i][j]-Ey[i][j-1])/(ds) + (phi[i+1][j]+phi[i][j+1]+phi[i-1][j]+phi[i][j-1]-4*phi[i][j])/(ds*ds);
+					}
 				}
 			}
 
-			for (int i = 0; i < 2*nx_tmp; i++) {
-				for (int j = 0; j < 2*ny_tmp; j++) {
-					MG_phi2[i][j] = MG_phi1[i][j];
-				}
-			}
-		}
+			//int[] stepsarray = {0, 0, 200, 200, 200, 200, 200, 50, 20};
+			int[] stepsarray = {0, 0, 100, 100, 100, 100, 50, 25, 20};
 
-		if (correctEfield) {
-			for (int i = 0; i < nx-1; i++)
-			{
-				for (int j = 0; j < ny-1; j++)
+			if (log2_resolution <= 1)
+				throw new RuntimeException("Grid size too small!");
+
+			downscale(MG_rho0, MG_rho, log2_resolution);
+
+			for (int fineness = 2; fineness <= log2_resolution; fineness++) {
+				int nx_tmp = (1 << fineness);
+				int ny_tmp = (1 << fineness);
+				double gridsize = width/(1 << fineness);
+
+				int poissonsteps = stepsarray[(fineness > 8)? 8 : fineness];
+				double alpha = (gridsize*gridsize);
+
+				JacobiIteration(poissonsteps, nx_tmp, ny_tmp, alpha, fineness, computePhi);
+
+				if (fineness == log2_resolution)
+					break;
+
+				for (int i = 0; i < nx_tmp; i++) {
+					for (int j = 0; j < ny_tmp; j++) {
+						MG_phi2[i][j] = MG_phi1[i][j];
+					}
+				}
+
+				for (int i = 0; i < nx_tmp; i++)
 				{
-					Ex[i][j] = Ex[i][j] + (MG_phi1[i+1][j]-MG_phi1[i][j])/ds;
-					Ey[i][j] = Ey[i][j] + (MG_phi1[i][j+1]-MG_phi1[i][j])/ds;
+					for (int j = 0; j < nx_tmp; j++) {
+						MG_phi1[2*i][2*j] = MG_phi2[i][j];
+						MG_phi1[2*i+1][2*j] = MG_phi2[i][j];
+						MG_phi1[2*i][2*j+1] = MG_phi2[i][j];
+						MG_phi1[2*i+1][2*j+1] = MG_phi2[i][j];
+					}
+				}
+
+				for (int i = 0; i < 2*nx_tmp; i++) {
+					for (int j = 0; j < 2*ny_tmp; j++) {
+						MG_phi2[i][j] = MG_phi1[i][j];
+					}
 				}
 			}
-		}
 
-		if (computePhi)
-		{
-			for (int i = 0; i < nx; i++)
-			{
-				for (int j = 0; j < ny; j++)
+			if (correctEfield) {
+				for (int i = 0; i < nx-1; i++)
 				{
-					phi[i][j] = phi[i][j] + MG_phi1[i][j];
-				}
-			}
-		}
-
-		if (correctEfield) {
-
-			double num = 0;
-			double denom = 0;
-			for (int i = 1; i < nx-1; i++) {
-				for (int j = 1; j < ny-1; j++) {
-					double drho = ((Ex[i][j]*epsx[i][j]-Ex[i-1][j]*epsx[i-1][j] + Ey[i][j]*epsy[i][j]-Ey[i][j-1]*epsy[i][j-1])/ds) - rho_free[i][j];
-					num += drho*drho;
-					denom += rho_free[i][j]*rho_free[i][j];
+					for (int j = 0; j < ny-1; j++)
+					{
+						Ex[i][j] = Ex[i][j] + (MG_phi1[i+1][j]-MG_phi1[i][j])/ds;
+						Ey[i][j] = Ey[i][j] + (MG_phi1[i][j+1]-MG_phi1[i][j])/ds;
+					}
 				}
 			}
 
-			System.out.println("Poisson residual: " + Math.sqrt(num/denom));
-		}
+			if (computePhi)
+			{
+				for (int i = 0; i < nx; i++)
+				{
+					for (int j = 0; j < ny; j++)
+					{
+						phi[i][j] = phi[i][j] + MG_phi1[i][j];
+					}
+				}
+			}
 
-		if (correctEfield)
-			t4.stop();
-		
-		if (computePhi)
-			t7.stop();
+			if (correctEfield) {
+
+				double num = 0;
+				double denom = 0;
+				for (int i = 1; i < nx-1; i++) {
+					for (int j = 1; j < ny-1; j++) {
+						double drho = ((Ex[i][j]*epsx[i][j]-Ex[i-1][j]*epsx[i-1][j] + Ey[i][j]*epsy[i][j]-Ey[i][j-1]*epsy[i][j-1])/ds) - rho_free[i][j];
+						num += drho*drho;
+						denom += rho_free[i][j]*rho_free[i][j];
+					}
+				}
+
+				System.out.println("Poisson residual: " + Math.sqrt(num/denom));
+			}
+
+			if (correctEfield)
+				t4.stop();
+
+			if (computePhi)
+				t7.stop();
+		}
 	}
 
 	public void JacobiIteration(int steps, int xmax, int ymax, double alpha, int fineness, boolean calcPhi) {

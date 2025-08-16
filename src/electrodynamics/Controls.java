@@ -25,13 +25,13 @@ import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorView;
 import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.plot.Plot;
 import electrodynamics.util.Font7x5;
-import electrodynamics.util.Timer;
 import electrodynamics.util.Utils;
 import electrodynamics.util.Vector;
 
@@ -690,9 +690,12 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 			texting = false;
 		}
 		
-		for (Plot p : e.plots) {
-			p.updatePlot(e);
-		}
+		SwingUtilities.invokeLater(() -> { //TODO
+			for (Plot p : e.plots) {
+				p.updatePlot(e);
+			}
+		});
+
 
 		setEMFs();
 
@@ -914,7 +917,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
         public void actionPerformed(ActionEvent ev) {
 			if (texting) return;
 			debugging = !debugging;
-			Timer.allEnabled = debugging;
+			//Timer.allEnabled = debugging;
         }
     };
 
