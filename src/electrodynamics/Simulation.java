@@ -1861,7 +1861,7 @@ public class Simulation extends TimerTask implements ActionListener {
 			controls.load = true;
 		else if (e.getSource() == opts.gui_help)
 			try {
-				File helpfile = new File("README.html");
+				File helpfile = new File("index.html");
 				java.awt.Desktop.getDesktop().browse(helpfile.toURI());
 			} catch (IOException ex) {
 				ex.printStackTrace();
