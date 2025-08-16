@@ -18,6 +18,7 @@ import java.util.TimerTask;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.swing.InputMap;
@@ -82,6 +83,7 @@ public class Simulation extends TimerTask implements ActionListener {
 	ArrayList<Renderer.GraphicsThread> graphics_threads = new ArrayList<>();
 	
 	ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+	ReentrantLock poissonLock = new ReentrantLock(true);
 	
 	
 	/* Domain parameters */
@@ -471,16 +473,7 @@ public class Simulation extends TimerTask implements ActionListener {
     			simFPStimer.start();
 
     		} catch (Exception e) {
-    			try {
-					SwingUtilities.invokeAndWait(() -> {
-						JOptionPane.showConfirmDialog(opts, e.getMessage(), "Error", JOptionPane.OK_OPTION);
-						e.printStackTrace();
-						System.exit(-1);
-					});
-				} catch (InvocationTargetException | InterruptedException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
+    			displayErrorMessage(e);
     		}
         } finally {
             rwLock.readLock().unlock();
@@ -496,11 +489,33 @@ public class Simulation extends TimerTask implements ActionListener {
 					multigridSolve(false, true);
 					//calcMiscFields(true);
 				}
+	        } catch( Exception e) {
+    			displayErrorMessage(e);
 	        } finally {
 	            rwLock.readLock().unlock();
 	        }
 		}
 	};
+	
+	public void displayErrorMessage(Exception e) {
+		try {
+			SwingUtilities.invokeAndWait(() -> {
+				JOptionPane.showMessageDialog(opts, e.toString(), "Error", JOptionPane.OK_OPTION);
+				e.printStackTrace();
+				try {
+					PrintWriter pw = new PrintWriter(new FileOutputStream("error_log.txt"));
+				    e.printStackTrace(pw);
+				    pw.flush();
+				    pw.close();
+				} catch (FileNotFoundException e1) {
+					System.exit(-1);
+				}     
+				System.exit(-1);
+			});
+		} catch (InvocationTargetException | InterruptedException e1) {
+			System.exit(-1);
+		}
+	}
 
 	public void updateConstants() {
 		c = 1/Math.sqrt(eps0*mu0);
@@ -524,12 +539,22 @@ public class Simulation extends TimerTask implements ActionListener {
 			
 		rwLock.writeLock().lock();
 		try {
+			if(resolution < 4) {
+				JOptionPane.showMessageDialog(opts, "Resolution too small.", "Error", JOptionPane.OK_OPTION);
+				resolution = 4;
+			}
+			
+			log2_resolution = (int) Math.round(Math.log(resolution)/Math.log(2));
+			if(1 << log2_resolution != resolution) {
+				JOptionPane.showMessageDialog(opts, "Resolution must be a power of 2.", "Error", JOptionPane.OK_OPTION);
+				resolution = 1 << log2_resolution;
+			}
+			
 			this.resolution = resolution;
 			nx = resolution;
 			ny = resolution;
 
-			log2_resolution = (int) Math.round(Math.log(resolution)/Math.log(2));
-			assert(1 << log2_resolution == resolution);
+
 
 			Ex = new double[nx][ny];
 			Ey = new double[nx][ny];
@@ -767,7 +792,7 @@ public class Simulation extends TimerTask implements ActionListener {
 	}
 
 	public void constructBoundary() {
-		absorber_width = (int)(0.05*nx);
+		absorber_width = (int)Math.ceil(0.045*nx);
 		absorbing_coeff = 50*c/(ds*nx);
 		double max_stretch = 10;
 		double coeff = Math.log(max_stretch);
@@ -1605,8 +1630,8 @@ public class Simulation extends TimerTask implements ActionListener {
 	public void multigridSolve(boolean correctEfield, boolean computePhi) {
 		assert(!(correctEfield && computePhi));
 
-		synchronized(MG_rho) {
-
+        poissonLock.lock();
+        try {
 			if (correctEfield)
 				t4.start();
 			if (computePhi)
@@ -1734,7 +1759,9 @@ public class Simulation extends TimerTask implements ActionListener {
 
 			if (computePhi)
 				t7.stop();
-		}
+		} finally {
+            poissonLock.unlock();
+        }
 	}
 
 	public void JacobiIteration(int steps, int xmax, int ymax, double alpha, int fineness, boolean calcPhi) {
@@ -1861,7 +1888,7 @@ public class Simulation extends TimerTask implements ActionListener {
 			controls.load = true;
 		else if (e.getSource() == opts.gui_help)
 			try {
-				File helpfile = new File("index.html");
+				File helpfile = new File("README.html");
 				java.awt.Desktop.getDesktop().browse(helpfile.toURI());
 			} catch (IOException ex) {
 				ex.printStackTrace();

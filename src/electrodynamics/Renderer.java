@@ -408,7 +408,10 @@ public class Renderer extends TimerTask {
 
 			FPStimer.stop();
 			FPStimer.start();
-		} finally {
+		} catch (Exception e1) {
+			e.displayErrorMessage(e1);
+		}
+		finally {
 			e.rwLock.readLock().unlock();
 		}
 	}
@@ -890,12 +893,12 @@ public class Renderer extends TimerTask {
 
 				if (mi < 0)
 					mi = 0;
-				if (mi >= e.nx-1)
-					mi = e.nx-2;
+				if (mi >= e.nx)
+					mi = e.nx-1;
 				if (mj < 0)
 					mj = 0;
-				if (mj >= e.ny-1)
-					mj = e.ny-2;
+				if (mj >= e.ny)
+					mj = e.ny-1;
 
 				Material mat = e.materials[mi][mj];
 

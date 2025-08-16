@@ -3,3 +3,4 @@ build/
 .DS_store
 probedata.txt
 /target/
+error_log.txt
