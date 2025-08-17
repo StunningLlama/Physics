@@ -4,15 +4,13 @@
 
 package electrodynamics;
 
-import java.awt.EventQueue;
-
+import javax.swing.JButton;
 import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import javax.swing.JButton;
+import javax.swing.border.EmptyBorder;
 
 public class AdvancedOptions extends JFrame {
 
@@ -37,25 +35,6 @@ public class AdvancedOptions extends JFrame {
 	public JButton btn_apply;
 	public JButton btn_cancel;
 
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					AdvancedOptions frame = new AdvancedOptions();
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
-
-	/**
-	 * Create the frame.
-	 */
 	public AdvancedOptions() {
 		setTitle("Advanced settings");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);

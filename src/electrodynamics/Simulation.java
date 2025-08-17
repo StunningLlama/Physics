@@ -1002,7 +1002,11 @@ public class Simulation extends TimerTask implements ActionListener {
 						}
 
 						t6.stop();
+					}
 
+					stop_barrier.await();
+					
+					if (n_thread == 0) {
 						/* Enforce Gauss law constraint */
 						if (stepnumber%500 == 0) {
 							multigridSolve(true, false);
@@ -1012,8 +1016,6 @@ public class Simulation extends TimerTask implements ActionListener {
 
 						controls.advanceframe = false;
 					}
-
-					stop_barrier.await();
 				}
 			} catch (InterruptedException | BrokenBarrierException e) {
 				e.printStackTrace();
