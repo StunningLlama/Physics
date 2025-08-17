@@ -284,6 +284,7 @@ public class Simulation extends TimerTask implements ActionListener {
 
 	public int[][] distance;
 	public boolean[][] visited;
+	public int[][] abs_depth;
 	
 	
 	/* Probes */
@@ -379,7 +380,7 @@ public class Simulation extends TimerTask implements ActionListener {
 		opts.gui_material.addActionListener(this);
 		opts.gui_adv_settings.addActionListener(this);
 
-		opts.gui_material.removeItem(MaterialType.ABSORBER);
+		//opts.gui_material.removeItem(MaterialType.ABSORBER);
 		//opts.gui_view.removeItem(ScalarView.DEBUG);
 
 		opts.gui_parameter1.setEnabled(true);
@@ -648,6 +649,7 @@ public class Simulation extends TimerTask implements ActionListener {
 
 			distance = new int[nx][ny];
 			visited = new boolean[nx][ny];
+			abs_depth = new int[nx][ny];
 
 			opts.setVisible(true);
 
@@ -815,36 +817,79 @@ public class Simulation extends TimerTask implements ActionListener {
 		double max_stretch = 10;
 		double coeff = Math.log(max_stretch);
 
-		if ((BoundaryCondition)opts.gui_bc.getSelectedItem() == BoundaryCondition.DISSIPATIVE) {
-			for (int i = 0; i < nx; i++)
+		for (int i = 0; i < nx; i++)
+		{
+			for (int j = 0; j < ny; j++)
 			{
-				for (int j = 0; j < ny; j++)
-				{
-					double dx = (double)Math.max(0, absorber_width-Math.min(i, nx-1-i))/absorber_width;
-					double dy = (double)Math.max(0, absorber_width-Math.min(j, ny-1-j))/absorber_width;
-					double depth = Math.sqrt(dx*dx+dy*dy);
-					if (depth > 0) {
-						double stretchfactor = Math.exp(coeff*depth);
-
-						eraseMaterial(i, j);
+				double dx = (double)Math.max(0, absorber_width-Math.min(i, nx-1-i))/absorber_width;
+				double dy = (double)Math.max(0, absorber_width-Math.min(j, ny-1-j))/absorber_width;
+				double depth = Math.sqrt(dx*dx+dy*dy);
+				if (depth > 0) {
+					if ((BoundaryCondition)opts.gui_bc.getSelectedItem() == BoundaryCondition.DISSIPATIVE) {
 						materials[i][j].type = MaterialType.ABSORBER;
-						materials[i][j].eps_r = stretchfactor;
-						materials[i][j].mu_r = stretchfactor;
-						materials[i][j].absorptivity = 1;
-					}
-				}
-			}
-		} else {
-			for (int i = 0; i < nx; i++)
-			{
-				for (int j = 0; j < ny; j++)
-				{
-					if (materials[i][j].type == MaterialType.ABSORBER) {
+					} else if (materials[i][j].type == MaterialType.ABSORBER) {
 						eraseMaterial(i, j);
 					}
 				}
 			}
 		}
+
+		for (int i = 0; i < nx; i++)
+		{
+			for (int j = 0; j < ny; j++)
+			{
+				abs_depth[i][j] = 0;
+			}
+		}
+		
+		for (int i = 0; i < nx; i++)
+		{
+			for (int j = 0; j < ny; j++)
+			{
+				if (materials[i][j].type != MaterialType.ABSORBER) {
+					set(i+1, j, 1);
+					set(i-1, j, 1);
+					set(i, j+1, 1);
+					set(i, j-1, 1);
+				}
+			}
+		}
+
+
+		for (int d = 1; d < nx; d++) {
+			for (int i = 0; i < nx; i++)
+			{
+				for (int j = 0; j < ny; j++)
+				{
+					if (abs_depth[i][j] == d) {
+						set(i+1, j, d+1);
+						set(i-1, j, d+1);
+						set(i, j+1, d+1);
+						set(i, j-1, d+1);
+					}
+				}
+			}
+		}
+		
+		for (int i = 0; i < nx; i++)
+		{
+			for (int j = 0; j < ny; j++)
+			{
+				if (materials[i][j].type == MaterialType.ABSORBER) {
+					double depth = (double)abs_depth[i][j]/absorber_width;
+					double stretchfactor = Math.exp(coeff*depth);
+					materials[i][j].eps_r = stretchfactor;
+					materials[i][j].mu_r = stretchfactor;
+					materials[i][j].absorptivity = 1;
+				}
+			}
+		}
+	}
+	
+	public void set(int i, int j, int d) {
+		if (i < 0 || j < 0 || i >= nx || j >= ny) return;
+		if (materials[i][j].type == MaterialType.ABSORBER && abs_depth[i][j] == 0)
+			abs_depth[i][j] = d;
 	}
 
 	class SimulationThread extends Thread {
