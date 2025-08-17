@@ -561,7 +561,7 @@ public class Renderer extends TimerTask {
 						scalarfield[i][j] = e.conducting[i][j]*(e.F_p[i][j]/e.q_p+e.phi[i][j]-e.W_semi/e.eVtoJ);
 						break;
 					case DEBUG:
-						scalarfield[i][j] = (e.visited[i][j]? 1:0);
+						scalarfield[i][j] = e.debug[i][j];
 						break;
 					case GENERATION:
 						scalarfield[i][j] = e.G[i][j];
@@ -1553,7 +1553,7 @@ public class Renderer extends TimerTask {
 		GENERATION("View G: Carrier generation rate",										"1/(m^3 s)",	ColorScheme.GREEN,			1e31),
 		RECOMBINATION("View R: Carrier recombination rate",									"1/(m^3 s)",	ColorScheme.GREEN,			1e31),
 		LIGHT("View: Emitted light",														"",				ColorScheme.WHITE,			1e30),
-		DEBUG("Debug",																		"",				ColorScheme.RED_BLUE,		1);
+		DEBUG("Debug",																		"",				ColorScheme.RED_BLUE,		1e-3);
 	
 		enum ColorScheme {
 			RED_BLUE, CYAN_YELLOW, GREEN, WHITE, OTHER;

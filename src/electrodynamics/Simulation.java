@@ -380,7 +380,7 @@ public class Simulation extends TimerTask implements ActionListener {
 		opts.gui_adv_settings.addActionListener(this);
 
 		opts.gui_material.removeItem(MaterialType.ABSORBER);
-		opts.gui_view.removeItem(ScalarView.DEBUG);
+		//opts.gui_view.removeItem(ScalarView.DEBUG);
 
 		opts.gui_parameter1.setEnabled(true);
 		opts.gui_parameter1.setVisible(true);
@@ -1015,7 +1015,12 @@ public class Simulation extends TimerTask implements ActionListener {
 						}
 
 						t6.stop();
+					}
 
+					stop_barrier.await();
+					
+
+					if (n_thread == 0) {
 						/* Enforce Gauss law constraint */
 						if (stepnumber%500 == 0) {
 							multigridSolve(true, false);
@@ -1027,8 +1032,6 @@ public class Simulation extends TimerTask implements ActionListener {
 
 						controls.advanceframe = false;
 					}
-
-					stop_barrier.await();
 				}
 			} catch (InterruptedException | BrokenBarrierException e) {
 				e.printStackTrace();
@@ -1676,6 +1679,7 @@ public class Simulation extends TimerTask implements ActionListener {
 				for (int i = 1; i < nx-1; i++) {
 					for (int j = 1; j < ny-1; j++) {
 						MG_rho0[i][j] = ((Ex[i][j]*epsx[i][j]-Ex[i-1][j]*epsx[i-1][j] + Ey[i][j]*epsy[i][j]-Ey[i][j-1]*epsy[i][j-1])/ds) - rho_free[i][j];
+						debug[i][j] = MG_rho0[i][j];
 					}
 				}
 
