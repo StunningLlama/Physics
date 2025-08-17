@@ -349,7 +349,7 @@ public class SaveManager {
 					outfile = new File(outfile.getAbsolutePath() + fileextension);
 
 				if (outfile.exists()) {
-					result = JOptionPane.showConfirmDialog(e.opts, "A file with that name already exists. Do you wish to overwrite it?", "Save file", JOptionPane.YES_NO_OPTION);
+					result = JOptionPane.showConfirmDialog(e.opts, "A file with that name already exists. Do you wish to overwrite it?", "Message", JOptionPane.YES_NO_OPTION);
 					if (result != JOptionPane.OK_OPTION)
 						return;
 				}

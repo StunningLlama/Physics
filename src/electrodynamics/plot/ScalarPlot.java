@@ -32,6 +32,8 @@ public class ScalarPlot extends Plot {
         
 		if (frame.isVisible() && e.frame%10 == 0) {
 
+			data.setNotify(false);
+			
 			data.clear();
 
 			for (int n = 0; n <= 100; n++) {
@@ -41,6 +43,8 @@ public class ScalarPlot extends Plot {
 
 				data.add(t, Utils.bilinearinterp(e.renderer.scalarfield, x, y, e.nx, e.ny));
 			}
+
+			data.setNotify(true);
 		}
 	}
 }

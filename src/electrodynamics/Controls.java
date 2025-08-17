@@ -702,7 +702,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		if ((releasing && Brush.isMaterialModifyingBrush(brush)) || (BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary || update) {
 
 			//e.resetFields(false);
-			//e.constructBoundary();
+			e.constructBoundary();
 			e.updateAllMaterials(false);
 			e.multigridSolve(true, false);
 		}

@@ -24,16 +24,20 @@ public class BandPlot extends Plot {
 	
 	@Override
 	public void createDataSeries() {
-        E_n_data = fig.plot("-b", 2.0f, "E_v");
-        E_p_data = fig.plot("-r", 2.0f, "E_c");
-        F_n_data = fig.plot(".b", 2.0f, "E_Fv");
-        F_p_data = fig.plot(".r", 2.0f, "E_Fc");
+        E_n_data = fig.plot("-b", 2.0f, "E_c");
+        E_p_data = fig.plot("-r", 2.0f, "E_v");
+        F_n_data = fig.plot(".b", 2.0f, "E_Fc");
+        F_p_data = fig.plot(".r", 2.0f, "E_Fv");
 	}
 	
 	@Override
 	public void updatePlot(Simulation e) {
 		if (frame.isVisible() && e.frame%10 == 0) {
-
+			E_n_data.setNotify(false);
+			E_p_data.setNotify(false);
+			F_n_data.setNotify(false);
+			F_p_data.setNotify(false);
+			
 			E_n_data.clear();
 			E_p_data.clear();
 			F_n_data.clear();
@@ -50,6 +54,11 @@ public class BandPlot extends Plot {
 				F_n_data.add(t, -(Utils.bilinearinterp(e.F_n, x, y, e.nx, e.ny)/e.q_n+Utils.bilinearinterp(e.phi, x, y, e.nx, e.ny)));
 				F_p_data.add(t, -(Utils.bilinearinterp(e.F_p, x, y, e.nx, e.ny)/e.q_p+Utils.bilinearinterp(e.phi, x, y, e.nx, e.ny)));
 			}
+
+			E_n_data.setNotify(true);
+			E_p_data.setNotify(true);
+			F_n_data.setNotify(true);
+			F_p_data.setNotify(true);
 		}
 	}
 }

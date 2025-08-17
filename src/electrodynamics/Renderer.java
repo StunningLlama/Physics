@@ -80,7 +80,7 @@ public class Renderer extends TimerTask {
 	
 	// Performance profiling
 	
-	Timer FPStimer = new Timer("FPS", 20, true);
+	Timer FPStimer = new Timer("Graphics FPS", 10, true);
 	Timer t5 = new Timer("Graphics", 20, true);
 	
 	public Renderer(Simulation e) {
@@ -108,10 +108,19 @@ public class Renderer extends TimerTask {
 		img_front = (BufferedImage) e.opts.createImage(imgwidth, imgheight);
 		imgData = ((DataBufferInt)img_back.getRaster().getDataBuffer()).getData();
 		
+		reset();
+	}
+	
+	public void reset() {
+		t_prev = e.time;
+		
 		dots.clear();
 		for (int i = 0; i < numdots; i++) {
 			dots.add(new Dot(0, 0, 0, 0));
 		}
+		
+		ccdots.clear();
+		C_prev = 0;
 	}
 	
 	
@@ -652,9 +661,9 @@ public class Renderer extends TimerTask {
 					setalphaBG(0.25);
 					setalphaFG(0.75);
 
-					int offset = 0;
+					int offset = 10*(2*((i+j)%2)-1);
 					if (e.controls.selected_EMF[i][j])
-						offset = 60*(2*((i+j)%2)-1);
+						offset = 60*(2*((i+j)%2)-1)-50;
 
 					if ((e.materials[i+1][j].type != MaterialType.EMF
 					|| e.materials[i-1][j].type != MaterialType.EMF
@@ -667,6 +676,29 @@ public class Renderer extends TimerTask {
 					int delta_r = MaterialType.EMF.color_r+offset;
 					int delta_g = MaterialType.EMF.color_g+offset;
 					int delta_b = MaterialType.EMF.color_b+offset;
+					setColor(delta_r, delta_g, delta_b);
+
+					setPixel(i, j);
+				} else if (e.materials[i][j].type == MaterialType.SWITCH && i > 0 && j > 0 && i < e.nx-1 && j < e.ny-1) {
+					setalphaBG(0.25);
+					setalphaFG(0.75);
+
+					int offset = 10*(2*((i+j)%2)-1);
+
+					if ((e.materials[i+1][j].type != MaterialType.SWITCH
+					|| e.materials[i-1][j].type != MaterialType.SWITCH
+					|| e.materials[i][j+1].type != MaterialType.SWITCH
+					| e.materials[i][j-1].type != MaterialType.SWITCH))
+					{
+						offset = -30;
+					}
+
+					if (e.materials[i][j].activated == 0)
+						offset -= 200;
+
+					int delta_r = MaterialType.SWITCH.color_r+offset;
+					int delta_g = MaterialType.SWITCH.color_g+offset;
+					int delta_b = MaterialType.SWITCH.color_b+offset;
 					setColor(delta_r, delta_g, delta_b);
 
 					setPixel(i, j);
@@ -955,7 +987,7 @@ public class Renderer extends TimerTask {
 			int hoffset = 5;
 			int line = 1;
 			drawStringWithBackground("Time: " + Utils.getSI(e.time, "s"), hoffset, voffset + line*vspacing, g); line++;
-			drawStringWithBackground("Iterations/s: " + Utils.getSI(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), ""), hoffset, voffset + line*vspacing, g); line++;
+			drawStringWithBackground("Steps/s: " + Utils.getSI(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), ""), hoffset, voffset + line*vspacing, g); line++;
 			if (e.opts.gui_paused.isSelected())
 			{
 				drawStringWithBackground("Paused", hoffset, voffset + line*vspacing, g); line++;
@@ -1193,7 +1225,7 @@ public class Renderer extends TimerTask {
 								if (d.time <= 0 || d.x < 0 || d.y < 0 || d.x >= e.nx || d.y >= e.ny) {
 									d.x = e.nx*rand.nextDouble();
 									d.y = e.ny*rand.nextDouble();
-									d.lifespan = 50+50*rand.nextDouble();
+									d.lifespan = 100*(1+rand.nextDouble());
 									d.time = d.lifespan;
 									if (isCurrent && bilinearinterp(e.conducting, d.x, d.y) == 0) {
 										d.lifespan = 0;

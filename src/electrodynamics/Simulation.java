@@ -298,7 +298,7 @@ public class Simulation extends TimerTask implements ActionListener {
 	Timer t6 = new Timer("Iterate simulation", 20, true);
 	Timer t8 = new Timer("Calc misc fields", 20, true);
 	Timer t9 = new Timer("Debug", 20, false);
-	Timer simFPStimer = new Timer("Simulation FPS", 20, true);
+	Timer simFPStimer = new Timer("Simulation FPS", 10, true);
 
 
 
@@ -376,8 +376,6 @@ public class Simulation extends TimerTask implements ActionListener {
 		opts.gui_adv_settings.addActionListener(this);
 
 		opts.gui_material.removeItem(MaterialType.ABSORBER);
-		//opts.gui_material.removeItem(MaterialType.SWITCH);
-
 		opts.gui_view.removeItem(ScalarView.DEBUG);
 
 		opts.pack();
@@ -406,7 +404,7 @@ public class Simulation extends TimerTask implements ActionListener {
 	public void detect64Bit() {
 		if (!System.getProperty("sun.arch.data.model").equals("64"))
 		{
-			int result = JOptionPane.showConfirmDialog(opts, "Running this application on a 32-bit platform may cause some issues. Do you still wish to proceed?", "Warning", JOptionPane.YES_NO_OPTION);
+			int result = JOptionPane.showConfirmDialog(opts, "Running this application on a 32-bit platform may cause some issues. Do you still wish to proceed?", "Message", JOptionPane.YES_NO_OPTION);
 			if (result != JOptionPane.OK_OPTION)
 			{
 				System.exit(0);
@@ -422,15 +420,17 @@ public class Simulation extends TimerTask implements ActionListener {
     			iteration_multiplier = opts.gui_simspeed_2.getValue();
 
     			if (controls.clear) {
-    				resetFields(false);
-    				multigridSolve(true, false);
+    				SwingUtilities.invokeLater(() -> {
+    					resetFields(false);
+    					multigridSolve(true, false);
+    				});
     				time = 0.0;
     				controls.clear = false;
     			}
 
     			if (controls.reset) {
-    				SwingUtilities.invokeAndWait(() -> {
-        				int result = JOptionPane.showConfirmDialog(opts, "Do you wish to reset the entire simulation?", "Reset", JOptionPane.YES_NO_OPTION);
+    				SwingUtilities.invokeLater(() -> {
+        				int result = JOptionPane.showConfirmDialog(opts, "Do you wish to reset the entire simulation?", "Message", JOptionPane.YES_NO_OPTION);
         				if (result == JOptionPane.OK_OPTION)
         				{
         					resetFields(true);
@@ -536,7 +536,8 @@ public class Simulation extends TimerTask implements ActionListener {
 		Hz_dissipation = 0.01*ds*ds/dt_maximum;
 
 		if (resolution == this.resolution) return false;
-			
+
+		// Simulation and graphics threads should not be active when variables are initialized
 		rwLock.writeLock().lock();
 		try {
 			if(resolution < 4) {
@@ -664,131 +665,139 @@ public class Simulation extends TimerTask implements ActionListener {
 
 	public void resetFields(boolean resetall) {
 
-		for (int i = 0; i < nx; i++)
-		{
-			for (int j = 0; j < ny; j++)
+		rwLock.writeLock().lock();
+		try {
+			for (int i = 0; i < nx; i++)
 			{
+				for (int j = 0; j < ny; j++)
+				{
 
-				if (resetall) {
-					
-					materials[i][j].erase();
-					controls.selection[i][j].erase();
-					controls.clipboard[i][j].erase();
+					if (resetall) {
 
-					F0_n[i][j] = 0;
-					F0_p[i][j] = 0;
-					F_n[i][j] = 0;
-					F_p[i][j] = 0;
-					E0_n[i][j] = 0;
-					E0_p[i][j] = 0;
-					K[i][j] = 0;
-					E_a[i][j] = 0;
-					r[i][j] = 0;
-					L[i][j] = 0;
+						materials[i][j].erase();
+						controls.selection[i][j].erase();
+						controls.clipboard[i][j].erase();
 
-					cmfx_n[i][j] = 0;
-					cmfy_n[i][j] = 0;
-					cmfx_p[i][j] = 0;
-					cmfy_p[i][j] = 0;
+						F0_n[i][j] = 0;
+						F0_p[i][j] = 0;
+						F_n[i][j] = 0;
+						F_p[i][j] = 0;
+						E0_n[i][j] = 0;
+						E0_p[i][j] = 0;
+						K[i][j] = 0;
+						E_a[i][j] = 0;
+						r[i][j] = 0;
+						L[i][j] = 0;
 
-					emfx[i][j] = 0.0;
-					emfy[i][j] = 0.0;
+						cmfx_n[i][j] = 0;
+						cmfy_n[i][j] = 0;
+						cmfx_p[i][j] = 0;
+						cmfy_p[i][j] = 0;
 
-					epsx[i][j] = eps0;
-					epsy[i][j] = eps0;
-					mu_z[i][j] = mu0;
+						emfx[i][j] = 0.0;
+						emfy[i][j] = 0.0;
 
-					conducting[i][j] = 0;
-					conducting_x[i][j] = 0;
-					conducting_y[i][j] = 0;
+						epsx[i][j] = eps0;
+						epsy[i][j] = eps0;
+						mu_z[i][j] = mu0;
 
-					absorptivity[i][j] = 0;
-					absorptivity_x[i][j] = 0;
-					absorptivity_y[i][j] = 0;
+						conducting[i][j] = 0;
+						conducting_x[i][j] = 0;
+						conducting_y[i][j] = 0;
+
+						absorptivity[i][j] = 0;
+						absorptivity_x[i][j] = 0;
+						absorptivity_y[i][j] = 0;
+					}
+
+					Ex [i][j] = 0.0;
+					Ey [i][j] = 0.0;
+					Bz [i][j] = 0.0;
+					Hz_laplacian [i][j] = 0.0;
+
+					rho_abs[i][j] = 0.0;
+					rho_n[i][j] = 0.0;
+					rho_p[i][j] = 0.0;
+					rho_back[i][j] = 0.0;
+					rho_free[i][j] = 0.0;
+					mobility_factor[i][j] = 0.0;
+
+					Jx_abs[i][j] = 0.0;
+					Jy_abs[i][j] = 0.0;
+					Jx_n[i][j] = 0.0;
+					Jy_n[i][j] = 0.0;
+					Jx_p[i][j] = 0.0;
+					Jy_p[i][j] = 0.0;
+					Jx_free[i][j] = 0.0;
+					Jy_free[i][j] = 0.0;
+
+					MG_rho0 [i][j] = 0.0;
+					MG_eps_avg [i][j] = 0.0;
+					MG_phi1 [i][j] = 0.0;
+					MG_phi2 [i][j] = 0.0;
+					for (int n = 0; n < log2_resolution+1; n++) {
+						MG_rho[n][i][j] = 0;
+						MG_epsx[n][i][j] = 0;
+						MG_epsy[n][i][j] = 0;
+					}
+
+					distance[i][j] = Integer.MAX_VALUE;
+					visited[i][j] = false;
+
+					Dx[i][j] = 0.0;
+					Dy[i][j] = 0.0;
+					Hz[i][j] = 0.0;
+					Sx[i][j] = 0.0;
+					Sy[i][j] = 0.0;
+					u[i][j] = 0.0;
+					phi[i][j] = 0.0;
+
+					G[i][j] = 0.0;
+					R[i][j] = 0.0;
+					F_n[i][j] = 0.0;
+					F_p[i][j] = 0.0;
+					grad_E0x_n[i][j] = 0.0;
+					grad_E0y_n[i][j] = 0.0;
+					grad_E0x_p[i][j] = 0.0;
+					grad_E0y_p[i][j] = 0.0;
+					grad_Fx_n[i][j] = 0.0;
+					grad_Fy_n[i][j] = 0.0;
+					grad_Fx_p[i][j] = 0.0;
+					grad_Fy_p[i][j] = 0.0;
+					Q[i][j] = 0.0;
+					S[i][j] = 0.0;
+					F[i][j] = 0.0;
+					debug[i][j] = 0.0;
+
+					controls.selected[i][j] = false;
+					controls.selected_EMF[i][j] = false;
 				}
-
-				Ex [i][j] = 0.0;
-				Ey [i][j] = 0.0;
-				Bz [i][j] = 0.0;
-				Hz_laplacian [i][j] = 0.0;
-
-				rho_abs[i][j] = 0.0;
-				rho_n[i][j] = 0.0;
-				rho_p[i][j] = 0.0;
-				rho_back[i][j] = 0.0;
-				rho_free[i][j] = 0.0;
-				mobility_factor[i][j] = 0.0;
-
-				Jx_abs[i][j] = 0.0;
-				Jy_abs[i][j] = 0.0;
-				Jx_n[i][j] = 0.0;
-				Jy_n[i][j] = 0.0;
-				Jx_p[i][j] = 0.0;
-				Jy_p[i][j] = 0.0;
-				Jx_free[i][j] = 0.0;
-				Jy_free[i][j] = 0.0;
-
-				MG_rho0 [i][j] = 0.0;
-				MG_eps_avg [i][j] = 0.0;
-				MG_phi1 [i][j] = 0.0;
-				MG_phi2 [i][j] = 0.0;
-				for (int n = 0; n < log2_resolution+1; n++) {
-					MG_rho[n][i][j] = 0;
-					MG_epsx[n][i][j] = 0;
-					MG_epsy[n][i][j] = 0;
-				}
-
-				distance[i][j] = Integer.MAX_VALUE;
-				visited[i][j] = false;
-
-				Dx[i][j] = 0.0;
-				Dy[i][j] = 0.0;
-				Hz[i][j] = 0.0;
-				Sx[i][j] = 0.0;
-				Sy[i][j] = 0.0;
-				u[i][j] = 0.0;
-				phi[i][j] = 0.0;
-
-				G[i][j] = 0.0;
-				R[i][j] = 0.0;
-				F_n[i][j] = 0.0;
-				F_p[i][j] = 0.0;
-				grad_E0x_n[i][j] = 0.0;
-				grad_E0y_n[i][j] = 0.0;
-				grad_E0x_p[i][j] = 0.0;
-				grad_E0y_p[i][j] = 0.0;
-				grad_Fx_n[i][j] = 0.0;
-				grad_Fy_n[i][j] = 0.0;
-				grad_Fx_p[i][j] = 0.0;
-				grad_Fy_p[i][j] = 0.0;
-				Q[i][j] = 0.0;
-				S[i][j] = 0.0;
-				F[i][j] = 0.0;
-				debug[i][j] = 0.0;
-
-				controls.selected[i][j] = false;
-				controls.selected_EMF[i][j] = false;
-			}
-		}
-
-		if (resetall) {
-			voltageprobes.clear();
-			currentprobes.clear();
-			ground = null;
-
-			for (Plot p: plots) {
-				p.frame.setVisible(false);
 			}
 
-			opts.setTitle("Brandon's semiconductor simulator");
+			if (resetall) {
+				voltageprobes.clear();
+				currentprobes.clear();
+				ground = null;
+
+				for (Plot p: plots) {
+					p.frame.setVisible(false);
+				}
+
+				opts.setTitle("Brandon's semiconductor simulator");
+			}
+
+			renderer.reset();
+
+			constructBoundary();
+
+			initializeAllMaterials();
+			updateAllMaterials(true);
+			checkCFL();
+		}
+		finally {
+			rwLock.writeLock().unlock();
 		}
 
-
-		constructBoundary();
-
-		initializeAllMaterials();
-		updateAllMaterials(true);
-		checkCFL();
 	}
 
 	public void constructBoundary() {
