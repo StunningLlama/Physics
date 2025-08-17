@@ -115,6 +115,10 @@ public class Simulation extends TimerTask implements ActionListener {
 	public boolean sign_violation = false;
 	
 	public boolean advsettings_tweaked = false;
+	
+	public double AC_phase;
+	public double AC_freq;
+	public double AC_amplitude;
 
 	
 	/* Physical constants */
@@ -377,6 +381,11 @@ public class Simulation extends TimerTask implements ActionListener {
 
 		opts.gui_material.removeItem(MaterialType.ABSORBER);
 		opts.gui_view.removeItem(ScalarView.DEBUG);
+
+		opts.gui_parameter1.setEnabled(true);
+		opts.gui_parameter1.setVisible(true);
+		opts.gui_parameter1_text.setEnabled(true);
+		opts.gui_parameter1_text.setVisible(true);
 
 		opts.pack();
 
@@ -929,14 +938,16 @@ public class Simulation extends TimerTask implements ActionListener {
 
 								double sigma_n = conducting_x[i][j]*mf*mu_electron*Utils.logmean(-rho_n[i+1][j],-rho_n[i][j]);
 								double sigma_p = conducting_x[i][j]*mf*mu_hole*Utils.logmean(rho_p[i+1][j], rho_p[i][j]);
+								
+								double emf_phase = (materials[i][j].type == MaterialType.AC_EMF || materials[i+1][j].type == MaterialType.AC_EMF)? AC_amplitude : 1;
 
 								Jx_abs[i][j] = 0;
 
 								Jx_n[i][j] = conducting_x[i][j]*(-mf*D_electron*(rho_n[i+1][j] - rho_n[i][j])/ds
-										+ sigma_n*(emfx[i][j] + cmfx_n[i][j]/q_n));
+										+ sigma_n*(emf_phase*emfx[i][j] + cmfx_n[i][j]/q_n));
 
 								Jx_p[i][j] = conducting_x[i][j]*(-mf*D_hole*(rho_p[i+1][j] - rho_p[i][j])/ds
-										+ sigma_p*(emfx[i][j] + cmfx_p[i][j]/q_p));
+										+ sigma_p*(emf_phase*emfx[i][j] + cmfx_p[i][j]/q_p));
 
 								double sigma = sigma_n + sigma_p + absorptivity_x[i][j]*epsx[i][j]*absorbing_coeff;
 
@@ -965,13 +976,15 @@ public class Simulation extends TimerTask implements ActionListener {
 								double sigma_n = conducting_y[i][j]*mf*mu_electron*Utils.logmean(-rho_n[i][j+1],-rho_n[i][j]);
 								double sigma_p = conducting_y[i][j]*mf*mu_hole*Utils.logmean(rho_p[i][j+1], rho_p[i][j]);
 
+								double emf_phase = (materials[i][j].type == MaterialType.AC_EMF || materials[i][j+1].type == MaterialType.AC_EMF)? AC_amplitude : 1;
+
 								Jy_abs[i][j] = 0;
 
 								Jy_n[i][j] = conducting_y[i][j]*(-mf*D_electron*(rho_n[i][j+1] - rho_n[i][j])/ds
-										+ sigma_n*(emfy[i][j] + cmfy_n[i][j]/q_n));
+										+ sigma_n*(emf_phase*emfy[i][j] + cmfy_n[i][j]/q_n));
 
 								Jy_p[i][j] = conducting_y[i][j]*(-mf*D_hole*(rho_p[i][j+1] - rho_p[i][j])/ds
-										+ sigma_p*(emfy[i][j] + cmfy_p[i][j]/q_p));
+										+ sigma_p*(emf_phase*emfy[i][j] + cmfy_p[i][j]/q_p));
 
 								double sigma = sigma_n + sigma_p + absorptivity_y[i][j]*epsy[i][j]*absorbing_coeff;
 
@@ -1009,6 +1022,8 @@ public class Simulation extends TimerTask implements ActionListener {
 						}
 
 						time += dt;
+						AC_phase += 2*Math.PI*AC_freq*dt;
+						AC_amplitude = Math.cos(AC_phase);
 
 						controls.advanceframe = false;
 					}
@@ -1963,6 +1978,7 @@ enum MaterialType
 {
 
 	EMF					("Voltage source (Adjustable)",			230, 216, 46, 230),
+	AC_EMF				("AC voltage source (Adjustable)",		230, 150, 216, 230),
 	SWITCH				("Switch",								194, 194, 194, 120),
 	METAL				("Metal",								153, 153, 153, 120),
 	METAL_HIGH_C		("Conductive metal",					191, 191, 191, 120),
@@ -2008,6 +2024,7 @@ enum MaterialType
 
 	public static boolean isConducting(MaterialType material) {
 		return (material == MaterialType.EMF
+				|| material == MaterialType.AC_EMF
 				|| material == MaterialType.SWITCH
 				|| material == MaterialType.METAL
 				|| material == MaterialType.METAL_HIGH_W

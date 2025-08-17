@@ -679,6 +679,28 @@ public class Renderer extends TimerTask {
 					setColor(delta_r, delta_g, delta_b);
 
 					setPixel(i, j);
+				} else if (e.materials[i][j].type == MaterialType.AC_EMF && i > 0 && j > 0 && i < e.nx-1 && j < e.ny-1) {
+					setalphaBG(0.25);
+					setalphaFG(0.75);
+
+					int offset = 10*(2*((i+j)%2)-1);
+					if (e.controls.selected_EMF[i][j])
+						offset = 60*(2*((i+j)%2)-1)-50;
+
+					if ((e.materials[i+1][j].type != MaterialType.AC_EMF
+					|| e.materials[i-1][j].type != MaterialType.AC_EMF
+					|| e.materials[i][j+1].type != MaterialType.AC_EMF
+					| e.materials[i][j-1].type != MaterialType.AC_EMF))
+					{
+						offset = -30;
+					}
+
+					int delta_r = MaterialType.AC_EMF.color_r+offset;
+					int delta_g = MaterialType.AC_EMF.color_g+offset;
+					int delta_b = MaterialType.AC_EMF.color_b+offset;
+					setColor(delta_r, delta_g, delta_b);
+
+					setPixel(i, j);
 				} else if (e.materials[i][j].type == MaterialType.SWITCH && i > 0 && j > 0 && i < e.nx-1 && j < e.ny-1) {
 					setalphaBG(0.25);
 					setalphaFG(0.75);
