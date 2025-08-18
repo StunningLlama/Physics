@@ -28,13 +28,6 @@ import javax.swing.ListCellRenderer;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.border.EmptyBorder;
 
-import electrodynamics.Controls.Brush;
-import electrodynamics.Controls.BrushShape;
-import electrodynamics.Renderer.ScalarView;
-import electrodynamics.Renderer.VectorMode;
-import electrodynamics.Renderer.VectorView;
-import electrodynamics.Simulation.BoundaryCondition;
-
 public class MainWindow extends JFrame {
 
 	/**

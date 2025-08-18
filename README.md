@@ -63,15 +63,15 @@ The main way to interact with circuits is to change the strength of voltage sour
 
 ![Field lines](images/lines.png)
 
-**Dots \[Java version\]:** The velocity of the dots is proportional to the value of the vector field.
+**Dots \[desktop\]:** The velocity of the dots is proportional to the value of the vector field.
 
 ![Dots](images/dots.png)
 
-**Contour \[Java version\]:** Contour lines indicate a region on which the scalar field has a constant value.
+**Contour \[desktop\]:** Contour lines indicate a region on which the scalar field has a constant value.
 
 ![Contour lines](images/contour.png)
 
-**Charge carriers \[Java version\]:** Electrons and holes are represented as blue and red dots, respectively. Both dots move at the actual drift velocities of their corresponding charge carriers and their density accurately reflects the density of charge carriers. This is much more realistic but less flexible than the dots view.
+**Charge carriers \[desktop\]:** Electrons and holes are represented as blue and red dots, respectively. Both dots move at the actual drift velocities of their corresponding charge carriers and their density accurately reflects the density of charge carriers. This is much more realistic but less flexible than the dots view.
 
 ![Charge carriers](images/carriers.png)
 
@@ -95,7 +95,7 @@ The main way to interact with circuits is to change the strength of voltage sour
 | Load scenario | Loads a simulation from a file. |
 | Clear all | Removes all materials and resets all fields. |
 | Set fields to zero | Sets all fields to their default values, leaving the materials unchanged. |
-| Advanced settings  <br>\[Java version\] | Opens advanced simulation settings window, for advanced users only. |
+| Advanced settings  <br>\[desktop\] | Opens advanced simulation settings window, for advanced users only. |
 | Tool | Selects one of the tools. |
 
 ## Tools
@@ -108,10 +108,10 @@ The main way to interact with circuits is to change the strength of voltage sour
 | Current  <br>\[click and drag\] | Adds a current probe that measures current across a wire. |
 | Ground | Specifies the point relative to which probes measure voltage (optional). |
 | Delete probe | Click to delete a probe. |
-| Plot bands  <br>\[click and drag, Java version\] | Specifies a 1D line along which the bands are plotted. The plot contains the conduction and valence energy band edges as well as the quasi-Fermi levels of electrons in both bands.<br><br>![Band plot](images/bandplot.png)<br><br>_Valence and conduction band energies shown as solid lines. Quasi-Fermi levels are dashed lines._ |
-| Plot scalar field  <br>\[click and drag, Java version\] | Makes a plot of the currently selected scalar field. |
-| Plot carriers  <br>\[click and drag, Java version\] | Makes a logarithmic plot of the number density of electrons and holes. |
-| Flashlight  <br>\[click and hold, Java version\] | Shines a light on the region under the cursor. Light generates electron and hole pairs. |
+| Plot bands  <br>\[click and drag, desktop\] | Specifies a 1D line along which the bands are plotted. The plot contains the conduction and valence energy band edges as well as the quasi-Fermi levels of electrons in both bands.<br><br>![Band plot](images/bandplot.png)<br><br>_Valence and conduction band energies shown as solid lines. Quasi-Fermi levels are dashed lines._ |
+| Plot scalar field  <br>\[click and drag, desktop\] | Makes a plot of the currently selected scalar field. |
+| Plot carriers  <br>\[click and drag, desktop\] | Makes a logarithmic plot of the number density of electrons and holes. |
+| Flashlight  <br>\[click and hold, desktop\] | Shines a light on the region under the cursor. Light generates electron and hole pairs. |
 | Replace | Similar to the draw tool, but overwrites occupied areas. |
 | Line  <br>\[click and drag\] | Draws a line of material. |
 | Fill | Fills a region with a certain material, similar to the bucket tool. |
@@ -143,7 +143,7 @@ The main way to interact with circuits is to change the strength of voltage sour
 | Left mouse | Draw material |
 | Right mouse | Erase material |
 | Middle mouse | Pick material |
-| R \[Java version\] | Record probe data (saves to probedata.txt) |
+| R \[desktop\] | Record probe data (saves to probedata.txt) |
 
 ## Materials
 
