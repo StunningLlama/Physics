@@ -30,8 +30,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 
-import electrodynamics.Simulation.BoundaryCondition;
-
 public class SaveManager {
 	Simulation e;
 	
@@ -291,7 +289,7 @@ public class SaveManager {
 
 		for (int i = 0; i < e.nx; i++) {
 			for (int j = 0; j < e.ny; j++) {
-				if (field[i][j] == null || field[i][j].type == MaterialType.ABSORBER)
+				if (field[i][j] == null)
 					field[i][j] = new Material();
 			}
 		}

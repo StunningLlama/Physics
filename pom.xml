@@ -77,7 +77,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>electrodynamics.Simulation</mainClass>
+							<mainClass>electrodynamics.SemiSim</mainClass>
 						</manifest>
 					</archive>
 

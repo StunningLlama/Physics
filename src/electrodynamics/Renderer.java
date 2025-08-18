@@ -15,8 +15,9 @@ import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferInt;
 import java.util.ArrayList;
 import java.util.Random;
-import java.util.TimerTask;
 import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JPanel;
 
@@ -24,11 +25,12 @@ import electrodynamics.Controls.Brush;
 import electrodynamics.plot.Plot;
 import electrodynamics.util.DistributionSampler;
 import electrodynamics.util.FastRandom;
+import electrodynamics.util.PeriodicTask;
 import electrodynamics.util.Timer;
 import electrodynamics.util.Utils;
 import electrodynamics.util.Vector;
 
-public class Renderer extends TimerTask {
+public class Renderer extends PeriodicTask {
 	Simulation e;
 	
 	/* Graphics */
@@ -53,8 +55,8 @@ public class Renderer extends TimerTask {
 	public int scalefactor;
 	public int imgwidth = 0;
 	public int imgheight = 0;
-	public int targetframerate = 60;
-	public int frameduration = 1000/targetframerate;
+	public double targetframerate = 60;
+	public double frameduration = 1000.0/targetframerate;
 	
 	double t_prev = 0;
 	double delta_t = 0;
@@ -68,8 +70,12 @@ public class Renderer extends TimerTask {
 
 	int probetexttimer = 0;
 
+	/* Multithreading */
+	
+	CyclicBarrier graphics_start_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
+	CyclicBarrier graphics_end_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
 
-	// Electron and hole dots
+	/* Electron and hole dots */
 	
 	DistributionSampler rho_p_dist = new DistributionSampler();
 	DistributionSampler rho_n_dist = new DistributionSampler();
@@ -78,7 +84,7 @@ public class Renderer extends TimerTask {
 	double cc_default_dot_density = 5e11;		// How many electron/hole dots to draw
 	double tau = 1e-12;		// How long a dot stays on the screen
 	
-	// Performance profiling
+	/* Performance profiling */
 	
 	Timer FPStimer = new Timer("Graphics FPS", 10, true);
 	Timer t5 = new Timer("Graphics", 20, true);
@@ -403,8 +409,10 @@ public class Renderer extends TimerTask {
 		return 3*y*y - 2*y*y*y;
 	}
 
+	
 	@Override
 	public void run() {
+		
 		e.rwLock.readLock().lock();
 		try {
 			t5.start();
@@ -418,11 +426,13 @@ public class Renderer extends TimerTask {
 			FPStimer.stop();
 			FPStimer.start();
 		} catch (Exception e1) {
-			e.displayErrorMessage(e1);
+			SemiSim.displayErrorMessage(e1);
 		}
 		finally {
 			e.rwLock.readLock().unlock();
 		}
+
+        SemiSim.instance.threadPool.schedule(this, nextDelay(frameduration), TimeUnit.MILLISECONDS);
 	}
 	
 	BufferedImage copyImage(BufferedImage src, BufferedImage dst) {
@@ -884,9 +894,9 @@ public class Renderer extends TimerTask {
 		if ((VectorView) e.opts.gui_view_vec.getSelectedItem() != VectorView.NONE) {
 			setalphaBG(1.0);
 			try {
-				if (e.graphics_threads.size() == e.n_threads) {
-					e.graphics_start_barrier.await();
-					e.graphics_end_barrier.await();
+				if (SemiSim.instance.graphics_threads.size() == SemiSim.n_threads) {
+					graphics_start_barrier.await();
+					graphics_end_barrier.await();
 				}
 			} catch (InterruptedException | BrokenBarrierException e) {
 				e.printStackTrace();
@@ -1084,7 +1094,7 @@ public class Renderer extends TimerTask {
 		public void run() {
 			try {
 				while (true) {
-					e.graphics_start_barrier.await();
+					graphics_start_barrier.await();
 
 					double arrowlength = 10.0/scalefactor;
 
@@ -1344,7 +1354,7 @@ public class Renderer extends TimerTask {
 							}
 						}
 					}
-					e.graphics_end_barrier.await();
+					graphics_end_barrier.await();
 				}
 			} catch (InterruptedException | BrokenBarrierException e) {
 				e.printStackTrace();

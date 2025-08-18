@@ -8,6 +8,7 @@ import java.awt.Cursor;
 import java.awt.MouseInfo;
 import java.awt.PointerInfo;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -16,6 +17,8 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.io.File;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -29,13 +32,12 @@ import javax.swing.SwingUtilities;
 
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorView;
-import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.plot.Plot;
 import electrodynamics.util.Font7x5;
 import electrodynamics.util.Utils;
 import electrodynamics.util.Vector;
 
-public class Controls implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
+public class Controls implements ActionListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
 	Simulation e;
 	
 	/* Keyboard controls */
@@ -865,6 +867,42 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 	}
 
 	@Override
+	public void actionPerformed(ActionEvent ev) {
+		if (ev.getSource() == e.opts.gui_reset)
+			clear = true;
+		else if (ev.getSource() == e.opts.gui_resetall)
+			reset = true;
+		else if (ev.getSource() == e.opts.gui_save)
+			save = true;
+		else if (ev.getSource() == e.opts.gui_open)
+			load = true;
+		else if (ev.getSource() == e.opts.gui_help)
+			try {
+				File helpfile = new File("README.html");
+				java.awt.Desktop.getDesktop().browse(helpfile.toURI());
+			} catch (IOException ex) {
+				ex.printStackTrace();
+			}
+		else if (ev.getSource() == e.opts.gui_editdesc) {
+			e.opts.textPane.setEditable(!e.opts.textPane.isEditable());
+		} else if (ev.getSource() == e.opts.gui_view) {
+			e.updateMiscFields = true;
+		} else if (ev.getSource() == e.opts.gui_view_vec) {
+			e.updateMiscFields = true;
+		} else if (ev.getSource() == e.opts.gui_brush) {
+			e.controls.brush_changed = true;
+		} else if (ev.getSource() == e.opts.gui_adv_settings) {
+			e.savemanager.writeAdvancedSettings();
+			e.adv_opts.setVisible(true);
+		} else if (ev.getSource() == e.adv_opts.btn_apply) {
+			e.savemanager.readAdvancedSettings();
+			e.adv_opts.setVisible(false);
+		} else if (ev.getSource() == e.adv_opts.btn_cancel) {
+			e.adv_opts.setVisible(false);
+		}
+	}
+	
+	@Override
 	public void mouseClicked(MouseEvent arg0) {}
 
 	@Override
@@ -1092,6 +1130,8 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 
     public void addKeyBinds(JPanel contentPane) {
     	InputMap map = contentPane.getInputMap(JComponent.WHEN_FOCUSED);
+    	InputMap map2 = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    	
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_P, 0), key_pause);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), key_pause);
     	contentPane.getActionMap().put(key_pause, key_pause);
@@ -1105,18 +1145,18 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Q, 0), key_changebrush);
     	contentPane.getActionMap().put(key_changebrush, key_changebrush);
 
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, InputEvent.SHIFT_DOWN_MASK), key_shift);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, InputEvent.SHIFT_DOWN_MASK), key_shift);
     	contentPane.getActionMap().put(key_shift, key_shift);
 
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, 0, true), key_shift_up);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, 0, true), key_shift_up);
     	contentPane.getActionMap().put(key_shift_up, key_shift_up);
 
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, InputEvent.CTRL_DOWN_MASK), key_ctrl);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_META, InputEvent.META_DOWN_MASK), key_ctrl);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, InputEvent.CTRL_DOWN_MASK), key_ctrl);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_META, InputEvent.META_DOWN_MASK), key_ctrl);
     	contentPane.getActionMap().put(key_ctrl, key_ctrl);
 
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, 0, true), key_ctrl_up);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_META, 0, true), key_ctrl_up);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, 0, true), key_ctrl_up);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_META, 0, true), key_ctrl_up);
     	contentPane.getActionMap().put(key_ctrl_up, key_ctrl_up);
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK), key_cut);
@@ -1150,10 +1190,10 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, 0), key_textbg);
     	contentPane.getActionMap().put(key_textbg, key_textbg);
 
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, InputEvent.ALT_DOWN_MASK), key_alt);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, InputEvent.ALT_DOWN_MASK), key_alt);
     	contentPane.getActionMap().put(key_alt, key_alt);
 
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, 0, true), key_alt_up);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, 0, true), key_alt_up);
     	contentPane.getActionMap().put(key_alt_up, key_alt_up);
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, 0), key_logdata);

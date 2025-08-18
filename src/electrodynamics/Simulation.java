@@ -4,20 +4,17 @@
 
 package electrodynamics;
 import java.awt.BorderLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -26,17 +23,17 @@ import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.plot.BandPlot;
 import electrodynamics.plot.CarrierPlot;
 import electrodynamics.plot.Plot;
 import electrodynamics.plot.ScalarPlot;
+import electrodynamics.util.PeriodicTask;
 import electrodynamics.util.Timer;
 import electrodynamics.util.Utils;
 
-public class Simulation extends TimerTask implements ActionListener {
+public class Simulation extends PeriodicTask {
 	/*
 	 * Demos:
 	 * 	- PN diode (LED)
@@ -70,21 +67,14 @@ public class Simulation extends TimerTask implements ActionListener {
 	
 	
 	/* Multithreading */
-
-	int n_threads = Runtime.getRuntime().availableProcessors();
-	
-	CyclicBarrier start_barrier = new CyclicBarrier(n_threads + 1);
-	CyclicBarrier stop_barrier = new CyclicBarrier(n_threads + 1);
-	CyclicBarrier mid_barrier = new CyclicBarrier(n_threads);
-	ArrayList<SimulationThread> sim_threads = new ArrayList<>();
-
-	CyclicBarrier graphics_start_barrier = new CyclicBarrier(n_threads + 1);
-	CyclicBarrier graphics_end_barrier = new CyclicBarrier(n_threads + 1);
-	ArrayList<Renderer.GraphicsThread> graphics_threads = new ArrayList<>();
 	
 	ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
 	ReentrantLock poissonLock = new ReentrantLock(true);
-	
+
+	CyclicBarrier start_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
+	CyclicBarrier stop_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
+	CyclicBarrier mid_barrier = new CyclicBarrier(SemiSim.n_threads);
+
 	
 	/* Domain parameters */
 
@@ -305,47 +295,6 @@ public class Simulation extends TimerTask implements ActionListener {
 	Timer t9 = new Timer("Debug", 20, false);
 	Timer simFPStimer = new Timer("Simulation FPS", 10, true);
 
-
-
-	public static void main(String[] args) {
-		try {
-			UIManager.setLookAndFeel(
-					UIManager.getSystemLookAndFeelClassName());
-		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
-			e.printStackTrace();
-		}
-		
-		SwingUtilities.invokeLater(() -> {
-			Simulation sim = new Simulation();
-			
-			java.util.Timer master_timer = new java.util.Timer();
-			java.util.Timer graphics_timer = new java.util.Timer();
-			java.util.Timer misc_timer = new java.util.Timer();
-			//javax.swing.Timer executor = new javax.swing.Timer(0, sim);
-			//executor.setRepeats(false);
-			//executor.setCoalesce(true);
-			
-			for (int i = 0; i < sim.n_threads; i++) {
-				sim.sim_threads.add(sim.new SimulationThread(i, sim.n_threads, sim.nx));
-			}
-
-			for (int i = 0; i < sim.n_threads; i++) {
-				sim.graphics_threads.add(sim.renderer.new GraphicsThread(i, sim.n_threads));
-			}
-
-			for (int i = 0; i < sim.n_threads; i++) {
-				sim.sim_threads.get(i).start();
-				sim.graphics_threads.get(i).start();
-			}
-
-			master_timer.scheduleAtFixedRate(sim, 0, sim.renderer.frameduration);
-			graphics_timer.scheduleAtFixedRate(sim.renderer, 0, sim.renderer.frameduration);
-			misc_timer.scheduleAtFixedRate(sim.potentialSolver, 0, sim.renderer.frameduration);
-			
-			//t.start();
-		});
-	}
-
 	public Simulation() {
 		controls = new Controls(this);
 		renderer = new Renderer(this);
@@ -358,7 +307,7 @@ public class Simulation extends TimerTask implements ActionListener {
 		scalarplot = new ScalarPlot(); plots.add(scalarplot);
 		carrierplot = new CarrierPlot(); plots.add(carrierplot);
 
-		detect64Bit();
+		SemiSim.detect64Bit();
 
 		setSize(default_resolution, default_width);
 		resetFields(true);
@@ -368,17 +317,17 @@ public class Simulation extends TimerTask implements ActionListener {
 		canvas.addMouseMotionListener(controls);
 		canvas.addMouseWheelListener(controls);
 		canvas.addKeyListener(controls);
-		opts.gui_reset.addActionListener(this);
-		opts.gui_resetall.addActionListener(this);
-		opts.gui_save.addActionListener(this);
-		opts.gui_open.addActionListener(this);
-		opts.gui_help.addActionListener(this);
-		opts.gui_editdesc.addActionListener(this);
-		opts.gui_view.addActionListener(this);
-		opts.gui_view_vec.addActionListener(this);
-		opts.gui_brush.addActionListener(this);
-		opts.gui_material.addActionListener(this);
-		opts.gui_adv_settings.addActionListener(this);
+		opts.gui_reset.addActionListener(controls);
+		opts.gui_resetall.addActionListener(controls);
+		opts.gui_save.addActionListener(controls);
+		opts.gui_open.addActionListener(controls);
+		opts.gui_help.addActionListener(controls);
+		opts.gui_editdesc.addActionListener(controls);
+		opts.gui_view.addActionListener(controls);
+		opts.gui_view_vec.addActionListener(controls);
+		opts.gui_brush.addActionListener(controls);
+		opts.gui_material.addActionListener(controls);
+		opts.gui_adv_settings.addActionListener(controls);
 
 		//opts.gui_material.removeItem(MaterialType.ABSORBER);
 		//opts.gui_view.removeItem(ScalarView.DEBUG);
@@ -393,8 +342,8 @@ public class Simulation extends TimerTask implements ActionListener {
 		controls.addKeyBinds(canvas);
 
 		adv_opts = new AdvancedOptions();
-		adv_opts.btn_apply.addActionListener(this);
-		adv_opts.btn_cancel.addActionListener(this);
+		adv_opts.btn_apply.addActionListener(controls);
+		adv_opts.btn_cancel.addActionListener(controls);
 		adv_opts.setVisible(false);
 		
 		InputMap im = (InputMap)UIManager.get("Button.focusInputMap");
@@ -408,17 +357,6 @@ public class Simulation extends TimerTask implements ActionListener {
 			datastream = new PrintWriter(new FileOutputStream(datafile));
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-		}
-	}
-
-	public void detect64Bit() {
-		if (!System.getProperty("sun.arch.data.model").equals("64"))
-		{
-			int result = JOptionPane.showConfirmDialog(opts, "Running this application on a 32-bit platform may cause some issues. Do you still wish to proceed?", "Message", JOptionPane.YES_NO_OPTION);
-			if (result != JOptionPane.OK_OPTION)
-			{
-				System.exit(0);
-			}
 		}
 	}
 
@@ -483,14 +421,16 @@ public class Simulation extends TimerTask implements ActionListener {
     			simFPStimer.start();
 
     		} catch (Exception e) {
-    			displayErrorMessage(e);
+    			SemiSim.displayErrorMessage(e);
     		}
         } finally {
             rwLock.readLock().unlock();
         }
+
+        SemiSim.instance.threadPool.schedule(this, nextDelay(renderer.frameduration), TimeUnit.MILLISECONDS);
 	}
 
-	TimerTask potentialSolver = new TimerTask() {
+	TimerTask potentialSolver = new PeriodicTask() {
 		@Override
 		public void run() {
 	        rwLock.readLock().lock();
@@ -500,33 +440,14 @@ public class Simulation extends TimerTask implements ActionListener {
 					//calcMiscFields(true);
 				}
 	        } catch( Exception e) {
-    			displayErrorMessage(e);
+	        	SemiSim.displayErrorMessage(e);
 	        } finally {
 	            rwLock.readLock().unlock();
 	        }
+	        SemiSim.instance.threadPool.schedule(this, nextDelay(renderer.frameduration), TimeUnit.MILLISECONDS);
 		}
 	};
 	
-	public void displayErrorMessage(Exception e) {
-		try {
-			SwingUtilities.invokeAndWait(() -> {
-				JOptionPane.showMessageDialog(opts, e.toString(), "Error", JOptionPane.OK_OPTION);
-				e.printStackTrace();
-				try {
-					PrintWriter pw = new PrintWriter(new FileOutputStream("error_log.txt"));
-				    e.printStackTrace(pw);
-				    pw.flush();
-				    pw.close();
-				} catch (FileNotFoundException e1) {
-					System.exit(-1);
-				}     
-				System.exit(-1);
-			});
-		} catch (InvocationTargetException | InterruptedException e1) {
-			System.exit(-1);
-		}
-	}
-
 	public void updateConstants() {
 		c = 1/Math.sqrt(eps0*mu0);
 		beta = 1/(k*T);
@@ -564,8 +485,6 @@ public class Simulation extends TimerTask implements ActionListener {
 			this.resolution = resolution;
 			nx = resolution;
 			ny = resolution;
-
-
 
 			Ex = new double[nx][ny];
 			Ey = new double[nx][ny];
@@ -909,8 +828,8 @@ public class Simulation extends TimerTask implements ActionListener {
 				while (true) {
 					start_barrier.await();
 
-					i_min = (n_thread*nx)/n_threads;
-					i_max = (n_thread+1)*nx/n_threads-1;
+					i_min = (n_thread*nx)/SemiSim.n_threads;
+					i_max = (n_thread+1)*nx/SemiSim.n_threads-1;
 
 					if (n_thread == 0) {
 						t6.start();
@@ -1945,61 +1864,21 @@ public class Simulation extends TimerTask implements ActionListener {
 			}
 		}
 	}
+}
 
+enum BoundaryCondition {
+	DISSIPATIVE("Absorbing boundary"),
+	CONDUCTING("Conducting boundary");
 
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		if (e.getSource() instanceof javax.swing.Timer)
-			this.run();
-		else if (e.getSource() == opts.gui_reset)
-			controls.clear = true;
-		else if (e.getSource() == opts.gui_resetall)
-			controls.reset = true;
-		else if (e.getSource() == opts.gui_save)
-			controls.save = true;
-		else if (e.getSource() == opts.gui_open)
-			controls.load = true;
-		else if (e.getSource() == opts.gui_help)
-			try {
-				File helpfile = new File("README.html");
-				java.awt.Desktop.getDesktop().browse(helpfile.toURI());
-			} catch (IOException ex) {
-				ex.printStackTrace();
-			}
-		else if (e.getSource() == opts.gui_editdesc) {
-			opts.textPane.setEditable(!opts.textPane.isEditable());
-		} else if (e.getSource() == opts.gui_view) {
-			updateMiscFields = true;
-		} else if (e.getSource() == opts.gui_view_vec) {
-			updateMiscFields = true;
-		} else if (e.getSource() == opts.gui_brush) {
-			controls.brush_changed = true;
-		} else if (e.getSource() == opts.gui_adv_settings) {
-			savemanager.writeAdvancedSettings();
-			adv_opts.setVisible(true);
-		} else if (e.getSource() == adv_opts.btn_apply) {
-			savemanager.readAdvancedSettings();
-			adv_opts.setVisible(false);
-		} else if (e.getSource() == adv_opts.btn_cancel) {
-			adv_opts.setVisible(false);
-		}
+	String name;
+	BoundaryCondition(String name)
+	{
+		this.name = name;
 	}
 
-
-	enum BoundaryCondition {
-		DISSIPATIVE("Absorbing boundary"),
-		CONDUCTING("Conducting boundary");
-
-		String name;
-		BoundaryCondition(String name)
-		{
-			this.name = name;
-		}
-
-		@Override
-		public String toString() {
-			return name;
-		}
+	@Override
+	public String toString() {
+		return name;
 	}
 }
 
