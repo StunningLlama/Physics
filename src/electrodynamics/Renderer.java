@@ -56,7 +56,7 @@ public class Renderer extends PeriodicTask {
 	public int imgwidth = 0;
 	public int imgheight = 0;
 	public double targetframerate = 60;
-	public double frameduration = 1000.0/targetframerate;
+	public double frameduration = 1000/targetframerate;
 	
 	double t_prev = 0;
 	double delta_t = 0;

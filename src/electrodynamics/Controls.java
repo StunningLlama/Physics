@@ -754,7 +754,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		if ((releasing && Brush.isMaterialModifyingBrush(brush)) || (BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary || update) {
 
 			//e.resetFields(false);
-			e.constructBoundary();
 			e.updateAllMaterials(false);
 			e.multigridSolve(true, false);
 		}
@@ -842,9 +841,15 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		
 
 		e.AC_freq = 1e13*Math.pow(10, e.opts.gui_parameter1.getValue()/10.0);
-		//e.opts.gui_parameter1.setEnabled(true);
-		//e.opts.gui_parameter1.setVisible(true);
-		//e.opts.gui_parameter1_text.setVisible(true);
+		if (e.AC_source_exists) {
+			e.opts.gui_parameter1.setEnabled(true);
+			e.opts.gui_parameter1.setVisible(true);
+			e.opts.gui_parameter1_text.setVisible(true);
+		} else {
+			e.opts.gui_parameter1.setEnabled(false);
+			e.opts.gui_parameter1.setVisible(false);
+			e.opts.gui_parameter1_text.setVisible(false);
+		}
 		
 		e.opts.gui_parameter1_text.setText("AC Freq: " + Utils.getSI(e.AC_freq, "Hz"));
 

@@ -109,6 +109,7 @@ public class Simulation extends PeriodicTask {
 	public double AC_phase;
 	public double AC_freq;
 	public double AC_amplitude;
+	public boolean AC_source_exists;
 
 	
 	/* Physical constants */
@@ -252,6 +253,9 @@ public class Simulation extends PeriodicTask {
 	public int[][] conducting;		// Does the material have partially filled bands
 	public int[][] conducting_x;
 	public int[][] conducting_y;
+
+	public int[][] ac_x;
+	public int[][] ac_y;
 
 	public double[][] absorptivity;
 	public double[][] absorptivity_x;
@@ -524,6 +528,8 @@ public class Simulation extends PeriodicTask {
 			conducting = new int[nx][ny];
 			conducting_x = new int[nx][ny];
 			conducting_y = new int[nx][ny];
+			ac_x = new int[nx][ny];
+			ac_y = new int[nx][ny];
 			absorptivity = new double[nx][ny];
 			absorptivity_x = new double[nx][ny];
 			absorptivity_y = new double[nx][ny];
@@ -635,6 +641,9 @@ public class Simulation extends PeriodicTask {
 						conducting_x[i][j] = 0;
 						conducting_y[i][j] = 0;
 
+						ac_x[i][j] = 0;
+						ac_y[i][j] = 0;
+
 						absorptivity[i][j] = 0;
 						absorptivity_x[i][j] = 0;
 						absorptivity_y[i][j] = 0;
@@ -717,8 +726,6 @@ public class Simulation extends PeriodicTask {
 			}
 
 			renderer.reset();
-
-			constructBoundary();
 
 			initializeAllMaterials();
 			updateAllMaterials(true);
@@ -903,7 +910,7 @@ public class Simulation extends PeriodicTask {
 								double sigma_n = conducting_x[i][j]*mf*mu_electron*Utils.logmean(-rho_n[i+1][j],-rho_n[i][j]);
 								double sigma_p = conducting_x[i][j]*mf*mu_hole*Utils.logmean(rho_p[i+1][j], rho_p[i][j]);
 								
-								double emf_phase = (materials[i][j].type == MaterialType.AC_EMF || materials[i+1][j].type == MaterialType.AC_EMF)? AC_amplitude : 1;
+								double emf_phase = ac_x[i][j]*AC_amplitude+(1-ac_x[i][j]);
 
 								Jx_abs[i][j] = 0;
 
@@ -940,7 +947,7 @@ public class Simulation extends PeriodicTask {
 								double sigma_n = conducting_y[i][j]*mf*mu_electron*Utils.logmean(-rho_n[i][j+1],-rho_n[i][j]);
 								double sigma_p = conducting_y[i][j]*mf*mu_hole*Utils.logmean(rho_p[i][j+1], rho_p[i][j]);
 
-								double emf_phase = (materials[i][j].type == MaterialType.AC_EMF || materials[i][j+1].type == MaterialType.AC_EMF)? AC_amplitude : 1;
+								double emf_phase = ac_y[i][j]*AC_amplitude+(1-ac_y[i][j]);
 
 								Jy_abs[i][j] = 0;
 
@@ -1294,6 +1301,8 @@ public class Simulation extends PeriodicTask {
 	}
 
 	public void updateAllMaterials(boolean updateRho) {
+		constructBoundary();
+		
 		for (int i = 1; i < nx-1; i++)
 		{
 			for (int j = 1; j < ny-1; j++)
@@ -1320,6 +1329,7 @@ public class Simulation extends PeriodicTask {
 						+ materials[i][j].emf*Math.cos(materials[i][j].emf_direction)*materials[i][j].activated);
 				epsx[i][j] = eps0*0.5*(materials[i+1][j].eps_r + materials[i][j].eps_r);
 				absorptivity_x[i][j] = Math.min(materials[i+1][j].absorptivity, materials[i][j].absorptivity);
+				ac_x[i][j] = (materials[i][j].type == MaterialType.AC_EMF || materials[i+1][j].type == MaterialType.AC_EMF) ? 1:0;
 			}
 		}
 
@@ -1332,11 +1342,13 @@ public class Simulation extends PeriodicTask {
 						+ materials[i][j].emf*Math.sin(materials[i][j].emf_direction)*materials[i][j].activated);
 				epsy[i][j] = eps0*0.5*(materials[i][j+1].eps_r + materials[i][j].eps_r);
 				absorptivity_y[i][j] = Math.min(materials[i][j+1].absorptivity, materials[i][j].absorptivity);
+				ac_y[i][j] = (materials[i][j].type == MaterialType.AC_EMF || materials[i][j+1].type == MaterialType.AC_EMF) ? 1:0;
 			}
 		}
 
 		computeChemicalForces();
 
+		AC_source_exists = false;
 		for (int i = 0; i < nx; i++)
 		{
 			for (int j = 0; j < ny; j++)
@@ -1356,6 +1368,9 @@ public class Simulation extends PeriodicTask {
 				}
 
 				rho_free[i][j] = rho_abs[i][j]+rho_n[i][j]+rho_p[i][j]+rho_back[i][j];
+				
+				if (materials[i][j].type == MaterialType.AC_EMF)
+					AC_source_exists = true;
 			}
 		}
 
