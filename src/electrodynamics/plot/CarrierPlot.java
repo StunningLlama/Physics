@@ -33,7 +33,9 @@ public class CarrierPlot extends Plot {
 	@Override
 	public void updatePlot(Simulation e) {
 		if (frame.isVisible() && e.frame%10 == 0) {
-
+			rho_n_data.setNotify(false);
+			rho_p_data.setNotify(false);
+			
 			rho_n_data.clear();
 			rho_p_data.clear();
 
@@ -48,6 +50,9 @@ public class CarrierPlot extends Plot {
 				double rho_p = Utils.bilinearinterp_geometric(e.rho_p, x, y, e.nx, e.ny)/e.e_charge;
 				if (rho_p > 0) rho_p_data.add(t, rho_p);
 			}
+
+			rho_n_data.setNotify(true);
+			rho_p_data.setNotify(true);
 		}
 	}
 }

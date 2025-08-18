@@ -8,6 +8,7 @@ import java.awt.Cursor;
 import java.awt.MouseInfo;
 import java.awt.PointerInfo;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -16,6 +17,8 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.io.File;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -29,13 +32,12 @@ import javax.swing.SwingUtilities;
 
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorView;
-import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.plot.Plot;
 import electrodynamics.util.Font7x5;
 import electrodynamics.util.Utils;
 import electrodynamics.util.Vector;
 
-public class Controls implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
+public class Controls implements ActionListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
 	Simulation e;
 	
 	/* Keyboard controls */
@@ -348,7 +350,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 			double angle = 0;
 			MaterialType mat = (MaterialType) e.opts.gui_material.getSelectedItem();
 
-			if (mat == MaterialType.EMF) {
+			if (mat == MaterialType.EMF || mat == MaterialType.AC_EMF) {
 				e.opts.gui_parameter2.setVisible(true);
 				e.opts.gui_parameter2_text.setVisible(true);
 
@@ -388,7 +390,22 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 					}
 				} else if (brush == Brush.FILL) {
 					if (pressing) {
-						floodFillSet(mx_index, my_index, e.materials[mx_index][my_index].type, mat, angle);
+						MaterialType old_mat = e.materials[mx_index][my_index].type;
+						MaterialType new_mat = mat;
+						double new_angle = angle;
+						this.floodFill(mx_index, my_index, new FloodFillFunc() {
+							@Override
+							public boolean isValid(int i, int j) {
+								return e.materials[i][j].type == old_mat;
+							}
+
+							@Override
+							public void fill(int i, int j) {
+								e.eraseMaterial(i, j);
+								e.initializeMaterial(i, j, new_mat);
+								if (new_mat == MaterialType.EMF || new_mat == MaterialType.AC_EMF) e.materials[i][j].emf_direction = new_angle;
+							}
+						});
 					}
 				} else if (brush == Brush.LIGHT) {
 					if (mouse_pressed) {
@@ -459,7 +476,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 			break;
 
 		case INTERACT:
-			if (e.materials[mx_index][my_index].type == MaterialType.EMF || e.materials[mx_index][my_index].type == MaterialType.SWITCH)
+			if (e.materials[mx_index][my_index].type == MaterialType.EMF || e.materials[mx_index][my_index].type == MaterialType.AC_EMF || e.materials[mx_index][my_index].type == MaterialType.SWITCH)
 				e.canvas.setCursor(HAND_CURSOR);
 			else
 				e.canvas.setCursor(DEFAULT_CURSOR);
@@ -476,8 +493,19 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 				}
 				EMF_selected = false;
 
-				if (e.materials[mx_index][my_index].type == MaterialType.EMF && turn_on_EMF) {
-					floodFillSelectEMF(mx_index, my_index, true);
+				if ((e.materials[mx_index][my_index].type == MaterialType.EMF || e.materials[mx_index][my_index].type == MaterialType.AC_EMF) && turn_on_EMF) {
+					this.floodFill(mx_index, my_index, new FloodFillFunc() {
+						@Override
+						public boolean isValid(int i, int j) {
+							return e.materials[i][j].type == e.materials[mx_index][my_index].type && selected_EMF[i][j] != true;
+						}
+
+						@Override
+						public void fill(int i, int j) {
+							selected_EMF[i][j] = true;
+						}
+					});
+					
 					EMF_selected = true;
 					int setting = (int)(Math.round(50*e.materials[mx_index][my_index].emf/max_EMF));
 					e.opts.gui_parameter3.setValue(setting);
@@ -485,7 +513,20 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 				}
 
 				if (e.materials[mx_index][my_index].type == MaterialType.SWITCH) {
-					this.floodFillToggleSwitch(mx_index, my_index, 1-e.materials[mx_index][my_index].activated);
+					int active = 1-e.materials[mx_index][my_index].activated;
+					
+					this.floodFill(mx_index, my_index, new FloodFillFunc() {
+						@Override
+						public boolean isValid(int i, int j) {
+							return e.materials[i][j].type == MaterialType.SWITCH && e.materials[i][j].activated != active;
+						}
+
+						@Override
+						public void fill(int i, int j) {
+							e.materials[i][j].activated = active;
+						}
+					});
+				
 					update = true;
 				}
 			}
@@ -494,7 +535,18 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		case SELECT:
 			if (pressing) {
 				if (brush == Brush.FLOODSELECT && !moving_selection) {
-					floodFillSelect(mx_index, my_index, e.materials[mx_index][my_index].type, !selected[mx_index][my_index]);
+
+					this.floodFill(mx_index, my_index, new FloodFillFunc() {
+						@Override
+						public boolean isValid(int i, int j) {
+							return e.materials[i][j].type == e.materials[mx_index][my_index].type && selected[i][j] != !selected[mx_index][my_index];
+						}
+
+						@Override
+						public void fill(int i, int j) {
+							selected[i][j] = !selected[mx_index][my_index];
+						}
+					});
 				}
 				else if (moving_selection && !dragging_selection) {
 					for (int i = 0; i < e.nx; i++)
@@ -702,7 +754,6 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		if ((releasing && Brush.isMaterialModifyingBrush(brush)) || (BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary || update) {
 
 			//e.resetFields(false);
-			//e.constructBoundary();
 			e.updateAllMaterials(false);
 			e.multigridSolve(true, false);
 		}
@@ -751,7 +802,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 					} else if (e.materials[i][j].type == MaterialType.VACUUM || brush == Brush.REPLACE) {
 						e.eraseMaterial(i, j);
 						e.initializeMaterial(i, j, mat);
-						if (mat == MaterialType.EMF) e.materials[i][j].emf_direction = EMF_angle;
+						if (mat == MaterialType.EMF || mat == MaterialType.AC_EMF) e.materials[i][j].emf_direction = EMF_angle;
 					}
 				}
 			}
@@ -777,7 +828,7 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 			{
 				for (int j = 0; j < e.ny; j++)
 				{
-					if (e.materials[i][j].type == MaterialType.EMF && selected_EMF[i][j]) {
+					if ((e.materials[i][j].type == MaterialType.EMF || e.materials[i][j].type == MaterialType.AC_EMF) && selected_EMF[i][j]) {
 						e.materials[i][j].emf = new_EMF;
 					}
 				}
@@ -787,21 +838,31 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		}
 
 		prev_EMF_setting = EMF_setting;
+		
+
+		e.AC_freq = 1e13*Math.pow(10, e.opts.gui_parameter1.getValue()/10.0);
+		if (e.AC_source_exists) {
+			e.opts.gui_parameter1.setEnabled(true);
+			e.opts.gui_parameter1.setVisible(true);
+			e.opts.gui_parameter1_text.setVisible(true);
+		} else {
+			e.opts.gui_parameter1.setEnabled(false);
+			e.opts.gui_parameter1.setVisible(false);
+			e.opts.gui_parameter1_text.setVisible(false);
+		}
+		
+		e.opts.gui_parameter1_text.setText("AC Freq: " + Utils.getSI(e.AC_freq, "Hz"));
+
 	}
 
-	public void floodFillSet(int i, int j, MaterialType old_mat, MaterialType new_mat, double EMF_angle) {
-		if (old_mat == new_mat)
-			return;
-
+	public void floodFill(int i, int j, FloodFillFunc f) {
 		Queue<FloodFillCoordinate> queue = new LinkedList<>();
 		queue.add(new FloodFillCoordinate(i, j));
 
 		while (queue.size() > 0) {
 			FloodFillCoordinate coord = queue.remove();
-			if (coord.i >= 0 && coord.i < e.nx && coord.j >= 0 && coord.j < e.ny && e.materials[coord.i][coord.j].type == old_mat && e.materials[coord.i][coord.j].type != new_mat) {
-				e.eraseMaterial(coord.i, coord.j);
-				e.initializeMaterial(coord.i, coord.j, new_mat);
-				if (new_mat == MaterialType.EMF) e.materials[coord.i][coord.j].emf_direction = EMF_angle;
+			if (coord.i >= 0 && coord.i < e.nx && coord.j >= 0 && coord.j < e.ny && f.isValid(coord.i, coord.j)) {
+				f.fill(coord.i, coord.j);
 				queue.add(new FloodFillCoordinate(coord.i-1, coord.j));
 				queue.add(new FloodFillCoordinate(coord.i+1, coord.j));
 				queue.add(new FloodFillCoordinate(coord.i, coord.j-1));
@@ -810,54 +871,42 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 		}
 	}
 
-	public void floodFillSelect(int i, int j, MaterialType mat, boolean select) {
-		Queue<FloodFillCoordinate> queue = new LinkedList<>();
-		queue.add(new FloodFillCoordinate(i, j));
-
-		while (queue.size() > 0) {
-			FloodFillCoordinate coord = queue.remove();
-			if (coord.i >= 0 && coord.i < e.nx && coord.j >= 0 && coord.j < e.ny && e.materials[coord.i][coord.j].type == mat && selected[coord.i][coord.j] != select) {
-				selected[coord.i][coord.j] = select;
-				queue.add(new FloodFillCoordinate(coord.i-1, coord.j));
-				queue.add(new FloodFillCoordinate(coord.i+1, coord.j));
-				queue.add(new FloodFillCoordinate(coord.i, coord.j-1));
-				queue.add(new FloodFillCoordinate(coord.i, coord.j+1));
+	@Override
+	public void actionPerformed(ActionEvent ev) {
+		if (ev.getSource() == e.opts.gui_reset)
+			clear = true;
+		else if (ev.getSource() == e.opts.gui_resetall)
+			reset = true;
+		else if (ev.getSource() == e.opts.gui_save)
+			save = true;
+		else if (ev.getSource() == e.opts.gui_open)
+			load = true;
+		else if (ev.getSource() == e.opts.gui_help)
+			try {
+				File helpfile = new File("README.html");
+				java.awt.Desktop.getDesktop().browse(helpfile.toURI());
+			} catch (IOException ex) {
+				ex.printStackTrace();
 			}
+		else if (ev.getSource() == e.opts.gui_editdesc) {
+			e.opts.textPane.setEditable(!e.opts.textPane.isEditable());
+		} else if (ev.getSource() == e.opts.gui_view) {
+			e.updateMiscFields = true;
+		} else if (ev.getSource() == e.opts.gui_view_vec) {
+			e.updateMiscFields = true;
+		} else if (ev.getSource() == e.opts.gui_brush) {
+			e.controls.brush_changed = true;
+		} else if (ev.getSource() == e.opts.gui_adv_settings) {
+			e.savemanager.writeAdvancedSettings();
+			e.adv_opts.setVisible(true);
+		} else if (ev.getSource() == e.adv_opts.btn_apply) {
+			e.savemanager.readAdvancedSettings();
+			e.adv_opts.setVisible(false);
+		} else if (ev.getSource() == e.adv_opts.btn_cancel) {
+			e.adv_opts.setVisible(false);
 		}
 	}
-
-	public void floodFillSelectEMF(int i, int j, boolean select) {
-		Queue<FloodFillCoordinate> queue = new LinkedList<>();
-		queue.add(new FloodFillCoordinate(i, j));
-
-		while (queue.size() > 0) {
-			FloodFillCoordinate coord = queue.remove();
-			if (coord.i >= 0 && coord.i < e.nx && coord.j >= 0 && coord.j < e.ny && e.materials[coord.i][coord.j].type == MaterialType.EMF && selected_EMF[coord.i][coord.j] != select) {
-				selected_EMF[coord.i][coord.j] = select;
-				queue.add(new FloodFillCoordinate(coord.i-1, coord.j));
-				queue.add(new FloodFillCoordinate(coord.i+1, coord.j));
-				queue.add(new FloodFillCoordinate(coord.i, coord.j-1));
-				queue.add(new FloodFillCoordinate(coord.i, coord.j+1));
-			}
-		}
-	}
-
-	public void floodFillToggleSwitch(int i, int j, int active) {
-		Queue<FloodFillCoordinate> queue = new LinkedList<>();
-		queue.add(new FloodFillCoordinate(i, j));
-
-		while (queue.size() > 0) {
-			FloodFillCoordinate coord = queue.remove();
-			if (coord.i >= 0 && coord.i < e.nx && coord.j >= 0 && coord.j < e.ny && e.materials[coord.i][coord.j].type == MaterialType.SWITCH && e.materials[coord.i][coord.j].activated != active) {
-				e.materials[coord.i][coord.j].activated = active;
-				queue.add(new FloodFillCoordinate(coord.i-1, coord.j));
-				queue.add(new FloodFillCoordinate(coord.i+1, coord.j));
-				queue.add(new FloodFillCoordinate(coord.i, coord.j-1));
-				queue.add(new FloodFillCoordinate(coord.i, coord.j+1));
-			}
-		}
-	}
-
+	
 	@Override
 	public void mouseClicked(MouseEvent arg0) {}
 
@@ -1086,6 +1135,8 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 
     public void addKeyBinds(JPanel contentPane) {
     	InputMap map = contentPane.getInputMap(JComponent.WHEN_FOCUSED);
+    	InputMap map2 = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    	
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_P, 0), key_pause);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), key_pause);
     	contentPane.getActionMap().put(key_pause, key_pause);
@@ -1099,18 +1150,18 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Q, 0), key_changebrush);
     	contentPane.getActionMap().put(key_changebrush, key_changebrush);
 
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, InputEvent.SHIFT_DOWN_MASK), key_shift);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, InputEvent.SHIFT_DOWN_MASK), key_shift);
     	contentPane.getActionMap().put(key_shift, key_shift);
 
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, 0, true), key_shift_up);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, 0, true), key_shift_up);
     	contentPane.getActionMap().put(key_shift_up, key_shift_up);
 
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, InputEvent.CTRL_DOWN_MASK), key_ctrl);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_META, InputEvent.META_DOWN_MASK), key_ctrl);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, InputEvent.CTRL_DOWN_MASK), key_ctrl);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_META, InputEvent.META_DOWN_MASK), key_ctrl);
     	contentPane.getActionMap().put(key_ctrl, key_ctrl);
 
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, 0, true), key_ctrl_up);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_META, 0, true), key_ctrl_up);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, 0, true), key_ctrl_up);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_META, 0, true), key_ctrl_up);
     	contentPane.getActionMap().put(key_ctrl_up, key_ctrl_up);
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK), key_cut);
@@ -1144,10 +1195,10 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, 0), key_textbg);
     	contentPane.getActionMap().put(key_textbg, key_textbg);
 
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, InputEvent.ALT_DOWN_MASK), key_alt);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, InputEvent.ALT_DOWN_MASK), key_alt);
     	contentPane.getActionMap().put(key_alt, key_alt);
 
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, 0, true), key_alt_up);
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, 0, true), key_alt_up);
     	contentPane.getActionMap().put(key_alt_up, key_alt_up);
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, 0), key_logdata);
@@ -1314,4 +1365,9 @@ public class Controls implements MouseListener, MouseMotionListener, MouseWheelL
 			return (brush == Brush.LINE || brush == Brush.BANDS || brush == Brush.SCALARPLOT || brush == Brush.CARRIERPLOT);
 		}
 	}
+}
+
+interface FloodFillFunc {
+	boolean isValid(int i, int j);
+	void fill(int i, int j);
 }

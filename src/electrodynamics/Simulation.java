@@ -4,20 +4,17 @@
 
 package electrodynamics;
 import java.awt.BorderLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -26,17 +23,17 @@ import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.plot.BandPlot;
 import electrodynamics.plot.CarrierPlot;
 import electrodynamics.plot.Plot;
 import electrodynamics.plot.ScalarPlot;
+import electrodynamics.util.PeriodicTask;
 import electrodynamics.util.Timer;
 import electrodynamics.util.Utils;
 
-public class Simulation extends TimerTask implements ActionListener {
+public class Simulation extends PeriodicTask {
 	/*
 	 * Demos:
 	 * 	- PN diode (LED)
@@ -70,21 +67,14 @@ public class Simulation extends TimerTask implements ActionListener {
 	
 	
 	/* Multithreading */
-
-	int n_threads = Runtime.getRuntime().availableProcessors();
-	
-	CyclicBarrier start_barrier = new CyclicBarrier(n_threads + 1);
-	CyclicBarrier stop_barrier = new CyclicBarrier(n_threads + 1);
-	CyclicBarrier mid_barrier = new CyclicBarrier(n_threads);
-	ArrayList<SimulationThread> sim_threads = new ArrayList<>();
-
-	CyclicBarrier graphics_start_barrier = new CyclicBarrier(n_threads + 1);
-	CyclicBarrier graphics_end_barrier = new CyclicBarrier(n_threads + 1);
-	ArrayList<Renderer.GraphicsThread> graphics_threads = new ArrayList<>();
 	
 	ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
 	ReentrantLock poissonLock = new ReentrantLock(true);
-	
+
+	CyclicBarrier start_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
+	CyclicBarrier stop_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
+	CyclicBarrier mid_barrier = new CyclicBarrier(SemiSim.n_threads);
+
 	
 	/* Domain parameters */
 
@@ -115,6 +105,11 @@ public class Simulation extends TimerTask implements ActionListener {
 	public boolean sign_violation = false;
 	
 	public boolean advsettings_tweaked = false;
+	
+	public double AC_phase;
+	public double AC_freq;
+	public double AC_amplitude;
+	public boolean AC_source_exists;
 
 	
 	/* Physical constants */
@@ -259,6 +254,9 @@ public class Simulation extends TimerTask implements ActionListener {
 	public int[][] conducting_x;
 	public int[][] conducting_y;
 
+	public int[][] ac_x;
+	public int[][] ac_y;
+
 	public double[][] absorptivity;
 	public double[][] absorptivity_x;
 	public double[][] absorptivity_y;
@@ -280,6 +278,7 @@ public class Simulation extends TimerTask implements ActionListener {
 
 	public int[][] distance;
 	public boolean[][] visited;
+	public int[][] abs_depth;
 	
 	
 	/* Probes */
@@ -298,48 +297,7 @@ public class Simulation extends TimerTask implements ActionListener {
 	Timer t6 = new Timer("Iterate simulation", 20, true);
 	Timer t8 = new Timer("Calc misc fields", 20, true);
 	Timer t9 = new Timer("Debug", 20, false);
-	Timer simFPStimer = new Timer("Simulation FPS", 20, true);
-
-
-
-	public static void main(String[] args) {
-		try {
-			UIManager.setLookAndFeel(
-					UIManager.getSystemLookAndFeelClassName());
-		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
-			e.printStackTrace();
-		}
-		
-		SwingUtilities.invokeLater(() -> {
-			Simulation sim = new Simulation();
-			
-			java.util.Timer master_timer = new java.util.Timer();
-			java.util.Timer graphics_timer = new java.util.Timer();
-			java.util.Timer misc_timer = new java.util.Timer();
-			//javax.swing.Timer executor = new javax.swing.Timer(0, sim);
-			//executor.setRepeats(false);
-			//executor.setCoalesce(true);
-			
-			for (int i = 0; i < sim.n_threads; i++) {
-				sim.sim_threads.add(sim.new SimulationThread(i, sim.n_threads, sim.nx));
-			}
-
-			for (int i = 0; i < sim.n_threads; i++) {
-				sim.graphics_threads.add(sim.renderer.new GraphicsThread(i, sim.n_threads));
-			}
-
-			for (int i = 0; i < sim.n_threads; i++) {
-				sim.sim_threads.get(i).start();
-				sim.graphics_threads.get(i).start();
-			}
-
-			master_timer.scheduleAtFixedRate(sim, 0, sim.renderer.frameduration);
-			graphics_timer.scheduleAtFixedRate(sim.renderer, 0, sim.renderer.frameduration);
-			misc_timer.scheduleAtFixedRate(sim.potentialSolver, 0, sim.renderer.frameduration);
-			
-			//t.start();
-		});
-	}
+	Timer simFPStimer = new Timer("Simulation FPS", 10, true);
 
 	public Simulation() {
 		controls = new Controls(this);
@@ -353,7 +311,7 @@ public class Simulation extends TimerTask implements ActionListener {
 		scalarplot = new ScalarPlot(); plots.add(scalarplot);
 		carrierplot = new CarrierPlot(); plots.add(carrierplot);
 
-		detect64Bit();
+		SemiSim.detect64Bit();
 
 		setSize(default_resolution, default_width);
 		resetFields(true);
@@ -363,30 +321,33 @@ public class Simulation extends TimerTask implements ActionListener {
 		canvas.addMouseMotionListener(controls);
 		canvas.addMouseWheelListener(controls);
 		canvas.addKeyListener(controls);
-		opts.gui_reset.addActionListener(this);
-		opts.gui_resetall.addActionListener(this);
-		opts.gui_save.addActionListener(this);
-		opts.gui_open.addActionListener(this);
-		opts.gui_help.addActionListener(this);
-		opts.gui_editdesc.addActionListener(this);
-		opts.gui_view.addActionListener(this);
-		opts.gui_view_vec.addActionListener(this);
-		opts.gui_brush.addActionListener(this);
-		opts.gui_material.addActionListener(this);
-		opts.gui_adv_settings.addActionListener(this);
+		opts.gui_reset.addActionListener(controls);
+		opts.gui_resetall.addActionListener(controls);
+		opts.gui_save.addActionListener(controls);
+		opts.gui_open.addActionListener(controls);
+		opts.gui_help.addActionListener(controls);
+		opts.gui_editdesc.addActionListener(controls);
+		opts.gui_view.addActionListener(controls);
+		opts.gui_view_vec.addActionListener(controls);
+		opts.gui_brush.addActionListener(controls);
+		opts.gui_material.addActionListener(controls);
+		opts.gui_adv_settings.addActionListener(controls);
 
-		opts.gui_material.removeItem(MaterialType.ABSORBER);
-		//opts.gui_material.removeItem(MaterialType.SWITCH);
+		//opts.gui_material.removeItem(MaterialType.ABSORBER);
+		//opts.gui_view.removeItem(ScalarView.DEBUG);
 
-		opts.gui_view.removeItem(ScalarView.DEBUG);
+		opts.gui_parameter1.setEnabled(true);
+		opts.gui_parameter1.setVisible(true);
+		opts.gui_parameter1_text.setEnabled(true);
+		opts.gui_parameter1_text.setVisible(true);
 
 		opts.pack();
 
 		controls.addKeyBinds(canvas);
 
 		adv_opts = new AdvancedOptions();
-		adv_opts.btn_apply.addActionListener(this);
-		adv_opts.btn_cancel.addActionListener(this);
+		adv_opts.btn_apply.addActionListener(controls);
+		adv_opts.btn_cancel.addActionListener(controls);
 		adv_opts.setVisible(false);
 		
 		InputMap im = (InputMap)UIManager.get("Button.focusInputMap");
@@ -403,17 +364,6 @@ public class Simulation extends TimerTask implements ActionListener {
 		}
 	}
 
-	public void detect64Bit() {
-		if (!System.getProperty("sun.arch.data.model").equals("64"))
-		{
-			int result = JOptionPane.showConfirmDialog(opts, "Running this application on a 32-bit platform may cause some issues. Do you still wish to proceed?", "Warning", JOptionPane.YES_NO_OPTION);
-			if (result != JOptionPane.OK_OPTION)
-			{
-				System.exit(0);
-			}
-		}
-	}
-
 	@Override
 	public void run() {
 		rwLock.readLock().lock();
@@ -422,15 +372,17 @@ public class Simulation extends TimerTask implements ActionListener {
     			iteration_multiplier = opts.gui_simspeed_2.getValue();
 
     			if (controls.clear) {
-    				resetFields(false);
-    				multigridSolve(true, false);
+    				SwingUtilities.invokeLater(() -> {
+    					resetFields(false);
+    					multigridSolve(true, false);
+    				});
     				time = 0.0;
     				controls.clear = false;
     			}
 
     			if (controls.reset) {
-    				SwingUtilities.invokeAndWait(() -> {
-        				int result = JOptionPane.showConfirmDialog(opts, "Do you wish to reset the entire simulation?", "Reset", JOptionPane.YES_NO_OPTION);
+    				SwingUtilities.invokeLater(() -> {
+        				int result = JOptionPane.showConfirmDialog(opts, "Do you wish to reset the entire simulation?", "Message", JOptionPane.YES_NO_OPTION);
         				if (result == JOptionPane.OK_OPTION)
         				{
         					resetFields(true);
@@ -473,14 +425,16 @@ public class Simulation extends TimerTask implements ActionListener {
     			simFPStimer.start();
 
     		} catch (Exception e) {
-    			displayErrorMessage(e);
+    			SemiSim.displayErrorMessage(e);
     		}
         } finally {
             rwLock.readLock().unlock();
         }
+
+        SemiSim.instance.threadPool.schedule(this, nextDelay(renderer.frameduration), TimeUnit.MILLISECONDS);
 	}
 
-	TimerTask potentialSolver = new TimerTask() {
+	TimerTask potentialSolver = new PeriodicTask() {
 		@Override
 		public void run() {
 	        rwLock.readLock().lock();
@@ -490,33 +444,14 @@ public class Simulation extends TimerTask implements ActionListener {
 					//calcMiscFields(true);
 				}
 	        } catch( Exception e) {
-    			displayErrorMessage(e);
+	        	SemiSim.displayErrorMessage(e);
 	        } finally {
 	            rwLock.readLock().unlock();
 	        }
+	        SemiSim.instance.threadPool.schedule(this, nextDelay(renderer.frameduration), TimeUnit.MILLISECONDS);
 		}
 	};
 	
-	public void displayErrorMessage(Exception e) {
-		try {
-			SwingUtilities.invokeAndWait(() -> {
-				JOptionPane.showMessageDialog(opts, e.toString(), "Error", JOptionPane.OK_OPTION);
-				e.printStackTrace();
-				try {
-					PrintWriter pw = new PrintWriter(new FileOutputStream("error_log.txt"));
-				    e.printStackTrace(pw);
-				    pw.flush();
-				    pw.close();
-				} catch (FileNotFoundException e1) {
-					System.exit(-1);
-				}     
-				System.exit(-1);
-			});
-		} catch (InvocationTargetException | InterruptedException e1) {
-			System.exit(-1);
-		}
-	}
-
 	public void updateConstants() {
 		c = 1/Math.sqrt(eps0*mu0);
 		beta = 1/(k*T);
@@ -536,7 +471,8 @@ public class Simulation extends TimerTask implements ActionListener {
 		Hz_dissipation = 0.01*ds*ds/dt_maximum;
 
 		if (resolution == this.resolution) return false;
-			
+
+		// Simulation and graphics threads should not be active when variables are initialized
 		rwLock.writeLock().lock();
 		try {
 			if(resolution < 4) {
@@ -553,8 +489,6 @@ public class Simulation extends TimerTask implements ActionListener {
 			this.resolution = resolution;
 			nx = resolution;
 			ny = resolution;
-
-
 
 			Ex = new double[nx][ny];
 			Ey = new double[nx][ny];
@@ -594,6 +528,8 @@ public class Simulation extends TimerTask implements ActionListener {
 			conducting = new int[nx][ny];
 			conducting_x = new int[nx][ny];
 			conducting_y = new int[nx][ny];
+			ac_x = new int[nx][ny];
+			ac_y = new int[nx][ny];
 			absorptivity = new double[nx][ny];
 			absorptivity_x = new double[nx][ny];
 			absorptivity_y = new double[nx][ny];
@@ -638,6 +574,7 @@ public class Simulation extends TimerTask implements ActionListener {
 
 			distance = new int[nx][ny];
 			visited = new boolean[nx][ny];
+			abs_depth = new int[nx][ny];
 
 			opts.setVisible(true);
 
@@ -664,131 +601,140 @@ public class Simulation extends TimerTask implements ActionListener {
 
 	public void resetFields(boolean resetall) {
 
-		for (int i = 0; i < nx; i++)
-		{
-			for (int j = 0; j < ny; j++)
+		rwLock.writeLock().lock();
+		try {
+			for (int i = 0; i < nx; i++)
 			{
+				for (int j = 0; j < ny; j++)
+				{
 
-				if (resetall) {
-					
-					materials[i][j].erase();
-					controls.selection[i][j].erase();
-					controls.clipboard[i][j].erase();
+					if (resetall) {
 
-					F0_n[i][j] = 0;
-					F0_p[i][j] = 0;
-					F_n[i][j] = 0;
-					F_p[i][j] = 0;
-					E0_n[i][j] = 0;
-					E0_p[i][j] = 0;
-					K[i][j] = 0;
-					E_a[i][j] = 0;
-					r[i][j] = 0;
-					L[i][j] = 0;
+						materials[i][j].erase();
+						controls.selection[i][j].erase();
+						controls.clipboard[i][j].erase();
 
-					cmfx_n[i][j] = 0;
-					cmfy_n[i][j] = 0;
-					cmfx_p[i][j] = 0;
-					cmfy_p[i][j] = 0;
+						F0_n[i][j] = 0;
+						F0_p[i][j] = 0;
+						F_n[i][j] = 0;
+						F_p[i][j] = 0;
+						E0_n[i][j] = 0;
+						E0_p[i][j] = 0;
+						K[i][j] = 0;
+						E_a[i][j] = 0;
+						r[i][j] = 0;
+						L[i][j] = 0;
 
-					emfx[i][j] = 0.0;
-					emfy[i][j] = 0.0;
+						cmfx_n[i][j] = 0;
+						cmfy_n[i][j] = 0;
+						cmfx_p[i][j] = 0;
+						cmfy_p[i][j] = 0;
 
-					epsx[i][j] = eps0;
-					epsy[i][j] = eps0;
-					mu_z[i][j] = mu0;
+						emfx[i][j] = 0.0;
+						emfy[i][j] = 0.0;
 
-					conducting[i][j] = 0;
-					conducting_x[i][j] = 0;
-					conducting_y[i][j] = 0;
+						epsx[i][j] = eps0;
+						epsy[i][j] = eps0;
+						mu_z[i][j] = mu0;
 
-					absorptivity[i][j] = 0;
-					absorptivity_x[i][j] = 0;
-					absorptivity_y[i][j] = 0;
+						conducting[i][j] = 0;
+						conducting_x[i][j] = 0;
+						conducting_y[i][j] = 0;
+
+						ac_x[i][j] = 0;
+						ac_y[i][j] = 0;
+
+						absorptivity[i][j] = 0;
+						absorptivity_x[i][j] = 0;
+						absorptivity_y[i][j] = 0;
+					}
+
+					Ex [i][j] = 0.0;
+					Ey [i][j] = 0.0;
+					Bz [i][j] = 0.0;
+					Hz_laplacian [i][j] = 0.0;
+
+					rho_abs[i][j] = 0.0;
+					rho_n[i][j] = 0.0;
+					rho_p[i][j] = 0.0;
+					rho_back[i][j] = 0.0;
+					rho_free[i][j] = 0.0;
+					mobility_factor[i][j] = 0.0;
+
+					Jx_abs[i][j] = 0.0;
+					Jy_abs[i][j] = 0.0;
+					Jx_n[i][j] = 0.0;
+					Jy_n[i][j] = 0.0;
+					Jx_p[i][j] = 0.0;
+					Jy_p[i][j] = 0.0;
+					Jx_free[i][j] = 0.0;
+					Jy_free[i][j] = 0.0;
+
+					MG_rho0 [i][j] = 0.0;
+					MG_eps_avg [i][j] = 0.0;
+					MG_phi1 [i][j] = 0.0;
+					MG_phi2 [i][j] = 0.0;
+					for (int n = 0; n < log2_resolution+1; n++) {
+						MG_rho[n][i][j] = 0;
+						MG_epsx[n][i][j] = 0;
+						MG_epsy[n][i][j] = 0;
+					}
+
+					distance[i][j] = Integer.MAX_VALUE;
+					visited[i][j] = false;
+
+					Dx[i][j] = 0.0;
+					Dy[i][j] = 0.0;
+					Hz[i][j] = 0.0;
+					Sx[i][j] = 0.0;
+					Sy[i][j] = 0.0;
+					u[i][j] = 0.0;
+					phi[i][j] = 0.0;
+
+					G[i][j] = 0.0;
+					R[i][j] = 0.0;
+					F_n[i][j] = 0.0;
+					F_p[i][j] = 0.0;
+					grad_E0x_n[i][j] = 0.0;
+					grad_E0y_n[i][j] = 0.0;
+					grad_E0x_p[i][j] = 0.0;
+					grad_E0y_p[i][j] = 0.0;
+					grad_Fx_n[i][j] = 0.0;
+					grad_Fy_n[i][j] = 0.0;
+					grad_Fx_p[i][j] = 0.0;
+					grad_Fy_p[i][j] = 0.0;
+					Q[i][j] = 0.0;
+					S[i][j] = 0.0;
+					F[i][j] = 0.0;
+					debug[i][j] = 0.0;
+
+					controls.selected[i][j] = false;
+					controls.selected_EMF[i][j] = false;
 				}
-
-				Ex [i][j] = 0.0;
-				Ey [i][j] = 0.0;
-				Bz [i][j] = 0.0;
-				Hz_laplacian [i][j] = 0.0;
-
-				rho_abs[i][j] = 0.0;
-				rho_n[i][j] = 0.0;
-				rho_p[i][j] = 0.0;
-				rho_back[i][j] = 0.0;
-				rho_free[i][j] = 0.0;
-				mobility_factor[i][j] = 0.0;
-
-				Jx_abs[i][j] = 0.0;
-				Jy_abs[i][j] = 0.0;
-				Jx_n[i][j] = 0.0;
-				Jy_n[i][j] = 0.0;
-				Jx_p[i][j] = 0.0;
-				Jy_p[i][j] = 0.0;
-				Jx_free[i][j] = 0.0;
-				Jy_free[i][j] = 0.0;
-
-				MG_rho0 [i][j] = 0.0;
-				MG_eps_avg [i][j] = 0.0;
-				MG_phi1 [i][j] = 0.0;
-				MG_phi2 [i][j] = 0.0;
-				for (int n = 0; n < log2_resolution+1; n++) {
-					MG_rho[n][i][j] = 0;
-					MG_epsx[n][i][j] = 0;
-					MG_epsy[n][i][j] = 0;
-				}
-
-				distance[i][j] = Integer.MAX_VALUE;
-				visited[i][j] = false;
-
-				Dx[i][j] = 0.0;
-				Dy[i][j] = 0.0;
-				Hz[i][j] = 0.0;
-				Sx[i][j] = 0.0;
-				Sy[i][j] = 0.0;
-				u[i][j] = 0.0;
-				phi[i][j] = 0.0;
-
-				G[i][j] = 0.0;
-				R[i][j] = 0.0;
-				F_n[i][j] = 0.0;
-				F_p[i][j] = 0.0;
-				grad_E0x_n[i][j] = 0.0;
-				grad_E0y_n[i][j] = 0.0;
-				grad_E0x_p[i][j] = 0.0;
-				grad_E0y_p[i][j] = 0.0;
-				grad_Fx_n[i][j] = 0.0;
-				grad_Fy_n[i][j] = 0.0;
-				grad_Fx_p[i][j] = 0.0;
-				grad_Fy_p[i][j] = 0.0;
-				Q[i][j] = 0.0;
-				S[i][j] = 0.0;
-				F[i][j] = 0.0;
-				debug[i][j] = 0.0;
-
-				controls.selected[i][j] = false;
-				controls.selected_EMF[i][j] = false;
-			}
-		}
-
-		if (resetall) {
-			voltageprobes.clear();
-			currentprobes.clear();
-			ground = null;
-
-			for (Plot p: plots) {
-				p.frame.setVisible(false);
 			}
 
-			opts.setTitle("Brandon's semiconductor simulator");
+			if (resetall) {
+				voltageprobes.clear();
+				currentprobes.clear();
+				ground = null;
+
+				for (Plot p: plots) {
+					p.frame.setVisible(false);
+				}
+
+				opts.setTitle("Brandon's semiconductor simulator");
+			}
+
+			renderer.reset();
+
+			initializeAllMaterials();
+			updateAllMaterials(true);
+			checkCFL();
+		}
+		finally {
+			rwLock.writeLock().unlock();
 		}
 
-
-		constructBoundary();
-
-		initializeAllMaterials();
-		updateAllMaterials(true);
-		checkCFL();
 	}
 
 	public void constructBoundary() {
@@ -797,36 +743,79 @@ public class Simulation extends TimerTask implements ActionListener {
 		double max_stretch = 10;
 		double coeff = Math.log(max_stretch);
 
-		if ((BoundaryCondition)opts.gui_bc.getSelectedItem() == BoundaryCondition.DISSIPATIVE) {
-			for (int i = 0; i < nx; i++)
+		for (int i = 0; i < nx; i++)
+		{
+			for (int j = 0; j < ny; j++)
 			{
-				for (int j = 0; j < ny; j++)
-				{
-					double dx = (double)Math.max(0, absorber_width-Math.min(i, nx-1-i))/absorber_width;
-					double dy = (double)Math.max(0, absorber_width-Math.min(j, ny-1-j))/absorber_width;
-					double depth = Math.sqrt(dx*dx+dy*dy);
-					if (depth > 0) {
-						double stretchfactor = Math.exp(coeff*depth);
-
-						eraseMaterial(i, j);
+				double dx = (double)Math.max(0, absorber_width-Math.min(i, nx-1-i))/absorber_width;
+				double dy = (double)Math.max(0, absorber_width-Math.min(j, ny-1-j))/absorber_width;
+				double depth = Math.sqrt(dx*dx+dy*dy);
+				if (depth > 0) {
+					if ((BoundaryCondition)opts.gui_bc.getSelectedItem() == BoundaryCondition.DISSIPATIVE) {
 						materials[i][j].type = MaterialType.ABSORBER;
-						materials[i][j].eps_r = stretchfactor;
-						materials[i][j].mu_r = stretchfactor;
-						materials[i][j].absorptivity = 1;
-					}
-				}
-			}
-		} else {
-			for (int i = 0; i < nx; i++)
-			{
-				for (int j = 0; j < ny; j++)
-				{
-					if (materials[i][j].type == MaterialType.ABSORBER) {
+					} else if (materials[i][j].type == MaterialType.ABSORBER) {
 						eraseMaterial(i, j);
 					}
 				}
 			}
 		}
+
+		for (int i = 0; i < nx; i++)
+		{
+			for (int j = 0; j < ny; j++)
+			{
+				abs_depth[i][j] = 0;
+			}
+		}
+		
+		for (int i = 0; i < nx; i++)
+		{
+			for (int j = 0; j < ny; j++)
+			{
+				if (materials[i][j].type != MaterialType.ABSORBER) {
+					set(i+1, j, 1);
+					set(i-1, j, 1);
+					set(i, j+1, 1);
+					set(i, j-1, 1);
+				}
+			}
+		}
+
+
+		for (int d = 1; d < nx; d++) {
+			for (int i = 0; i < nx; i++)
+			{
+				for (int j = 0; j < ny; j++)
+				{
+					if (abs_depth[i][j] == d) {
+						set(i+1, j, d+1);
+						set(i-1, j, d+1);
+						set(i, j+1, d+1);
+						set(i, j-1, d+1);
+					}
+				}
+			}
+		}
+		
+		for (int i = 0; i < nx; i++)
+		{
+			for (int j = 0; j < ny; j++)
+			{
+				if (materials[i][j].type == MaterialType.ABSORBER) {
+					double depth = (double)abs_depth[i][j]/absorber_width;
+					double stretchfactor = Math.exp(coeff*depth);
+					materials[i][j].eps_r = stretchfactor;
+					materials[i][j].mu_r = stretchfactor;
+					materials[i][j].absorptivity = 1;
+				}
+			}
+		}
+	}
+	
+	public void set(int i, int j, int d) {
+		if (i < 0 || j < 0 || i >= nx || j >= ny) return;
+		if (materials[i][j].type == MaterialType.ABSORBER && abs_depth[i][j] == 0)
+			abs_depth[i][j] = d;
 	}
 
 	class SimulationThread extends Thread {
@@ -846,8 +835,8 @@ public class Simulation extends TimerTask implements ActionListener {
 				while (true) {
 					start_barrier.await();
 
-					i_min = (n_thread*nx)/n_threads;
-					i_max = (n_thread+1)*nx/n_threads-1;
+					i_min = (n_thread*nx)/SemiSim.n_threads;
+					i_max = (n_thread+1)*nx/SemiSim.n_threads-1;
 
 					if (n_thread == 0) {
 						t6.start();
@@ -920,14 +909,16 @@ public class Simulation extends TimerTask implements ActionListener {
 
 								double sigma_n = conducting_x[i][j]*mf*mu_electron*Utils.logmean(-rho_n[i+1][j],-rho_n[i][j]);
 								double sigma_p = conducting_x[i][j]*mf*mu_hole*Utils.logmean(rho_p[i+1][j], rho_p[i][j]);
+								
+								double emf_phase = ac_x[i][j]*AC_amplitude+(1-ac_x[i][j]);
 
 								Jx_abs[i][j] = 0;
 
 								Jx_n[i][j] = conducting_x[i][j]*(-mf*D_electron*(rho_n[i+1][j] - rho_n[i][j])/ds
-										+ sigma_n*(emfx[i][j] + cmfx_n[i][j]/q_n));
+										+ sigma_n*(emf_phase*emfx[i][j] + cmfx_n[i][j]/q_n));
 
 								Jx_p[i][j] = conducting_x[i][j]*(-mf*D_hole*(rho_p[i+1][j] - rho_p[i][j])/ds
-										+ sigma_p*(emfx[i][j] + cmfx_p[i][j]/q_p));
+										+ sigma_p*(emf_phase*emfx[i][j] + cmfx_p[i][j]/q_p));
 
 								double sigma = sigma_n + sigma_p + absorptivity_x[i][j]*epsx[i][j]*absorbing_coeff;
 
@@ -956,13 +947,15 @@ public class Simulation extends TimerTask implements ActionListener {
 								double sigma_n = conducting_y[i][j]*mf*mu_electron*Utils.logmean(-rho_n[i][j+1],-rho_n[i][j]);
 								double sigma_p = conducting_y[i][j]*mf*mu_hole*Utils.logmean(rho_p[i][j+1], rho_p[i][j]);
 
+								double emf_phase = ac_y[i][j]*AC_amplitude+(1-ac_y[i][j]);
+
 								Jy_abs[i][j] = 0;
 
 								Jy_n[i][j] = conducting_y[i][j]*(-mf*D_electron*(rho_n[i][j+1] - rho_n[i][j])/ds
-										+ sigma_n*(emfy[i][j] + cmfy_n[i][j]/q_n));
+										+ sigma_n*(emf_phase*emfy[i][j] + cmfy_n[i][j]/q_n));
 
 								Jy_p[i][j] = conducting_y[i][j]*(-mf*D_hole*(rho_p[i][j+1] - rho_p[i][j])/ds
-										+ sigma_p*(emfy[i][j] + cmfy_p[i][j]/q_p));
+										+ sigma_p*(emf_phase*emfy[i][j] + cmfy_p[i][j]/q_p));
 
 								double sigma = sigma_n + sigma_p + absorptivity_y[i][j]*epsy[i][j]*absorbing_coeff;
 
@@ -993,18 +986,23 @@ public class Simulation extends TimerTask implements ActionListener {
 						}
 
 						t6.stop();
+					}
 
+					stop_barrier.await();
+					
+
+					if (n_thread == 0) {
 						/* Enforce Gauss law constraint */
 						if (stepnumber%500 == 0) {
 							multigridSolve(true, false);
 						}
 
 						time += dt;
+						AC_phase += 2*Math.PI*AC_freq*dt;
+						AC_amplitude = Math.cos(AC_phase);
 
 						controls.advanceframe = false;
 					}
-
-					stop_barrier.await();
 				}
 			} catch (InterruptedException | BrokenBarrierException e) {
 				e.printStackTrace();
@@ -1303,6 +1301,8 @@ public class Simulation extends TimerTask implements ActionListener {
 	}
 
 	public void updateAllMaterials(boolean updateRho) {
+		constructBoundary();
+		
 		for (int i = 1; i < nx-1; i++)
 		{
 			for (int j = 1; j < ny-1; j++)
@@ -1329,6 +1329,7 @@ public class Simulation extends TimerTask implements ActionListener {
 						+ materials[i][j].emf*Math.cos(materials[i][j].emf_direction)*materials[i][j].activated);
 				epsx[i][j] = eps0*0.5*(materials[i+1][j].eps_r + materials[i][j].eps_r);
 				absorptivity_x[i][j] = Math.min(materials[i+1][j].absorptivity, materials[i][j].absorptivity);
+				ac_x[i][j] = (materials[i][j].type == MaterialType.AC_EMF || materials[i+1][j].type == MaterialType.AC_EMF) ? 1:0;
 			}
 		}
 
@@ -1341,11 +1342,13 @@ public class Simulation extends TimerTask implements ActionListener {
 						+ materials[i][j].emf*Math.sin(materials[i][j].emf_direction)*materials[i][j].activated);
 				epsy[i][j] = eps0*0.5*(materials[i][j+1].eps_r + materials[i][j].eps_r);
 				absorptivity_y[i][j] = Math.min(materials[i][j+1].absorptivity, materials[i][j].absorptivity);
+				ac_y[i][j] = (materials[i][j].type == MaterialType.AC_EMF || materials[i][j+1].type == MaterialType.AC_EMF) ? 1:0;
 			}
 		}
 
 		computeChemicalForces();
 
+		AC_source_exists = false;
 		for (int i = 0; i < nx; i++)
 		{
 			for (int j = 0; j < ny; j++)
@@ -1365,6 +1368,9 @@ public class Simulation extends TimerTask implements ActionListener {
 				}
 
 				rho_free[i][j] = rho_abs[i][j]+rho_n[i][j]+rho_p[i][j]+rho_back[i][j];
+				
+				if (materials[i][j].type == MaterialType.AC_EMF)
+					AC_source_exists = true;
 			}
 		}
 
@@ -1652,6 +1658,7 @@ public class Simulation extends TimerTask implements ActionListener {
 				for (int i = 1; i < nx-1; i++) {
 					for (int j = 1; j < ny-1; j++) {
 						MG_rho0[i][j] = ((Ex[i][j]*epsx[i][j]-Ex[i-1][j]*epsx[i-1][j] + Ey[i][j]*epsy[i][j]-Ey[i][j-1]*epsy[i][j-1])/ds) - rho_free[i][j];
+						debug[i][j] = MG_rho0[i][j];
 					}
 				}
 
@@ -1872,61 +1879,21 @@ public class Simulation extends TimerTask implements ActionListener {
 			}
 		}
 	}
+}
 
+enum BoundaryCondition {
+	DISSIPATIVE("Absorbing boundary"),
+	CONDUCTING("Conducting boundary");
 
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		if (e.getSource() instanceof javax.swing.Timer)
-			this.run();
-		else if (e.getSource() == opts.gui_reset)
-			controls.clear = true;
-		else if (e.getSource() == opts.gui_resetall)
-			controls.reset = true;
-		else if (e.getSource() == opts.gui_save)
-			controls.save = true;
-		else if (e.getSource() == opts.gui_open)
-			controls.load = true;
-		else if (e.getSource() == opts.gui_help)
-			try {
-				File helpfile = new File("README.html");
-				java.awt.Desktop.getDesktop().browse(helpfile.toURI());
-			} catch (IOException ex) {
-				ex.printStackTrace();
-			}
-		else if (e.getSource() == opts.gui_editdesc) {
-			opts.textPane.setEditable(!opts.textPane.isEditable());
-		} else if (e.getSource() == opts.gui_view) {
-			updateMiscFields = true;
-		} else if (e.getSource() == opts.gui_view_vec) {
-			updateMiscFields = true;
-		} else if (e.getSource() == opts.gui_brush) {
-			controls.brush_changed = true;
-		} else if (e.getSource() == opts.gui_adv_settings) {
-			savemanager.writeAdvancedSettings();
-			adv_opts.setVisible(true);
-		} else if (e.getSource() == adv_opts.btn_apply) {
-			savemanager.readAdvancedSettings();
-			adv_opts.setVisible(false);
-		} else if (e.getSource() == adv_opts.btn_cancel) {
-			adv_opts.setVisible(false);
-		}
+	String name;
+	BoundaryCondition(String name)
+	{
+		this.name = name;
 	}
 
-
-	enum BoundaryCondition {
-		DISSIPATIVE("Absorbing boundary"),
-		CONDUCTING("Conducting boundary");
-
-		String name;
-		BoundaryCondition(String name)
-		{
-			this.name = name;
-		}
-
-		@Override
-		public String toString() {
-			return name;
-		}
+	@Override
+	public String toString() {
+		return name;
 	}
 }
 
@@ -1954,6 +1921,7 @@ enum MaterialType
 {
 
 	EMF					("Voltage source (Adjustable)",			230, 216, 46, 230),
+	AC_EMF				("AC voltage source (Adjustable)",		230, 150, 216, 230),
 	SWITCH				("Switch",								194, 194, 194, 120),
 	METAL				("Metal",								153, 153, 153, 120),
 	METAL_HIGH_C		("Conductive metal",					191, 191, 191, 120),
@@ -1999,6 +1967,7 @@ enum MaterialType
 
 	public static boolean isConducting(MaterialType material) {
 		return (material == MaterialType.EMF
+				|| material == MaterialType.AC_EMF
 				|| material == MaterialType.SWITCH
 				|| material == MaterialType.METAL
 				|| material == MaterialType.METAL_HIGH_W

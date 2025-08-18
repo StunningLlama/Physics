@@ -30,8 +30,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 
-import electrodynamics.Simulation.BoundaryCondition;
-
 public class SaveManager {
 	Simulation e;
 	
@@ -127,6 +125,7 @@ public class SaveManager {
 							case "gui_view_vec": e.opts.gui_view_vec.setSelectedItem(gson.fromJson(fstr, Renderer.VectorView.class)); break;
 							case "gui_view_vec_mode": e.opts.gui_view_vec_mode.setSelectedItem(gson.fromJson(fstr, Renderer.VectorMode.class)); break;
 							case "gui_bc": e.opts.gui_bc.setSelectedItem(gson.fromJson(fstr, BoundaryCondition.class)); break;
+							case "gui_parameter1": e.opts.gui_parameter1.setValue(fstr.nextInt()); break;
 							default: fstr.skipValue(); break; // skip others
 							}
 						}
@@ -184,7 +183,6 @@ public class SaveManager {
 
 						e.opts.textPane.setEditable(false);
 						e.opts.textPane.setCaretPosition(0);
-						e.constructBoundary();
 						e.updateAllMaterials(false);
 						e.calcMiscFields(true);
 					} else if (version == 1) {
@@ -245,7 +243,6 @@ public class SaveManager {
 
 						e.opts.textPane.setEditable(false);
 						e.opts.textPane.setCaretPosition(0);
-						e.constructBoundary();
 						e.updateAllMaterials(false);
 						e.calcMiscFields(true);
 					}
@@ -291,7 +288,7 @@ public class SaveManager {
 
 		for (int i = 0; i < e.nx; i++) {
 			for (int j = 0; j < e.ny; j++) {
-				if (field[i][j] == null || field[i][j].type == MaterialType.ABSORBER)
+				if (field[i][j] == null)
 					field[i][j] = new Material();
 			}
 		}
@@ -349,7 +346,7 @@ public class SaveManager {
 					outfile = new File(outfile.getAbsolutePath() + fileextension);
 
 				if (outfile.exists()) {
-					result = JOptionPane.showConfirmDialog(e.opts, "A file with that name already exists. Do you wish to overwrite it?", "Save file", JOptionPane.YES_NO_OPTION);
+					result = JOptionPane.showConfirmDialog(e.opts, "A file with that name already exists. Do you wish to overwrite it?", "Message", JOptionPane.YES_NO_OPTION);
 					if (result != JOptionPane.OK_OPTION)
 						return;
 				}
@@ -384,6 +381,7 @@ public class SaveManager {
 					header.add("gui_view_vec", gson.toJsonTree(e.opts.gui_view_vec.getSelectedItem()));
 					header.add("gui_view_vec_mode", gson.toJsonTree(e.opts.gui_view_vec_mode.getSelectedItem()));
 					header.add("gui_bc", gson.toJsonTree(e.opts.gui_bc.getSelectedItem()));
+					header.addProperty("gui_parameter1", e.opts.gui_parameter1.getValue());
 
 					JsonObject data = new JsonObject();
 					data.add("ex", gson.toJsonTree(e.Ex));
