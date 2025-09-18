@@ -858,18 +858,23 @@ public class Renderer extends PeriodicTask {
 			for (int i = ccdots.size() - 1; i >= 0; i--) {
 				ChargeCarrierDot d = ccdots.get(i);
 				d.time -= delta_t;
+				d.generated_life -= delta_t;
 				if (d.time < 0)
 					ccdots.remove(i);
 				else {
 					double R_tmp = bilinearinterp(e.R, d.x, d.y)*e.e_charge;
 					if (d.species == Species.HOLE) {
-						if (R_tmp > 0 && frand.next() < R_tmp/bilinearinterp(e.rho_p, d.x, d.y)*delta_t) {
-							ccdots.remove(i);
+						if (R_tmp > 0 && frand.next() < R_tmp/bilinearinterp(e.rho_p, d.x, d.y)*delta_t && !d.recombined) {
+							d.time = 0.1*tau;
+							d.recombined = true;
+							//ccdots.remove(i);
 							continue;
 						}
 					} else {
-						if (R_tmp > 0 && frand.next() < -R_tmp/bilinearinterp(e.rho_n, d.x, d.y)*delta_t) {
-							ccdots.remove(i);
+						if (R_tmp > 0 && frand.next() < -R_tmp/bilinearinterp(e.rho_n, d.x, d.y)*delta_t && !d.recombined) {
+							d.time = 0.1*tau;
+							d.recombined = true;
+							//ccdots.remove(i);
 							continue;
 						}
 					}
@@ -881,12 +886,17 @@ public class Renderer extends PeriodicTask {
 				}
 			}
 
-			rho_n_dist.generateSamples(N_n, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, Species.ELECTRON, frand.next())); });
-			rho_p_dist.generateSamples(N_p, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, Species.HOLE, frand.next())); });
-			rho_G_dist.generateSamples(N_G, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.ELECTRON, frand.next())); });
-			rho_G_dist.generateSamples(N_G, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next())); });
-			rho_n_dist.generateSamples(N_n_excess, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.ELECTRON, frand.next())); });
-			rho_p_dist.generateSamples(N_p_excess, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next())); });
+			// Replace existing dots
+			rho_n_dist.generateSamples(N_n, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, Species.ELECTRON, frand.next(), false, 0)); });
+			rho_p_dist.generateSamples(N_p, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, Species.HOLE, frand.next(), false, 0)); });
+			
+			// Generation rate
+			rho_G_dist.generateSamples(N_G, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.ELECTRON, frand.next(), true, 0.1*tau)); });
+			rho_G_dist.generateSamples(N_G, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next(), true, 0.1*tau)); });
+			
+			// Dots from changing the total number
+			rho_n_dist.generateSamples(N_n_excess, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.ELECTRON, frand.next(), false, 0)); });
+			rho_p_dist.generateSamples(N_p_excess, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next(), false, 0)); });
 
 			C_prev = C;
 		}
@@ -1323,7 +1333,10 @@ public class Renderer extends PeriodicTask {
 								ChargeCarrierDot d = ccdots.get(i);
 
 								if (d.time > 0) {
-									if (!paused) {
+									if (d.generated && d.generated_life < 0)
+										d.generated = false;
+									
+									if (!paused && !d.recombined) {
 										if (d.species == Species.ELECTRON) {
 											for (int k = 0; k < steps; k++) {
 												double s = dt_dot/(e.ds*bilinearinterp(e.rho_n, d.x, d.y));
@@ -1343,10 +1356,16 @@ public class Renderer extends PeriodicTask {
 									}
 
 									double alphaFG = d.brightness;
-									if (d.species == Species.ELECTRON/* && -d.random_id*bilinearinterp(e.rho_n, d.x, d.y) < 1*/)
+									if (d.generated)
+										drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
+										1f, 1f, 1f, 1, 0);
+									else if (d.recombined)
+										drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
+										0.25f, 0.25f, 0.25f, 1, 0);
+									else if (d.species == Species.ELECTRON)
 										drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
 											0.25f, 0.25f, 1f, (float)alphaFG, 1-(float)alphaFG);
-									else if (d.species == Species.HOLE/* && d.random_id*bilinearinterp(e.rho_p, d.x, d.y) < 1*/)
+									else if (d.species == Species.HOLE)
 										drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
 											1f, 0.25f, 0.25f, (float)alphaFG, 1-(float)alphaFG);
 
@@ -1650,11 +1669,16 @@ public class Renderer extends PeriodicTask {
 	class ChargeCarrierDot extends Dot {
 		Species species;
 		double random_id;
+		boolean generated = false;
+		boolean recombined = false;
+		double generated_life;
 		
-		public ChargeCarrierDot(double x, double y, double lifespan, double time, Species species, double random_id) {
+		public ChargeCarrierDot(double x, double y, double lifespan, double time, Species species, double random_id, boolean generated, double generated_life) {
 			super(x, y, lifespan, time);
 			this.species = species;
 			this.random_id = random_id;
+			this.generated = generated;
+			this.generated_life = generated_life;
 		}
 	}
 }
