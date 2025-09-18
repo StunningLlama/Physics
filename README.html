@@ -176,9 +176,9 @@ Because the simulation uses a very simplified model of how semiconductors work, 
 <li>Velocity saturation</li>
 <li>Fermi level pinning</li>
 <li>Different recombination mechanisms</li>
+<li>Surface effects</li>
 </ul>
 Finally, certain properties of materials differ from their real life counterparts (for example, the charge carrier mobility of the semiconductor material is about 1500x greater than that of Silicon).
-This was done for educational purposes.
 
 <h1>Simulation features</h1>
 The interface consists of the simulation area which the user can interact with and the settings panel containing all the simulation controls. <figure><img src="images/app.png" alt="Application" style="max-width:60%"><figcaption>Simulation area (purple, left) and settings (blue, right).</figcaption></figure>
@@ -291,6 +291,7 @@ The brightness and density of lines indicates the magnitude of the field. <figur
 <h2>Materials</h2>
 <table>
     <tr><td>Voltage source</td><td>Generates a voltage that can be used to power circuits.</td></tr>
+    <tr><td>AC voltage source <small>[desktop]</small></td><td>Voltage source that oscillates sinusoidally at a fixed frequency.</td></tr>
     <tr><td>Switch</td><td>Conductivity can be switched on and off by the user.</td></tr>
     <tr><td>Metal</td><td>Material that conducts electricity very well.</td></tr>
     <tr><td>Conductive metal</td><td>More conductive than regular metal.</td></tr>
@@ -308,6 +309,7 @@ The brightness and density of lines indicates the magnitude of the field. <figur
     <tr><td>Ferromagnet</td><td>Magnetic material with high relative permeability.</td></tr>
     <tr><td>Positive static charge</td><td>Positively charged insulating material.</td></tr>
     <tr><td>Negative static charge</td><td>Negatively charged insulating material.</td></tr>
+    <tr><td>Absorber <small>[desktop]</small></td><td>Absorbs incoming electromagnetic radiation very effectively.</td></tr>
     <tr><td>Decoration</td><td>Used for text or circuit symbols, has no effect otherwise.</td></tr>
     <tr><td>Vacuum</td><td>Empty space.</td></tr>
 </table>
