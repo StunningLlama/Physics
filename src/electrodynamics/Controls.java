@@ -393,19 +393,21 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						MaterialType old_mat = e.materials[mx_index][my_index].type;
 						MaterialType new_mat = mat;
 						double new_angle = angle;
-						this.floodFill(mx_index, my_index, new FloodFillFunc() {
-							@Override
-							public boolean isValid(int i, int j) {
-								return e.materials[i][j].type == old_mat;
-							}
+						if (new_mat != old_mat) {
+							this.floodFill(mx_index, my_index, new FloodFillFunc() {
+								@Override
+								public boolean isValid(int i, int j) {
+									return e.materials[i][j].type == old_mat;
+								}
 
-							@Override
-							public void fill(int i, int j) {
-								e.eraseMaterial(i, j);
-								e.initializeMaterial(i, j, new_mat);
-								if (new_mat == MaterialType.EMF || new_mat == MaterialType.AC_EMF) e.materials[i][j].emf_direction = new_angle;
-							}
-						});
+								@Override
+								public void fill(int i, int j) {
+									e.eraseMaterial(i, j);
+									e.initializeMaterial(i, j, new_mat);
+									if (new_mat == MaterialType.EMF || new_mat == MaterialType.AC_EMF) e.materials[i][j].emf_direction = new_angle;
+								}
+							});
+						}
 					}
 				} else if (brush == Brush.LIGHT) {
 					if (mouse_pressed) {
