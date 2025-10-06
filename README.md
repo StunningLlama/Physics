@@ -145,6 +145,7 @@ The main way to interact with circuits is to change the strength of voltage sour
 
 |     |     |
 | --- | --- |
+| AC voltage source <br>\[desktop\] | Voltage source that oscillates sinusoidally at a fixed frequency. |
 | Voltage source | Generates a voltage that can be used to power circuits. |
 | Switch | Conductivity can be switched on and off by the user. |
 | Metal | Material that conducts electricity very well. |
@@ -163,6 +164,7 @@ The main way to interact with circuits is to change the strength of voltage sour
 | Ferromagnet | Magnetic material with high relative permeability. |
 | Positive static charge | Positively charged insulating material. |
 | Negative static charge | Negatively charged insulating material. |
+| Absorber <br>\[desktop\] | Absorbs incoming electromagnetic radiation very effectively. |
 | Decoration | Used for text or circuit symbols, has no effect otherwise. |
 | Vacuum | Empty space. |
 
