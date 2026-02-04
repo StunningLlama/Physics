@@ -1,15 +1,18 @@
-// Copyright (c) Brandon Li 2025
+// Copyright (c) Brandon Li 2025-2026
 // This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
 // See LICENSE.txt for full license details.
 
 package electrodynamics;
 
+import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.MouseInfo;
 import java.awt.PointerInfo;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -19,14 +22,24 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
+import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
@@ -37,7 +50,7 @@ import electrodynamics.util.Font7x5;
 import electrodynamics.util.Utils;
 import electrodynamics.util.Vector;
 
-public class Controls implements ActionListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
+public class Controls implements ActionListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener, ItemListener {
 	Simulation e;
 	
 	/* Keyboard controls */
@@ -51,6 +64,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public boolean cut = false;
 	public boolean copy = false;
 	public boolean paste = false;
+	public boolean undo = false;
+	public boolean redo = false;
 	public boolean delete = false;
     public boolean shift_down = false;
     public boolean ctrl_down = false;
@@ -112,6 +127,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	Cursor HAND_CURSOR = new Cursor(Cursor.HAND_CURSOR);
 	Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
+
+	public HashMap<Brush, JRadioButtonMenuItem> brushbuttonmap;
+	public ButtonGroup buttongroup;
+	
+	public List<Snapshot> prev_states = new ArrayList<Snapshot>();
+	public int undoredo_pointer = 0;
 	
 	public Controls(Simulation e) {
 		this.e = e;
@@ -258,6 +279,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 			brush_changed = false;
 		}
+		
 
 		boolean update = false;
 
@@ -671,6 +693,19 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				e.voltageprobes.get(e.voltageprobes.size()-1).y = my_index;
 			}
 			break;
+		case CHARGE:
+				if (pressing) {
+					ChargeProbe p = new ChargeProbe();
+					p.x1 = mx_start_index;
+					p.y1 = my_start_index;
+					p.x2 = mx_index;
+					p.y2 = my_index;
+					e.chargeprobes.add(p);
+				} else if (mouse_pressed) {
+					e.chargeprobes.get(e.chargeprobes.size()-1).x2 = mx_index;
+					e.chargeprobes.get(e.chargeprobes.size()-1).y2 = my_index;
+				}
+			break;
 		case DELETEPROBE:
 			e.canvas.setCursor(DEFAULT_CURSOR);
 			int i = 0;
@@ -699,6 +734,19 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				i++;
 			}
 
+			i = 0;
+			while(i < e.chargeprobes.size()) {
+				ChargeProbe p = e.chargeprobes.get(i);
+				if (mx_index >= Math.min(p.x1, p.x2) && mx_index <= Math.max(p.x1, p.x2) && my_index >= Math.min(p.y1, p.y2) && my_index <= Math.max(p.y1, p.y2)) {
+					e.canvas.setCursor(HAND_CURSOR);
+					if (pressing) {
+						e.chargeprobes.remove(i);
+						i--;
+					}
+				}
+				i++;
+			}
+			
 			if (e.ground != null && Utils.length(e.ground.x-mx_index, e.ground.y-my_index) < 3) {
 				e.canvas.setCursor(HAND_CURSOR);
 				if (pressing) {
@@ -758,12 +806,65 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			//e.resetFields(false);
 			e.updateAllMaterials(false);
 			e.multigridSolve(true, false);
+			
+			captureState();
 		}
 
 		prev_boundary = (BoundaryCondition)e.opts.gui_bc.getSelectedItem();
 
 		mxp_realspace = mx_realspace;
 		myp_realspace = my_realspace;
+	}
+	
+	public void resetUndoHistory() {
+		undoredo_pointer = 0;
+		prev_states.clear();
+
+		Snapshot state = new Snapshot();
+		state.store(e);
+		prev_states.add(state);
+	}
+	
+	public void handleUndoRedo() {
+		if (undo) {
+			undoredo_pointer--;
+			if (undoredo_pointer < 0) undoredo_pointer = 0;
+			
+			if (undoredo_pointer >= 0 && undoredo_pointer < prev_states.size()) {
+				prev_states.get(undoredo_pointer).load(e);
+			}
+			
+			undo = false;
+		}
+		
+		if (redo) {
+			undoredo_pointer++;
+			if (undoredo_pointer >= prev_states.size()) undoredo_pointer = prev_states.size()-1;
+			
+			if (undoredo_pointer >= 0 && undoredo_pointer < prev_states.size())
+				prev_states.get(undoredo_pointer).load(e);
+
+			redo = false;
+		}
+	}
+	
+	public void captureState() {
+		int i = undoredo_pointer+1;
+		
+		while (i < prev_states.size()) {
+			prev_states.remove(i);
+		}
+		
+		undoredo_pointer++;
+		Snapshot state = new Snapshot();
+		state.store(e);
+		prev_states.add(state);
+
+		while (prev_states.size() > 4)
+		{
+			prev_states.remove(0);
+			undoredo_pointer--;
+		}
 	}
 
 	public void drawMaterialLine(double x1, double y1, double x2, double y2, Brush brush, BrushShape brushshape, MaterialType mat, double brushsize, double EMF_angle) {
@@ -879,19 +980,39 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			clear = true;
 		else if (ev.getSource() == e.opts.gui_resetall)
 			reset = true;
-		else if (ev.getSource() == e.opts.gui_save)
+		else if (ev.getSource() == e.opts.menu_save)
 			save = true;
-		else if (ev.getSource() == e.opts.gui_open)
+		else if (ev.getSource() == e.opts.menu_open)
 			load = true;
-		else if (ev.getSource() == e.opts.gui_help)
+		else if (ev.getSource() == e.opts.menu_help)
 			try {
 				File helpfile = new File("README.html");
 				java.awt.Desktop.getDesktop().browse(helpfile.toURI());
 			} catch (IOException ex) {
 				ex.printStackTrace();
 			}
-		else if (ev.getSource() == e.opts.gui_editdesc) {
-			e.opts.textPane.setEditable(!e.opts.textPane.isEditable());
+		else if (ev.getSource() == e.opts.menu_editdesc) {
+			SwingUtilities.invokeLater(() -> {
+				String text = e.opts.textPane.getText();
+				JFrame frame = new JFrame();
+				JTextArea area = new JTextArea();
+				JButton b = new JButton("Save");
+				frame.setSize(500, 500);
+				area.setText(text);
+				area.setEditable(true);
+				frame.add(area);
+				frame.add(b, BorderLayout.SOUTH);
+				b.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent ev) {
+						e.opts.textPane.setText(area.getText());
+						e.opts.textPane.setEditable(false);
+						frame.dispose();
+					}
+				});
+				frame.setVisible(true);
+				
+			});
 		} else if (ev.getSource() == e.opts.gui_view) {
 			e.updateMiscFields = true;
 		} else if (ev.getSource() == e.opts.gui_view_vec) {
@@ -906,6 +1027,31 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.adv_opts.setVisible(false);
 		} else if (ev.getSource() == e.adv_opts.btn_cancel) {
 			e.adv_opts.setVisible(false);
+		} else if (ev.getSource() == e.opts.menu_cut) {
+			cut = true;
+		} else if (ev.getSource() == e.opts.menu_copy) {
+			copy = true;
+		} else if (ev.getSource() == e.opts.menu_paste) {
+			paste = true;
+		} else if (ev.getSource() == e.opts.menu_undo) {
+			undo = true;
+		} else if (ev.getSource() == e.opts.menu_redo) {
+			redo = true;
+		} else if (ev.getSource() == e.opts.menu_about) {
+			JOptionPane.showConfirmDialog(e.opts, "Brandon's Semiconductor Simulator (SemiSim).\n (c) 2026 Brandon Li", "About", JOptionPane.OK_OPTION);
+		} else if (ev.getSource() instanceof JRadioButtonMenuItem) {
+			for (Brush b : brushbuttonmap.keySet())
+				if (ev.getSource() == brushbuttonmap.get(b))
+					e.opts.gui_brush.setSelectedItem(b);
+		}
+	}
+	
+
+
+	@Override
+	public void itemStateChanged(ItemEvent ev) {
+		if (ev.getSource() == e.opts.gui_brush) {
+			buttongroup.setSelected(brushbuttonmap.get((Brush) e.opts.gui_brush.getSelectedItem()).getModel(), true);
 		}
 	}
 	
@@ -1027,6 +1173,22 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     };
 
     @SuppressWarnings("serial")
+    private Action key_undo = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		undo = true;
+        }
+    };
+    
+    @SuppressWarnings("serial")
+    private Action key_redo = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		redo = true;
+        }
+    };
+
+    @SuppressWarnings("serial")
     private Action key_paste = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1134,6 +1296,23 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.opts.gui_interface.setSelected(!e.opts.gui_interface.isSelected());
         }
     };
+    
+    @SuppressWarnings("serial")
+    private Action key_save = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		save = true;
+        }
+    };
+    
+    @SuppressWarnings("serial")
+    private Action key_open = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		load = true;
+        }
+    };
+
 
     public void addKeyBinds(JPanel contentPane) {
     	InputMap map = contentPane.getInputMap(JComponent.WHEN_FOCUSED);
@@ -1177,6 +1356,22 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK), key_paste);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.META_DOWN_MASK), key_paste);
     	contentPane.getActionMap().put(key_paste, key_paste);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK), key_undo);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.META_DOWN_MASK), key_undo);
+    	contentPane.getActionMap().put(key_undo, key_undo);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_redo);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.META_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_redo);
+    	contentPane.getActionMap().put(key_redo, key_redo);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), key_save);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.META_DOWN_MASK), key_save);
+    	contentPane.getActionMap().put(key_save, key_save);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK), key_open);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.META_DOWN_MASK), key_open);
+    	contentPane.getActionMap().put(key_open, key_open);
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), key_delete);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), key_delete);
@@ -1319,22 +1514,23 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	public enum Brush {
 		INTERACT("Interact"),
-		DRAW("Draw"),
-		VOLTAGE("Voltage probe"),
-		CURRENT("Current probe"),
-		GROUND("Ground"),
-		DELETEPROBE("Delete probe"),
-		BANDS("Plot bands"),
-		SCALARPLOT("Plot scalar field"),
-		CARRIERPLOT("Plot carriers"),
 		LIGHT("Flashlight"),
+		DRAW("Draw"),
 		REPLACE("Replace"),
 		LINE("Line"),
 		FILL("Fill"),
 		ERASE("Eraser"),
 		SELECT("Select and move"),
 		FLOODSELECT("Flood select"),
-		TEXT("Text");
+		TEXT("Text"),
+		VOLTAGE("Voltage probe"),
+		CURRENT("Current probe"),
+		CHARGE("Charge probe"),
+		GROUND("Ground"),
+		DELETEPROBE("Delete probe"),
+		BANDS("Plot bands"),
+		SCALARPLOT("Plot scalar field"),
+		CARRIERPLOT("Plot carriers");
 	
 		public String name;
 		Brush(String name)

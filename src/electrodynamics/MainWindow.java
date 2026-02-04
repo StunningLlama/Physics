@@ -1,4 +1,4 @@
-// Copyright (c) Brandon Li 2025
+// Copyright (c) Brandon Li 2025-2026
 // This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
 // See LICENSE.txt for full license details.
 
@@ -27,6 +27,13 @@ import javax.swing.JTextArea;
 import javax.swing.ListCellRenderer;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.border.EmptyBorder;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JMenu;
+import javax.swing.JSeparator;
+import javax.swing.KeyStroke;
+import java.awt.event.KeyEvent;
+import java.awt.event.InputEvent;
 
 public class MainWindow extends JFrame {
 
@@ -45,8 +52,6 @@ public class MainWindow extends JFrame {
 	public JScrollBar gui_parameter1;
 	public JCheckBox gui_paused;
 	public JButton gui_resetall;
-	public JButton gui_save;
-	public JButton gui_open;
 	public JPanel panel;
 	public JLabel gui_parameter2_text;
 	public JScrollBar gui_parameter2;
@@ -58,8 +63,6 @@ public class MainWindow extends JFrame {
 	public JCheckBox gui_tooltip;
 	public JTextArea textPane;
 	public JScrollPane scrollPane;
-	public JButton gui_editdesc;
-	public JButton gui_help;
 	public JLabel gui_parameter1_text;
 	public JLabel gui_parameter3_text;
 	public JLabel gui_stepslbl;
@@ -74,6 +77,18 @@ public class MainWindow extends JFrame {
 	public JLabel lblBrushSize;
 	public JButton gui_adv_settings;
 	public JCheckBox gui_interface;
+	public JMenuItem menu_open;
+	public JMenuItem menu_save;
+	public JMenuItem menu_about;
+	public JMenuItem menu_help;
+	public JMenuItem menu_cut;
+	public JMenuItem menu_copy;
+	public JMenuItem menu_paste;
+	public JMenuItem menu_undo;
+	public JMenuItem menu_redo;
+	public JMenu menu_examples;
+	public JMenu menu_tools;
+	public JMenuItem menu_editdesc;
 
 	/**
 	 * Create the frame.
@@ -81,7 +96,65 @@ public class MainWindow extends JFrame {
 	public MainWindow() {
 		setTitle("Brandon's semiconductor simulator");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 589, 780);
+		setBounds(100, 100, 590, 832);
+		
+		JMenuBar menuBar = new JMenuBar();
+		setJMenuBar(menuBar);
+		
+		JMenu mnNewMenu = new JMenu("File");
+		menuBar.add(mnNewMenu);
+		
+		menu_open = new JMenuItem("Open file");
+		menu_open.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
+		mnNewMenu.add(menu_open);
+		
+		menu_save = new JMenuItem("Save as");
+		menu_save.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
+		mnNewMenu.add(menu_save);
+		
+		menu_editdesc = new JMenuItem("Edit description");
+		mnNewMenu.add(menu_editdesc);
+		
+		JSeparator separator_1 = new JSeparator();
+		mnNewMenu.add(separator_1);
+		
+		menu_about = new JMenuItem("About");
+		mnNewMenu.add(menu_about);
+		
+		menu_help = new JMenuItem("Open manual");
+		mnNewMenu.add(menu_help);
+		
+		JMenu menu_asdf = new JMenu("Edit");
+		menuBar.add(menu_asdf);
+		
+		menu_cut = new JMenuItem("Cut");
+		menu_cut.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK));
+		menu_asdf.add(menu_cut);
+		
+		menu_copy = new JMenuItem("Copy");
+		menu_copy.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
+		menu_asdf.add(menu_copy);
+		
+		menu_paste = new JMenuItem("Paste");
+		menu_paste.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK));
+		menu_asdf.add(menu_paste);
+		
+		JSeparator separator = new JSeparator();
+		menu_asdf.add(separator);
+		
+		menu_undo = new JMenuItem("Undo");
+		menu_undo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK));
+		menu_asdf.add(menu_undo);
+		
+		menu_redo = new JMenuItem("Redo");
+		menu_redo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+		menu_asdf.add(menu_redo);
+		
+		menu_tools = new JMenu("Tools");
+		menuBar.add(menu_tools);
+		
+		menu_examples = new JMenu("Examples");
+		menuBar.add(menu_examples);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		contentPane.setLayout(new BorderLayout(0, 0));
@@ -99,7 +172,7 @@ public class MainWindow extends JFrame {
 			public void actionPerformed(ActionEvent arg0) {
 			}
 		});
-		gui_reset.setBounds(201, 99, 171, 23);
+		gui_reset.setBounds(201, 39, 171, 23);
 		panel.add(gui_reset);
 
 		gui_paused = new JCheckBox("Paused");
@@ -111,7 +184,7 @@ public class MainWindow extends JFrame {
 		gui_brushsize.setMaximum(1010);
 		gui_brushsize.setValue(500);
 		gui_brushsize.setOrientation(Adjustable.HORIZONTAL);
-		gui_brushsize.setBounds(201, 343, 171, 17);
+		gui_brushsize.setBounds(201, 320, 171, 17);
 		panel.add(gui_brushsize);
 
 		gui_simspeed = new JScrollBar();
@@ -119,7 +192,7 @@ public class MainWindow extends JFrame {
 		gui_simspeed.setBlockIncrement(1);
 		gui_simspeed.setMaximum(30);
 		gui_simspeed.setOrientation(Adjustable.HORIZONTAL);
-		gui_simspeed.setBounds(10, 343, 171, 17);
+		gui_simspeed.setBounds(10, 320, 171, 17);
 		panel.add(gui_simspeed);
 
 		gui_brightness = new JScrollBar();
@@ -128,7 +201,7 @@ public class MainWindow extends JFrame {
 		gui_brightness.setMinimum(-45);
 		gui_brightness.setMaximum(45);
 		gui_brightness.setOrientation(Adjustable.HORIZONTAL);
-		gui_brightness.setBounds(10, 449, 171, 17);
+		gui_brightness.setBounds(10, 426, 171, 17);
 		panel.add(gui_brightness);
 
 		gui_parameter1 = new JScrollBar();
@@ -137,14 +210,14 @@ public class MainWindow extends JFrame {
 		gui_parameter1.setMaximum(25);
 		gui_parameter1.setMinimum(-15);
 		gui_parameter1.setOrientation(Adjustable.HORIZONTAL);
-		gui_parameter1.setBounds(201, 396, 171, 17);
+		gui_parameter1.setBounds(201, 373, 171, 17);
 		panel.add(gui_parameter1);
 
 		gui_brush = new JComboBox();
 		gui_brush.setMaximumRowCount(16);
 		gui_brush.setModel(new DefaultComboBoxModel(Controls.Brush.values()));
 		gui_brush.setSelectedIndex(0);
-		gui_brush.setBounds(201, 173, 171, 22);
+		gui_brush.setBounds(201, 150, 171, 22);
 		panel.add(gui_brush);
 		addTooltips(gui_brush);
 
@@ -153,59 +226,51 @@ public class MainWindow extends JFrame {
 		gui_view.setToolTipText("");
 		gui_view.setModel(new DefaultComboBoxModel(Renderer.ScalarView.values()));
 		gui_view.setSelectedIndex(3);
-		gui_view.setBounds(10, 173, 171, 22);
+		gui_view.setBounds(10, 150, 171, 22);
 		panel.add(gui_view);
 		addTooltips(gui_view);
 
 		gui_stepsizelbl = new JLabel("Timestep");
-		gui_stepsizelbl.setBounds(20, 318, 161, 14);
+		gui_stepsizelbl.setBounds(20, 295, 161, 14);
 		panel.add(gui_stepsizelbl);
 
 		JLabel label5 = new JLabel("Scalar brightness");
-		label5.setBounds(20, 424, 150, 14);
+		label5.setBounds(20, 401, 150, 14);
 		panel.add(label5);
 
 		lblBrushSize = new JLabel("Brush size");
-		lblBrushSize.setBounds(211, 318, 138, 14);
+		lblBrushSize.setBounds(211, 295, 138, 14);
 		panel.add(lblBrushSize);
 
 		gui_parameter1_text = new JLabel("");
 		gui_parameter1_text.setEnabled(false);
-		gui_parameter1_text.setBounds(211, 371, 154, 14);
+		gui_parameter1_text.setBounds(211, 348, 154, 14);
 		panel.add(gui_parameter1_text);
 
 		gui_view_vec = new JComboBox();
 		gui_view_vec.setMaximumRowCount(16);
 		gui_view_vec.setModel(new DefaultComboBoxModel(Renderer.VectorView.values()));
 		gui_view_vec.setSelectedIndex(1);
-		gui_view_vec.setBounds(10, 207, 171, 22);
+		gui_view_vec.setBounds(10, 184, 171, 22);
 		panel.add(gui_view_vec);
 		addTooltips(gui_view_vec);
 
-		gui_save = new JButton("Save scenario");
-		gui_save.setBounds(201, 11, 171, 23);
-		panel.add(gui_save);
-
-		gui_open = new JButton("Load scenario");
-		gui_open.setBounds(201, 40, 171, 23);
-		panel.add(gui_open);
-
 		gui_resetall = new JButton("Clear all");
-		gui_resetall.setBounds(201, 70, 171, 23);
+		gui_resetall.setBounds(201, 10, 171, 23);
 		panel.add(gui_resetall);
 
 		gui_parameter2_text = new JLabel("Direction");
-		gui_parameter2_text.setBounds(211, 428, 161, 14);
+		gui_parameter2_text.setBounds(211, 405, 161, 14);
 		panel.add(gui_parameter2_text);
 
 		gui_parameter2 = new JScrollBar();
 		gui_parameter2.setOrientation(Adjustable.HORIZONTAL);
 		gui_parameter2.setMaximum(34);
-		gui_parameter2.setBounds(201, 449, 171, 17);
+		gui_parameter2.setBounds(201, 426, 171, 17);
 		panel.add(gui_parameter2);
 
 		lblVectorBrightness = new JLabel("Vector field brightness");
-		lblVectorBrightness.setBounds(20, 481, 150, 14);
+		lblVectorBrightness.setBounds(20, 458, 150, 14);
 		panel.add(lblVectorBrightness);
 
 		gui_brightness_vec = new JScrollBar();
@@ -214,19 +279,19 @@ public class MainWindow extends JFrame {
 		gui_brightness_vec.setMinimum(-45);
 		gui_brightness_vec.setMaximum(45);
 		gui_brightness_vec.setBlockIncrement(1);
-		gui_brightness_vec.setBounds(10, 504, 171, 17);
+		gui_brightness_vec.setBounds(10, 481, 171, 17);
 		panel.add(gui_brightness_vec);
 
 		gui_brush_1 = new JComboBox();
 		gui_brush_1.setMaximumRowCount(16);
 		gui_brush_1.setModel(new DefaultComboBoxModel(Controls.BrushShape.values()));
 		gui_brush_1.setSelectedIndex(1);
-		gui_brush_1.setBounds(201, 241, 171, 22);
+		gui_brush_1.setBounds(201, 218, 171, 22);
 		panel.add(gui_brush_1);
 		addTooltips(gui_brush_1);
 
 		gui_stepslbl = new JLabel("Sim steps/frame");
-		gui_stepslbl.setBounds(20, 371, 144, 14);
+		gui_stepslbl.setBounds(20, 348, 144, 14);
 		panel.add(gui_stepslbl);
 
 		gui_simspeed_2 = new JScrollBar();
@@ -235,7 +300,7 @@ public class MainWindow extends JFrame {
 		gui_simspeed_2.setOrientation(Adjustable.HORIZONTAL);
 		gui_simspeed_2.setMaximum(110);
 		gui_simspeed_2.setBlockIncrement(1);
-		gui_simspeed_2.setBounds(10, 396, 171, 17);
+		gui_simspeed_2.setBounds(10, 373, 171, 17);
 		panel.add(gui_simspeed_2);
 
 		gui_parameter3 = new JScrollBar();
@@ -243,11 +308,11 @@ public class MainWindow extends JFrame {
 		gui_parameter3.setOrientation(Adjustable.HORIZONTAL);
 		gui_parameter3.setMaximum(60);
 		gui_parameter3.setBlockIncrement(1);
-		gui_parameter3.setBounds(201, 504, 171, 17);
+		gui_parameter3.setBounds(201, 481, 171, 17);
 		panel.add(gui_parameter3);
 
 		gui_parameter3_text = new JLabel("EMF");
-		gui_parameter3_text.setBounds(211, 481, 150, 14);
+		gui_parameter3_text.setBounds(211, 458, 150, 14);
 		panel.add(gui_parameter3_text);
 
 		gui_tooltip = new JCheckBox("Show detailed info");
@@ -257,7 +322,7 @@ public class MainWindow extends JFrame {
 
 		scrollPane = new JScrollPane();
 		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-		scrollPane.setBounds(27, 543, 345, 146);
+		scrollPane.setBounds(16, 523, 349, 232);
 		panel.add(scrollPane);
 
 		textPane = new JTextArea();
@@ -266,46 +331,39 @@ public class MainWindow extends JFrame {
 		textPane.setFont(new Font("SansSerif", Font.PLAIN, 13));
 		textPane.setMargin(new Insets(4, 4, 4, 4));
 		textPane.setLineWrap(true);
+		textPane.setEditable(false);
 		scrollPane.setColumnHeaderView(textPane);
-
-		gui_editdesc = new JButton("Edit description");
-		gui_editdesc.setBounds(196, 701, 165, 23);
-		panel.add(gui_editdesc);
-
-		gui_help = new JButton("Open Manual");
-		gui_help.setBounds(19, 701, 162, 23);
-		panel.add(gui_help);
 
 		gui_view_vec_mode = new JComboBox();
 		gui_view_vec_mode.setMaximumRowCount(16);
 		gui_view_vec_mode.setModel(new DefaultComboBoxModel(Renderer.VectorMode.values()));
 		gui_view_vec_mode.setSelectedIndex(0);
-		gui_view_vec_mode.setBounds(10, 241, 171, 22);
+		gui_view_vec_mode.setBounds(10, 218, 171, 22);
 		panel.add(gui_view_vec_mode);
 		addTooltips(gui_view_vec_mode);
 
 		gui_brush_highlight = new JCheckBox("Brush highlight");
 		gui_brush_highlight.setSelected(true);
-		gui_brush_highlight.setBounds(205, 275, 160, 23);
+		gui_brush_highlight.setBounds(205, 252, 160, 23);
 		panel.add(gui_brush_highlight);
 
 		gui_elem_colors = new JCheckBox("Show material colors");
 		gui_elem_colors.setSelected(true);
-		gui_elem_colors.setBounds(10, 275, 171, 23);
+		gui_elem_colors.setBounds(10, 252, 171, 23);
 		panel.add(gui_elem_colors);
 
 		gui_material = new JComboBox();
 		gui_material.setMaximumRowCount(16);
 		gui_material.setModel(new DefaultComboBoxModel(electrodynamics.MaterialType.values()));
 		gui_material.setSelectedIndex(0);
-		gui_material.setBounds(201, 207, 171, 22);
+		gui_material.setBounds(201, 184, 171, 22);
 		panel.add(gui_material);
 		addTooltips(gui_material);
 
 		gui_bc = new JComboBox();
 		gui_bc.setModel(new DefaultComboBoxModel(BoundaryCondition.values()));
 		gui_bc.setSelectedIndex(0);
-		gui_bc.setBounds(10, 128, 171, 22);
+		gui_bc.setBounds(201, 116, 171, 22);
 		panel.add(gui_bc);
 		addTooltips(gui_bc);
 
@@ -315,7 +373,7 @@ public class MainWindow extends JFrame {
 		panel.add(gui_text_bg);
 		
 		gui_adv_settings = new JButton("Advanced settings");
-		gui_adv_settings.setBounds(201, 128, 171, 23);
+		gui_adv_settings.setBounds(201, 68, 171, 23);
 		panel.add(gui_adv_settings);
 		
 		gui_interface = new JCheckBox("Display interface");

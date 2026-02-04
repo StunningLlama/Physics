@@ -1,4 +1,4 @@
-// Copyright (c) Brandon Li 2025
+// Copyright (c) Brandon Li 2025-2026
 // This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
 // See LICENSE.txt for full license details.
 
@@ -768,17 +768,17 @@ public class Renderer extends PeriodicTask {
 		}
 
 
+		setalphaBG(1);
+		setalphaFG(1);
+		setColorFloat(0.7f, 0.7f, 0.7f);
+
+		if (Brush.drawLine(brush) && e.controls.mouse_pressed) {
+			drawPixelLine(e.controls.mx_start_index, e.controls.my_start_index, e.controls.mx_index, e.controls.my_index);
+		}
+
+
 		if (e.opts.gui_interface.isSelected())
 		{
-			setalphaBG(1);
-			setalphaFG(1);
-			setColorFloat(0.7f, 0.7f, 0.7f);
-
-			if (Brush.drawLine(brush) && e.controls.mouse_pressed) {
-				drawPixelLine(e.controls.mx_start_index, e.controls.my_start_index, e.controls.mx_index, e.controls.my_index);
-			}
-
-
 			setalphaFG(1.0);
 			setColorFloat(0.5f, 1.0f, 1.0f);
 
@@ -790,7 +790,11 @@ public class Renderer extends PeriodicTask {
 			for (VoltageProbe p: e.voltageprobes) {
 				drawPixelRectangle(p.x-1, p.y-1, 3, 3);
 			}
-
+			
+			for (ChargeProbe p: e.chargeprobes) {
+				drawPixelRectangle(Math.min(p.x1, p.x2), Math.min(p.y1, p.y2), Math.abs(p.x1-p.x2)+1, Math.abs(p.y1-p.y2)+1);
+			}
+			
 			if (e.ground != null) {
 				drawPixelRectangle(e.ground.x-1, e.ground.y-1, 3, 3);
 			}
@@ -821,12 +825,13 @@ public class Renderer extends PeriodicTask {
 				}
 			}
 
-			setalphaFG(0.8);
-			setColorFloat(1.0f, 1.0f, 1.0f);
+		}
 
-			if (e.controls.texting) {
-				drawPixelLine(e.controls.text_x, e.controls.text_y, e.controls.text_x, e.controls.text_y+7);
-			}
+		setalphaFG(0.8);
+		setColorFloat(1.0f, 1.0f, 1.0f);
+		
+		if (e.controls.texting) {
+			drawPixelLine(e.controls.text_x, e.controls.text_y, e.controls.text_x, e.controls.text_y+7);
 		}
 
 		stampPixelData();
@@ -942,6 +947,11 @@ public class Renderer extends PeriodicTask {
 
 				drawStringWithBackgroundAndBorder("I = " + Utils.getSI(p.current*e.depth, "A", 1e-9), (int)(xa-8*dy)-5, (int)(ya+12*dx)+5, g);
 			}
+			
+			
+			for (ChargeProbe p: e.chargeprobes) {
+				drawStringWithBackgroundAndBorder("Q = " + Utils.getSI(p.charge*e.depth, "C"), scalefactor*(p.x1+p.x2)/2, scalefactor*(p.y1+p.y2)/2, g);
+			}
 
 			drawStringBackgrounds(g);
 			drawStrings(g);
@@ -1003,8 +1013,8 @@ public class Renderer extends PeriodicTask {
 					//drawTwoColumnString("E\u2099" , 					Utils.getSI(bilinearinterp(E0_n,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
 					//drawTwoColumnString("E\u209a" , 					Utils.getSI(bilinearinterp(E0_p,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
 					drawTwoColumnString("F" , 							Utils.getSI(bilinearinterp(e.F,mx_t, my_t), "V", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("CMF\u2099" ,					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_n,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_n, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("CMF\u209A" , 					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_p,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_p, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
+					//drawTwoColumnString("CMF\u2099" ,					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_n,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_n, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
+					//drawTwoColumnString("CMF\u209A" , 					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_p,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_p, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
 					drawTwoColumnString("x" , 							Utils.getSI(mx_t*e.ds, "m"),								hoffset, voffset + line*vspacing, g); line++;
 					drawTwoColumnString("y" , 							Utils.getSI(e.ds*e.ny-(my_t+1)*e.ds, "m"),								hoffset, voffset + line*vspacing, g); line++;
 				}
@@ -1040,6 +1050,9 @@ public class Renderer extends PeriodicTask {
 				drawStringWithBackground(FPStimer.getName() + " " + Utils.getSI(1/FPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
 				drawStringWithBackground(e.simFPStimer.getName() + " " + Utils.getSI(1/e.simFPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
 			}
+			if (e.numerical_overflow) {
+				drawStringWithBackground("Error: Numerical overflow detected. Please reset simulation.", hoffset, voffset + line*vspacing, g); line++;
+			}
 
 			if (probetexttimer > 0) {
 				drawStringWithBackground("Data saved to " + e.datafilename, hoffset, voffset + line*vspacing, g); line++;
@@ -1048,24 +1061,24 @@ public class Renderer extends PeriodicTask {
 
 			drawStringBackgrounds(g);
 			drawStrings(g);
-
-			Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
-			if (!e.opts.gui_brush_highlight.isSelected()) {
-				int r = (int)(scalefactor*e.controls.brushsize/e.ds);
-				int brushshape = e.opts.gui_brush_1.getSelectedIndex();
-				if (Brush.isBrushShapeImportant(brush))
-					if (brushshape == 0) {
-						g.setColor(new Color(50, 50, 50));
-						g.drawOval(e.controls.mx - r, e.controls.my - r, 2*r, 2*r);
-						g.setColor(new Color(200, 200, 200));
-						g.drawOval(e.controls.mx - r-1, e.controls.my - r-1, 2*r, 2*r);
-					} else {
-						g.setColor(new Color(50, 50, 50));
-						g.drawRect(e.controls.mx - r, e.controls.my - r, 2*r-2, 2*r-2);
-						g.setColor(new Color(200, 200, 200));
-						g.drawRect(e.controls.mx - r-1, e.controls.my - r-1, 2*r, 2*r);
-					}
-			}
+		}
+		
+		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
+		if (!e.opts.gui_brush_highlight.isSelected()) {
+			int r = (int)(scalefactor*e.controls.brushsize/e.ds);
+			int brushshape = e.opts.gui_brush_1.getSelectedIndex();
+			if (Brush.isBrushShapeImportant(brush))
+				if (brushshape == 0) {
+					g.setColor(new Color(50, 50, 50));
+					g.drawOval(e.controls.mx - r, e.controls.my - r, 2*r, 2*r);
+					g.setColor(new Color(200, 200, 200));
+					g.drawOval(e.controls.mx - r-1, e.controls.my - r-1, 2*r, 2*r);
+				} else {
+					g.setColor(new Color(50, 50, 50));
+					g.drawRect(e.controls.mx - r, e.controls.my - r, 2*r-2, 2*r-2);
+					g.setColor(new Color(200, 200, 200));
+					g.drawRect(e.controls.mx - r-1, e.controls.my - r-1, 2*r, 2*r);
+				}
 		}
 	}
 
@@ -1667,9 +1680,8 @@ class RenderCanvas extends JPanel {
 	Simulation parent;
 	@Override
 	public void paintComponent(Graphics real) {
-		//synchronized(parent.renderer) {
-			real.drawImage(parent.renderer.img_front, 0, 0, parent.opts);
-		//}
+		real.clearRect(0, 0, real.getClipBounds().width, real.getClipBounds().height);
+		real.drawImage(parent.renderer.img_front, 0, 0, parent.opts);
 	}
 
 	public RenderCanvas(Simulation w) {

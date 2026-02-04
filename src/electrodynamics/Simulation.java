@@ -1,4 +1,4 @@
-// Copyright (c) Brandon Li 2025
+// Copyright (c) Brandon Li 2025-2026
 // This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
 // See LICENSE.txt for full license details.
 
@@ -9,6 +9,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.BrokenBarrierException;
@@ -18,17 +19,23 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JSeparator;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
+import electrodynamics.Controls.Brush;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.plot.BandPlot;
 import electrodynamics.plot.CarrierPlot;
 import electrodynamics.plot.Plot;
 import electrodynamics.plot.ScalarPlot;
+import electrodynamics.util.MenuBuilder;
 import electrodynamics.util.PeriodicTask;
 import electrodynamics.util.Timer;
 import electrodynamics.util.Utils;
@@ -47,9 +54,6 @@ public class Simulation extends PeriodicTask {
 	 *  - UJT
 	 *  - Darlington pair
 	 */
-
-	//TODO:
-	// Undo/redo
 	
 	/* Parts */
 	
@@ -103,6 +107,7 @@ public class Simulation extends PeriodicTask {
 
 	public double error_detection_threshold = 1e-5;
 	public boolean sign_violation = false;
+	public boolean numerical_overflow = false;
 	
 	public boolean advsettings_tweaked = false;
 	
@@ -284,6 +289,7 @@ public class Simulation extends PeriodicTask {
 	/* Probes */
 	public List<VoltageProbe> voltageprobes = new CopyOnWriteArrayList<>();
 	public List<CurrentProbe> currentprobes = new CopyOnWriteArrayList<>();
+	public List<ChargeProbe> chargeprobes = new CopyOnWriteArrayList<>();
 	public VoltageProbe ground = null;
 	public String datafilename = "probedata.txt";
 	public File datafile;
@@ -294,7 +300,7 @@ public class Simulation extends PeriodicTask {
 	
 	Timer t4 = new Timer("Poisson constraint solver", 1, true);
 	Timer t7 = new Timer("Poisson potential solver", 10, true);
-	Timer t6 = new Timer("Iterate simulation", 20, true);
+	Timer t6 = new Timer("Iterate simulation", 40, true);
 	Timer t8 = new Timer("Calc misc fields", 20, true);
 	Timer t9 = new Timer("Debug", 20, false);
 	Timer simFPStimer = new Timer("Simulation FPS", 10, true);
@@ -323,15 +329,41 @@ public class Simulation extends PeriodicTask {
 		canvas.addKeyListener(controls);
 		opts.gui_reset.addActionListener(controls);
 		opts.gui_resetall.addActionListener(controls);
-		opts.gui_save.addActionListener(controls);
-		opts.gui_open.addActionListener(controls);
-		opts.gui_help.addActionListener(controls);
-		opts.gui_editdesc.addActionListener(controls);
 		opts.gui_view.addActionListener(controls);
 		opts.gui_view_vec.addActionListener(controls);
 		opts.gui_brush.addActionListener(controls);
 		opts.gui_material.addActionListener(controls);
 		opts.gui_adv_settings.addActionListener(controls);
+		
+		opts.menu_open.addActionListener(controls);
+		opts.menu_save.addActionListener(controls);
+		opts.menu_about.addActionListener(controls);
+		opts.menu_help.addActionListener(controls);
+		opts.menu_undo.addActionListener(controls);
+		opts.menu_redo.addActionListener(controls);
+		opts.menu_save.addActionListener(controls);
+		opts.menu_cut.addActionListener(controls);
+		opts.menu_copy.addActionListener(controls);
+		opts.menu_paste.addActionListener(controls);
+		opts.menu_editdesc.addActionListener(controls);
+		
+		opts.gui_brush.addItemListener(controls);
+		
+		controls.brushbuttonmap = new HashMap<Brush, JRadioButtonMenuItem>();
+		controls.buttongroup = new ButtonGroup();
+		for (Brush b : Brush.values()) {
+			if (b == Brush.DRAW || b == Brush.VOLTAGE || b == Brush.BANDS)
+				opts.menu_tools.add(new JSeparator());
+			
+			JRadioButtonMenuItem button = new JRadioButtonMenuItem(b.name);
+			controls.brushbuttonmap.put(b, button);
+			button.addActionListener(controls);
+			controls.buttongroup.add(button);
+			opts.menu_tools.add(button);
+		}
+		controls.buttongroup.setSelected(controls.brushbuttonmap.get(Brush.INTERACT).getModel(), true);
+		
+		MenuBuilder.addDirectoryToMenu(opts.menu_examples, new File("examples"), this);
 
 		//opts.gui_material.removeItem(MaterialType.ABSORBER);
 		//opts.gui_view.removeItem(ScalarView.DEBUG);
@@ -397,6 +429,9 @@ public class Simulation extends PeriodicTask {
     				dt = dt_maximum*(lastsimspeed/20.0);
     			}
 
+    			
+    			controls.handleUndoRedo();
+    			
     			controls.handleMouseInput();
 
     			if (!opts.gui_paused.isSelected() || controls.advanceframe) {
@@ -409,6 +444,9 @@ public class Simulation extends PeriodicTask {
     			} else if (updateMiscFields) {
     				calcMiscFields(false);
     			}
+    			
+    			if (numerical_overflow)
+    				opts.gui_paused.setSelected(true);
 
 
     			if (controls.save) {
@@ -713,6 +751,8 @@ public class Simulation extends PeriodicTask {
 				}
 			}
 
+			numerical_overflow = false;
+			
 			if (resetall) {
 				voltageprobes.clear();
 				currentprobes.clear();
@@ -723,12 +763,15 @@ public class Simulation extends PeriodicTask {
 				}
 
 				opts.setTitle("Brandon's semiconductor simulator");
+
+				controls.resetUndoHistory();
 			}
 
 			renderer.reset();
 
 			initializeAllMaterials();
 			updateAllMaterials(true);
+			controls.captureState();
 			checkCFL();
 		}
 		finally {
@@ -1090,6 +1133,9 @@ public class Simulation extends PeriodicTask {
 				u[i][j] = 0.25*(Ex[i][j]*Dx[i][j] + Ex[i][j+1]*Dx[i][j+1])
 						+ 0.25*(Ey[i][j]*Dy[i][j] + Ey[i+1][j]*Dy[i+1][j])
 						+ 0.5*Hz[i][j]*Bz[i][j];
+				
+				if (!Double.isFinite(Hz[i][j]))
+					numerical_overflow = true;
 			}
 		}
 
@@ -1178,6 +1224,10 @@ public class Simulation extends PeriodicTask {
 
 		for (CurrentProbe p: currentprobes) {
 			p.current = calcCurrent(p.x1, p.y1, p.x2, p.y2);
+		}
+		
+		for (ChargeProbe p: chargeprobes) {
+			p.charge = calcCharge(p);
 		}
 
 		if (controls.logdata) {
@@ -1564,6 +1614,29 @@ public class Simulation extends PeriodicTask {
 		System.out.println("Hole diffusion CFL ratio = " + dt_maximum/(ds*ds/(4*D_hole)));
 	}
 
+
+	public double calcCharge(ChargeProbe p) {
+		double Q = 0;
+
+		int n_min = 0;
+		int n_max = 0;
+		int m_min = 0;
+		int m_max = 0;
+
+		n_min = Math.min(p.x1, p.x2);
+		n_max = Math.max(p.x1, p.x2);
+		m_min = Math.min(p.y1, p.y2);
+		m_max = Math.max(p.y1, p.y2);
+
+		for (int n = n_min; n <= n_max; n++) {
+			for (int m = m_min; m <= m_max; m++) {
+				Q += rho_free[n][m]*(ds*ds);
+			}
+		}
+
+		return Q;
+	}
+
 	public double calcCurrent(int x0, int y0, int x1, int y1) {
 		int dy = y1 - y0;
 		int dx = x1 - x0;
@@ -1910,6 +1983,16 @@ class VoltageProbe {
 	int y = 0;
 
 	double potential = 0;
+}
+
+class ChargeProbe {
+	int x1;
+	int y1;
+
+	int x2;
+	int y2;
+
+	double charge = 0;
 }
 
 enum Species {

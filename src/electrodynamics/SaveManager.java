@@ -1,4 +1,4 @@
-// Copyright (c) Brandon Li 2025
+// Copyright (c) Brandon Li 2025-2026
 // This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
 // See LICENSE.txt for full license details.
 
@@ -48,220 +48,226 @@ public class SaveManager {
 	public void readFile()
 	{
 		SwingUtilities.invokeLater(() -> {
-			e.rwLock.writeLock().lock();
-			try {
-				File testfile = new File(startingpath);
-				if (!testfile.canRead()) {
-					JOptionPane.showMessageDialog(e.opts,
-					"Error: Java does not have access to this folder. Please see instructions to fix this issue.");
-				}
-
-				JFileChooser fd = new JFileChooser(startingpath);
-				fd.setFileFilter(new FileFilter(){
-					@Override
-					public boolean accept(File f) {
-						if (f.isDirectory() || f.getName().endsWith(fileextension)) return true;
-						return false;
-					}
-					@Override
-					public String getDescription() {
-						return fileextension;
-					}
-				});
-				fd.setVisible(true);
-				int result = fd.showOpenDialog(e.opts);
-				startingpath = fd.getCurrentDirectory().getPath();
-
-				if (result == JFileChooser.APPROVE_OPTION)
-					infile = fd.getSelectedFile();
-				else
-					infile = null;
-
-				if (infile == null || !infile.exists()) return;
-				try {
-					JsonReader fstr = new JsonReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(infile))));
-					Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
-
-					fstr.beginObject();
-
-					assertNextObject(fstr, "version");
-					int version = fstr.nextInt();
-
-					if (version > saveversion) {
-						fstr.close();
-						throw new IllegalArgumentException("The file was created in a newer version of SemiSim.");
-					}
-
-					JOptionPane optionPane = new JOptionPane("Loading file, please wait.", JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
-					JDialog dialog = optionPane.createDialog("Loading");
-
-					dialog.setModal(false);
-					dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-					dialog.setVisible(true);
-
-					if (version == saveversion) {
-
-						int resolution_tmp = e.default_resolution;
-						double width_tmp = e.default_width;
-						assertNextObject(fstr, "header");
-						fstr.beginObject();
-						while (fstr.hasNext()) {
-							String name = fstr.nextName();
-							switch (name){
-							case "resolution": resolution_tmp = fstr.nextInt(); break;
-							case "width": width_tmp = fstr.nextDouble(); break;
-							case "time": e.time = fstr.nextDouble(); break;
-							case "gui_paused": e.opts.gui_paused.setSelected(fstr.nextBoolean()); break;
-							case "gui_tooltip": e.opts.gui_tooltip.setSelected(fstr.nextBoolean()); break;
-							case "gui_text_bg": e.opts.gui_text_bg.setSelected(fstr.nextBoolean()); break;
-							case "gui_elem_colors": e.opts.gui_elem_colors.setSelected(fstr.nextBoolean()); break;
-							case "gui_interface": e.opts.gui_interface.setSelected(fstr.nextBoolean()); break;
-							case "gui_simspeed": e.opts.gui_simspeed.setValue(fstr.nextInt()); break;
-							case "gui_simspeed_2": e.opts.gui_simspeed_2.setValue(fstr.nextInt()); break;
-							case "gui_brightness": e.opts.gui_brightness.setValue(fstr.nextInt()); break;
-							case "gui_brightness_vec": e.opts.gui_brightness_vec.setValue(fstr.nextInt()); break;
-							case "description": e.opts.textPane.setText(fstr.nextString()); break;
-							case "gui_view": e.opts.gui_view.setSelectedItem(gson.fromJson(fstr, Renderer.ScalarView.class)); break;
-							case "gui_view_vec": e.opts.gui_view_vec.setSelectedItem(gson.fromJson(fstr, Renderer.VectorView.class)); break;
-							case "gui_view_vec_mode": e.opts.gui_view_vec_mode.setSelectedItem(gson.fromJson(fstr, Renderer.VectorMode.class)); break;
-							case "gui_bc": e.opts.gui_bc.setSelectedItem(gson.fromJson(fstr, BoundaryCondition.class)); break;
-							case "gui_parameter1": e.opts.gui_parameter1.setValue(fstr.nextInt()); break;
-							default: fstr.skipValue(); break; // skip others
-							}
-						}
-						fstr.endObject();
-
-						e.setSize(resolution_tmp, width_tmp);
-						e.resetFields(true);
-
-						assertNextObject(fstr, "data");
-						fstr.beginObject();
-						while (fstr.hasNext()) {
-							String name = fstr.nextName();
-							switch (name){
-							case "ex": e.Ex = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "ey": e.Ey = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "hz": e.Hz = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-
-							case "rho_c": e.rho_abs = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "rho_n": e.rho_n = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "rho_p": e.rho_p = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "rho_back": e.rho_back = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "rho_free": e.rho_free = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-
-							case "jx_c": e.Jx_abs = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "jy_c": e.Jy_abs = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "jx_n": e.Jx_n = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "jy_n": e.Jy_n = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "jx_p": e.Jx_p = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "jy_p": e.Jy_p = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-
-							case "materials": e.materials = validateArraySize((Material[][]) gson.fromJson(fstr, Material[][].class)); break;
-
-							case "voltageprobes": e.voltageprobes = new CopyOnWriteArrayList<>(Arrays.asList(
-							(VoltageProbe[]) gson.fromJson(fstr, VoltageProbe[].class))); break;
-							case "currentprobes": e.currentprobes = new CopyOnWriteArrayList<>(Arrays.asList(
-							(CurrentProbe[]) gson.fromJson(fstr, CurrentProbe[].class))); break;
-
-							case "ground": e.ground = (VoltageProbe) gson.fromJson(fstr, VoltageProbe.class); break;
-
-							default: fstr.skipValue(); break; // skip others
-							}
-						}
-						fstr.endObject();
-
-						if (testNextObject(fstr, "advsettings")) {
-							fstr.beginObject();
-							readAdvancedSettings(gson, fstr);
-							fstr.endObject();
-							e.advsettings_tweaked = true;
-						} else {
-							e.advsettings_tweaked = false;
-						}
-
-						fstr.close();
-
-						e.opts.textPane.setEditable(false);
-						e.opts.textPane.setCaretPosition(0);
-						e.updateAllMaterials(false);
-						e.calcMiscFields(true);
-					} else if (version == 1) {
-
-						e.setSize(e.default_resolution, e.default_width);
-						e.resetFields(true);
-
-						while (fstr.hasNext()) {
-							String name = fstr.nextName();
-							switch (name){
-							case "time": e.time = fstr.nextDouble(); break;
-							case "gui_paused": e.opts.gui_paused.setSelected(fstr.nextBoolean()); break;
-							case "gui_tooltip": e.opts.gui_tooltip.setSelected(fstr.nextBoolean()); break;
-							case "gui_text_bg": e.opts.gui_text_bg.setSelected(fstr.nextBoolean()); break;
-							case "gui_view": e.opts.gui_view.setSelectedIndex(fstr.nextInt()); break;
-							case "gui_view_vec": e.opts.gui_view_vec.setSelectedIndex(fstr.nextInt()); break;
-							case "gui_view_vec_mode": e.opts.gui_view_vec_mode.setSelectedIndex(fstr.nextInt()); break;
-							case "gui_simspeed": e.opts.gui_simspeed.setValue(fstr.nextInt()); break;
-							case "gui_simspeed_2": e.opts.gui_simspeed_2.setValue(fstr.nextInt()); break;
-							case "gui_brightness": e.opts.gui_brightness.setValue(fstr.nextInt()); break;
-							case "gui_brightness_vec": e.opts.gui_brightness_vec.setValue(fstr.nextInt()); break;
-							case "gui_elem_colors": e.opts.gui_elem_colors.setSelected(fstr.nextBoolean()); break;
-							case "gui_bc": e.opts.gui_bc.setSelectedIndex(fstr.nextInt()); break;
-							case "description": e.opts.textPane.setText(fstr.nextString()); break;
-
-							case "ex": e.Ex = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "ey": e.Ey = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "hz": e.Hz = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-
-							case "rho_c": e.rho_abs = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "rho_n": e.rho_n = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "rho_p": e.rho_p = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "rho_back": e.rho_back = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "rho_free": e.rho_free = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-
-							case "jx_c": e.Jx_abs = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "jy_c": e.Jy_abs = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "jx_n": e.Jx_n = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "jy_n": e.Jy_n = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "jx_p": e.Jx_p = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-							case "jy_p": e.Jy_p = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
-
-							case "materials": e.materials = validateArraySize((Material[][]) gson.fromJson(fstr, Material[][].class)); break;
-
-							case "voltageprobes": e.voltageprobes = new CopyOnWriteArrayList<>(Arrays.asList(
-							(VoltageProbe[]) gson.fromJson(fstr, VoltageProbe[].class))); break;
-							case "currentprobes": e.currentprobes = new CopyOnWriteArrayList<>(Arrays.asList(
-							(CurrentProbe[]) gson.fromJson(fstr, CurrentProbe[].class))); break;
-
-							case "ground": e.ground = (VoltageProbe) gson.fromJson(fstr, VoltageProbe.class); break;
-
-							default: fstr.skipValue(); break; // skip others
-							}
-						}
-						e.opts.gui_interface.setSelected(true);
-						fstr.endObject();
-						fstr.close();
-
-						e.opts.textPane.setEditable(false);
-						e.opts.textPane.setCaretPosition(0);
-						e.updateAllMaterials(false);
-						e.calcMiscFields(true);
-					}
-
-					dialog.dispose();
-					e.opts.setTitle("Brandon's semiconductor simulator - " + infile.getName());
-				} catch (FileNotFoundException ex) {
-					return;
-				} catch (IOException | IllegalArgumentException ex) {
-					JOptionPane.showMessageDialog(e.opts,
-					"Unable to load file.\n" + ex.getMessage());
-					ex.printStackTrace();
-					return;
-				}
-				return;
-			} finally {
-				e.rwLock.writeLock().unlock();
+			File testfile = new File(startingpath);
+			if (!testfile.canRead()) {
+				JOptionPane.showMessageDialog(e.opts,
+				"Error: Java does not have access to this folder. Please see instructions to fix this issue.");
 			}
+
+			JFileChooser fd = new JFileChooser(startingpath);
+			fd.setFileFilter(new FileFilter(){
+				@Override
+				public boolean accept(File f) {
+					if (f.isDirectory() || f.getName().endsWith(fileextension)) return true;
+					return false;
+				}
+				@Override
+				public String getDescription() {
+					return fileextension;
+				}
+			});
+			fd.setVisible(true);
+			int result = fd.showOpenDialog(e.opts);
+			startingpath = fd.getCurrentDirectory().getPath();
+
+			if (result == JFileChooser.APPROVE_OPTION)
+				infile = fd.getSelectedFile();
+			else
+				infile = null;
+			
+			readfile(infile);
 		});
+	}
+
+	public void readfile(File infile) {
+		e.rwLock.writeLock().lock();
+		try {
+			if (infile == null || !infile.exists()) return;
+			try {
+				JsonReader fstr = new JsonReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(infile))));
+				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+
+				fstr.beginObject();
+
+				assertNextObject(fstr, "version");
+				int version = fstr.nextInt();
+
+				if (version > saveversion) {
+					fstr.close();
+					throw new IllegalArgumentException("The file was created in a newer version of SemiSim.");
+				}
+
+				JOptionPane optionPane = new JOptionPane("Loading file, please wait.", JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
+				JDialog dialog = optionPane.createDialog("Loading");
+
+				dialog.setModal(false);
+				dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+				dialog.setVisible(true);
+
+				if (version == saveversion) {
+
+					int resolution_tmp = e.default_resolution;
+					double width_tmp = e.default_width;
+					assertNextObject(fstr, "header");
+					fstr.beginObject();
+					while (fstr.hasNext()) {
+						String name = fstr.nextName();
+						switch (name){
+						case "resolution": resolution_tmp = fstr.nextInt(); break;
+						case "width": width_tmp = fstr.nextDouble(); break;
+						case "time": e.time = fstr.nextDouble(); break;
+						case "gui_paused": e.opts.gui_paused.setSelected(fstr.nextBoolean()); break;
+						case "gui_tooltip": e.opts.gui_tooltip.setSelected(fstr.nextBoolean()); break;
+						case "gui_text_bg": e.opts.gui_text_bg.setSelected(fstr.nextBoolean()); break;
+						case "gui_elem_colors": e.opts.gui_elem_colors.setSelected(fstr.nextBoolean()); break;
+						case "gui_interface": e.opts.gui_interface.setSelected(fstr.nextBoolean()); break;
+						case "gui_simspeed": e.opts.gui_simspeed.setValue(fstr.nextInt()); break;
+						case "gui_simspeed_2": e.opts.gui_simspeed_2.setValue(fstr.nextInt()); break;
+						case "gui_brightness": e.opts.gui_brightness.setValue(fstr.nextInt()); break;
+						case "gui_brightness_vec": e.opts.gui_brightness_vec.setValue(fstr.nextInt()); break;
+						case "description": e.opts.textPane.setText(fstr.nextString()); break;
+						case "gui_view": e.opts.gui_view.setSelectedItem(gson.fromJson(fstr, Renderer.ScalarView.class)); break;
+						case "gui_view_vec": e.opts.gui_view_vec.setSelectedItem(gson.fromJson(fstr, Renderer.VectorView.class)); break;
+						case "gui_view_vec_mode": e.opts.gui_view_vec_mode.setSelectedItem(gson.fromJson(fstr, Renderer.VectorMode.class)); break;
+						case "gui_bc": e.opts.gui_bc.setSelectedItem(gson.fromJson(fstr, BoundaryCondition.class)); break;
+						case "gui_parameter1": e.opts.gui_parameter1.setValue(fstr.nextInt()); break;
+						default: fstr.skipValue(); break; // skip others
+						}
+					}
+					fstr.endObject();
+
+					e.setSize(resolution_tmp, width_tmp);
+					e.resetFields(true);
+
+					assertNextObject(fstr, "data");
+					fstr.beginObject();
+					while (fstr.hasNext()) {
+						String name = fstr.nextName();
+						switch (name){
+						case "ex": e.Ex = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "ey": e.Ey = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "hz": e.Hz = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+
+						case "rho_c": e.rho_abs = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "rho_n": e.rho_n = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "rho_p": e.rho_p = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "rho_back": e.rho_back = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "rho_free": e.rho_free = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+
+						case "jx_c": e.Jx_abs = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "jy_c": e.Jy_abs = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "jx_n": e.Jx_n = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "jy_n": e.Jy_n = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "jx_p": e.Jx_p = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "jy_p": e.Jy_p = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+
+						case "materials": e.materials = validateArraySize((Material[][]) gson.fromJson(fstr, Material[][].class)); break;
+
+						case "voltageprobes": e.voltageprobes = new CopyOnWriteArrayList<>(Arrays.asList(
+						(VoltageProbe[]) gson.fromJson(fstr, VoltageProbe[].class))); break;
+						case "currentprobes": e.currentprobes = new CopyOnWriteArrayList<>(Arrays.asList(
+						(CurrentProbe[]) gson.fromJson(fstr, CurrentProbe[].class))); break;
+
+						case "ground": e.ground = (VoltageProbe) gson.fromJson(fstr, VoltageProbe.class); break;
+
+						default: fstr.skipValue(); break; // skip others
+						}
+					}
+					fstr.endObject();
+
+					if (testNextObject(fstr, "advsettings")) {
+						fstr.beginObject();
+						readAdvancedSettings(gson, fstr);
+						fstr.endObject();
+						e.advsettings_tweaked = true;
+					} else {
+						e.advsettings_tweaked = false;
+					}
+
+					fstr.close();
+
+					e.opts.textPane.setEditable(false);
+					e.opts.textPane.setCaretPosition(0);
+					e.updateAllMaterials(false);
+					e.calcMiscFields(true);
+					e.controls.captureState();
+				} else if (version == 1) {
+
+					e.setSize(e.default_resolution, e.default_width);
+					e.resetFields(true);
+
+					while (fstr.hasNext()) {
+						String name = fstr.nextName();
+						switch (name){
+						case "time": e.time = fstr.nextDouble(); break;
+						case "gui_paused": e.opts.gui_paused.setSelected(fstr.nextBoolean()); break;
+						case "gui_tooltip": e.opts.gui_tooltip.setSelected(fstr.nextBoolean()); break;
+						case "gui_text_bg": e.opts.gui_text_bg.setSelected(fstr.nextBoolean()); break;
+						case "gui_view": e.opts.gui_view.setSelectedIndex(fstr.nextInt()); break;
+						case "gui_view_vec": e.opts.gui_view_vec.setSelectedIndex(fstr.nextInt()); break;
+						case "gui_view_vec_mode": e.opts.gui_view_vec_mode.setSelectedIndex(fstr.nextInt()); break;
+						case "gui_simspeed": e.opts.gui_simspeed.setValue(fstr.nextInt()); break;
+						case "gui_simspeed_2": e.opts.gui_simspeed_2.setValue(fstr.nextInt()); break;
+						case "gui_brightness": e.opts.gui_brightness.setValue(fstr.nextInt()); break;
+						case "gui_brightness_vec": e.opts.gui_brightness_vec.setValue(fstr.nextInt()); break;
+						case "gui_elem_colors": e.opts.gui_elem_colors.setSelected(fstr.nextBoolean()); break;
+						case "gui_bc": e.opts.gui_bc.setSelectedIndex(fstr.nextInt()); break;
+						case "description": e.opts.textPane.setText(fstr.nextString()); break;
+
+						case "ex": e.Ex = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "ey": e.Ey = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "hz": e.Hz = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+
+						case "rho_c": e.rho_abs = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "rho_n": e.rho_n = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "rho_p": e.rho_p = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "rho_back": e.rho_back = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "rho_free": e.rho_free = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+
+						case "jx_c": e.Jx_abs = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "jy_c": e.Jy_abs = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "jx_n": e.Jx_n = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "jy_n": e.Jy_n = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "jx_p": e.Jx_p = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+						case "jy_p": e.Jy_p = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
+
+						case "materials": e.materials = validateArraySize((Material[][]) gson.fromJson(fstr, Material[][].class)); break;
+
+						case "voltageprobes": e.voltageprobes = new CopyOnWriteArrayList<>(Arrays.asList(
+						(VoltageProbe[]) gson.fromJson(fstr, VoltageProbe[].class))); break;
+						case "currentprobes": e.currentprobes = new CopyOnWriteArrayList<>(Arrays.asList(
+						(CurrentProbe[]) gson.fromJson(fstr, CurrentProbe[].class))); break;
+
+						case "ground": e.ground = (VoltageProbe) gson.fromJson(fstr, VoltageProbe.class); break;
+
+						default: fstr.skipValue(); break; // skip others
+						}
+					}
+					e.opts.gui_interface.setSelected(true);
+					fstr.endObject();
+					fstr.close();
+
+					e.opts.textPane.setEditable(false);
+					e.opts.textPane.setCaretPosition(0);
+					e.updateAllMaterials(false);
+					e.calcMiscFields(true);
+					e.controls.captureState();
+				}
+
+				dialog.dispose();
+				e.opts.setTitle("Brandon's semiconductor simulator - " + infile.getName());
+			} catch (FileNotFoundException ex) {
+				return;
+			} catch (IOException | IllegalArgumentException ex) {
+				JOptionPane.showMessageDialog(e.opts,
+				"Unable to load file.\n" + ex.getMessage());
+				ex.printStackTrace();
+				return;
+			}
+			return;
+		} finally {
+			e.rwLock.writeLock().unlock();
+		}
 	}
 	
 	public void assertNextObject(JsonReader fstr, String name) throws IOException {
@@ -313,125 +319,129 @@ public class SaveManager {
 	public void writeFile()
 	{
 		SwingUtilities.invokeLater(() -> {
-			e.rwLock.writeLock().lock();
-			try {
-				File testfile = new File(startingpath);
-				if (!testfile.canWrite()) {
-					JOptionPane.showMessageDialog(e.opts,
-					"Error: Java does not have access to this folder. Please see instructions to fix this issue.");
-				}
-
-				JFileChooser fd = new JFileChooser(startingpath);
-				fd.setFileFilter(new FileFilter(){
-					@Override
-					public boolean accept(File f) {
-						if (f.isDirectory() || f.getName().endsWith(fileextension)) return true;
-						return false;
-					}
-					@Override
-					public String getDescription() {
-						return fileextension;
-					}
-				});
-				int result = fd.showSaveDialog(e.opts);
-				startingpath = fd.getCurrentDirectory().getPath();
-
-				if (result == JFileChooser.APPROVE_OPTION)
-					outfile = fd.getSelectedFile();
-				else
-					outfile = null;
-
-				if (outfile == null) return;
-				if (!outfile.getName().endsWith(fileextension))
-					outfile = new File(outfile.getAbsolutePath() + fileextension);
-
-				if (outfile.exists()) {
-					result = JOptionPane.showConfirmDialog(e.opts, "A file with that name already exists. Do you wish to overwrite it?", "Message", JOptionPane.YES_NO_OPTION);
-					if (result != JOptionPane.OK_OPTION)
-						return;
-				}
-
-				try {
-					PrintWriter fstr = new PrintWriter(new GZIPOutputStream(new FileOutputStream(outfile)));
-
-					Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
-
-					JOptionPane optionPane = new JOptionPane("Saving file, please wait.", JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
-					JDialog dialog = optionPane.createDialog("Saving");
-
-					dialog.setModal(false);
-					dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-					dialog.setVisible(true);
-
-					JsonObject header = new JsonObject();
-					header.addProperty("resolution", e.resolution);
-					header.addProperty("width", e.width);
-					header.addProperty("time", e.time);
-					header.addProperty("gui_paused", e.opts.gui_paused.isSelected());
-					header.addProperty("gui_tooltip", e.opts.gui_tooltip.isSelected());
-					header.addProperty("gui_text_bg", e.opts.gui_text_bg.isSelected());
-					header.addProperty("gui_elem_colors", e.opts.gui_elem_colors.isSelected());
-					header.addProperty("gui_interface", e.opts.gui_interface.isSelected());
-					header.addProperty("gui_simspeed", e.opts.gui_simspeed.getValue());
-					header.addProperty("gui_simspeed_2", e.opts.gui_simspeed_2.getValue());
-					header.addProperty("gui_brightness", e.opts.gui_brightness.getValue());
-					header.addProperty("gui_brightness_vec", e.opts.gui_brightness_vec.getValue());
-					header.addProperty("description", e.opts.textPane.getText());
-					header.add("gui_view", gson.toJsonTree(e.opts.gui_view.getSelectedItem()));
-					header.add("gui_view_vec", gson.toJsonTree(e.opts.gui_view_vec.getSelectedItem()));
-					header.add("gui_view_vec_mode", gson.toJsonTree(e.opts.gui_view_vec_mode.getSelectedItem()));
-					header.add("gui_bc", gson.toJsonTree(e.opts.gui_bc.getSelectedItem()));
-					header.addProperty("gui_parameter1", e.opts.gui_parameter1.getValue());
-
-					JsonObject data = new JsonObject();
-					data.add("ex", gson.toJsonTree(e.Ex));
-					data.add("ey", gson.toJsonTree(e.Ey));
-					data.add("hz", gson.toJsonTree(e.Hz));
-					data.add("rho_c", gson.toJsonTree(e.rho_abs));
-					data.add("rho_n", gson.toJsonTree(e.rho_n));
-					data.add("rho_p", gson.toJsonTree(e.rho_p));
-					data.add("rho_back", gson.toJsonTree(e.rho_back));
-					data.add("rho_free", gson.toJsonTree(e.rho_free));
-					data.add("jx_c", gson.toJsonTree(e.Jx_abs));
-					data.add("jy_c", gson.toJsonTree(e.Jy_abs));
-					data.add("jx_n", gson.toJsonTree(e.Jx_n));
-					data.add("jy_n", gson.toJsonTree(e.Jy_n));
-					data.add("jx_p", gson.toJsonTree(e.Jx_p));
-					data.add("jy_p", gson.toJsonTree(e.Jy_p));
-					data.add("materials", gson.toJsonTree(e.materials));
-					data.add("voltageprobes", gson.toJsonTree(e.voltageprobes.toArray(new VoltageProbe[e.voltageprobes.size()])));
-					data.add("currentprobes", gson.toJsonTree(e.currentprobes.toArray(new CurrentProbe[e.currentprobes.size()])));
-					data.add("ground", gson.toJsonTree(e.ground));
-
-					JsonObject advsettings = new JsonObject();
-					writeAdvancedSettings(gson, advsettings);
-
-					// Version should always be first
-					JsonObject save = new JsonObject();
-					save.addProperty("version", saveversion);
-					save.add("header", header);
-					save.add("data", data);
-					save.add("advsettings", advsettings);
-
-					String json = gson.toJson(save);
-
-					fstr.print(json);
-					fstr.flush();
-					fstr.close();
-
-					dialog.dispose();
-					e.opts.setTitle("Brandon's semiconductor simulator - " + outfile.getName());
-				} catch (FileNotFoundException e) {
-					return;
-				} catch (IOException e) {
-					e.printStackTrace();
-					return;
-				}
-				return;
-			} finally {
-				e.rwLock.writeLock().unlock();
+			File testfile = new File(startingpath);
+			if (!testfile.canWrite()) {
+				JOptionPane.showMessageDialog(e.opts,
+				"Error: Java does not have access to this folder. Please see instructions to fix this issue.");
 			}
+
+			JFileChooser fd = new JFileChooser(startingpath);
+			fd.setFileFilter(new FileFilter(){
+				@Override
+				public boolean accept(File f) {
+					if (f.isDirectory() || f.getName().endsWith(fileextension)) return true;
+					return false;
+				}
+				@Override
+				public String getDescription() {
+					return fileextension;
+				}
+			});
+			int result = fd.showSaveDialog(e.opts);
+			startingpath = fd.getCurrentDirectory().getPath();
+
+			if (result == JFileChooser.APPROVE_OPTION)
+				outfile = fd.getSelectedFile();
+			else
+				outfile = null;
+
+			if (outfile == null) return;
+			if (!outfile.getName().endsWith(fileextension))
+				outfile = new File(outfile.getAbsolutePath() + fileextension);
+
+			if (outfile.exists()) {
+				result = JOptionPane.showConfirmDialog(e.opts, "A file with that name already exists. Do you wish to overwrite it?", "Message", JOptionPane.YES_NO_OPTION);
+				if (result != JOptionPane.OK_OPTION)
+					return;
+			}
+
 		});
+	}
+
+	public void writeFile(File outfile)
+	{
+		e.rwLock.writeLock().lock();
+		try {
+			try {
+				PrintWriter fstr = new PrintWriter(new GZIPOutputStream(new FileOutputStream(outfile)));
+
+				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+
+				JOptionPane optionPane = new JOptionPane("Saving file, please wait.", JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
+				JDialog dialog = optionPane.createDialog("Saving");
+
+				dialog.setModal(false);
+				dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+				dialog.setVisible(true);
+
+				JsonObject header = new JsonObject();
+				header.addProperty("resolution", e.resolution);
+				header.addProperty("width", e.width);
+				header.addProperty("time", e.time);
+				header.addProperty("gui_paused", e.opts.gui_paused.isSelected());
+				header.addProperty("gui_tooltip", e.opts.gui_tooltip.isSelected());
+				header.addProperty("gui_text_bg", e.opts.gui_text_bg.isSelected());
+				header.addProperty("gui_elem_colors", e.opts.gui_elem_colors.isSelected());
+				header.addProperty("gui_interface", e.opts.gui_interface.isSelected());
+				header.addProperty("gui_simspeed", e.opts.gui_simspeed.getValue());
+				header.addProperty("gui_simspeed_2", e.opts.gui_simspeed_2.getValue());
+				header.addProperty("gui_brightness", e.opts.gui_brightness.getValue());
+				header.addProperty("gui_brightness_vec", e.opts.gui_brightness_vec.getValue());
+				header.addProperty("description", e.opts.textPane.getText());
+				header.add("gui_view", gson.toJsonTree(e.opts.gui_view.getSelectedItem()));
+				header.add("gui_view_vec", gson.toJsonTree(e.opts.gui_view_vec.getSelectedItem()));
+				header.add("gui_view_vec_mode", gson.toJsonTree(e.opts.gui_view_vec_mode.getSelectedItem()));
+				header.add("gui_bc", gson.toJsonTree(e.opts.gui_bc.getSelectedItem()));
+				header.addProperty("gui_parameter1", e.opts.gui_parameter1.getValue());
+
+				JsonObject data = new JsonObject();
+				data.add("ex", gson.toJsonTree(e.Ex));
+				data.add("ey", gson.toJsonTree(e.Ey));
+				data.add("hz", gson.toJsonTree(e.Hz));
+				data.add("rho_c", gson.toJsonTree(e.rho_abs));
+				data.add("rho_n", gson.toJsonTree(e.rho_n));
+				data.add("rho_p", gson.toJsonTree(e.rho_p));
+				data.add("rho_back", gson.toJsonTree(e.rho_back));
+				data.add("rho_free", gson.toJsonTree(e.rho_free));
+				data.add("jx_c", gson.toJsonTree(e.Jx_abs));
+				data.add("jy_c", gson.toJsonTree(e.Jy_abs));
+				data.add("jx_n", gson.toJsonTree(e.Jx_n));
+				data.add("jy_n", gson.toJsonTree(e.Jy_n));
+				data.add("jx_p", gson.toJsonTree(e.Jx_p));
+				data.add("jy_p", gson.toJsonTree(e.Jy_p));
+				data.add("materials", gson.toJsonTree(e.materials));
+				data.add("voltageprobes", gson.toJsonTree(e.voltageprobes.toArray(new VoltageProbe[e.voltageprobes.size()])));
+				data.add("currentprobes", gson.toJsonTree(e.currentprobes.toArray(new CurrentProbe[e.currentprobes.size()])));
+				data.add("ground", gson.toJsonTree(e.ground));
+
+				JsonObject advsettings = new JsonObject();
+				writeAdvancedSettings(gson, advsettings);
+
+				// Version should always be first
+				JsonObject save = new JsonObject();
+				save.addProperty("version", saveversion);
+				save.add("header", header);
+				save.add("data", data);
+				save.add("advsettings", advsettings);
+
+				String json = gson.toJson(save);
+
+				fstr.print(json);
+				fstr.flush();
+				fstr.close();
+
+				dialog.dispose();
+				e.opts.setTitle("Brandon's semiconductor simulator - " + outfile.getName());
+			} catch (FileNotFoundException e) {
+				return;
+			} catch (IOException e) {
+				e.printStackTrace();
+				return;
+			}
+			return;
+		} finally {
+			e.rwLock.writeLock().unlock();
+		}
 	}
 
 	public void writeAdvancedSettings() {
