@@ -167,6 +167,8 @@ public class SaveManager {
 						(VoltageProbe[]) gson.fromJson(fstr, VoltageProbe[].class))); break;
 						case "currentprobes": e.currentprobes = new CopyOnWriteArrayList<>(Arrays.asList(
 						(CurrentProbe[]) gson.fromJson(fstr, CurrentProbe[].class))); break;
+						case "chargeprobes": e.chargeprobes = new CopyOnWriteArrayList<>(Arrays.asList(
+						(ChargeProbe[]) gson.fromJson(fstr, ChargeProbe[].class))); break;
 
 						case "ground": e.ground = (VoltageProbe) gson.fromJson(fstr, VoltageProbe.class); break;
 
@@ -354,7 +356,8 @@ public class SaveManager {
 				if (result != JOptionPane.OK_OPTION)
 					return;
 			}
-
+			
+			writeFile(outfile);
 		});
 	}
 
@@ -412,6 +415,7 @@ public class SaveManager {
 				data.add("materials", gson.toJsonTree(e.materials));
 				data.add("voltageprobes", gson.toJsonTree(e.voltageprobes.toArray(new VoltageProbe[e.voltageprobes.size()])));
 				data.add("currentprobes", gson.toJsonTree(e.currentprobes.toArray(new CurrentProbe[e.currentprobes.size()])));
+				data.add("chargeprobes", gson.toJsonTree(e.chargeprobes.toArray(new ChargeProbe[e.chargeprobes.size()])));
 				data.add("ground", gson.toJsonTree(e.ground));
 
 				JsonObject advsettings = new JsonObject();

@@ -7,10 +7,6 @@ package electrodynamics;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import com.google.gson.JsonObject;
-
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
@@ -54,6 +50,7 @@ public class Snapshot {
 	
 	List<VoltageProbe> voltageprobes;
 	List<CurrentProbe> currentprobes;
+	List<ChargeProbe> chargeprobes;
 	VoltageProbe ground;
 	
 	public void store(Simulation e) {
@@ -93,6 +90,7 @@ public class Snapshot {
 		materials = copy(e.materials);
 		voltageprobes = new ArrayList<VoltageProbe>(e.voltageprobes);
 		currentprobes = new ArrayList<CurrentProbe>(e.currentprobes);
+		chargeprobes = new ArrayList<ChargeProbe>(e.chargeprobes);
 		ground = e.ground;
 	}
 	
@@ -141,6 +139,7 @@ public class Snapshot {
 
 		e.voltageprobes = new ArrayList<VoltageProbe>(voltageprobes);
 		e.currentprobes = new ArrayList<CurrentProbe>(currentprobes);
+		e.chargeprobes = new ArrayList<ChargeProbe>(chargeprobes);
 
 		e.ground = ground;
 

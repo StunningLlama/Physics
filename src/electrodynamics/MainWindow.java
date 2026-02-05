@@ -51,7 +51,6 @@ public class MainWindow extends JFrame {
 	public JScrollBar gui_brushsize;
 	public JScrollBar gui_parameter1;
 	public JCheckBox gui_paused;
-	public JButton gui_resetall;
 	public JPanel panel;
 	public JLabel gui_parameter2_text;
 	public JScrollBar gui_parameter2;
@@ -89,6 +88,7 @@ public class MainWindow extends JFrame {
 	public JMenu menu_examples;
 	public JMenu menu_tools;
 	public JMenuItem menu_editdesc;
+	public JMenuItem menu_new;
 
 	/**
 	 * Create the frame.
@@ -104,15 +104,19 @@ public class MainWindow extends JFrame {
 		JMenu mnNewMenu = new JMenu("File");
 		menuBar.add(mnNewMenu);
 		
-		menu_open = new JMenuItem("Open file");
+		menu_new = new JMenuItem("New simulation...");
+		menu_new.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
+		mnNewMenu.add(menu_new);
+		
+		menu_open = new JMenuItem("Open file...");
 		menu_open.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
 		mnNewMenu.add(menu_open);
 		
-		menu_save = new JMenuItem("Save as");
+		menu_save = new JMenuItem("Save as...");
 		menu_save.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
 		mnNewMenu.add(menu_save);
 		
-		menu_editdesc = new JMenuItem("Edit description");
+		menu_editdesc = new JMenuItem("Edit description...");
 		mnNewMenu.add(menu_editdesc);
 		
 		JSeparator separator_1 = new JSeparator();
@@ -166,13 +170,13 @@ public class MainWindow extends JFrame {
 		contentPane.add(panel, BorderLayout.EAST);
 		panel.setLayout(null);
 
-		gui_reset = new JButton("Set fields to zero");
+		gui_reset = new JButton("Reset fields");
 		gui_reset.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 			}
 		});
-		gui_reset.setBounds(201, 39, 171, 23);
+		gui_reset.setBounds(201, 9, 171, 23);
 		panel.add(gui_reset);
 
 		gui_paused = new JCheckBox("Paused");
@@ -254,10 +258,6 @@ public class MainWindow extends JFrame {
 		gui_view_vec.setBounds(10, 184, 171, 22);
 		panel.add(gui_view_vec);
 		addTooltips(gui_view_vec);
-
-		gui_resetall = new JButton("Clear all");
-		gui_resetall.setBounds(201, 10, 171, 23);
-		panel.add(gui_resetall);
 
 		gui_parameter2_text = new JLabel("Direction");
 		gui_parameter2_text.setBounds(211, 405, 161, 14);
@@ -363,7 +363,7 @@ public class MainWindow extends JFrame {
 		gui_bc = new JComboBox();
 		gui_bc.setModel(new DefaultComboBoxModel(BoundaryCondition.values()));
 		gui_bc.setSelectedIndex(0);
-		gui_bc.setBounds(201, 116, 171, 22);
+		gui_bc.setBounds(201, 99, 171, 22);
 		panel.add(gui_bc);
 		addTooltips(gui_bc);
 
@@ -373,7 +373,7 @@ public class MainWindow extends JFrame {
 		panel.add(gui_text_bg);
 		
 		gui_adv_settings = new JButton("Advanced settings");
-		gui_adv_settings.setBounds(201, 68, 171, 23);
+		gui_adv_settings.setBounds(201, 38, 171, 23);
 		panel.add(gui_adv_settings);
 		
 		gui_interface = new JCheckBox("Display interface");

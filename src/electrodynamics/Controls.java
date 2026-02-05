@@ -34,7 +34,6 @@ import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -978,7 +977,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public void actionPerformed(ActionEvent ev) {
 		if (ev.getSource() == e.opts.gui_reset)
 			clear = true;
-		else if (ev.getSource() == e.opts.gui_resetall)
+		else if (ev.getSource() == e.opts.menu_new)
 			reset = true;
 		else if (ev.getSource() == e.opts.menu_save)
 			save = true;
@@ -1000,6 +999,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				frame.setSize(500, 500);
 				area.setText(text);
 				area.setEditable(true);
+				area.setLineWrap(true);
 				frame.add(area);
 				frame.add(b, BorderLayout.SOUTH);
 				b.addActionListener(new ActionListener() {
@@ -1312,6 +1312,14 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     		load = true;
         }
     };
+    
+    @SuppressWarnings("serial")
+    private Action key_new = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		reset = true;
+        }
+    };
 
 
     public void addKeyBinds(JPanel contentPane) {
@@ -1372,6 +1380,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK), key_open);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.META_DOWN_MASK), key_open);
     	contentPane.getActionMap().put(key_open, key_open);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), key_new);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.META_DOWN_MASK), key_new);
+    	contentPane.getActionMap().put(key_new, key_new);
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), key_delete);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), key_delete);

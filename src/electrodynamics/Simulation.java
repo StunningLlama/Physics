@@ -21,7 +21,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
-import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JSeparator;
@@ -328,7 +327,6 @@ public class Simulation extends PeriodicTask {
 		canvas.addMouseWheelListener(controls);
 		canvas.addKeyListener(controls);
 		opts.gui_reset.addActionListener(controls);
-		opts.gui_resetall.addActionListener(controls);
 		opts.gui_view.addActionListener(controls);
 		opts.gui_view_vec.addActionListener(controls);
 		opts.gui_brush.addActionListener(controls);
@@ -346,6 +344,7 @@ public class Simulation extends PeriodicTask {
 		opts.menu_copy.addActionListener(controls);
 		opts.menu_paste.addActionListener(controls);
 		opts.menu_editdesc.addActionListener(controls);
+		opts.menu_new.addActionListener(controls);
 		
 		opts.gui_brush.addItemListener(controls);
 		
@@ -363,7 +362,7 @@ public class Simulation extends PeriodicTask {
 		}
 		controls.buttongroup.setSelected(controls.brushbuttonmap.get(Brush.INTERACT).getModel(), true);
 		
-		MenuBuilder.addDirectoryToMenu(opts.menu_examples, new File("examples"), this);
+		MenuBuilder.addDirectoryToMenu(opts.menu_examples, new File("examples"), savemanager.fileextension, (File f) -> savemanager.readfile(f));
 
 		//opts.gui_material.removeItem(MaterialType.ABSORBER);
 		//opts.gui_view.removeItem(ScalarView.DEBUG);
@@ -756,6 +755,7 @@ public class Simulation extends PeriodicTask {
 			if (resetall) {
 				voltageprobes.clear();
 				currentprobes.clear();
+				chargeprobes.clear();
 				ground = null;
 
 				for (Plot p: plots) {
@@ -1243,6 +1243,9 @@ public class Simulation extends PeriodicTask {
 
 			for (CurrentProbe p: currentprobes) {
 				data += (", I(" + Utils.getSI(p.x1*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y1+1)*ds, "m") + " - " + Utils.getSI(p.x2*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y2+1)*ds, "m") + ") = " + Utils.getSI(p.current*depth, "A"));
+			}
+			for (ChargeProbe p: chargeprobes) {
+				data += (", Q(" + Utils.getSI(p.x1*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y1+1)*ds, "m") + " - " + Utils.getSI(p.x2*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y2+1)*ds, "m") + ") = " + Utils.getSI(p.charge*depth, "C"));
 			}
 
 			data += "\n";
