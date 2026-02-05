@@ -176,7 +176,7 @@ public class MainWindow extends JFrame {
 			public void actionPerformed(ActionEvent arg0) {
 			}
 		});
-		gui_reset.setBounds(201, 9, 171, 23);
+		gui_reset.setBounds(201, 68, 171, 23);
 		panel.add(gui_reset);
 
 		gui_paused = new JCheckBox("Paused");
@@ -363,7 +363,7 @@ public class MainWindow extends JFrame {
 		gui_bc = new JComboBox();
 		gui_bc.setModel(new DefaultComboBoxModel(BoundaryCondition.values()));
 		gui_bc.setSelectedIndex(0);
-		gui_bc.setBounds(201, 99, 171, 22);
+		gui_bc.setBounds(201, 11, 171, 22);
 		panel.add(gui_bc);
 		addTooltips(gui_bc);
 
@@ -373,7 +373,7 @@ public class MainWindow extends JFrame {
 		panel.add(gui_text_bg);
 		
 		gui_adv_settings = new JButton("Advanced settings");
-		gui_adv_settings.setBounds(201, 38, 171, 23);
+		gui_adv_settings.setBounds(201, 97, 171, 23);
 		panel.add(gui_adv_settings);
 		
 		gui_interface = new JCheckBox("Display interface");
