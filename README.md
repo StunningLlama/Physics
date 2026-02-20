@@ -59,15 +59,15 @@ The main way to interact with circuits is to change the strength of voltage sour
 
 ![Field lines](images/lines.png)
 
-**Dots \[desktop\]:** The velocity of the dots is proportional to the value of the vector field.
+**Dots:** The velocity of the dots is proportional to the value of the vector field.
 
 ![Dots](images/dots.png)
 
-**Contour \[desktop\]:** Contour lines indicate a region on which the scalar field has a constant value.
+**Contour:** Contour lines indicate a region on which the scalar field has a constant value.
 
 ![Contour lines](images/contour.png)
 
-**Charge carriers \[desktop\]:** Electrons and holes are represented as blue and red dots, respectively. Both dots move at the actual drift velocities of their corresponding charge carriers and their density accurately reflects the density of charge carriers. This is much more realistic but less flexible than the dots view.
+**Charge carriers:** Electrons and holes are represented as blue and red dots, respectively. Both dots move at the actual drift velocities of their corresponding charge carriers and their density accurately reflects the density of charge carriers. This is much more realistic but less flexible than the dots view.
 
 ![Charge carriers](images/carriers.png)
 
@@ -91,7 +91,7 @@ The main way to interact with circuits is to change the strength of voltage sour
 | Load scenario | Loads a simulation from a file. |
 | Clear all | Removes all materials and resets all fields. |
 | Set fields to zero | Sets all fields to their default values, leaving the materials unchanged. |
-| Advanced settings  <br>\[desktop\] | Opens advanced simulation settings window, for advanced users only. |
+| Advanced settings  | Opens advanced simulation settings window, for advanced users only. |
 | Tool | Selects one of the tools. |
 
 ## Tools
@@ -129,23 +129,31 @@ The main way to interact with circuits is to change the strength of voltage sour
 | T   | Toggle tooltip |
 | G   | Toggle text background |
 | H   | Toggle user interface |
-| Mouse wheel | Change brush size |
-| Shift | Draw straight lines |
 | Ctrl | Fill area |
 | Alt or Option | Pick material |
 | Ctrl-X | Cut |
 | Ctrl-C | Copy |
 | Ctrl-V | Paste |
+| Ctrl-Z | Undo |
+| Ctrl-Shift-Z | Redo |
+| Ctrl-N | New file |
+| Ctrl-O | Open file |
+| Ctrl-S | Save file |
 | Left mouse | Draw material |
 | Right mouse | Erase material |
 | Middle mouse | Pick material |
-| R \[desktop\] | Record probe data (saves to probedata.txt) |
+| R | Record probe data (saves to probedata.txt) |
+| 1 | Interact tool |
+| 2 | Draw tool |
+| 3 | Line tool |
+| 4 | Fill tool |
+| 5 | Select tool |
 
 ## Materials
 
 |     |     |
 | --- | --- |
-| AC voltage source <br>\[desktop\] | Voltage source that oscillates sinusoidally at a fixed frequency. |
+| AC voltage source | Voltage source that oscillates sinusoidally at a fixed frequency. |
 | Voltage source | Generates a voltage that can be used to power circuits. |
 | Switch | Conductivity can be switched on and off by the user. |
 | Metal | Material that conducts electricity very well. |
@@ -164,7 +172,7 @@ The main way to interact with circuits is to change the strength of voltage sour
 | Ferromagnet | Magnetic material with high relative permeability. |
 | Positive static charge | Positively charged insulating material. |
 | Negative static charge | Negatively charged insulating material. |
-| Absorber <br>\[desktop\] | Absorbs incoming electromagnetic radiation very effectively. |
+| Absorber | Absorbs incoming electromagnetic radiation very effectively. |
 | Decoration | Used for text or circuit symbols, has no effect otherwise. |
 | Vacuum | Empty space. |
 

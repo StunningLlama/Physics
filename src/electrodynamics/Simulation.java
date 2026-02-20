@@ -365,7 +365,7 @@ public class Simulation extends PeriodicTask {
 		MenuBuilder.addDirectoryToMenu(opts.menu_examples, new File("examples"), savemanager.fileextension, (File f) -> savemanager.readfile(f));
 
 		//opts.gui_material.removeItem(MaterialType.ABSORBER);
-		//opts.gui_view.removeItem(ScalarView.DEBUG);
+		opts.gui_view.removeItem(ScalarView.DEBUG);
 
 		opts.gui_parameter1.setEnabled(true);
 		opts.gui_parameter1.setVisible(true);
@@ -375,6 +375,7 @@ public class Simulation extends PeriodicTask {
 		opts.pack();
 
 		controls.addKeyBinds(canvas);
+		controls.addKeyBinds(opts.panel);
 
 		adv_opts = new AdvancedOptions();
 		adv_opts.btn_apply.addActionListener(controls);
@@ -795,9 +796,14 @@ public class Simulation extends PeriodicTask {
 				double depth = Math.sqrt(dx*dx+dy*dy);
 				if (depth > 0) {
 					if ((BoundaryCondition)opts.gui_bc.getSelectedItem() == BoundaryCondition.DISSIPATIVE) {
-						materials[i][j].type = MaterialType.ABSORBER;
+						if (materials[i][j].type == MaterialType.VACUUM) {
+							initializeMaterial(i, j, MaterialType.ABSORBER);
+							materials[i][j].auto_placed = true;
+						}
 					} else if (materials[i][j].type == MaterialType.ABSORBER) {
-						eraseMaterial(i, j);
+						if (materials[i][j].auto_placed) {
+							eraseMaterial(i, j);
+						}
 					}
 				}
 			}
@@ -1609,6 +1615,8 @@ public class Simulation extends PeriodicTask {
 			else if (material == MaterialType.SEMI_LIGHT_P_TYPE) materials[i][j].rho_back = -p_light_doping_concentration*e_charge;
 			else if (material == MaterialType.SEMI_LIGHT_N_TYPE) materials[i][j].rho_back = n_light_doping_concentration*e_charge;
 		}
+
+		materials[i][j].auto_placed = false;
 	}
 
 	public void checkCFL() {
@@ -1684,21 +1692,21 @@ public class Simulation extends PeriodicTask {
 		int dx = x1-x0;
 		int dy = y1-y0;
 		if (dx == 1 && dy == 0) {
-			return Math.abs(Jy[x0+1][y0])*ds;
+			return -Jy[x0+1][y0]*ds;
 		} else if (dx == -1 && dy == 0) {
-			return Math.abs(Jy[x0][y0])*ds;
+			return Jy[x0][y0]*ds;
 		} else if (dx == 0 && dy == 1) {
-			return Math.abs(Jx[x0][y0+1])*ds;
+			return Jx[x0][y0+1]*ds;
 		} else if (dx == 0 && dy == -1) {
-			return Math.abs(Jx[x0][y0])*ds;
+			return -Jx[x0][y0]*ds;
 		} else if (dx == 1 && dy == 1) {
-			return (Math.abs(Jx[x0][y0+1]) + Math.abs(Jy[x0+1][y0+1]))*ds;
+			return (Jx[x0][y0+1] - Jy[x0+1][y0+1])*ds;
 		} else if (dx == 1 && dy == -1) {
-			return (Math.abs(Jx[x0][y0])  + Math.abs(Jy[x0+1][y0-1]))*ds;
+			return (-Jx[x0][y0] - Jy[x0+1][y0-1])*ds;
 		} else if (dx == -1 && dy == 1) {
-			return (Math.abs(Jx[x0][y0+1]) + Math.abs(Jy[x0][y0+1]))*ds;
+			return (+Jx[x0][y0+1] + Jy[x0][y0+1])*ds;
 		} else if (dx == -1 && dy == -1) {
-			return (Math.abs(Jx[x0][y0]) + Math.abs(Jy[x0][y0-1]))*ds;
+			return (-Jx[x0][y0] + Jy[x0][y0-1])*ds;
 		}
 		return 0;
 	}
@@ -2008,22 +2016,22 @@ enum MaterialType
 	EMF					("Voltage source (Adjustable)",			230, 216, 46, 230),
 	AC_EMF				("AC voltage source (Adjustable)",		230, 150, 216, 230),
 	SWITCH				("Switch",								194, 194, 194, 120),
-	METAL				("Metal",								153, 153, 153, 120),
-	METAL_HIGH_C		("Conductive metal",					191, 191, 191, 120),
-	METAL_LOW_C			("Resistive metal",						94, 94, 94, 120),
-	METAL_HIGH_W		("High workfunction metal",				163, 116, 116, 120),
-	METAL_LOW_W			("Low workfunction metal",				116, 121, 163, 120),
-	SEMI				("Intrinsic semiconductor",				207,  161, 212, 120),
-	SEMI_P_TYPE			("P-type semiconductor",				191,  74,  34, 120),
-	SEMI_N_TYPE			("N-type semiconductor",				 84, 123, 191, 120),
-	SEMI_HEAVY_P_TYPE	("Heavily doped P-type semiconductor",	204,  41,  41, 120),
-	SEMI_HEAVY_N_TYPE	("Heavily doped N-type semiconductor",	 39,  52, 194, 120),
-	SEMI_LIGHT_P_TYPE	("Lightly doped P-type semiconductor",	201, 131,  73, 120),
-	SEMI_LIGHT_N_TYPE	("Lightly doped N-type semiconductor",	137, 188, 204, 120),
-	DIELECTRIC			("Dielectric",							 81, 171,  51, 120),
-	FERROMAGNET			("Ferromagnet",							116, 50, 117, 120),
-	POS_CHARGE			("Positive static charge",				116, 50, 50, 120),
-	NEG_CHARGE			("Negative static charge",				50, 50, 117, 120),
+	METAL				("Metal",								153, 153, 153, 130),
+	METAL_HIGH_C		("Conductive metal",					191, 191, 191, 130),
+	METAL_LOW_C			("Resistive metal",						94, 94, 94, 130),
+	METAL_HIGH_W		("High workfunction metal",				163, 116, 116, 130),
+	METAL_LOW_W			("Low workfunction metal",				116, 121, 163, 130),
+	SEMI				("Intrinsic semiconductor",				207,  161, 212, 110),
+	SEMI_P_TYPE			("P-type semiconductor",				191,  74,  34, 110),
+	SEMI_N_TYPE			("N-type semiconductor",				 84, 123, 191, 110),
+	SEMI_HEAVY_P_TYPE	("Heavily doped P-type semiconductor",	204,  41,  41, 110),
+	SEMI_HEAVY_N_TYPE	("Heavily doped N-type semiconductor",	 39,  52, 194, 110),
+	SEMI_LIGHT_P_TYPE	("Lightly doped P-type semiconductor",	201, 131,  73, 110),
+	SEMI_LIGHT_N_TYPE	("Lightly doped N-type semiconductor",	137, 188, 204, 110),
+	DIELECTRIC			("Dielectric",							 81, 171,  51, 80),
+	FERROMAGNET			("Ferromagnet",							116, 50, 117, 80),
+	POS_CHARGE			("Positive static charge",				116, 50, 50, 80),
+	NEG_CHARGE			("Negative static charge",				50, 50, 117, 80),
 	DECO				("Decoration",							255, 255, 255, 255),
 	ABSORBER			("Absorber",							 50,  50,  50),
 	VACUUM				("Vacuum",								 20,  20,  20);
@@ -2081,6 +2089,7 @@ class Material implements Cloneable {
 	MaterialType type = MaterialType.VACUUM;
 
 	boolean modified = false;
+	boolean auto_placed = true;
 	int activated = 1;
 	int conducting = 0;
 	int semiconducting = 0;
@@ -2098,6 +2107,7 @@ class Material implements Cloneable {
 	public void erase() {
 		type = MaterialType.VACUUM;
 		modified = false;
+		auto_placed = true;
 		activated = 1;
 		conducting = 0;
 		semiconducting = 0;
@@ -2123,28 +2133,15 @@ class Material implements Cloneable {
     }
 }
 
-class ClipboardMaterial extends Material {
+class ClipboardMaterial implements Cloneable {
 	double rho_n = 0;
 	double rho_p = 0;
+	Material m = new Material();
 	
 	public ClipboardMaterial() {};
 
 	public ClipboardMaterial(Material m) {
-		type = m.type;
-		modified = m.modified;
-		activated = m.activated;
-		conducting = m.conducting;
-		semiconducting = m.semiconducting;
-		emf = m.emf;
-		emf_direction = m.emf_direction;
-		eps_r = m.eps_r;
-		mu_r = m.mu_r;
-		rho_back = m.rho_back;
-		ni = m.ni;
-		W = m.W;
-		Eb = m.Eb;
-		Ea = m.Ea;
-		absorptivity = m.absorptivity;
+		this.m = m.clone();
 	}
 	
     public ClipboardMaterial(Simulation e, int i, int j) {
@@ -2154,19 +2151,23 @@ class ClipboardMaterial extends Material {
     }
     
     public void paste(Simulation e, int i, int j) {
-    	e.materials[i][j] = this.clone();
+    	e.materials[i][j] = m.clone();
     	e.rho_n[i][j] = rho_n;
     	e.rho_p[i][j] = rho_p;
     }
 	
 	public void erase() {
-		super.erase();
+		m.erase();
 		rho_n = 0;
 		rho_p = 0;
 	}
 	
     @Override
     public ClipboardMaterial clone() {
-        return (ClipboardMaterial) super.clone();
+        try {
+			return (ClipboardMaterial) super.clone();
+		} catch (CloneNotSupportedException e) {
+			return null;
+		}
     }
 }

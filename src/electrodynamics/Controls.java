@@ -77,7 +77,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	PointerInfo pointerinfo = MouseInfo.getPointerInfo();
 	public boolean mouse_pressed = false;
 	public boolean mouse_pressed_prev = false;
-	public boolean modifier_pressed = false;
+	//public boolean modifier_pressed = false;
 	public boolean moving_selection = false;
 	public boolean dragging_selection = false;
 	public boolean brush_changed = false;
@@ -172,7 +172,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		mouse_pressed_prev = mouse_pressed;
 
 
-		if (!mouse_pressed && !releasing) {
+		/*if (!mouse_pressed && !releasing) {
 
 			if (ctrl_down || shift_down) {
 				if (!modifier_pressed && Brush.isMaterialModifyingBrush(brush)) {
@@ -197,19 +197,19 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					//r.requestFocus();
 				}
 			}
-		}
+		}*/
 
-		mx_realspace = Math.round((mx-1)/(double)e.renderer.scalefactor - 0.5)*e.ds;
-		my_realspace = Math.round((my-1)/(double)e.renderer.scalefactor - 0.5)*e.ds;
+		mx_realspace = Math.round((mx-1)/e.renderer.scalefactor_real - 0.5)*e.ds;
+		my_realspace = Math.round((my-1)/e.renderer.scalefactor_real - 0.5)*e.ds;
 
-		mx_start_realspace =  Math.round((mx_start-1)/(double)e.renderer.scalefactor - 0.5)*e.ds;
-		my_start_realspace = Math.round((my_start-1)/(double)e.renderer.scalefactor - 0.5)*e.ds;
+		mx_start_realspace =  Math.round((mx_start-1)/e.renderer.scalefactor_real - 0.5)*e.ds;
+		my_start_realspace = Math.round((my_start-1)/e.renderer.scalefactor_real - 0.5)*e.ds;
 
-		mx_index = (int)Math.round((mx-1)/(double)e.renderer.scalefactor - 0.5);
-		my_index = (int)Math.round((my-1)/(double)e.renderer.scalefactor - 0.5);
+		mx_index = (int)Math.round((mx-1)/e.renderer.scalefactor_real - 0.5);
+		my_index = (int)Math.round((my-1)/e.renderer.scalefactor_real - 0.5);
 
-		mx_start_index = (int)Math.round((mx_start-1)/(double)e.renderer.scalefactor - 0.5);
-		my_start_index = (int)Math.round((my_start-1)/(double)e.renderer.scalefactor - 0.5);
+		mx_start_index = (int)Math.round((mx_start-1)/e.renderer.scalefactor_real - 0.5);
+		my_start_index = (int)Math.round((my_start-1)/e.renderer.scalefactor_real - 0.5);
 
 		if (mx_index < 0) mx_index = 0;
 		if (my_index < 0) my_index = 0;
@@ -578,7 +578,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						{
 							int si = i-delta_mx_index;
 							int sj = j-delta_my_index;
-							if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && selection[si][sj].type != MaterialType.VACUUM) {
+							if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && selection[si][sj].m.type != MaterialType.VACUUM) {
 								e.eraseMaterial(i, j);
 								selection[si][sj].paste(e, i, j);
 								selected[i][j] = true;
@@ -641,7 +641,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 							{
 								int si = i-delta_mx_index;
 								int sj = j-delta_my_index;
-								if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && selection[si][sj].type != MaterialType.VACUUM) {
+								if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && selection[si][sj].m.type != MaterialType.VACUUM) {
 									e.eraseMaterial(i, j);
 									selection[si][sj].paste(e, i, j);
 									selected[i][j] = true;
@@ -1090,65 +1090,53 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		my = arg0.getY();
 	}
 
-	@SuppressWarnings("serial")
 	private Action key_pause = new AbstractAction(null) {
 		@Override
 		public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
 			e.opts.gui_paused.setSelected(!e.opts.gui_paused.isSelected());
 		}
 	};
 
-    @SuppressWarnings("serial")
     private Action key_frame = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
 			advanceframe = true;
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_dbg = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
 			debugging = !debugging;
 			//Timer.allEnabled = debugging;
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_changebrush = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
     		e.opts.gui_brush_1.setSelectedIndex((e.opts.gui_brush_1.getSelectedIndex()+1)%2);
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_shift = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
     		shift_down = true;
         }
     };
-    @SuppressWarnings("serial")
     private Action key_shift_up = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
     		shift_down = false;
         }
     };
-    @SuppressWarnings("serial")
     private Action key_ctrl = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
     		ctrl_down = true;
         }
     };
-    @SuppressWarnings("serial")
     private Action key_ctrl_up = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1156,7 +1144,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_cut = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1164,7 +1151,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_copy = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1172,7 +1158,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_undo = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1180,7 +1165,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
     
-    @SuppressWarnings("serial")
     private Action key_redo = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1188,7 +1172,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_paste = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1196,20 +1179,16 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_delete = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
     		delete = true;
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_color = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
     		e.opts.gui_elem_colors.setSelected(!e.opts.gui_elem_colors.isSelected());
         }
     };
@@ -1217,11 +1196,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     ScalarView prev_scalar_view = ScalarView.NONE;
     VectorView prev_vector_view = VectorView.NONE;
 
-    @SuppressWarnings("serial")
     private Action key_scalar_view = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
     		if (e.opts.gui_view.getSelectedItem() == ScalarView.NONE)
     			e.opts.gui_view.setSelectedItem(prev_scalar_view);
     		else
@@ -1232,11 +1209,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_vector_view = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
     		if (e.opts.gui_view_vec.getSelectedItem() == VectorView.NONE)
     			e.opts.gui_view_vec.setSelectedItem(prev_vector_view);
     		else
@@ -1247,25 +1222,20 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_tooltip = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
     		e.opts.gui_tooltip.setSelected(!e.opts.gui_tooltip.isSelected());
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_textbg = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
     		e.opts.gui_text_bg.setSelected(!e.opts.gui_text_bg.isSelected());
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_alt = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1273,7 +1243,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_alt_up = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1281,7 +1250,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_logdata = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1289,7 +1257,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_rendertext = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1297,7 +1264,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
     
-    @SuppressWarnings("serial")
     private Action key_save = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1305,7 +1271,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
     
-    @SuppressWarnings("serial")
     private Action key_open = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1313,17 +1278,67 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
     
-    @SuppressWarnings("serial")
     private Action key_new = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
     		reset = true;
         }
     };
+    
+    private Action key_1 = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		e.opts.gui_brush.setSelectedItem(Brush.INTERACT);
+        }
+    };
+    
+    private Action key_2 = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		e.opts.gui_brush.setSelectedItem(Brush.DRAW);
+        }
+    };
+    
+    private Action key_3 = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		e.opts.gui_brush.setSelectedItem(Brush.LINE);
+        }
+    };
+    
+    private Action key_4 = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		e.opts.gui_brush.setSelectedItem(Brush.FILL);
+        }
+    };
+    
+    private Action key_5 = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		e.opts.gui_brush.setSelectedItem(Brush.SELECT);
+        }
+    };
+    
+    private Action key_prevtool = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+			if (e.opts.gui_brush.getSelectedIndex() > 0)
+				e.opts.gui_brush.setSelectedIndex(e.opts.gui_brush.getSelectedIndex()-1);
+        }
+    };
+    
+    private Action key_nexttool = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+			if (e.opts.gui_brush.getSelectedIndex() < e.opts.gui_brush.getItemCount()-1)
+				e.opts.gui_brush.setSelectedIndex(e.opts.gui_brush.getSelectedIndex()+1);
+        }
+    };
 
 
     public void addKeyBinds(JPanel contentPane) {
-    	InputMap map = contentPane.getInputMap(JComponent.WHEN_FOCUSED);
+    	InputMap map = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
     	InputMap map2 = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
     	
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_P, 0), key_pause);
@@ -1415,6 +1430,27 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_H, 0), key_rendertext);
     	contentPane.getActionMap().put(key_rendertext, key_rendertext);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_1, 0), key_1);
+    	contentPane.getActionMap().put(key_1, key_1);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_2, 0), key_2);
+    	contentPane.getActionMap().put(key_2, key_2);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_3, 0), key_3);
+    	contentPane.getActionMap().put(key_3, key_3);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_4, 0), key_4);
+    	contentPane.getActionMap().put(key_4, key_4);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_5, 0), key_5);
+    	contentPane.getActionMap().put(key_5, key_5);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, 0), key_prevtool);
+    	contentPane.getActionMap().put(key_prevtool, key_prevtool);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET, 0), key_nexttool);
+    	contentPane.getActionMap().put(key_nexttool, key_nexttool);
 
     }
 

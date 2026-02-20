@@ -214,9 +214,9 @@ Listed below are the most important variables that capture the state of the simu
   <p><strong>Arrows:</strong> The direction and brightness of arrows corresponds to the direction and magnitude of the vector field. <figure><img src="images/arrows.png" alt="Arrows"></figure></p>
   <p><strong>Lines:</strong> 
 The brightness and density of lines indicates the magnitude of the field. <figure><img src="images/lines.png" alt="Field lines"></figure></p>
-  <p><strong>Dots <small>[desktop]</small>:</strong> The velocity of the dots is proportional to the value of the vector field. <figure><img src="images/dots.png" alt="Dots"></figure></p>
-  <p><strong>Contour <small>[desktop]</small>:</strong> Contour lines indicate a region on which the scalar field has a constant value.  <figure><img src="images/contour.png" alt="Contour lines"></figure></p>
-  <p><strong>Charge carriers <small>[desktop]</small>:</strong> Electrons and holes are represented as blue and red dots, respectively.
+  <p><strong>Dots:</strong> The velocity of the dots is proportional to the value of the vector field. <figure><img src="images/dots.png" alt="Dots"></figure></p>
+  <p><strong>Contour:</strong> Contour lines indicate a region on which the scalar field has a constant value.  <figure><img src="images/contour.png" alt="Contour lines"></figure></p>
+  <p><strong>Charge carriers:</strong> Electrons and holes are represented as blue and red dots, respectively.
     Both dots move at the actual drift velocities of their corresponding charge carriers and their density accurately reflects the density of charge carriers. This is much more realistic but less flexible than the dots view. <figure><img src="images/carriers.png" alt="Charge carriers"></figure></p>
 <h2>Options</h2>
 <table>
@@ -237,7 +237,7 @@ The brightness and density of lines indicates the magnitude of the field. <figur
   <tr><td>Load scenario</td><td>Loads a simulation from a file. SemiSim comes with a variety of pre-made simulations located in the "examples" folder.</td></tr>
   <tr><td>Clear all</td><td>Removes all materials and resets all fields.</td></tr>
   <tr><td>Set fields to zero</td><td>Sets all fields to their default values, leaving the materials unchanged.</td></tr>
-  <tr><td>Advanced settings <br><small>[desktop]</small> </td><td>Opens advanced simulation settings window, for advanced users only.</td></tr>
+  <tr><td>Advanced settings </td><td>Opens advanced simulation settings window, for advanced users only.</td></tr>
   <tr><td>Tool</td><td>Selects one of the tools.</td></tr>
   </table>
 
@@ -250,11 +250,11 @@ The brightness and density of lines indicates the magnitude of the field. <figur
     </td></tr>
     <tr><td>Ground</td><td>Specifies the point relative to which probes measure voltage (optional).</td></tr>
     <tr><td>Delete probe</td><td>Click to delete a probe.</td></tr>
-    <tr><td>Plot bands <br><small>[click and drag, desktop]</small></td><td>Specifies a 1D line along which the bands are plotted.
+    <tr><td>Plot bands <br><small>[click and drag]</small></td><td>Specifies a 1D line along which the bands are plotted.
       The plot contains the conduction and valence energy band edges as well as the quasi-Fermi levels of electrons in both bands.  <figure><img src="images/bandplot.png" alt="Band plot" style="max-width:70%"><figcaption>Valence and conduction band energies shown as solid lines. Quasi-Fermi levels are dashed lines.</figcaption></figure></td></tr>
-    <tr><td>Plot scalar field <br><small>[click and drag, desktop]</small></td><td>Makes a plot of the currently selected scalar field.</td></tr>
-    <tr><td>Plot carriers <br><small>[click and drag, desktop]</small></td><td>Makes a logarithmic plot of the number density of electrons and holes.</td></tr>
-    <tr><td>Flashlight <br><small>[click and hold, desktop]</small></td><td>Shines a light on the region under the cursor. Light generates electron and hole pairs.</td></tr>
+    <tr><td>Plot scalar field <br><small>[click and drag]</small></td><td>Makes a plot of the currently selected scalar field.</td></tr>
+    <tr><td>Plot carriers <br><small>[click and drag]</small></td><td>Makes a logarithmic plot of the number density of electrons and holes.</td></tr>
+    <tr><td>Flashlight <br><small>[click and hold]</small></td><td>Shines a light on the region under the cursor. Light generates electron and hole pairs.</td></tr>
     <tr><td>Replace</td><td>Similar to the draw tool, but overwrites occupied areas.</td></tr>
     <tr><td>Line <br><small>[click and drag]</small></td><td>Draws a line of material.</td></tr>
     <tr><td>Fill</td><td>Fills a region with a certain material, similar to the bucket tool.</td></tr>
@@ -276,22 +276,30 @@ The brightness and density of lines indicates the magnitude of the field. <figur
     <tr><td>G</td><td>Toggle text background</td></tr>
     <tr><td>H</td><td>Toggle user interface</td></tr>
     <tr><td>Mouse wheel</td><td>Change brush size</td></tr>
-    <tr><td>Shift</td><td>Draw straight lines</td></tr>
-    <tr><td>Ctrl</td><td>Fill area</td></tr>
     <tr><td>Alt or Option</td><td>Pick material</td></tr>
     <tr><td>Ctrl-X</td><td>Cut</td></tr>
     <tr><td>Ctrl-C</td><td>Copy</td></tr>
     <tr><td>Ctrl-V</td><td>Paste</td></tr>
+    <tr><td>Ctrl-Z</td><td>Undo</td></tr>
+    <tr><td>Ctrl-Shift-Z</td><td>Redo</td></tr>
+    <tr><td>Ctrl-N</td><td>New file</td></tr>
+    <tr><td>Ctrl-O</td><td>Open file</td></tr>
+    <tr><td>Ctrl-S</td><td>Save file</td></tr>
     <tr><td>Left mouse</td><td>Draw material</td></tr>
     <tr><td>Right mouse</td><td>Erase material</td></tr>
     <tr><td>Middle mouse</td><td>Pick material</td></tr>
-    <tr><td>R <small>[desktop]</small></td><td>Record probe data (saves to probedata.txt)</td></tr>
+    <tr><td>R</td><td>Record probe data (saves to probedata.txt)</td></tr>
+    <tr><td>1</td><td>Interact tool</td></tr>
+    <tr><td>2</td><td>Draw tool</td></tr>
+    <tr><td>3</td><td>Line tool</td></tr>
+    <tr><td>4</td><td>Fill tool</td></tr>
+    <tr><td>5</td><td>Select tool</td></tr>
 </table>
 
 <h2>Materials</h2>
 <table>
     <tr><td>Voltage source</td><td>Generates a voltage that can be used to power circuits.</td></tr>
-    <tr><td>AC voltage source <small>[desktop]</small></td><td>Voltage source that oscillates sinusoidally at a fixed frequency.</td></tr>
+    <tr><td>AC voltage source</td><td>Voltage source that oscillates sinusoidally at a fixed frequency.</td></tr>
     <tr><td>Switch</td><td>Conductivity can be switched on and off by the user.</td></tr>
     <tr><td>Metal</td><td>Material that conducts electricity very well.</td></tr>
     <tr><td>Conductive metal</td><td>More conductive than regular metal.</td></tr>
@@ -309,7 +317,7 @@ The brightness and density of lines indicates the magnitude of the field. <figur
     <tr><td>Ferromagnet</td><td>Magnetic material with high relative permeability.</td></tr>
     <tr><td>Positive static charge</td><td>Positively charged insulating material.</td></tr>
     <tr><td>Negative static charge</td><td>Negatively charged insulating material.</td></tr>
-    <tr><td>Absorber <small>[desktop]</small></td><td>Absorbs incoming electromagnetic radiation very effectively.</td></tr>
+    <tr><td>Absorber</td><td>Absorbs incoming electromagnetic radiation very effectively.</td></tr>
     <tr><td>Decoration</td><td>Used for text or circuit symbols, has no effect otherwise.</td></tr>
     <tr><td>Vacuum</td><td>Empty space.</td></tr>
 </table>

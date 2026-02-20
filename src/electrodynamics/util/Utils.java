@@ -46,13 +46,13 @@ public class Utils {
 		else if (mag < 1E12)
 			return String.format(precision, quantity*1e-9) + " G" + unit;
 		else if (mag < 1E15)
-			return String.format(precision, quantity*1e-12) + " P" + unit;
+			return String.format(precision, quantity*1e-12) + " T" + unit;
 		else if (mag < 1E18)
-			return String.format(precision, quantity*1e-15) + " E" + unit;
+			return String.format(precision, quantity*1e-15) + " P" + unit;
 		else if (mag < 1E21)
-			return String.format(precision, quantity*1e-18) + " Z" + unit;
+			return String.format(precision, quantity*1e-18) + " E" + unit;
 		else if (mag < 1E27)
-			return String.format(precision, quantity*1e-21) + " Y" + unit;
+			return String.format(precision, quantity*1e-21) + " Z" + unit;
 		else
 			return "infinity " + unit;
 	}
@@ -144,5 +144,79 @@ public class Utils {
 		double vb = Math.log(Math.abs(array[xfloor][yfloor+1]))*(1.0-fx) + Math.log(Math.abs(array[xfloor+1][yfloor+1]))*fx;
 
 		return Math.exp(va*(1.0-fy) + vb*fy);
+	}
+	
+	public static double bilinearinterp_round(double[][] array, double x, double y, int nx, int ny) {
+		int xfloor = (int)Math.floor(x);
+		int yfloor = (int)Math.floor(y);
+		double fx = x - xfloor;
+		double fy = y - yfloor;
+		if (Math.abs(x-Math.round(x)) < 1e-2 && Math.abs(y-Math.round(y)) < 1e-2) {
+			int i = (int)Math.round(x);
+			int j = (int)Math.round(y);
+			if (i < 0) i = 0;
+			if (j < 0) j = 0;
+			if (i >= nx) i = nx - 1;
+			if (j >= ny) j = ny - 1;
+			return array[i][j];
+		}
+
+		if (xfloor < 0) {
+			xfloor = 0;
+			fx = 0.0;
+		} else if (xfloor >= nx - 1) {
+			xfloor = nx - 2;
+			fx = 1.0;
+		}
+		if (yfloor < 0) {
+			yfloor = 0;
+			fy = 0.0;
+		} else if (yfloor >= ny - 1) {
+			yfloor = ny - 2;
+			fy = 1.0;
+		}
+		double va = array[xfloor][yfloor]*(1.0-fx) + array[xfloor+1][yfloor]*fx;
+		double vb = array[xfloor][yfloor+1]*(1.0-fx) + array[xfloor+1][yfloor+1]*fx;
+
+		return va*(1.0-fy) + vb*fy;
+	}
+
+	public static double bilinearinterp_round(int[][] array, double x, double y, int nx, int ny) {
+		int xfloor = (int)Math.floor(x);
+		int yfloor = (int)Math.floor(y);
+		double fx = x - xfloor;
+		double fy = y - yfloor;
+		if (Math.abs(x-Math.round(x)) < 1e-2 || Math.abs(y-Math.round(y)) < 1e-2) {
+			int i = (int)Math.round(x);
+			int j = (int)Math.round(y);
+			if (i < 0) i = 0;
+			if (j < 0) j = 0;
+			if (i >= nx) i = nx - 1;
+			if (j >= ny) j = ny - 1;
+			return array[i][j];
+		}
+
+		if (xfloor < 0) {
+			xfloor = 0;
+			fx = 0.0;
+		} else if (xfloor >= nx - 1) {
+			xfloor = nx - 2;
+			fx = 1.0;
+		}
+		if (yfloor < 0) {
+			yfloor = 0;
+			fy = 0.0;
+		} else if (yfloor >= ny - 1) {
+			yfloor = ny - 2;
+			fy = 1.0;
+		}
+		double va = array[xfloor][yfloor]*(1.0-fx) + array[xfloor+1][yfloor]*fx;
+		double vb = array[xfloor][yfloor+1]*(1.0-fx) + array[xfloor+1][yfloor+1]*fx;
+
+		return va*(1.0-fy) + vb*fy;
+	}
+	
+	public static double bilinearinterp_length(double[][] Fx, double[][] Fy, double x, double y, int nx, int ny) {
+		return length(bilinearinterp_round(Fx, x-0.5, y, nx, ny), bilinearinterp_round(Fy, x, y-0.5, nx, ny));
 	}
 }

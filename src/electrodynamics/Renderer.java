@@ -53,8 +53,10 @@ public class Renderer extends PeriodicTask {
 	public Font bigfont = new Font(Font.SANS_SERIF, Font.PLAIN, 15);
 	public Font regularfont = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
 	public int scalefactor;
+	public double scalefactor_real;
 	public int imgwidth = 0;
 	public int imgheight = 0;
+	public int canvas_size = 768;
 	public double targetframerate = 60;
 	public double frameduration = 1000/targetframerate;
 	
@@ -99,7 +101,8 @@ public class Renderer extends PeriodicTask {
 		image_r = new float[e.nx][e.ny];
 		image_g = new float[e.nx][e.ny];
 		image_b = new float[e.nx][e.ny];
-		scalefactor = (int)(768.0/e.ny);
+		scalefactor = (int)((double)canvas_size/e.ny);
+		scalefactor_real = (double)canvas_size/e.ny;
 		if (scalefactor < 1) scalefactor = 1;
 
 		rho_p_dist.init(e.nx, e.ny);
@@ -267,8 +270,12 @@ public class Renderer extends PeriodicTask {
 	}
 
 	public void drawRectangle(int x, int y, int w, int h, float col_r, float col_g, float col_b, float alphaFG, float alphaBG) {
-		try {
-			int scansize = scalefactor*e.nx;
+
+		int scansize = scalefactor*e.nx;
+		int lines = scalefactor*e.ny;
+
+		if (x >= 0 && y >= 0 && x+w < scansize && y+h < lines) {
+
 			for (int i = x; i < x+w; i++) {
 				for (int j = y; j < y+h; j++) {
 					int rgb =  imgData[i+j*scansize];
@@ -284,8 +291,6 @@ public class Renderer extends PeriodicTask {
 					imgData[i+j*scansize] = 255<<24 | r << 16 | g << 8 | b;
 				}
 			}
-		} catch (ArrayIndexOutOfBoundsException e) {
-			return;
 		}
 	}
 
@@ -495,8 +500,8 @@ public class Renderer extends PeriodicTask {
 					for (int j = 0; j < e.ny; j++) {
 						int si = i-e.controls.delta_mx_index;
 						int sj = j-e.controls.delta_my_index;
-						if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && e.controls.selection[si][sj].type != MaterialType.VACUUM) {
-							setColor(e.controls.selection[si][sj].type.color_r, e.controls.selection[si][sj].type.color_g, e.controls.selection[si][sj].type.color_b);
+						if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && e.controls.selection[si][sj].m.type != MaterialType.VACUUM) {
+							setColor(e.controls.selection[si][sj].m.type.color_r, e.controls.selection[si][sj].m.type.color_g, e.controls.selection[si][sj].m.type.color_b);
 							setPixel(i, j);
 						}
 					}
@@ -506,8 +511,8 @@ public class Renderer extends PeriodicTask {
 					for (int j = 0; j < e.ny; j++) {
 						int si = i-e.controls.delta_mx_index;
 						int sj = j-e.controls.delta_my_index;
-						if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && e.controls.selection[si][sj].type != MaterialType.VACUUM) {
-							setColor(e.controls.selection[si][sj].type.color_grayscale, e.controls.selection[si][sj].type.color_grayscale, e.controls.selection[si][sj].type.color_grayscale);
+						if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && e.controls.selection[si][sj].m.type != MaterialType.VACUUM) {
+							setColor(e.controls.selection[si][sj].m.type.color_grayscale, e.controls.selection[si][sj].m.type.color_grayscale, e.controls.selection[si][sj].m.type.color_grayscale);
 							setPixel(i, j);
 						}
 					}
@@ -792,7 +797,7 @@ public class Renderer extends PeriodicTask {
 			}
 			
 			for (ChargeProbe p: e.chargeprobes) {
-				drawPixelRectangle(Math.min(p.x1, p.x2), Math.min(p.y1, p.y2), Math.abs(p.x1-p.x2)+1, Math.abs(p.y1-p.y2)+1);
+				//drawPixelRectangle(Math.min(p.x1, p.x2), Math.min(p.y1, p.y2), Math.abs(p.x1-p.x2)+1, Math.abs(p.y1-p.y2)+1);
 			}
 			
 			if (e.ground != null) {
@@ -804,6 +809,30 @@ public class Renderer extends PeriodicTask {
 
 			for (CurrentProbe p: e.currentprobes) {
 				drawPixelLine(p.x1, p.y1, p.x2, p.y2);
+				double dx_perp = (p.y2-p.y1);
+				double dy_perp = -(p.x2-p.x1);
+				double norm = Utils.length(dx_perp, dy_perp);
+				if (norm > 0) {
+					dx_perp = dx_perp/norm;
+					dy_perp = dy_perp/norm;
+					double center_x = 0.5*(p.x1+p.x2);
+					double center_y = 0.5*(p.y1+p.y2);
+					int dist = 3;
+					//drawPixelLine((int)Math.round(center_x), (int)Math.round(center_y), (int)Math.round(center_x + 4*dx_perp), (int)Math.round(center_y+4*dy_perp));
+					//drawPixelLine((int)p.x1, (int)p.y1, (int)(p.x1 + 3*dx_perp), (int)(p.y1+3*dy_perp));
+					//drawPixelLine((int)p.x2, (int)p.y2, (int)(p.x2 + 3*dx_perp), (int)(p.y2+3*dy_perp));
+
+					//setPixel((int)Math.round(center_x + 3*dx_perp), (int)Math.round(center_y+3*dy_perp));
+					setPixel((int)Math.round(p.x1 + dist*dx_perp), (int)Math.round(p.y1+dist*dy_perp));
+					setPixel((int)Math.round(p.x2 + dist*dx_perp), (int)Math.round(p.y2+dist*dy_perp));
+				}
+			}
+			
+			for (ChargeProbe p: e.chargeprobes) {
+				drawPixelLine(p.x1, p.y1, p.x2, p.y1);
+				drawPixelLine(p.x2, p.y1, p.x2, p.y2);
+				drawPixelLine(p.x2, p.y2, p.x1, p.y2);
+				drawPixelLine(p.x1, p.y2, p.x1, p.y1);
 			}
 
 			setalphaFG(1.0);
@@ -866,14 +895,14 @@ public class Renderer extends PeriodicTask {
 				if (d.time < 0)
 					ccdots.remove(i);
 				else {
-					double R_tmp = bilinearinterp(e.R, d.x, d.y)*e.e_charge;
+					double R_tmp = Utils.bilinearinterp(e.R, d.x, d.y, e.nx, e.ny)*e.e_charge;
 					if (d.species == Species.HOLE) {
-						if (R_tmp > 0 && frand.next() < R_tmp/bilinearinterp(e.rho_p, d.x, d.y)*delta_t) {
+						if (R_tmp > 0 && frand.next() < R_tmp/Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny)*delta_t) {
 							ccdots.remove(i);
 							continue;
 						}
 					} else {
-						if (R_tmp > 0 && frand.next() < -R_tmp/bilinearinterp(e.rho_n, d.x, d.y)*delta_t) {
+						if (R_tmp > 0 && frand.next() < -R_tmp/Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny)*delta_t) {
 							ccdots.remove(i);
 							continue;
 						}
@@ -911,158 +940,156 @@ public class Renderer extends PeriodicTask {
 	
 	void drawText() {
 		clearStrings();
-		
+
 		Graphics2D g = (Graphics2D) img_back.getGraphics();
 		g.setRenderingHint(
 		RenderingHints.KEY_TEXT_ANTIALIASING,
 		RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-		if (e.opts.gui_interface.isSelected())
-		{
-			for (VoltageProbe p: e.voltageprobes) {
-				if (e.ground != null)
-					drawStringWithBackgroundAndBorder("V = " + Utils.getSI(p.potential - e.ground.potential, "V", 1e-6), p.x*scalefactor-5, p.y*scalefactor - 12, g);
-				else
-					drawStringWithBackgroundAndBorder("V = " + Utils.getSI(p.potential, "V", 1e-6), p.x*scalefactor-5, p.y*scalefactor - 12, g);
-			}
-
+		for (VoltageProbe p: e.voltageprobes) {
 			if (e.ground != null)
-				drawStringWithBackgroundAndBorder("Ground = " + Utils.getSI(e.ground.potential - e.ground.potential, "V", 1e-6), e.ground.x*scalefactor-5, e.ground.y*scalefactor - 12, g);
-
-			for (CurrentProbe p: e.currentprobes) {
-				double xa = 0.5*(p.x1+p.x2)*scalefactor;
-				double ya = 0.5*(p.y1+p.y2)*scalefactor;
-
-				double dx = p.x2 - p.x1;
-				double dy = p.y2 - p.y1;
-				double len = Utils.length(dx, dy);
-				dx = dx/len;
-				dy = dy/len;
-				if (Math.abs(dx) > Math.abs(dy))
-				{
-					dx = -Math.abs(dx);
-				} else {
-					dy = -2*Math.abs(dy);
-				}
-
-				drawStringWithBackgroundAndBorder("I = " + Utils.getSI(p.current*e.depth, "A", 1e-9), (int)(xa-8*dy)-5, (int)(ya+12*dx)+5, g);
-			}
-			
-			
-			for (ChargeProbe p: e.chargeprobes) {
-				drawStringWithBackgroundAndBorder("Q = " + Utils.getSI(p.charge*e.depth, "C"), scalefactor*(p.x1+p.x2)/2, scalefactor*(p.y1+p.y2)/2, g);
-			}
-
-			drawStringBackgrounds(g);
-			drawStrings(g);
-			startNewStringLayer();
-
-			{
-				double mx_t = e.controls.mx_index;
-				double my_t = e.controls.my_index;
-				//double mx_t = (mouseX/(double)scalefactor);
-				//double my_t = (mouseY/(double)scalefactor);
-				int mi = e.controls.mx_index;
-				int mj = e.controls.my_index;
-
-				if (mi < 0)
-					mi = 0;
-				if (mi >= e.nx)
-					mi = e.nx-1;
-				if (mj < 0)
-					mj = 0;
-				if (mj >= e.ny)
-					mj = e.ny-1;
-
-				Material mat = e.materials[mi][mj];
-
-				int vspacing = 12;
-				int voffset = 1 + e.controls.my;
-				int hoffset = 5 + e.controls.mx+15;
-
-				if (e.opts.gui_tooltip.isSelected()) {
-					if (voffset + 22*vspacing > e.ny*scalefactor) {
-						voffset = voffset - ((voffset + 22*vspacing) - e.ny*scalefactor);
-					}
-					if (hoffset + 120 > e.ny*scalefactor) {
-						hoffset = hoffset - ((hoffset + 120) - e.ny*scalefactor);
-					}
-				}
-
-				String name = "Material: " + mat.type.name + (mat.modified? " (Modified)" : "");
-
-				this.drawBigStringWithBackground(name, hoffset, voffset + 1*vspacing, g);
-				if (e.opts.gui_tooltip.isSelected()) {
-					voffset = voffset+3;
-					int line = 2;
-					drawTwoColumnString("E" , 							Utils.getSI(Utils.length(bilinearinterp(e.Ex, mx_t-0.5,my_t), bilinearinterp(e.Ey, mx_t,my_t-0.5)), "V/m", 1e-6), hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("B" , 							Utils.getSI(e.parity*bilinearinterp(e.Bz, mx_t-0.5, my_t-0.5), "T", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03d5" , 						Utils.getSI(bilinearinterp(e.phi,mx_t, my_t), "V", 1e-6),					hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u2130" , 						Utils.getSI(mat.emf, "V/m", 1e-6),										hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03b5/\u03b5\u2080" , 		Utils.getSI(mat.eps_r, ""),										hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03bc/\u03bc\u2080" , 		Utils.getSI(mat.mu_r, ""),											hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1\u2099" , 				Utils.getSI(bilinearinterp(e.rho_n,mx_t, my_t), "C/m^3", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1\u209A" , 				Utils.getSI(bilinearinterp(e.rho_p,mx_t, my_t), "C/m^3", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1\u2080",					Utils.getSI(bilinearinterp(e.rho_back,mx_t, my_t), "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1" , 						Utils.getSI(bilinearinterp(e.rho_free,mx_t, my_t), "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("J\u2099" ,						Utils.getSI(Utils.length(bilinearinterp(e.Jx_n,mx_t-0.5,my_t), bilinearinterp(e.Jy_n,mx_t,my_t-0.5)), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("J\u209A" , 					Utils.getSI(Utils.length(bilinearinterp(e.Jx_p,mx_t-0.5,my_t), bilinearinterp(e.Jy_p,mx_t,my_t-0.5)), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("J" , 							Utils.getSI(Utils.length(bilinearinterp(e.Jx_free,mx_t-0.5,my_t), bilinearinterp(e.Jy_free,mx_t,my_t-0.5)), "A/m^2", 1),	hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("F\u2099" , 					Utils.getSI(bilinearinterp(e.F_n,mx_t, my_t)/e.q_n+bilinearinterp(e.phi,mx_t, my_t)-e.W_semi/e.eVtoJ, "V", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("F\u209a" , 					Utils.getSI(bilinearinterp(e.F_p,mx_t, my_t)/e.q_p+bilinearinterp(e.phi,mx_t, my_t)-e.W_semi/e.eVtoJ, "V", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
-					//drawTwoColumnString("E\u2099" , 					Utils.getSI(bilinearinterp(E0_n,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
-					//drawTwoColumnString("E\u209a" , 					Utils.getSI(bilinearinterp(E0_p,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("F" , 							Utils.getSI(bilinearinterp(e.F,mx_t, my_t), "V", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
-					//drawTwoColumnString("CMF\u2099" ,					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_n,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_n, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
-					//drawTwoColumnString("CMF\u209A" , 					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_p,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_p, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("x" , 							Utils.getSI(mx_t*e.ds, "m"),								hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("y" , 							Utils.getSI(e.ds*e.ny-(my_t+1)*e.ds, "m"),								hoffset, voffset + line*vspacing, g); line++;
-				}
-			}
-
-			drawStringBackgrounds(g);
-			drawStrings(g);
-			startNewStringLayer();
-
-			int vspacing = 13;
-			int voffset = 3;
-			int hoffset = 5;
-			int line = 1;
-			drawStringWithBackground("Time: " + Utils.getSI(e.time, "s"), hoffset, voffset + line*vspacing, g); line++;
-			drawStringWithBackground("Steps/s: " + Utils.getSI(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), ""), hoffset, voffset + line*vspacing, g); line++;
-			if (e.opts.gui_paused.isSelected())
-			{
-				drawStringWithBackground("Paused", hoffset, voffset + line*vspacing, g); line++;
-			}
-			if (e.sign_violation) {
-				drawStringWithBackground("Warning: Numerical instability detected. Please decrease timestep.", hoffset, voffset + line*vspacing, g); line++;
-			}
-			if (e.controls.debugging) {
-				long total = Runtime.getRuntime().totalMemory();
-				long used  = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-				drawStringWithBackground("Used memory " + Utils.getSI(used, "B"), hoffset, voffset + line*vspacing, g); line++;
-				drawStringWithBackground("Total memory " + Utils.getSI(total, "B"), hoffset, voffset + line*vspacing, g); line++;
-				drawStringWithBackground(e.t4.getName() + " " + Utils.getSI(e.t4.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
-				drawStringWithBackground(t5.getName() + " " + Utils.getSI(t5.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
-				drawStringWithBackground(e.t6.getName() + " " + Utils.getSI(e.t6.getAverageTime()*e.opts.gui_simspeed_2.getValue(), "s"), hoffset, voffset + line*vspacing, g); line++;
-				drawStringWithBackground(e.t7.getName() + " " + Utils.getSI(e.t7.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
-				drawStringWithBackground(e.t8.getName() + " " + Utils.getSI(e.t8.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
-				drawStringWithBackground(FPStimer.getName() + " " + Utils.getSI(1/FPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
-				drawStringWithBackground(e.simFPStimer.getName() + " " + Utils.getSI(1/e.simFPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
-			}
-			if (e.numerical_overflow) {
-				drawStringWithBackground("Error: Numerical overflow detected. Please reset simulation.", hoffset, voffset + line*vspacing, g); line++;
-			}
-
-			if (probetexttimer > 0) {
-				drawStringWithBackground("Data saved to " + e.datafilename, hoffset, voffset + line*vspacing, g); line++;
-				probetexttimer--;
-			}
-
-			drawStringBackgrounds(g);
-			drawStrings(g);
+				drawStringWithBackground("V = " + Utils.getSI(p.potential - e.ground.potential, "V", 1e-6), p.x*scalefactor-5, p.y*scalefactor - 12, g);
+			else
+				drawStringWithBackground("V = " + Utils.getSI(p.potential, "V", 1e-6), p.x*scalefactor-5, p.y*scalefactor - 12, g);
 		}
-		
+
+		if (e.ground != null)
+			drawStringWithBackground("Ground = " + Utils.getSI(e.ground.potential - e.ground.potential, "V", 1e-6), e.ground.x*scalefactor-5, e.ground.y*scalefactor - 12, g);
+
+		for (CurrentProbe p: e.currentprobes) {
+			double xa = 0.5*(p.x1+p.x2)*scalefactor;
+			double ya = 0.5*(p.y1+p.y2)*scalefactor;
+
+			double dx = p.x2 - p.x1;
+			double dy = p.y2 - p.y1;
+			double len = Utils.length(dx, dy);
+			dx = dx/len;
+			dy = dy/len;
+			if (Math.abs(dx) > Math.abs(dy))
+			{
+				dx = -Math.abs(dx);
+			} else {
+				dy = -2*Math.abs(dy);
+			}
+
+			drawStringWithBackground("I = " + Utils.getSI(p.current*e.depth, "A", 1e-9), (int)(xa-8*dy)-5, (int)(ya+12*dx)+5, g);
+		}
+
+
+		for (ChargeProbe p: e.chargeprobes) {
+			drawStringWithBackground("Q = " + Utils.getSI(p.charge*e.depth, "C"), scalefactor*(p.x1+p.x2)/2, scalefactor*(p.y1+p.y2)/2, g);
+		}
+
+		drawStringBackgrounds(g);
+		drawStrings(g);
+		startNewStringLayer();
+
+		{
+			double mx_t = e.controls.mx_index;
+			double my_t = e.controls.my_index;
+			//double mx_t = (mouseX/(double)scalefactor);
+			//double my_t = (mouseY/(double)scalefactor);
+			int mi = e.controls.mx_index;
+			int mj = e.controls.my_index;
+
+			if (mi < 0)
+				mi = 0;
+			if (mi >= e.nx)
+				mi = e.nx-1;
+			if (mj < 0)
+				mj = 0;
+			if (mj >= e.ny)
+				mj = e.ny-1;
+
+			Material mat = e.materials[mi][mj];
+
+			int vspacing = 12;
+			int voffset = 1 + (int)(e.controls.my*scalefactor/scalefactor_real);
+			int hoffset = 5 + (int)(e.controls.mx*scalefactor/scalefactor_real)+15;
+
+			if (e.opts.gui_tooltip.isSelected()) {
+				if (voffset + 22*vspacing > e.ny*scalefactor) {
+					voffset = voffset - ((voffset + 22*vspacing) - e.ny*scalefactor);
+				}
+				if (hoffset + 120 > e.ny*scalefactor) {
+					hoffset = hoffset - ((hoffset + 120) - e.ny*scalefactor);
+				}
+			}
+
+			String name = "Material: " + mat.type.name + (mat.modified? " (Modified)" : "");
+
+			this.drawBigStringWithBackground(name, hoffset, voffset + 1*vspacing, g);
+			if (e.opts.gui_tooltip.isSelected()) {
+				voffset = voffset+3;
+				int line = 2;
+				drawTwoColumnString("E" , 							Utils.getSI(Utils.bilinearinterp_length(e.Ex, e.Ey, mx_t, my_t, e.nx, e.ny), "V/m", 1e-6), hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("B" , 							Utils.getSI(e.parity*Utils.bilinearinterp_round(e.Bz, mx_t-0.5, my_t-0.5, e.nx, e.ny), "T", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("\u03d5" , 						Utils.getSI(Utils.bilinearinterp_round(e.phi,mx_t, my_t, e.nx, e.ny), "V", 1e-6),					hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("\u2130" , 						Utils.getSI(mat.emf, "V/m", 1e-6),										hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("\u03b5/\u03b5\u2080" , 		Utils.getSI(mat.eps_r, ""),										hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("\u03bc/\u03bc\u2080" , 		Utils.getSI(mat.mu_r, ""),											hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("\u03c1\u2099" , 				Utils.getSI(Utils.bilinearinterp_round(e.rho_n, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("\u03c1\u209A" , 				Utils.getSI(Utils.bilinearinterp_round(e.rho_p, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("\u03c1\u2080",					Utils.getSI(Utils.bilinearinterp_round(e.rho_back, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("\u03c1" , 						Utils.getSI(Utils.bilinearinterp_round(e.rho_free, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("J\u2099" ,						Utils.getSI(Utils.bilinearinterp_length(e.Jx_n, e.Jy_n, mx_t, my_t, e.nx, e.ny), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("J\u209A" , 					Utils.getSI(Utils.bilinearinterp_length(e.Jx_p, e.Jy_p, mx_t, my_t, e.nx, e.ny), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("J" , 							Utils.getSI(Utils.bilinearinterp_length(e.Jx_free, e.Jy_free, mx_t, my_t, e.nx, e.ny), "A/m^2", 1),	hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("F\u2099" , 					Utils.getSI(Utils.bilinearinterp_round(e.F_n,mx_t, my_t, e.nx, e.ny)/e.q_n+Utils.bilinearinterp_round(e.phi,mx_t, my_t, e.nx, e.ny)-e.W_semi/e.eVtoJ, "V", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("F\u209a" , 					Utils.getSI(Utils.bilinearinterp_round(e.F_p,mx_t, my_t, e.nx, e.ny)/e.q_p+Utils.bilinearinterp_round(e.phi,mx_t, my_t, e.nx, e.ny)-e.W_semi/e.eVtoJ, "V", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
+				//drawTwoColumnString("E\u2099" , 					Utils.getSI(bilinearinterp(E0_n,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
+				//drawTwoColumnString("E\u209a" , 					Utils.getSI(bilinearinterp(E0_p,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("F" , 							Utils.getSI(Utils.bilinearinterp_round(e.F,mx_t, my_t, e.nx, e.ny), "V", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+				//drawTwoColumnString("CMF\u2099" ,					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_n,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_n, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
+				//drawTwoColumnString("CMF\u209A" , 					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_p,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_p, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("x" , 							Utils.getSI(mx_t*e.ds, "m"),								hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("y" , 							Utils.getSI(e.ds*e.ny-(my_t+1)*e.ds, "m"),								hoffset, voffset + line*vspacing, g); line++;
+			}
+		}
+
+		drawStringBackgrounds(g);
+		drawStrings(g);
+		startNewStringLayer();
+
+		int vspacing = 13;
+		int voffset = 3;
+		int hoffset = 5;
+		int line = 1;
+		drawStringWithBackground("Time: " + Utils.getSI(e.time, "s"), hoffset, voffset + line*vspacing, g); line++;
+		drawStringWithBackground("Steps/s: " + Utils.getSI(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), ""), hoffset, voffset + line*vspacing, g); line++;
+		if (e.opts.gui_paused.isSelected())
+		{
+			drawStringWithBackground("Paused", hoffset, voffset + line*vspacing, g); line++;
+		}
+		if (e.sign_violation) {
+			drawStringWithBackground("Warning: Numerical instability detected. Please decrease timestep.", hoffset, voffset + line*vspacing, g); line++;
+		}
+		if (e.controls.debugging) {
+			long total = Runtime.getRuntime().totalMemory();
+			long used  = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+			drawStringWithBackground("Used memory " + Utils.getSI(used, "B"), hoffset, voffset + line*vspacing, g); line++;
+			drawStringWithBackground("Total memory " + Utils.getSI(total, "B"), hoffset, voffset + line*vspacing, g); line++;
+			drawStringWithBackground(e.t4.getName() + " " + Utils.getSI(e.t4.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
+			drawStringWithBackground(t5.getName() + " " + Utils.getSI(t5.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
+			drawStringWithBackground(e.t6.getName() + " " + Utils.getSI(e.t6.getAverageTime()*e.opts.gui_simspeed_2.getValue(), "s"), hoffset, voffset + line*vspacing, g); line++;
+			drawStringWithBackground(e.t7.getName() + " " + Utils.getSI(e.t7.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
+			drawStringWithBackground(e.t8.getName() + " " + Utils.getSI(e.t8.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
+			drawStringWithBackground(FPStimer.getName() + " " + Utils.getSI(1/FPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
+			drawStringWithBackground(e.simFPStimer.getName() + " " + Utils.getSI(1/e.simFPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
+		}
+		if (e.numerical_overflow) {
+			line++;
+			drawError("Error: Numerical overflow detected. Please reset simulation.", hoffset, voffset + line*vspacing, g); line += 2;
+		}
+
+		if (probetexttimer > 0) {
+			drawStringWithBackground("Data saved to " + e.datafilename, hoffset, voffset + line*vspacing, g); line++;
+			probetexttimer--;
+		}
+
+		drawStringBackgrounds(g);
+		drawStrings(g);
+
 		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
 		if (!e.opts.gui_brush_highlight.isSelected()) {
 			int r = (int)(scalefactor*e.controls.brushsize/e.ds);
@@ -1195,8 +1222,8 @@ public class Renderer extends PeriodicTask {
 
 										int steps = 30;
 										for (int k = 0; k < steps; k++) {
-											dx = bilinearinterp(vf_x, prevx-0.5, prevy);
-											dy = bilinearinterp(vf_y, prevx, prevy-0.5);
+											dx = Utils.bilinearinterp(vf_x, prevx-0.5, prevy, e.nx, e.ny);
+											dy = Utils.bilinearinterp(vf_y, prevx, prevy-0.5, e.nx, e.ny);
 
 											double fieldmagnitude = Math.sqrt(dx*dx+dy*dy);
 											double alphaFG = bump(0.5*(1.0-k/(double)(steps-1)), 0.5)*Math.min(1, vectorscalingconstant*fieldmagnitude);
@@ -1232,8 +1259,8 @@ public class Renderer extends PeriodicTask {
 									ctr.x = x+0.5;
 									ctr.y = y+0.5;
 
-									arrow.x = bilinearinterp(vf_x,x-0.5, y);
-									arrow.y = bilinearinterp(vf_y,x, y-0.5);
+									arrow.x = Utils.bilinearinterp(vf_x,x-0.5, y, e.nx, e.ny);
+									arrow.y = Utils.bilinearinterp(vf_y,x, y-0.5, e.nx, e.ny);
 
 									double fieldmagnitude = Math.max(0.1, vectorscalingconstant*Math.sqrt(arrow.dot(arrow)));
 									arrow.normalize();
@@ -1272,7 +1299,7 @@ public class Renderer extends PeriodicTask {
 									d.y = e.ny*rand.nextDouble();
 									d.lifespan = 100*(1+rand.nextDouble());
 									d.time = d.lifespan;
-									if (isCurrent && bilinearinterp(e.conducting, d.x, d.y) == 0) {
+									if (isCurrent && Utils.bilinearinterp_round(e.conducting, d.x, d.y, e.nx, e.ny) == 0) {
 										d.lifespan = 0;
 										d.time = 0;
 									}
@@ -1289,8 +1316,8 @@ public class Renderer extends PeriodicTask {
 
 									if (!paused) {
 										for (int k = 0; k < steps; k++) {
-											dx = bilinearinterp(vf_x,d.x-0.5, d.y)*5e-7*vectorscalingconstant/steps;
-											dy = bilinearinterp(vf_y,d.x, d.y-0.5)*5e-7*vectorscalingconstant/steps;
+											dx = Utils.bilinearinterp(vf_x,d.x-0.5, d.y, e.nx, e.ny)*5e-7*vectorscalingconstant/steps;
+											dy = Utils.bilinearinterp(vf_y,d.x, d.y-0.5, e.nx, e.ny)*5e-7*vectorscalingconstant/steps;
 											double maxspeed = 0.5;
 											double factor = Math.min(1, maxspeed/Math.sqrt(dx*dx+dy*dy));
 											d.x += dx*factor;
@@ -1314,8 +1341,8 @@ public class Renderer extends PeriodicTask {
 
 							for (int i = lower(scalefactor*e.nx); i < upper(scalefactor*e.nx); i++) {
 								for (int j = 0; j < scalefactor*e.ny; j++) {
-									double u = bilinearinterp(scalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5)/spacing;
-									double v = bilinearinterp(gradscalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5)/spacing;
+									double u = Utils.bilinearinterp(scalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5, e.nx, e.ny)/spacing;
+									double v = Utils.bilinearinterp(gradscalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5, e.nx, e.ny)/spacing;
 									double f = ((((u%1)+1.5)%1)/Math.abs(v))/contourwidth;
 									if (f < 1) {
 										drawPixel(i, j, 1f, 1f, 1f, (float)(2*Math.min(f, 1-f)), 1f);
@@ -1339,15 +1366,15 @@ public class Renderer extends PeriodicTask {
 									if (!paused) {
 										if (d.species == Species.ELECTRON) {
 											for (int k = 0; k < steps; k++) {
-												double s = dt_dot/(e.ds*bilinearinterp(e.rho_n, d.x, d.y));
-												d.x += s*bilinearinterp(e.Jx_n,d.x-0.5, d.y);
-												d.y += s*bilinearinterp(e.Jy_n,d.x, d.y-0.5);
+												double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny));
+												d.x += s*Utils.bilinearinterp(e.Jx_n,d.x-0.5, d.y, e.nx, e.ny);
+												d.y += s*Utils.bilinearinterp(e.Jy_n,d.x, d.y-0.5, e.nx, e.ny);
 											}
 										} else if (d.species == Species.HOLE) {
 											for (int k = 0; k < steps; k++) {
-												double s = dt_dot/(e.ds*bilinearinterp(e.rho_p, d.x, d.y));
-												d.x += s*bilinearinterp(e.Jx_p,d.x-0.5, d.y);
-												d.y += s*bilinearinterp(e.Jy_p,d.x, d.y-0.5);
+												double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny));
+												d.x += s*Utils.bilinearinterp(e.Jx_p,d.x-0.5, d.y, e.nx, e.ny);
+												d.y += s*Utils.bilinearinterp(e.Jy_p,d.x, d.y-0.5, e.nx, e.ny);
 											}
 										}
 
@@ -1380,11 +1407,10 @@ public class Renderer extends PeriodicTask {
 	}
 
 	public void drawStringBackgrounds(Graphics g) {
-		if (!e.opts.gui_text_bg.isSelected() || !e.opts.gui_interface.isSelected())
-			return;
+		boolean dodraw = e.opts.gui_text_bg.isSelected() && e.opts.gui_interface.isSelected();
 
 		for (Text text : texts) {
-			if (text.hasBackground) {
+			if (text.hasBackground && (dodraw || text.isError)) {
 				if (text.big)
 					g.setFont(bigfont);
 				else
@@ -1401,7 +1427,7 @@ public class Renderer extends PeriodicTask {
 		}
 
 		for (Text text : texts) {
-			if (text.hasBackground) {
+			if (text.hasBackground && (dodraw || text.isError)) {
 				if (text.big)
 					g.setFont(bigfont);
 				else
@@ -1413,25 +1439,29 @@ public class Renderer extends PeriodicTask {
 				int y = text.y-height+6;
 
 				g.setColor(Color.BLACK);
+				if (text.isError)
+					g.setColor(Color.RED);
+				
 				g.fillRect(x, y, width, height);
 			}
 		}
 	}
 
 	public void drawStrings(Graphics g) {
-		if (!e.opts.gui_interface.isSelected())
-			return;
+		boolean dodraw = e.opts.gui_interface.isSelected();
 
 		for (Text text : texts) {
-			if (text.big)
-				g.setFont(bigfont);
-			else
-				g.setFont(regularfont);
+			if (dodraw || text.isError) {
+				if (text.big)
+					g.setFont(bigfont);
+				else
+					g.setFont(regularfont);
 
-			g.setColor(Color.DARK_GRAY);
-			g.drawString(text.text, text.x+1, text.y+1);
-			g.setColor(Color.WHITE);
-			g.drawString(text.text, text.x, text.y);
+				g.setColor(Color.DARK_GRAY);
+				g.drawString(text.text, text.x+1, text.y+1);
+				g.setColor(Color.WHITE);
+				g.drawString(text.text, text.x, text.y);
+			}
 		}
 	}
 
@@ -1439,100 +1469,24 @@ public class Renderer extends PeriodicTask {
 		texts.clear();
 	}
 
-	public void drawString(String str1, int x, int y, Graphics g) {
-		texts.add(new Text(str1, x, y, false, false, false));
-	}
-
 	public void drawStringWithBackground(String str1, int x, int y, Graphics g) {
-		texts.add(new Text(str1, x, y, false, true, false));
+		texts.add(new Text(str1, x, y, false, true));
 	}
-
-	public void drawStringWithBackgroundAndBorder(String str1, int x, int y, Graphics g) {
-		texts.add(new Text(str1, x, y, false, true, true));
-	}
-
-	public void drawBigString(String str1, int x, int y, Graphics g) {
-		texts.add(new Text(str1, x, y, true, false, false));
+	
+	public void drawError(String str1, int x, int y, Graphics g) {
+		Text t = new Text(str1, x, y, false, true);
+		t.isError = true;
+		texts.add(t);
 	}
 
 	public void drawBigStringWithBackground(String str1, int x, int y, Graphics g) {
-		texts.add(new Text(str1, x, y, true, true, false));
+		texts.add(new Text(str1, x, y, true, true));
 	}
 
 	public void drawTwoColumnString(String str1, String str2, int x, int y, Graphics g) {
-		texts.add(new Text(String.format("%-10s", str1), x, y, false, true, true));
-		texts.add(new Text(str2, x+40, y, false, true, true));
+		texts.add(new Text(String.format("%-10s", str1), x, y, false, true));
+		texts.add(new Text(str2, x+40, y, false, true));
 		texts.get(texts.size()-1).minwidth = 80;
-	}
-	
-	public double bilinearinterp(double[][] array, double x, double y) {
-		int xfloor = (int)Math.floor(x);
-		int yfloor = (int)Math.floor(y);
-		double fx = x - xfloor;
-		double fy = y - yfloor;
-		if (Math.abs(x-Math.round(x)) < 1e-2 && Math.abs(y-Math.round(y)) < 1e-2) {
-			int i = (int)Math.round(x);
-			int j = (int)Math.round(y);
-			if (i < 0) i = 0;
-			if (j < 0) j = 0;
-			if (i >= e.nx) i = e.nx - 1;
-			if (j >= e.ny) j = e.ny - 1;
-			return array[i][j];
-		}
-
-		if (xfloor < 0) {
-			xfloor = 0;
-			fx = 0.0;
-		} else if (xfloor >= e.nx - 1) {
-			xfloor = e.nx - 2;
-			fx = 1.0;
-		}
-		if (yfloor < 0) {
-			yfloor = 0;
-			fy = 0.0;
-		} else if (yfloor >= e.ny - 1) {
-			yfloor = e.ny - 2;
-			fy = 1.0;
-		}
-		double va = array[xfloor][yfloor]*(1.0-fx) + array[xfloor+1][yfloor]*fx;
-		double vb = array[xfloor][yfloor+1]*(1.0-fx) + array[xfloor+1][yfloor+1]*fx;
-
-		return va*(1.0-fy) + vb*fy;
-	}
-
-	public double bilinearinterp(int[][] array, double x, double y) {
-		int xfloor = (int)Math.floor(x);
-		int yfloor = (int)Math.floor(y);
-		double fx = x - xfloor;
-		double fy = y - yfloor;
-		if (Math.abs(x-Math.round(x)) < 1e-2 || Math.abs(y-Math.round(y)) < 1e-2) {
-			int i = (int)Math.round(x);
-			int j = (int)Math.round(y);
-			if (i < 0) i = 0;
-			if (j < 0) j = 0;
-			if (i >= e.nx) i = e.nx - 1;
-			if (j >= e.ny) j = e.ny - 1;
-			return array[i][j];
-		}
-
-		if (xfloor < 0) {
-			xfloor = 0;
-			fx = 0.0;
-		} else if (xfloor >= e.nx - 1) {
-			xfloor = e.nx - 2;
-			fx = 1.0;
-		}
-		if (yfloor < 0) {
-			yfloor = 0;
-			fy = 0.0;
-		} else if (yfloor >= e.ny - 1) {
-			yfloor = e.ny - 2;
-			fy = 1.0;
-		}
-		double va = array[xfloor][yfloor]*(1.0-fx) + array[xfloor+1][yfloor]*fx;
-		double vb = array[xfloor][yfloor+1]*(1.0-fx) + array[xfloor+1][yfloor+1]*fx;
-
-		return va*(1.0-fy) + vb*fy;
 	}
 	
 	public class Text {
@@ -1542,15 +1496,14 @@ public class Renderer extends PeriodicTask {
 		int minwidth;
 		boolean big;
 		boolean hasBackground;
-		boolean hasBorder;
+		boolean isError = false;
 
-		public Text(String text, int x, int y, boolean big, boolean hasBackground, boolean hasBorder) {
+		public Text(String text, int x, int y, boolean big, boolean hasBackground) {
 			this.text = text;
 			this.x = x;
 			this.y = y;
 			this.big = big;
 			this.hasBackground = hasBackground;
-			this.hasBorder = hasBorder;
 			minwidth = 0;
 		}
 	}
@@ -1677,14 +1630,18 @@ class RenderCanvas extends JPanel {
 
 	private static final long serialVersionUID = 7369516276529576171L;
 
-	Simulation parent;
+	Simulation e;
 	@Override
 	public void paintComponent(Graphics real) {
 		real.clearRect(0, 0, real.getClipBounds().width, real.getClipBounds().height);
-		real.drawImage(parent.renderer.img_front, 0, 0, parent.opts);
+		boolean need_to_rescale = (e.renderer.scalefactor*e.ny != e.renderer.canvas_size);
+		if (need_to_rescale)
+			((Graphics2D) real).drawImage(e.renderer.img_front, 0, 0, real.getClipBounds().width, real.getClipBounds().height, e.opts);
+		else
+			real.drawImage(e.renderer.img_front, 0, 0, e.opts);
 	}
 
 	public RenderCanvas(Simulation w) {
-		parent = w;
+		e = w;
 	}
 }
