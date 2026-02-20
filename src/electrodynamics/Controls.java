@@ -147,7 +147,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		
 		text_x = 0;
 		text_y = 0;
-		texting = false;
+		endTextInput();
 	}
 	
 	public void handleMouseInput() {
@@ -757,7 +757,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case TEXT:
 			e.canvas.setCursor(HAND_CURSOR);
 			if (mouse_pressed) {
-				texting = true;
+				startTextInput();
 				text_x = mx_index;
 				text_y = my_index;
 			}
@@ -788,7 +788,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 		if (brush != Brush.TEXT)
 		{
-			texting = false;
+			endTextInput();
 		}
 		
 		SwingUtilities.invokeLater(() -> { //TODO
@@ -813,6 +813,22 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 		mxp_realspace = mx_realspace;
 		myp_realspace = my_realspace;
+	}
+	
+	public void startTextInput() {
+		if (!texting) {
+			removeKeyBinds(e.canvas);
+			removeKeyBinds(e.opts.panel);
+			texting = true;
+		}
+	}
+
+	public void endTextInput() {
+		if (texting) {
+			addKeyBinds(e.canvas);
+			addKeyBinds(e.opts.panel);
+			texting = false;
+		}
 	}
 	
 	public void resetUndoHistory() {
@@ -1452,6 +1468,15 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET, 0), key_nexttool);
     	contentPane.getActionMap().put(key_nexttool, key_nexttool);
 
+    }
+    
+
+    public void removeKeyBinds(JPanel contentPane) {
+    	InputMap map = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    	InputMap map2 = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    	
+    	map.clear();
+    	map2.clear();
     }
 
 	@Override

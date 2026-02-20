@@ -317,6 +317,8 @@ public class Simulation extends PeriodicTask {
 		carrierplot = new CarrierPlot(); plots.add(carrierplot);
 
 		SemiSim.detect64Bit();
+		
+		savemanager.storeDefaultSettings();
 
 		setSize(default_resolution, default_width);
 		resetFields(true);
@@ -424,12 +426,9 @@ public class Simulation extends PeriodicTask {
     				controls.reset = false;
     			}
 
-    			if (opts.gui_simspeed.getValue() != lastsimspeed) {
-    				lastsimspeed = opts.gui_simspeed.getValue();
-    				dt = dt_maximum*(lastsimspeed/20.0);
-    			}
+    			lastsimspeed = opts.gui_simspeed.getValue();
+    			dt = dt_maximum*(lastsimspeed/20.0);
 
-    			
     			controls.handleUndoRedo();
     			
     			controls.handleMouseInput();

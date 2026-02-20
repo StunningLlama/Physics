@@ -148,6 +148,8 @@ The main way to interact with circuits is to change the strength of voltage sour
 | 3 | Line tool |
 | 4 | Fill tool |
 | 5 | Select tool |
+| [ | Previous tool |
+| ] | Next tool |
 
 ## Materials
 

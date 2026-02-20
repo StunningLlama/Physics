@@ -11,6 +11,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.util.Arrays;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.zip.GZIPInputStream;
@@ -40,6 +41,8 @@ public class SaveManager {
 	int saveversion = 2;
 	String fileextension = ".semisim";
 	String startingpath = ".";
+
+	String defaultsettings;
 	
 	public SaveManager(Simulation e) {
 		this.e = e;
@@ -183,6 +186,7 @@ public class SaveManager {
 						fstr.endObject();
 						e.advsettings_tweaked = true;
 					} else {
+						readDefaultSettings();
 						e.advsettings_tweaked = false;
 					}
 
@@ -249,6 +253,8 @@ public class SaveManager {
 					fstr.endObject();
 					fstr.close();
 
+					readDefaultSettings();
+					
 					e.opts.textPane.setEditable(false);
 					e.opts.textPane.setCaretPosition(0);
 					e.updateAllMaterials(false);
@@ -534,6 +540,24 @@ public class SaveManager {
 			default: fstr.skipValue(); break; // skip others
 			}
 		}
+	}
+	
+	public void storeDefaultSettings() {
+		//Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+		//JsonObject obj = new JsonObject();
+		//writeAdvancedSettings(gson, obj);
+		//defaultsettings = gson.toJson(obj);
+	}
+	
+	public void readDefaultSettings() {
+		//if (defaultsettings != null) {
+		//	Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+		//	try {
+		//		readAdvancedSettings (gson, new JsonReader(new StringReader(defaultsettings)));
+		//	} catch (IOException | RuntimeException e) {
+		//		e.printStackTrace();
+		//	}
+		//}
 	}
 
 	public String formatDouble(double d) {
