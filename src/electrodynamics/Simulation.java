@@ -348,6 +348,9 @@ public class Simulation extends PeriodicTask {
 		opts.menu_paste.addActionListener(controls);
 		opts.menu_editdesc.addActionListener(controls);
 		opts.menu_new.addActionListener(controls);
+		opts.menu_rotate.addActionListener(controls);
+		opts.menu_flip_v.addActionListener(controls);
+		opts.menu_flip_h.addActionListener(controls);
 		
 		opts.gui_brush.addItemListener(controls);
 		
@@ -2164,10 +2167,9 @@ class ClipboardMaterial implements Cloneable {
 	
     @Override
     public ClipboardMaterial clone() {
-        try {
-			return (ClipboardMaterial) super.clone();
-		} catch (CloneNotSupportedException e) {
-			return null;
-		}
+        ClipboardMaterial mat = new ClipboardMaterial(m);
+        mat.rho_n = rho_n;
+        mat.rho_p = rho_p;
+        return mat;
     }
 }

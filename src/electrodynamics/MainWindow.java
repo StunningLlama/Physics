@@ -89,6 +89,10 @@ public class MainWindow extends JFrame {
 	public JMenu menu_tools;
 	public JMenuItem menu_editdesc;
 	public JMenuItem menu_new;
+	public JMenuItem menu_rotate;
+	public JMenuItem menu_flip_h;
+	public JMenuItem menu_flip_v;
+	public JSeparator separator_2;
 
 	/**
 	 * Create the frame.
@@ -131,6 +135,17 @@ public class MainWindow extends JFrame {
 		JMenu menu_asdf = new JMenu("Edit");
 		menuBar.add(menu_asdf);
 		
+		menu_undo = new JMenuItem("Undo");
+		menu_undo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK));
+		menu_asdf.add(menu_undo);
+		
+		menu_redo = new JMenuItem("Redo");
+		menu_redo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+		menu_asdf.add(menu_redo);
+		
+		JSeparator separator = new JSeparator();
+		menu_asdf.add(separator);
+		
 		menu_cut = new JMenuItem("Cut");
 		menu_cut.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_cut);
@@ -143,16 +158,20 @@ public class MainWindow extends JFrame {
 		menu_paste.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_paste);
 		
-		JSeparator separator = new JSeparator();
-		menu_asdf.add(separator);
+		separator_2 = new JSeparator();
+		menu_asdf.add(separator_2);
 		
-		menu_undo = new JMenuItem("Undo");
-		menu_undo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK));
-		menu_asdf.add(menu_undo);
+		menu_rotate = new JMenuItem("Rotate");
+		menu_rotate.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
+		menu_asdf.add(menu_rotate);
 		
-		menu_redo = new JMenuItem("Redo");
-		menu_redo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
-		menu_asdf.add(menu_redo);
+		menu_flip_h = new JMenuItem("Flip horizontally");
+		menu_flip_h.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK));
+		menu_asdf.add(menu_flip_h);
+		
+		menu_flip_v = new JMenuItem("Flip vertically");
+		menu_flip_v.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK));
+		menu_asdf.add(menu_flip_v);
 		
 		menu_tools = new JMenu("Tools");
 		menuBar.add(menu_tools);

@@ -22,7 +22,7 @@ public class Utils {
 	}
 	
 	public static String getSI_fixedsigfigs(double quantity, String unit) {
-		return getSI(quantity, unit, "%.4g");
+		return getSI(quantity, unit, ((quantity > 0)? " " : "") +"%.4g");
 	}
 	
 	public static String getSI(double quantity, String unit, String format) {

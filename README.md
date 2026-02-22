@@ -134,6 +134,9 @@ The main way to interact with circuits is to change the strength of voltage sour
 | Ctrl-X | Cut |
 | Ctrl-C | Copy |
 | Ctrl-V | Paste |
+| Ctrl-R | Rotate selection |
+| Ctrl-F | Flip horizontally |
+| Ctrl-G | Flip vertically |
 | Ctrl-Z | Undo |
 | Ctrl-Shift-Z | Redo |
 | Ctrl-N | New file |

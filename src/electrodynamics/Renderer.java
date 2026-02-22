@@ -52,7 +52,7 @@ public class Renderer extends PeriodicTask {
 	public ArrayList<Text> texts = new ArrayList<>();
 	public Font bigfont = new Font(Font.SANS_SERIF, Font.PLAIN, 15);
 	public Font regularfont = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
-	public Font monospacefont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
+	public Font monospacefont = getMonospacedFont();
 	public int scalefactor;
 	public double scalefactor_real;
 	public int imgwidth = 0;
@@ -1489,6 +1489,15 @@ public class Renderer extends PeriodicTask {
 		drawString(String.format("%-10s", str1), x, y, g);
 		drawString(str2, x+40, y, g);
 		texts.get(texts.size()-1).minwidth = 80;
+	}
+	
+	public Font getMonospacedFont() {
+		Font f = Font.decode("Consolas-PLAIN-12");
+		if (f.getFamily() == "Dialog")
+			f = Font.decode("Andale Mono-PLAIN-12");
+		if (f.getFamily() == "Dialog")
+			f = new Font(Font.MONOSPACED, Font.PLAIN, 12);
+		return f;
 	}
 	
 	public class Text {

@@ -70,6 +70,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     public boolean ctrl_down = false;
     public boolean alt_down = false;
     public boolean logdata = false;
+    public boolean rotate_selection = false;
+    public boolean flip_h_selection = false;
+    public boolean flip_v_selection = false;
 
 
 	/* Mouse controls */
@@ -326,6 +329,86 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			delete = false;
 			update = true;
 		}
+		
+		if (rotate_selection || flip_h_selection || flip_v_selection) {
+			int i_max = 0;
+			int j_max = 0;
+			for (int i = 0; i < e.nx; i++)
+			{
+				for (int j = 0; j < e.ny; j++)
+				{
+					if (selection[i][j].m.type != MaterialType.VACUUM) {
+						if (i > i_max) i_max = i;
+						if (j > j_max) j_max = j;
+					}
+				}
+			}
+			
+			if (rotate_selection) {
+				ClipboardMaterial[][] new_selection = new ClipboardMaterial[j_max+1][i_max+1];
+				for (int i = 0; i <= i_max; i++)
+				{
+					for (int j = 0; j <= j_max; j++)
+					{
+						new_selection[j_max-j][i] = selection[i][j].clone();
+						selection[i][j].erase();
+					}
+				}
+				
+				for (int i = 0; i <= j_max; i++)
+				{
+					for (int j = 0; j <= i_max; j++)
+					{
+						selection[i][j] = new_selection[i][j];
+					}
+				}
+				rotate_selection = false;
+			}
+			
+			if (flip_h_selection) {
+				ClipboardMaterial[][] new_selection = new ClipboardMaterial[i_max+1][j_max+1];
+				for (int i = 0; i <= i_max; i++)
+				{
+					for (int j = 0; j <= j_max; j++)
+					{
+						new_selection[i_max-i][j] = selection[i][j].clone();
+						selection[i][j].erase();
+					}
+				}
+				
+				for (int i = 0; i <= i_max; i++)
+				{
+					for (int j = 0; j <= j_max; j++)
+					{
+						selection[i][j] = new_selection[i][j];
+					}
+				}
+				flip_h_selection = false;
+			}
+			
+			if (flip_v_selection) {
+				ClipboardMaterial[][] new_selection = new ClipboardMaterial[i_max+1][j_max+1];
+				for (int i = 0; i <= i_max; i++)
+				{
+					for (int j = 0; j <= j_max; j++)
+					{
+						new_selection[i][j_max - j] = selection[i][j].clone();
+						selection[i][j].erase();
+					}
+				}
+				
+				for (int i = 0; i <= i_max; i++)
+				{
+					for (int j = 0; j <= j_max; j++)
+					{
+						selection[i][j] = new_selection[i][j];
+					}
+				}
+				flip_v_selection = false;
+			}
+		}
+		
+
 
 		switch(brush) {
 		case DRAW:
@@ -1016,7 +1099,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			copy = true;
 		} else if (ev.getSource() == e.opts.menu_paste) {
 			paste = true;
-		} else if (ev.getSource() == e.opts.menu_undo) {
+		} else if (ev.getSource() == e.opts.menu_rotate) {
+			rotate_selection = true;
+		} else if (ev.getSource() == e.opts.menu_flip_h) {
+			flip_h_selection = true;
+		} else if (ev.getSource() == e.opts.menu_flip_v) {
+			flip_v_selection = true;
+		}else if (ev.getSource() == e.opts.menu_undo) {
 			undo = true;
 		} else if (ev.getSource() == e.opts.menu_redo) {
 			redo = true;
@@ -1282,6 +1371,27 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
     
+    private Action key_rotate = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		rotate_selection = true;
+        }
+    };
+    
+    private Action key_flip_v = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		flip_v_selection = true;
+        }
+    };
+    
+    private Action key_flip_h = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		flip_h_selection = true;
+        }
+    };
+    
     private Action key_1 = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1396,6 +1506,18 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), key_new);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.META_DOWN_MASK), key_new);
     	contentPane.getActionMap().put(key_new, key_new);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK), key_rotate);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.META_DOWN_MASK), key_rotate);
+    	contentPane.getActionMap().put(key_rotate, key_rotate);
+    	
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK), key_flip_v);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.META_DOWN_MASK), key_flip_v);
+    	contentPane.getActionMap().put(key_flip_v, key_flip_v);
+    	
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), key_flip_h);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK), key_flip_h);
+    	contentPane.getActionMap().put(key_flip_h, key_flip_h);
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), key_delete);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), key_delete);
