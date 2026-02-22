@@ -77,7 +77,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	PointerInfo pointerinfo = MouseInfo.getPointerInfo();
 	public boolean mouse_pressed = false;
 	public boolean mouse_pressed_prev = false;
-	//public boolean modifier_pressed = false;
 	public boolean moving_selection = false;
 	public boolean dragging_selection = false;
 	public boolean brush_changed = false;
@@ -170,34 +169,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 		}
 		mouse_pressed_prev = mouse_pressed;
-
-
-		/*if (!mouse_pressed && !releasing) {
-
-			if (ctrl_down || shift_down) {
-				if (!modifier_pressed && Brush.isMaterialModifyingBrush(brush)) {
-					modifier_pressed = true;
-					prev_brush = brush;
-
-					if (ctrl_down) {
-						e.opts.gui_brush.setSelectedItem(Brush.FILL);
-						brush = (Brush) e.opts.gui_brush.getSelectedItem();
-					}
-					else if (shift_down) {
-						e.opts.gui_brush.setSelectedItem(Brush.LINE);
-						brush = (Brush) e.opts.gui_brush.getSelectedItem();
-					}
-					//r.requestFocus();
-				}
-			} else {
-				if (modifier_pressed) {
-					modifier_pressed = false;
-					e.opts.gui_brush.setSelectedItem(Brush.DRAW);
-					brush = (Brush) e.opts.gui_brush.getSelectedItem();
-					//r.requestFocus();
-				}
-			}
-		}*/
 
 		mx_realspace = Math.round((mx-1)/e.renderer.scalefactor_real - 0.5)*e.ds;
 		my_realspace = Math.round((my-1)/e.renderer.scalefactor_real - 0.5)*e.ds;
@@ -473,25 +444,20 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				{
 					for (int j = 0; j < e.ny; j++)
 					{
-						if (e.opts.gui_brush_highlight.isSelected()) {
-							double cx = 0;
-							double cy = 0;
-							cx = i*e.ds;
-							cy = j*e.ds;
+						double cx = 0;
+						double cy = 0;
+						cx = i*e.ds;
+						cy = j*e.ds;
 
-							double px = (cx-mx_realspace);
-							double py = (cy-my_realspace);
-							double r = 0;
+						double px = (cx-mx_realspace);
+						double py = (cy-my_realspace);
+						double r = 0;
 
-							if (brushshape == BrushShape.CIRCLE)
-								r = Math.sqrt(px*px+py*py);
-							else if (brushshape == BrushShape.SQUARE)
-								r = Math.max(Math.abs(px), Math.abs(py));
-							under_brush[i][j] = (r <= brushsize);
-						}
-						else {
-							under_brush[i][j] = false;
-						}
+						if (brushshape == BrushShape.CIRCLE)
+							r = Math.sqrt(px*px+py*py);
+						else if (brushshape == BrushShape.SQUARE)
+							r = Math.max(Math.abs(px), Math.abs(py));
+						under_brush[i][j] = (r <= brushsize);
 					}
 				}
 			}
@@ -1016,6 +982,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				area.setText(text);
 				area.setEditable(true);
 				area.setLineWrap(true);
+				area.setWrapStyleWord(true);
 				frame.add(area);
 				frame.add(b, BorderLayout.SOUTH);
 				b.addActionListener(new ActionListener() {
@@ -1134,17 +1101,31 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     		e.opts.gui_brush_1.setSelectedIndex((e.opts.gui_brush_1.getSelectedIndex()+1)%2);
         }
     };
+    
+    boolean shift_draw_override = false;
 
     private Action key_shift = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
     		shift_down = true;
+    		
+    		if ((Brush) e.opts.gui_brush.getSelectedItem() == Brush.DRAW) {
+    			shift_draw_override = true;
+    			e.opts.gui_brush.setSelectedItem(Brush.LINE);
+    		}
         }
     };
     private Action key_shift_up = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
     		shift_down = false;
+    		
+    		if (shift_draw_override) {
+    			shift_draw_override = false;
+        		if ((Brush) e.opts.gui_brush.getSelectedItem() == Brush.LINE) {
+        			e.opts.gui_brush.setSelectedItem(Brush.DRAW);
+        		}
+    		}
         }
     };
     private Action key_ctrl = new AbstractAction(null) {

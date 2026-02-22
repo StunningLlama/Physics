@@ -343,7 +343,7 @@ public class MainWindow extends JFrame {
 		addTooltips(gui_view_vec_mode);
 
 		gui_brush_highlight = new JCheckBox("Brush highlight");
-		gui_brush_highlight.setSelected(true);
+		gui_brush_highlight.setSelected(false);
 		gui_brush_highlight.setBounds(205, 252, 160, 23);
 		panel.add(gui_brush_highlight);
 

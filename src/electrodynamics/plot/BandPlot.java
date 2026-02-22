@@ -51,8 +51,8 @@ public class BandPlot extends Plot {
 				// Add chemical energy and electrostatic energy to get band energy
 				E_n_data.add(t, -(Utils.bilinearinterp(e.E0_n, x, y, e.nx, e.ny)/e.q_n+Utils.bilinearinterp(e.phi, x, y, e.nx, e.ny)));
 				E_p_data.add(t, -(Utils.bilinearinterp(e.E0_p, x, y, e.nx, e.ny)/e.q_p+Utils.bilinearinterp(e.phi, x, y, e.nx, e.ny)));
-				F_n_data.add(t, -(Utils.bilinearinterp(e.F_n, x, y, e.nx, e.ny)/e.q_n+Utils.bilinearinterp(e.phi, x, y, e.nx, e.ny)));
-				F_p_data.add(t, -(Utils.bilinearinterp(e.F_p, x, y, e.nx, e.ny)/e.q_p+Utils.bilinearinterp(e.phi, x, y, e.nx, e.ny)));
+				F_n_data.add(t, -(Utils.bilinearinterp_extrap(e.F_n, x, y, e.nx, e.ny)/e.q_n+Utils.bilinearinterp(e.phi, x, y, e.nx, e.ny)));
+				F_p_data.add(t, -(Utils.bilinearinterp_extrap(e.F_p, x, y, e.nx, e.ny)/e.q_p+Utils.bilinearinterp(e.phi, x, y, e.nx, e.ny)));
 			}
 
 			E_n_data.setNotify(true);

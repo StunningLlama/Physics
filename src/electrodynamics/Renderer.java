@@ -52,6 +52,7 @@ public class Renderer extends PeriodicTask {
 	public ArrayList<Text> texts = new ArrayList<>();
 	public Font bigfont = new Font(Font.SANS_SERIF, Font.PLAIN, 15);
 	public Font regularfont = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
+	public Font monospacefont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 	public int scalefactor;
 	public double scalefactor_real;
 	public int imgwidth = 0;
@@ -669,7 +670,8 @@ public class Renderer extends PeriodicTask {
 			}
 		}
 
-		boolean highlight = (e.opts.gui_brush_highlight.isSelected() && Brush.isBrushShapeImportant(brush));
+		boolean showbrush = Brush.isBrushShapeImportant(brush);
+		boolean highlight = e.opts.gui_brush_highlight.isSelected();
 		for (int i = 0; i < e.nx; i++) {
 			for (int j = 0; j < e.ny; j++) {
 				if (e.materials[i][j].type == MaterialType.EMF && i > 0 && j > 0 && i < e.nx-1 && j < e.ny-1) {
@@ -746,13 +748,13 @@ public class Renderer extends PeriodicTask {
 					setPixel(i, j);
 				}
 
-				if (e.controls.selected[i][j] || (highlight && e.controls.under_brush[i][j]))
+				if (e.controls.selected[i][j] || (showbrush && highlight && e.controls.under_brush[i][j]))
 				{
 					setalphaBG(0.75);
 					setalphaFG(0.25);
 
 					int s = e.controls.selected[i][j]? 1:0;
-					int h = (highlight && e.controls.under_brush[i][j])? 1:0;
+					int h = (showbrush && highlight && e.controls.under_brush[i][j])? 1:0;
 					int delta_r = 256*s + 256*h;
 					int delta_g = 100*s + 256*h;
 					int delta_b = 256*s + 256*h;
@@ -760,6 +762,18 @@ public class Renderer extends PeriodicTask {
 					setColor(delta_r, delta_g, delta_b);
 
 					setPixel(i, j);
+				}
+				
+				if (showbrush && !highlight && e.controls.under_brush[i][j]) {
+					if (i > 0 && j > 0 && i < e.nx-1 && j < e.ny-1 && !(e.controls.under_brush[i-1][j] && e.controls.under_brush[i+1][j] && e.controls.under_brush[i][j-1] && e.controls.under_brush[i][j+1]))
+					{
+						setalphaBG(0.75);
+						setalphaFG(0.25);
+
+						setColor(256, 256, 256);
+
+						setPixel(i, j);
+					}
 				}
 
 				if (e.L[i][j] > 0)
@@ -796,10 +810,6 @@ public class Renderer extends PeriodicTask {
 				drawPixelRectangle(p.x-1, p.y-1, 3, 3);
 			}
 			
-			for (ChargeProbe p: e.chargeprobes) {
-				//drawPixelRectangle(Math.min(p.x1, p.x2), Math.min(p.y1, p.y2), Math.abs(p.x1-p.x2)+1, Math.abs(p.y1-p.y2)+1);
-			}
-			
 			if (e.ground != null) {
 				drawPixelRectangle(e.ground.x-1, e.ground.y-1, 3, 3);
 			}
@@ -815,14 +825,9 @@ public class Renderer extends PeriodicTask {
 				if (norm > 0) {
 					dx_perp = dx_perp/norm;
 					dy_perp = dy_perp/norm;
-					double center_x = 0.5*(p.x1+p.x2);
-					double center_y = 0.5*(p.y1+p.y2);
-					int dist = 3;
-					//drawPixelLine((int)Math.round(center_x), (int)Math.round(center_y), (int)Math.round(center_x + 4*dx_perp), (int)Math.round(center_y+4*dy_perp));
-					//drawPixelLine((int)p.x1, (int)p.y1, (int)(p.x1 + 3*dx_perp), (int)(p.y1+3*dy_perp));
-					//drawPixelLine((int)p.x2, (int)p.y2, (int)(p.x2 + 3*dx_perp), (int)(p.y2+3*dy_perp));
 
-					//setPixel((int)Math.round(center_x + 3*dx_perp), (int)Math.round(center_y+3*dy_perp));
+					int dist = 3;
+					
 					setPixel((int)Math.round(p.x1 + dist*dx_perp), (int)Math.round(p.y1+dist*dy_perp));
 					setPixel((int)Math.round(p.x2 + dist*dx_perp), (int)Math.round(p.y2+dist*dy_perp));
 				}
@@ -948,13 +953,13 @@ public class Renderer extends PeriodicTask {
 
 		for (VoltageProbe p: e.voltageprobes) {
 			if (e.ground != null)
-				drawStringWithBackground("V = " + Utils.getSI(p.potential - e.ground.potential, "V", 1e-6), p.x*scalefactor-5, p.y*scalefactor - 12, g);
+				drawMonospacedString("V = " + Utils.getSI_fixedsigfigs(p.potential - e.ground.potential, "V", 1e-6), p.x*scalefactor-5, p.y*scalefactor - 12, g);
 			else
-				drawStringWithBackground("V = " + Utils.getSI(p.potential, "V", 1e-6), p.x*scalefactor-5, p.y*scalefactor - 12, g);
+				drawMonospacedString("V = " + Utils.getSI_fixedsigfigs(p.potential, "V", 1e-6), p.x*scalefactor-5, p.y*scalefactor - 12, g);
 		}
 
 		if (e.ground != null)
-			drawStringWithBackground("Ground = " + Utils.getSI(e.ground.potential - e.ground.potential, "V", 1e-6), e.ground.x*scalefactor-5, e.ground.y*scalefactor - 12, g);
+			drawMonospacedString("Ground = " + Utils.getSI_fixedsigfigs(e.ground.potential - e.ground.potential, "V", 1e-6), e.ground.x*scalefactor-5, e.ground.y*scalefactor - 12, g);
 
 		for (CurrentProbe p: e.currentprobes) {
 			double xa = 0.5*(p.x1+p.x2)*scalefactor;
@@ -972,12 +977,12 @@ public class Renderer extends PeriodicTask {
 				dy = -2*Math.abs(dy);
 			}
 
-			drawStringWithBackground("I = " + Utils.getSI(p.current*e.depth, "A", 1e-9), (int)(xa-8*dy)-5, (int)(ya+12*dx)+5, g);
+			drawMonospacedString("I = " + Utils.getSI_fixedsigfigs(p.current*e.depth, "A", 1e-9), (int)(xa-8*dy)-5, (int)(ya+12*dx)+5, g);
 		}
 
 
 		for (ChargeProbe p: e.chargeprobes) {
-			drawStringWithBackground("Q = " + Utils.getSI(p.charge*e.depth, "C"), scalefactor*(p.x1+p.x2)/2, scalefactor*(p.y1+p.y2)/2, g);
+			drawMonospacedString("Q = " + Utils.getSI_fixedsigfigs(p.charge*e.depth, "C"), scalefactor*(p.x1+p.x2)/2, scalefactor*(p.y1+p.y2)/2, g);
 		}
 
 		drawStringBackgrounds(g);
@@ -1018,28 +1023,28 @@ public class Renderer extends PeriodicTask {
 
 			String name = "Material: " + mat.type.name + (mat.modified? " (Modified)" : "");
 
-			this.drawBigStringWithBackground(name, hoffset, voffset + 1*vspacing, g);
+			this.drawBigString(name, hoffset, voffset + 1*vspacing, g);
 			if (e.opts.gui_tooltip.isSelected()) {
 				voffset = voffset+3;
 				int line = 2;
 				drawTwoColumnString("E" , 							Utils.getSI(Utils.bilinearinterp_length(e.Ex, e.Ey, mx_t, my_t, e.nx, e.ny), "V/m", 1e-6), hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("B" , 							Utils.getSI(e.parity*Utils.bilinearinterp_round(e.Bz, mx_t-0.5, my_t-0.5, e.nx, e.ny), "T", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("\u03d5" , 						Utils.getSI(Utils.bilinearinterp_round(e.phi,mx_t, my_t, e.nx, e.ny), "V", 1e-6),					hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("B" , 							Utils.getSI(e.parity*Utils.bilinearinterp(e.Bz, mx_t-0.5, my_t-0.5, e.nx, e.ny), "T", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("\u03d5" , 						Utils.getSI(Utils.bilinearinterp(e.phi,mx_t, my_t, e.nx, e.ny), "V", 1e-6),					hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("\u2130" , 						Utils.getSI(mat.emf, "V/m", 1e-6),										hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("\u03b5/\u03b5\u2080" , 		Utils.getSI(mat.eps_r, ""),										hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("\u03bc/\u03bc\u2080" , 		Utils.getSI(mat.mu_r, ""),											hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("\u03c1\u2099" , 				Utils.getSI(Utils.bilinearinterp_round(e.rho_n, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("\u03c1\u209A" , 				Utils.getSI(Utils.bilinearinterp_round(e.rho_p, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("\u03c1\u2080",					Utils.getSI(Utils.bilinearinterp_round(e.rho_back, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("\u03c1" , 						Utils.getSI(Utils.bilinearinterp_round(e.rho_free, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("\u03c1\u2099" , 				Utils.getSI(Utils.bilinearinterp(e.rho_n, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("\u03c1\u209A" , 				Utils.getSI(Utils.bilinearinterp(e.rho_p, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("\u03c1\u2080",					Utils.getSI(Utils.bilinearinterp(e.rho_back, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("\u03c1" , 						Utils.getSI(Utils.bilinearinterp(e.rho_free, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("J\u2099" ,						Utils.getSI(Utils.bilinearinterp_length(e.Jx_n, e.Jy_n, mx_t, my_t, e.nx, e.ny), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("J\u209A" , 					Utils.getSI(Utils.bilinearinterp_length(e.Jx_p, e.Jy_p, mx_t, my_t, e.nx, e.ny), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("J" , 							Utils.getSI(Utils.bilinearinterp_length(e.Jx_free, e.Jy_free, mx_t, my_t, e.nx, e.ny), "A/m^2", 1),	hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("F\u2099" , 					Utils.getSI(Utils.bilinearinterp_round(e.F_n,mx_t, my_t, e.nx, e.ny)/e.q_n+Utils.bilinearinterp_round(e.phi,mx_t, my_t, e.nx, e.ny)-e.W_semi/e.eVtoJ, "V", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("F\u209a" , 					Utils.getSI(Utils.bilinearinterp_round(e.F_p,mx_t, my_t, e.nx, e.ny)/e.q_p+Utils.bilinearinterp_round(e.phi,mx_t, my_t, e.nx, e.ny)-e.W_semi/e.eVtoJ, "V", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("F\u2099" , 					Utils.getSI(Utils.bilinearinterp(e.F_n,mx_t, my_t, e.nx, e.ny)/e.q_n+Utils.bilinearinterp(e.phi,mx_t, my_t, e.nx, e.ny)-e.W_semi/e.eVtoJ, "V", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("F\u209a" , 					Utils.getSI(Utils.bilinearinterp(e.F_p,mx_t, my_t, e.nx, e.ny)/e.q_p+Utils.bilinearinterp(e.phi,mx_t, my_t, e.nx, e.ny)-e.W_semi/e.eVtoJ, "V", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
 				//drawTwoColumnString("E\u2099" , 					Utils.getSI(bilinearinterp(E0_n,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
 				//drawTwoColumnString("E\u209a" , 					Utils.getSI(bilinearinterp(E0_p,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("F" , 							Utils.getSI(Utils.bilinearinterp_round(e.F,mx_t, my_t, e.nx, e.ny), "V", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("F" , 							Utils.getSI(Utils.bilinearinterp(e.F,mx_t, my_t, e.nx, e.ny), "V", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
 				//drawTwoColumnString("CMF\u2099" ,					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_n,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_n, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
 				//drawTwoColumnString("CMF\u209A" , 					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_p,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_p, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("x" , 							Utils.getSI(mx_t*e.ds, "m"),								hoffset, voffset + line*vspacing, g); line++;
@@ -1055,27 +1060,27 @@ public class Renderer extends PeriodicTask {
 		int voffset = 3;
 		int hoffset = 5;
 		int line = 1;
-		drawStringWithBackground("Time: " + Utils.getSI(e.time, "s"), hoffset, voffset + line*vspacing, g); line++;
-		drawStringWithBackground("Steps/s: " + Utils.getSI(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), ""), hoffset, voffset + line*vspacing, g); line++;
+		drawString("Time: " + Utils.getSI(e.time, "s"), hoffset, voffset + line*vspacing, g); line++;
+		drawString("Steps/s: " + Utils.getSI(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), ""), hoffset, voffset + line*vspacing, g); line++;
 		if (e.opts.gui_paused.isSelected())
 		{
-			drawStringWithBackground("Paused", hoffset, voffset + line*vspacing, g); line++;
+			drawString("Paused", hoffset, voffset + line*vspacing, g); line++;
 		}
 		if (e.sign_violation) {
-			drawStringWithBackground("Warning: Numerical instability detected. Please decrease timestep.", hoffset, voffset + line*vspacing, g); line++;
+			drawString("Warning: Numerical instability detected. Please decrease timestep.", hoffset, voffset + line*vspacing, g); line++;
 		}
 		if (e.controls.debugging) {
 			long total = Runtime.getRuntime().totalMemory();
 			long used  = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-			drawStringWithBackground("Used memory " + Utils.getSI(used, "B"), hoffset, voffset + line*vspacing, g); line++;
-			drawStringWithBackground("Total memory " + Utils.getSI(total, "B"), hoffset, voffset + line*vspacing, g); line++;
-			drawStringWithBackground(e.t4.getName() + " " + Utils.getSI(e.t4.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
-			drawStringWithBackground(t5.getName() + " " + Utils.getSI(t5.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
-			drawStringWithBackground(e.t6.getName() + " " + Utils.getSI(e.t6.getAverageTime()*e.opts.gui_simspeed_2.getValue(), "s"), hoffset, voffset + line*vspacing, g); line++;
-			drawStringWithBackground(e.t7.getName() + " " + Utils.getSI(e.t7.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
-			drawStringWithBackground(e.t8.getName() + " " + Utils.getSI(e.t8.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
-			drawStringWithBackground(FPStimer.getName() + " " + Utils.getSI(1/FPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
-			drawStringWithBackground(e.simFPStimer.getName() + " " + Utils.getSI(1/e.simFPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
+			drawString("Used memory " + Utils.getSI(used, "B"), hoffset, voffset + line*vspacing, g); line++;
+			drawString("Total memory " + Utils.getSI(total, "B"), hoffset, voffset + line*vspacing, g); line++;
+			drawString(e.t4.getName() + " " + Utils.getSI(e.t4.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
+			drawString(t5.getName() + " " + Utils.getSI(t5.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
+			drawString(e.t6.getName() + " " + Utils.getSI(e.t6.getAverageTime()*e.opts.gui_simspeed_2.getValue(), "s"), hoffset, voffset + line*vspacing, g); line++;
+			drawString(e.t7.getName() + " " + Utils.getSI(e.t7.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
+			drawString(e.t8.getName() + " " + Utils.getSI(e.t8.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
+			drawString(FPStimer.getName() + " " + Utils.getSI(1/FPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
+			drawString(e.simFPStimer.getName() + " " + Utils.getSI(1/e.simFPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
 		}
 		if (e.numerical_overflow) {
 			line++;
@@ -1083,30 +1088,12 @@ public class Renderer extends PeriodicTask {
 		}
 
 		if (probetexttimer > 0) {
-			drawStringWithBackground("Data saved to " + e.datafilename, hoffset, voffset + line*vspacing, g); line++;
+			drawString("Data saved to " + e.datafilename, hoffset, voffset + line*vspacing, g); line++;
 			probetexttimer--;
 		}
 
 		drawStringBackgrounds(g);
 		drawStrings(g);
-
-		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
-		if (!e.opts.gui_brush_highlight.isSelected()) {
-			int r = (int)(scalefactor*e.controls.brushsize/e.ds);
-			int brushshape = e.opts.gui_brush_1.getSelectedIndex();
-			if (Brush.isBrushShapeImportant(brush))
-				if (brushshape == 0) {
-					g.setColor(new Color(50, 50, 50));
-					g.drawOval(e.controls.mx - r, e.controls.my - r, 2*r, 2*r);
-					g.setColor(new Color(200, 200, 200));
-					g.drawOval(e.controls.mx - r-1, e.controls.my - r-1, 2*r, 2*r);
-				} else {
-					g.setColor(new Color(50, 50, 50));
-					g.drawRect(e.controls.mx - r, e.controls.my - r, 2*r-2, 2*r-2);
-					g.setColor(new Color(200, 200, 200));
-					g.drawRect(e.controls.mx - r-1, e.controls.my - r-1, 2*r, 2*r);
-				}
-		}
 	}
 
 	class GraphicsThread extends Thread {
@@ -1299,7 +1286,7 @@ public class Renderer extends PeriodicTask {
 									d.y = e.ny*rand.nextDouble();
 									d.lifespan = 100*(1+rand.nextDouble());
 									d.time = d.lifespan;
-									if (isCurrent && Utils.bilinearinterp_round(e.conducting, d.x, d.y, e.nx, e.ny) == 0) {
+									if (isCurrent && Utils.bilinearinterp(e.conducting, d.x, d.y, e.nx, e.ny) == 0) {
 										d.lifespan = 0;
 										d.time = 0;
 									}
@@ -1413,6 +1400,8 @@ public class Renderer extends PeriodicTask {
 			if (text.hasBackground && (dodraw || text.isError)) {
 				if (text.big)
 					g.setFont(bigfont);
+				else if (text.monospaced)
+					g.setFont(monospacefont);
 				else
 					g.setFont(regularfont);
 
@@ -1430,6 +1419,8 @@ public class Renderer extends PeriodicTask {
 			if (text.hasBackground && (dodraw || text.isError)) {
 				if (text.big)
 					g.setFont(bigfont);
+				else if (text.monospaced)
+					g.setFont(monospacefont);
 				else
 					g.setFont(regularfont);
 
@@ -1454,6 +1445,8 @@ public class Renderer extends PeriodicTask {
 			if (dodraw || text.isError) {
 				if (text.big)
 					g.setFont(bigfont);
+				else if (text.monospaced)
+					g.setFont(monospacefont);
 				else
 					g.setFont(regularfont);
 
@@ -1469,23 +1462,32 @@ public class Renderer extends PeriodicTask {
 		texts.clear();
 	}
 
-	public void drawStringWithBackground(String str1, int x, int y, Graphics g) {
-		texts.add(new Text(str1, x, y, false, true));
+	public void drawString(String str1, int x, int y, Graphics g) {
+		Text t = new Text(str1, x, y);
+		texts.add(t);
+	}
+	
+	public void drawMonospacedString(String str1, int x, int y, Graphics g) {
+		Text t = new Text(str1, x, y);
+		t.monospaced = true;
+		texts.add(t);
 	}
 	
 	public void drawError(String str1, int x, int y, Graphics g) {
-		Text t = new Text(str1, x, y, false, true);
+		Text t = new Text(str1, x, y);
 		t.isError = true;
 		texts.add(t);
 	}
 
-	public void drawBigStringWithBackground(String str1, int x, int y, Graphics g) {
-		texts.add(new Text(str1, x, y, true, true));
+	public void drawBigString(String str1, int x, int y, Graphics g) {
+		Text t = new Text(str1, x, y);
+		t.big = true;
+		texts.add(t);
 	}
 
 	public void drawTwoColumnString(String str1, String str2, int x, int y, Graphics g) {
-		texts.add(new Text(String.format("%-10s", str1), x, y, false, true));
-		texts.add(new Text(str2, x+40, y, false, true));
+		drawString(String.format("%-10s", str1), x, y, g);
+		drawString(str2, x+40, y, g);
 		texts.get(texts.size()-1).minwidth = 80;
 	}
 	
@@ -1494,16 +1496,16 @@ public class Renderer extends PeriodicTask {
 		int x;
 		int y;
 		int minwidth;
-		boolean big;
-		boolean hasBackground;
+		
+		boolean big = false;
+		boolean hasBackground = true;
+		boolean monospaced = false;
 		boolean isError = false;
 
-		public Text(String text, int x, int y, boolean big, boolean hasBackground) {
+		public Text(String text, int x, int y) {
 			this.text = text;
 			this.x = x;
 			this.y = y;
-			this.big = big;
-			this.hasBackground = hasBackground;
 			minwidth = 0;
 		}
 	}

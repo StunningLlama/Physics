@@ -98,7 +98,6 @@ public class Simulation extends PeriodicTask {
 	public double dt_maximum;
 	public int parity = -1;			// Negative sign resulting from flipped y-axis in graphics coordinate system
 
-	public double time = 0.0;
 	public long stepnumber = 0;
 	public long frame = 0;
 	public int lastsimspeed = 0;
@@ -110,7 +109,6 @@ public class Simulation extends PeriodicTask {
 	
 	public boolean advsettings_tweaked = false;
 	
-	public double AC_phase;
 	public double AC_freq;
 	public double AC_amplitude;
 	public boolean AC_source_exists;
@@ -177,7 +175,10 @@ public class Simulation extends PeriodicTask {
 	
 	
 	/* Dynamical simulation variables */
-
+	
+	public double time = 0.0;
+	public double AC_phase;
+	
 	public double[][] Ex;			// x component of E field
 	public double[][] Ey;			// y component of E field
 	public double[][] Hz;			// z component of B field

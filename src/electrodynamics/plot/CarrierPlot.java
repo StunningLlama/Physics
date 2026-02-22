@@ -44,11 +44,13 @@ public class CarrierPlot extends Plot {
 				double x = t*(x2 - x1) + x1;
 				double y = t*(y2 - y1) + y1;
 
-				double rho_n = Utils.bilinearinterp_geometric(e.rho_n, x, y, e.nx, e.ny)/e.e_charge;
+				double rho_n = Utils.bilinearinterp_geometric_extrap(e.rho_n, x, y, e.nx, e.ny)/e.e_charge;
 				if (rho_n > 0) rho_n_data.add(t, rho_n);
+				else rho_n_data.add(t, Double.NaN);
 
-				double rho_p = Utils.bilinearinterp_geometric(e.rho_p, x, y, e.nx, e.ny)/e.e_charge;
+				double rho_p = Utils.bilinearinterp_geometric_extrap(e.rho_p, x, y, e.nx, e.ny)/e.e_charge;
 				if (rho_p > 0) rho_p_data.add(t, rho_p);
+				else rho_p_data.add(t, Double.NaN);
 			}
 
 			rho_n_data.setNotify(true);

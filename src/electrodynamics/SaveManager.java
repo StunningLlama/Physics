@@ -11,7 +11,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.StringReader;
 import java.util.Arrays;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.zip.GZIPInputStream;
@@ -119,6 +118,7 @@ public class SaveManager {
 						case "resolution": resolution_tmp = fstr.nextInt(); break;
 						case "width": width_tmp = fstr.nextDouble(); break;
 						case "time": e.time = fstr.nextDouble(); break;
+						case "phase": e.AC_phase = fstr.nextDouble(); break;
 						case "gui_paused": e.opts.gui_paused.setSelected(fstr.nextBoolean()); break;
 						case "gui_tooltip": e.opts.gui_tooltip.setSelected(fstr.nextBoolean()); break;
 						case "gui_text_bg": e.opts.gui_text_bg.setSelected(fstr.nextBoolean()); break;
@@ -387,6 +387,7 @@ public class SaveManager {
 				header.addProperty("resolution", e.resolution);
 				header.addProperty("width", e.width);
 				header.addProperty("time", e.time);
+				header.addProperty("phase", e.AC_phase);
 				header.addProperty("gui_paused", e.opts.gui_paused.isSelected());
 				header.addProperty("gui_tooltip", e.opts.gui_tooltip.isSelected());
 				header.addProperty("gui_text_bg", e.opts.gui_text_bg.isSelected());
