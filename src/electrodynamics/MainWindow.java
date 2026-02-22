@@ -204,8 +204,8 @@ public class MainWindow extends JFrame {
 		panel.add(gui_paused);
 
 		gui_brushsize = new JScrollBar();
-		gui_brushsize.setMaximum(1010);
-		gui_brushsize.setValue(500);
+		gui_brushsize.setMaximum(750);
+		gui_brushsize.setValue(250);
 		gui_brushsize.setOrientation(Adjustable.HORIZONTAL);
 		gui_brushsize.setBounds(201, 320, 171, 17);
 		panel.add(gui_brushsize);

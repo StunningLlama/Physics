@@ -198,7 +198,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		e.opts.gui_stepsizelbl.setText("Timestep: " + Utils.getSI(e.dt, "s"));
 		e.opts.gui_stepslbl.setText("Sim steps/frame: " + e.opts.gui_simspeed_2.getValue());
 
-		brushsize = ((e.ds*e.nx)/500)*(Math.pow(10.0, e.opts.gui_brushsize.getValue()/500.0) + e.opts.gui_brushsize.getValue()/100.0);
+		brushsize = e.ds*(Math.pow(10.0, 2*e.opts.gui_brushsize.getValue()/(50.0*10.0) - 0.75) + e.opts.gui_brushsize.getValue()/10.0 + 0.5);
 		e.opts.lblBrushSize.setText("Brush size: " + (int)Math.ceil(brushsize/e.ds));
 
 		if (!Brush.isMaterialModifyingBrush(brush))
@@ -351,6 +351,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					for (int j = 0; j <= j_max; j++)
 					{
 						new_selection[j_max-j][i] = selection[i][j].clone();
+						new_selection[j_max-j][i].m.emf_direction += Math.PI/2.0;
 						selection[i][j].erase();
 					}
 				}
@@ -372,6 +373,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					for (int j = 0; j <= j_max; j++)
 					{
 						new_selection[i_max-i][j] = selection[i][j].clone();
+						new_selection[i_max-i][j].m.emf_direction = Math.PI - new_selection[i_max-i][j].m.emf_direction;
 						selection[i][j].erase();
 					}
 				}
@@ -393,6 +395,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					for (int j = 0; j <= j_max; j++)
 					{
 						new_selection[i][j_max - j] = selection[i][j].clone();
+						new_selection[i][j_max - j].m.emf_direction = -new_selection[i][j_max - j].m.emf_direction;
 						selection[i][j].erase();
 					}
 				}
@@ -1585,6 +1588,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	@Override
 	public void mouseWheelMoved(MouseWheelEvent ev) {
 		e.opts.gui_brushsize.setValue(e.opts.gui_brushsize.getValue() - (int)(10*ev.getPreciseWheelRotation()));
+		System.out.println(ev.getPreciseWheelRotation());
 	}
 	
 
