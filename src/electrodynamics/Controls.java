@@ -1588,7 +1588,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	@Override
 	public void mouseWheelMoved(MouseWheelEvent ev) {
 		e.opts.gui_brushsize.setValue(e.opts.gui_brushsize.getValue() - (int)(10*ev.getPreciseWheelRotation()));
-		System.out.println(ev.getPreciseWheelRotation());
 	}
 	
 

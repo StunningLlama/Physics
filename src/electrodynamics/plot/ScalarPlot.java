@@ -41,7 +41,7 @@ public class ScalarPlot extends Plot {
 				double x = t*(x2 - x1) + x1;
 				double y = t*(y2 - y1) + y1;
 
-				data.add(t, Utils.bilinearinterp(e.renderer.scalarfield, x, y, e.nx, e.ny));
+				data.add(t, Utils.bilinearinterp_extrap(e.renderer.scalarfield, x, y, e.nx, e.ny));
 			}
 
 			data.setNotify(true);

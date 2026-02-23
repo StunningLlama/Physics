@@ -524,6 +524,21 @@ public class Renderer extends PeriodicTask {
 		ScalarView scalarview = (ScalarView) e.opts.gui_view.getSelectedItem();
 
 		if (scalarview != ScalarView.NONE) {
+			double offset = 0;
+			
+			if (e.ground != null) {
+				if (scalarview == ScalarView.ELECTRON_POTENTIAL) {
+					offset = e.conducting[e.ground.x][e.ground.y]*(e.F_n[e.ground.x][e.ground.y]/e.q_n+e.phi[e.ground.x][e.ground.y]-e.W_semi/e.eVtoJ);
+				} else if (scalarview == ScalarView.HOLE_POTENTIAL) {
+					offset = e.conducting[e.ground.x][e.ground.y]*(e.F_p[e.ground.x][e.ground.y]/e.q_p+e.phi[e.ground.x][e.ground.y]-e.W_semi/e.eVtoJ);
+				} else if (scalarview == ScalarView.AVERAGE_POTENTIAL) {
+					offset = e.F[e.ground.x][e.ground.y];
+				}
+				
+				if (!Double.isFinite(offset))
+					offset = 0;
+			}
+
 			setalphaBG(1.0);
 			setalphaFG(1.0);
 			for (int i = 1; i < e.nx-1; i++) {
@@ -571,10 +586,10 @@ public class Renderer extends PeriodicTask {
 						scalarfield[i][j] = e.Q[i][j];
 						break;
 					case ELECTRON_POTENTIAL:
-						scalarfield[i][j] = e.conducting[i][j]*(e.F_n[i][j]/e.q_n+e.phi[i][j]-e.W_semi/e.eVtoJ);
+						scalarfield[i][j] = e.conducting[i][j]*(e.F_n[i][j]/e.q_n+e.phi[i][j]-e.W_semi/e.eVtoJ) - offset;
 						break;
 					case HOLE_POTENTIAL:
-						scalarfield[i][j] = e.conducting[i][j]*(e.F_p[i][j]/e.q_p+e.phi[i][j]-e.W_semi/e.eVtoJ);
+						scalarfield[i][j] = e.conducting[i][j]*(e.F_p[i][j]/e.q_p+e.phi[i][j]-e.W_semi/e.eVtoJ) - offset;
 						break;
 					case DEBUG:
 						scalarfield[i][j] = e.debug[i][j];
@@ -586,7 +601,7 @@ public class Renderer extends PeriodicTask {
 						scalarfield[i][j] = e.R[i][j];
 						break;
 					case AVERAGE_POTENTIAL:
-						scalarfield[i][j] = e.F[i][j];
+						scalarfield[i][j] = e.F[i][j] - offset;
 						break;
 					case LIGHT:
 						scalarfield[i][j] = -e.materials[i][j].semiconducting*(e.G[i][j]-e.R[i][j]);
@@ -596,11 +611,16 @@ public class Renderer extends PeriodicTask {
 			}
 		}
 
-		for (int i = 1; i < e.nx-1; i++) {
-			for (int j = 1; j < e.ny-1; j++) {
-				gradscalarfield[i][j] = Utils.length(scalarfield[i+1][j]-scalarfield[i-1][j], scalarfield[i][j+1]-scalarfield[i][j-1])/(2*e.ds);
+		if ((VectorMode) e.opts.gui_view_vec_mode.getSelectedItem() == VectorMode.CONTOUR) {
+			for (int i = 1; i < e.nx-1; i++) {
+				for (int j = 1; j < e.ny-1; j++) {
+					double gx = scalarfield[i+1][j]-scalarfield[i-1][j];
+					double gy = scalarfield[i][j+1]-scalarfield[i][j-1];
+					gradscalarfield[i][j] = Utils.length((Double.isFinite(gx))? gx : 0, (Double.isFinite(gy))? gy : 0)/(2*e.ds);
+				}
 			}
 		}
+		
 		ScalarView.ColorScheme colorscheme = ((ScalarView) e.opts.gui_view.getSelectedItem()).colorscheme;
 		float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/scalarview.scale);
 
