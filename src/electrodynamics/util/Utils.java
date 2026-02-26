@@ -164,15 +164,6 @@ public class Utils {
 		int yfloor = (int)Math.floor(y);
 		double fx = x - xfloor;
 		double fy = y - yfloor;
-		if (Math.abs(x-Math.round(x)) < 1e-6 && Math.abs(y-Math.round(y)) < 1e-6) {
-			int i = (int)Math.round(x);
-			int j = (int)Math.round(y);
-			if (i < 0) i = 0;
-			if (j < 0) j = 0;
-			if (i >= nx) i = nx - 1;
-			if (j >= ny) j = ny - 1;
-			return array[i][j];
-		}
 
 		if (xfloor < 0) {
 			xfloor = 0;
@@ -192,14 +183,52 @@ public class Utils {
 		double b = array[xfloor+1][yfloor];
 		double c = array[xfloor][yfloor+1];
 		double d = array[xfloor+1][yfloor+1];
+
+		return a*(1-fx)*(1-fy)+b*fx*(1-fy)+c*(1-fx)*fy+d*fx*fy;
 		
-		double denom = (Double.isFinite(a)? (1-fx)*(1-fy) : 0) + (Double.isFinite(b)? fx*(1-fy) : 0)
+		/*double denom = (Double.isFinite(a)? (1-fx)*(1-fy) : 0) + (Double.isFinite(b)? fx*(1-fy) : 0)
 			+ (Double.isFinite(c)? (1-fx)*fy : 0) + (Double.isFinite(d)? fx*fy : 0);
 		
 		double f = (Double.isFinite(a)? a*(1-fx)*(1-fy) : 0) + (Double.isFinite(b)? b*fx*(1-fy) : 0)
 			+ (Double.isFinite(c)? c*(1-fx)*fy : 0) + (Double.isFinite(d)? d*fx*fy : 0);
 		
-		return f/denom;
+		return f/denom;*/
+	}
+	
+	public static double bilinearinterp_extrap(double[][] array, double[][] ref, double x, double y, int nx, int ny) {
+		int xfloor = (int)Math.floor(x);
+		int yfloor = (int)Math.floor(y);
+		double fx = x - xfloor;
+		double fy = y - yfloor;
+
+		if (xfloor < 0) {
+			xfloor = 0;
+			fx = 0.0;
+		} else if (xfloor >= nx - 1) {
+			xfloor = nx - 2;
+			fx = 1.0;
+		}
+		if (yfloor < 0) {
+			yfloor = 0;
+			fy = 0.0;
+		} else if (yfloor >= ny - 1) {
+			yfloor = ny - 2;
+			fy = 1.0;
+		}
+		double a = array[xfloor][yfloor] + 0*ref[xfloor][yfloor];
+		double b = array[xfloor+1][yfloor] + 0*ref[xfloor+1][yfloor];
+		double c = array[xfloor][yfloor+1] + 0*ref[xfloor][yfloor+1];
+		double d = array[xfloor+1][yfloor+1] + 0*ref[xfloor+1][yfloor+1];
+
+		return a*(1-fx)*(1-fy)+b*fx*(1-fy)+c*(1-fx)*fy+d*fx*fy;
+		
+		/*double denom = (Double.isFinite(a)? (1-fx)*(1-fy) : 0) + (Double.isFinite(b)? fx*(1-fy) : 0)
+			+ (Double.isFinite(c)? (1-fx)*fy : 0) + (Double.isFinite(d)? fx*fy : 0);
+		
+		double f = (Double.isFinite(a)? a*(1-fx)*(1-fy) : 0) + (Double.isFinite(b)? b*fx*(1-fy) : 0)
+			+ (Double.isFinite(c)? c*(1-fx)*fy : 0) + (Double.isFinite(d)? d*fx*fy : 0);
+		
+		return f/denom;*/
 	}
 	
 	public static double bilinearinterp_geometric_extrap(double[][] array, double x, double y, int nx, int ny) {
@@ -207,15 +236,6 @@ public class Utils {
 		int yfloor = (int)Math.floor(y);
 		double fx = x - xfloor;
 		double fy = y - yfloor;
-		if (Math.abs(x-Math.round(x)) < 1e-6 && Math.abs(y-Math.round(y)) < 1e-6) {
-			int i = (int)Math.round(x);
-			int j = (int)Math.round(y);
-			if (i < 0) i = 0;
-			if (j < 0) j = 0;
-			if (i >= nx) i = nx - 1;
-			if (j >= ny) j = ny - 1;
-			return array[i][j];
-		}
 
 		if (xfloor < 0) {
 			xfloor = 0;

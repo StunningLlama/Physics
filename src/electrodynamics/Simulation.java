@@ -4,12 +4,13 @@
 
 package electrodynamics;
 import java.awt.BorderLayout;
+import java.awt.KeyboardFocusManager;
+import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.BrokenBarrierException;
@@ -19,17 +20,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
 import javax.swing.JOptionPane;
-import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JSeparator;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 import electrodynamics.Controls.Brush;
+import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
+import electrodynamics.Renderer.VectorMode;
+import electrodynamics.Renderer.VectorView;
 import electrodynamics.plot.BandPlot;
 import electrodynamics.plot.CarrierPlot;
 import electrodynamics.plot.Plot;
@@ -330,8 +332,6 @@ public class Simulation extends PeriodicTask {
 		canvas.addMouseWheelListener(controls);
 		canvas.addKeyListener(controls);
 		opts.gui_reset.addActionListener(controls);
-		opts.gui_view.addActionListener(controls);
-		opts.gui_view_vec.addActionListener(controls);
 		opts.gui_brush.addActionListener(controls);
 		opts.gui_material.addActionListener(controls);
 		opts.gui_adv_settings.addActionListener(controls);
@@ -354,24 +354,32 @@ public class Simulation extends PeriodicTask {
 		
 		opts.gui_brush.addItemListener(controls);
 		
-		controls.brushbuttonmap = new HashMap<Brush, JRadioButtonMenuItem>();
-		controls.buttongroup = new ButtonGroup();
-		for (Brush b : Brush.values()) {
-			if (b == Brush.DRAW || b == Brush.VOLTAGE || b == Brush.BANDS)
-				opts.menu_tools.add(new JSeparator());
-			
-			JRadioButtonMenuItem button = new JRadioButtonMenuItem(b.name);
-			controls.brushbuttonmap.put(b, button);
-			button.addActionListener(controls);
-			controls.buttongroup.add(button);
-			opts.menu_tools.add(button);
-		}
-		controls.buttongroup.setSelected(controls.brushbuttonmap.get(Brush.INTERACT).getModel(), true);
+		
+		controls.brushes.initialize(Brush.values(), opts.menu_tools, controls, Brush.INTERACT, new Brush[] {Brush.DRAW, Brush.VOLTAGE, Brush.BANDS});
+
+		controls.scalarview.initialize(ScalarView.values(), opts.menu_view, controls, ScalarView.CHARGE, null);
+		opts.menu_view.add(new JSeparator());
+		controls.scalarmode.initialize(ScalarMode.values(), opts.menu_view, controls, ScalarMode.COLORS, null);
+		opts.menu_view.add(new JSeparator());
+		controls.vectorview.initialize(VectorView.values(), opts.menu_view, controls, VectorView.E_FIELD, null);
+		opts.menu_view.add(new JSeparator());
+		controls.vectormode.initialize(VectorMode.values(), opts.menu_view, controls, VectorMode.ARROWS, null);
+
+		controls.brushes.buttonmap.get(Brush.INTERACT).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_1, 0));
+		controls.brushes.buttonmap.get(Brush.DRAW).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_2, 0));
+		controls.brushes.buttonmap.get(Brush.LINE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_3, 0));
+		controls.brushes.buttonmap.get(Brush.FILL).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_4, 0));
+		controls.brushes.buttonmap.get(Brush.SELECT).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_5, 0));
+
+		controls.scalarmode.buttonmap.get(ScalarMode.NONE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, 0));
+		controls.vectormode.buttonmap.get(VectorMode.NONE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, 0));
 		
 		MenuBuilder.addDirectoryToMenu(opts.menu_examples, new File("examples"), savemanager.fileextension, (File f) -> savemanager.readfile(f));
 
 		//opts.gui_material.removeItem(MaterialType.ABSORBER);
-		opts.gui_view.removeItem(ScalarView.DEBUG);
+		controls.scalarview.removeOption(ScalarView.DEBUG);
+		controls.scalarview.removeOption(ScalarView.NONE);
+		controls.vectorview.removeOption(VectorView.NONE);
 
 		opts.gui_parameter1.setEnabled(true);
 		opts.gui_parameter1.setVisible(true);
@@ -1062,7 +1070,7 @@ public class Simulation extends PeriodicTask {
 	}
 	
 	public void calcMiscFields(boolean updatePhi) {
-		ScalarView view_scalar = (ScalarView) opts.gui_view.getSelectedItem();
+		ScalarView view_scalar = controls.scalarview.getOption();
 
 		if (updatePhi)
 			multigridSolve(false, true);
@@ -1153,8 +1161,8 @@ public class Simulation extends PeriodicTask {
 			{
 				for (int j = 1; j < ny-1; j++)
 				{
-					grad_E0x_n[i][j] = -conducting_x[i][j]*(E0_n[i+1][j] - E0_n[i][j])/ds;
-					grad_E0x_p[i][j] = -conducting_x[i][j]*(E0_p[i+1][j] - E0_p[i][j])/ds;
+					grad_E0x_n[i][j] = conducting_x[i][j] == 1? -conducting_x[i][j]*(E0_n[i+1][j] - E0_n[i][j])/ds : 0;
+					grad_E0x_p[i][j] = conducting_x[i][j] == 1? -conducting_x[i][j]*(E0_p[i+1][j] - E0_p[i][j])/ds : 0;
 				}
 			}
 
@@ -1162,8 +1170,8 @@ public class Simulation extends PeriodicTask {
 			{
 				for (int j = 0; j < ny-1; j++)
 				{
-					grad_E0y_n[i][j] = -conducting_y[i][j]*(E0_n[i][j+1] - E0_n[i][j])/ds;
-					grad_E0y_p[i][j] = -conducting_y[i][j]*(E0_p[i][j+1] - E0_p[i][j])/ds;
+					grad_E0y_n[i][j] = conducting_x[i][j] == 1? -conducting_y[i][j]*(E0_n[i][j+1] - E0_n[i][j])/ds : 0;
+					grad_E0y_p[i][j] = conducting_x[i][j] == 1? -conducting_y[i][j]*(E0_p[i][j+1] - E0_p[i][j])/ds : 0;
 				}
 			}
 
@@ -1357,6 +1365,19 @@ public class Simulation extends PeriodicTask {
 			{
 				cmfy_n[i][j] = -conducting_y[i][j]*(F0_n[i][j+1] - F0_n[i][j])/ds;
 				cmfy_p[i][j] = -conducting_y[i][j]*(F0_p[i][j+1] - F0_p[i][j])/ds;
+			}
+		}
+		
+		for (int i = 0; i < nx; i++)
+		{
+			for (int j = 0; j < ny; j++)
+			{
+				if (conducting[i][j] == 0) {
+					F0_n[i][j] = Double.NaN;
+					F0_p[i][j] = Double.NaN;
+					E0_n[i][j] = Double.NaN;
+					E0_p[i][j] = Double.NaN;
+				}
 			}
 		}
 	}

@@ -30,6 +30,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 
+import electrodynamics.Renderer.ScalarMode;
+import electrodynamics.Renderer.VectorMode;
+
 public class SaveManager {
 	Simulation e;
 	
@@ -37,7 +40,7 @@ public class SaveManager {
 
 	public static File infile;
 	public static File outfile;
-	int saveversion = 2;
+	int saveversion = 3;
 	String fileextension = ".semisim";
 	String startingpath = ".";
 
@@ -106,10 +109,11 @@ public class SaveManager {
 				dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 				dialog.setVisible(true);
 
-				if (version == saveversion) {
+				if (version == 2 || version == 3) {
 
 					int resolution_tmp = e.default_resolution;
 					double width_tmp = e.default_width;
+					VectorMode_old vecmode_old = null;
 					assertNextObject(fstr, "header");
 					fstr.beginObject();
 					while (fstr.hasNext()) {
@@ -128,15 +132,23 @@ public class SaveManager {
 						case "gui_simspeed_2": e.opts.gui_simspeed_2.setValue(fstr.nextInt()); break;
 						case "gui_brightness": e.opts.gui_brightness.setValue(fstr.nextInt()); break;
 						case "gui_brightness_vec": e.opts.gui_brightness_vec.setValue(fstr.nextInt()); break;
+						case "gui_carriers": e.opts.gui_carriers.setSelected(fstr.nextBoolean()); break;
+						case "gui_carrier_density": e.opts.gui_carrier_density.setValue(fstr.nextInt()); break;
 						case "description": e.opts.textPane.setText(fstr.nextString()); break;
-						case "gui_view": e.opts.gui_view.setSelectedItem(gson.fromJson(fstr, Renderer.ScalarView.class)); break;
-						case "gui_view_vec": e.opts.gui_view_vec.setSelectedItem(gson.fromJson(fstr, Renderer.VectorView.class)); break;
-						case "gui_view_vec_mode": e.opts.gui_view_vec_mode.setSelectedItem(gson.fromJson(fstr, Renderer.VectorMode.class)); break;
+						case "gui_view": e.controls.scalarview.setOption(gson.fromJson(fstr, Renderer.ScalarView.class)); break; // ver 2
+						case "gui_view_vec": e.controls.vectorview.setOption(gson.fromJson(fstr, Renderer.VectorView.class)); break; // ver 2
+						case "gui_view_vec_mode": vecmode_old = gson.fromJson(fstr, VectorMode_old.class); break; // ver 2
+						case "scalarview": e.controls.scalarview.setOption(gson.fromJson(fstr, Renderer.ScalarView.class)); break;
+						case "vectorview": e.controls.vectorview.setOption(gson.fromJson(fstr, Renderer.VectorView.class)); break;
+						case "scalarmode": e.controls.scalarmode.setOption(gson.fromJson(fstr, Renderer.ScalarMode.class)); break;
+						case "vectormode": e.controls.vectormode.setOption(gson.fromJson(fstr, Renderer.VectorMode.class)); break;
 						case "gui_bc": e.opts.gui_bc.setSelectedItem(gson.fromJson(fstr, BoundaryCondition.class)); break;
 						case "gui_parameter1": e.opts.gui_parameter1.setValue(fstr.nextInt()); break;
 						default: fstr.skipValue(); break; // skip others
 						}
 					}
+					if (vecmode_old != null)
+						vecmode_old.applySetting(e);
 					fstr.endObject();
 
 					e.setSize(resolution_tmp, width_tmp);
@@ -201,6 +213,8 @@ public class SaveManager {
 
 					e.setSize(e.default_resolution, e.default_width);
 					e.resetFields(true);
+					
+					int view_vec_mode = -1;
 
 					while (fstr.hasNext()) {
 						String name = fstr.nextName();
@@ -209,9 +223,9 @@ public class SaveManager {
 						case "gui_paused": e.opts.gui_paused.setSelected(fstr.nextBoolean()); break;
 						case "gui_tooltip": e.opts.gui_tooltip.setSelected(fstr.nextBoolean()); break;
 						case "gui_text_bg": e.opts.gui_text_bg.setSelected(fstr.nextBoolean()); break;
-						case "gui_view": e.opts.gui_view.setSelectedIndex(fstr.nextInt()); break;
-						case "gui_view_vec": e.opts.gui_view_vec.setSelectedIndex(fstr.nextInt()); break;
-						case "gui_view_vec_mode": e.opts.gui_view_vec_mode.setSelectedIndex(fstr.nextInt()); break;
+						case "gui_view": e.controls.scalarview.setOption(fstr.nextInt()); break;
+						case "gui_view_vec": e.controls.vectorview.setOption(fstr.nextInt()); break;
+						case "gui_view_vec_mode": view_vec_mode = fstr.nextInt(); break;
 						case "gui_simspeed": e.opts.gui_simspeed.setValue(fstr.nextInt()); break;
 						case "gui_simspeed_2": e.opts.gui_simspeed_2.setValue(fstr.nextInt()); break;
 						case "gui_brightness": e.opts.gui_brightness.setValue(fstr.nextInt()); break;
@@ -249,6 +263,12 @@ public class SaveManager {
 						default: fstr.skipValue(); break; // skip others
 						}
 					}
+
+					if (view_vec_mode != -1) {
+						VectorMode_old vecmode_old = VectorMode_old.values()[view_vec_mode];
+						vecmode_old.applySetting(e);
+					}
+
 					e.opts.gui_interface.setSelected(true);
 					fstr.endObject();
 					fstr.close();
@@ -397,10 +417,13 @@ public class SaveManager {
 				header.addProperty("gui_simspeed_2", e.opts.gui_simspeed_2.getValue());
 				header.addProperty("gui_brightness", e.opts.gui_brightness.getValue());
 				header.addProperty("gui_brightness_vec", e.opts.gui_brightness_vec.getValue());
+				header.addProperty("gui_carriers", e.opts.gui_carriers.isSelected());
+				header.addProperty("gui_carrier_density", e.opts.gui_carrier_density.getValue());
 				header.addProperty("description", e.opts.textPane.getText());
-				header.add("gui_view", gson.toJsonTree(e.opts.gui_view.getSelectedItem()));
-				header.add("gui_view_vec", gson.toJsonTree(e.opts.gui_view_vec.getSelectedItem()));
-				header.add("gui_view_vec_mode", gson.toJsonTree(e.opts.gui_view_vec_mode.getSelectedItem()));
+				header.add("scalarview", gson.toJsonTree(e.controls.scalarview.getOption()));
+				header.add("vectorview", gson.toJsonTree(e.controls.vectorview.getOption()));
+				header.add("scalarmode", gson.toJsonTree(e.controls.scalarmode.getOption()));
+				header.add("vectormode", gson.toJsonTree(e.controls.vectormode.getOption()));
 				header.add("gui_bc", gson.toJsonTree(e.opts.gui_bc.getSelectedItem()));
 				header.addProperty("gui_parameter1", e.opts.gui_parameter1.getValue());
 
@@ -563,5 +586,48 @@ public class SaveManager {
 
 	public String formatDouble(double d) {
 		return Double.toString(d);
+	}
+	
+	// Old version of VectorMode for backwards file compatibility
+	enum VectorMode_old {
+
+		ARROWS,
+		LINES,
+		DOTS,
+		CONTOUR,
+		SPECIES;
+		
+		public void applySetting(Simulation e) {
+			switch(this) {
+			case ARROWS:
+				e.controls.vectormode.setOption(VectorMode.ARROWS);
+				e.controls.scalarmode.setOption(ScalarMode.COLORS);
+				e.opts.gui_carriers.setSelected(false);
+				break;
+			case CONTOUR:
+				e.controls.vectormode.setOption(VectorMode.NONE);
+				e.controls.scalarmode.setOption(ScalarMode.CONTOUR_COLORS);
+				e.opts.gui_carriers.setSelected(false);
+				break;
+			case DOTS:
+				e.controls.vectormode.setOption(VectorMode.DOTS);
+				e.controls.scalarmode.setOption(ScalarMode.COLORS);
+				e.opts.gui_carriers.setSelected(false);
+				break;
+			case LINES:
+				e.controls.vectormode.setOption(VectorMode.LINES);
+				e.controls.scalarmode.setOption(ScalarMode.COLORS);
+				e.opts.gui_carriers.setSelected(false);
+				break;
+			case SPECIES:
+				e.controls.vectormode.setOption(VectorMode.NONE);
+				e.controls.scalarmode.setOption(ScalarMode.COLORS);
+				e.opts.gui_carriers.setSelected(true);
+				e.opts.gui_carrier_density.setValue(e.opts.gui_brightness_vec.getValue());
+				break;
+			default:
+				break;
+			}
+		}
 	}
 }

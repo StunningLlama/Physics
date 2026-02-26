@@ -14,10 +14,12 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferInt;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.swing.JPanel;
 
@@ -76,6 +78,7 @@ public class Renderer extends PeriodicTask {
 	/* Multithreading */
 	
 	CyclicBarrier graphics_start_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
+	CyclicBarrier graphics_mid_barrier = new CyclicBarrier(SemiSim.n_threads);
 	CyclicBarrier graphics_end_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
 
 	/* Electron and hole dots */
@@ -423,7 +426,7 @@ public class Renderer extends PeriodicTask {
 		try {
 			t5.start();
 			drawPixels();
-			drawVectors();
+			drawOverlay();
 			drawText();
 			copyImage(img_back, img_front);
 			e.canvas.repaint();
@@ -521,9 +524,10 @@ public class Renderer extends PeriodicTask {
 			}
 		}
 
-		ScalarView scalarview = (ScalarView) e.opts.gui_view.getSelectedItem();
+		ScalarView scalarview = e.controls.scalarview.getOption();
+		ScalarMode scalarmode = e.controls.scalarmode.getOption();
 
-		if (scalarview != ScalarView.NONE) {
+		if (scalarview != ScalarView.NONE && scalarmode != ScalarMode.NONE) {
 			double offset = 0;
 			
 			if (e.ground != null) {
@@ -611,7 +615,7 @@ public class Renderer extends PeriodicTask {
 			}
 		}
 
-		if ((VectorMode) e.opts.gui_view_vec_mode.getSelectedItem() == VectorMode.CONTOUR) {
+		if (scalarmode == ScalarMode.CONTOUR_COLORS || scalarmode == ScalarMode.CONTOUR) {
 			for (int i = 1; i < e.nx-1; i++) {
 				for (int j = 1; j < e.ny-1; j++) {
 					double gx = scalarfield[i+1][j]-scalarfield[i-1][j];
@@ -620,71 +624,65 @@ public class Renderer extends PeriodicTask {
 				}
 			}
 		}
-		
-		ScalarView.ColorScheme colorscheme = ((ScalarView) e.opts.gui_view.getSelectedItem()).colorscheme;
-		float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/scalarview.scale);
 
 
-		/*double scale_min = -1/scalingconstant;
-	double scale_max = 1/scalingconstant;
-	for (int i = e.nx-20; i < e.nx; i++) {
-		double t = (i-(e.nx - 20))/(double)(e.nx - (e.nx-20));
-		scalarfield[i][2] = scale_min + t*(scale_max - scale_min);
-	}*/
+		if (scalarmode == ScalarMode.COLORS || scalarmode == ScalarMode.CONTOUR_COLORS) {
+			ScalarView.ColorScheme colorscheme = e.controls.scalarview.getOption().colorscheme;
+			float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/scalarview.scale);
 
-
-		if (colorscheme == ScalarView.ColorScheme.RED_BLUE) {
-			for (int i = 1; i < e.nx-1; i++) {
-				for (int j = 1; j < e.ny-1; j++) {
-					setColorFloat((float) scalarfield[i][j]*scalingconstant, 0, -(float) scalarfield[i][j]*scalingconstant);
-					setPixel(i, j);
-				}
-			}
-		} else if (colorscheme == ScalarView.ColorScheme.CYAN_YELLOW) {
-			for (int i = 1; i < e.nx-1; i++) {
-				for (int j = 1; j < e.ny-1; j++) {
-					setColorFloat((float) scalarfield[i][j]*scalingconstant, Math.abs((float) scalarfield[i][j]*scalingconstant), -(float) scalarfield[i][j]*scalingconstant);
-					setPixel(i, j);
-				}
-			}
-		} else if (colorscheme == ScalarView.ColorScheme.GREEN) {
-			for (int i = 1; i < e.nx-1; i++) {
-				for (int j = 1; j < e.ny-1; j++) {
-					setColorFloat(0, Math.abs((float) scalarfield[i][j]*scalingconstant), 0);
-					setPixel(i, j);
-				}
-			}
-		} else if (colorscheme == ScalarView.ColorScheme.WHITE) {
-			for (int i = 1; i < e.nx-1; i++) {
-				for (int j = 1; j < e.ny-1; j++) {
-					setColorFloat((float) scalarfield[i][j]*scalingconstant, (float) scalarfield[i][j]*scalingconstant, (float) scalarfield[i][j]*scalingconstant);
-					setPixel(i, j);
-				}
-			}
-		} else if (colorscheme == ScalarView.ColorScheme.OTHER) {
-			if (scalarview == ScalarView.COMBINED_CHARGE) {
+			if (colorscheme == ScalarView.ColorScheme.RED_BLUE) {
 				for (int i = 1; i < e.nx-1; i++) {
 					for (int j = 1; j < e.ny-1; j++) {
-						float rc = (float)(clamp(0.2*Math.log(e.rho_p[i][j]*scalingconstant), 0, 1));
-						float bc = (float)(clamp(0.2*Math.log(-e.rho_n[i][j]*scalingconstant), 0, 1));
-						float gc = Math.min(rc, bc);
-						double it = Math.max(rc, bc);
-						setalphaBG(1-0.5*gc);
-						setalphaFG(0.6*it);
-						setColorFloat(rc, gc, bc);
+						setColorFloat((float) scalarfield[i][j]*scalingconstant, 0, -(float) scalarfield[i][j]*scalingconstant);
 						setPixel(i, j);
 					}
 				}
-			}  else if (scalarview == ScalarView.CHARGE) {
+			} else if (colorscheme == ScalarView.ColorScheme.CYAN_YELLOW) {
 				for (int i = 1; i < e.nx-1; i++) {
 					for (int j = 1; j < e.ny-1; j++) {
-						float rc = Math.min(Math.max((float) scalarfield[i][j]*scalingconstant, 0), 1);
-						float bc = Math.min(Math.max(-(float) scalarfield[i][j]*scalingconstant, 0), 1);
-						float gc = Math.min(rc, bc);
-
-						setalphaBG(1-0.5*gc);
-						setColorFloat(rc, gc, bc);
+						setColorFloat((float) scalarfield[i][j]*scalingconstant, Math.abs((float) scalarfield[i][j]*scalingconstant), -(float) scalarfield[i][j]*scalingconstant);
 						setPixel(i, j);
+					}
+				}
+			} else if (colorscheme == ScalarView.ColorScheme.GREEN) {
+				for (int i = 1; i < e.nx-1; i++) {
+					for (int j = 1; j < e.ny-1; j++) {
+						setColorFloat(0, Math.abs((float) scalarfield[i][j]*scalingconstant), 0);
+						setPixel(i, j);
+					}
+				}
+			} else if (colorscheme == ScalarView.ColorScheme.WHITE) {
+				for (int i = 1; i < e.nx-1; i++) {
+					for (int j = 1; j < e.ny-1; j++) {
+						setColorFloat((float) scalarfield[i][j]*scalingconstant, (float) scalarfield[i][j]*scalingconstant, (float) scalarfield[i][j]*scalingconstant);
+						setPixel(i, j);
+					}
+				}
+			} else if (colorscheme == ScalarView.ColorScheme.OTHER) {
+				if (scalarview == ScalarView.COMBINED_CHARGE) {
+					for (int i = 1; i < e.nx-1; i++) {
+						for (int j = 1; j < e.ny-1; j++) {
+							float rc = (float)(clamp(0.2*Math.log(e.rho_p[i][j]*scalingconstant), 0, 1));
+							float bc = (float)(clamp(0.2*Math.log(-e.rho_n[i][j]*scalingconstant), 0, 1));
+							float gc = Math.min(rc, bc);
+							double it = Math.max(rc, bc);
+							setalphaBG(1-0.5*gc);
+							setalphaFG(0.6*it);
+							setColorFloat(rc, gc, bc);
+							setPixel(i, j);
+						}
+					}
+				}  else if (scalarview == ScalarView.CHARGE) {
+					for (int i = 1; i < e.nx-1; i++) {
+						for (int j = 1; j < e.ny-1; j++) {
+							float rc = Math.min(Math.max((float) scalarfield[i][j]*scalingconstant, 0), 1);
+							float bc = Math.min(Math.max(-(float) scalarfield[i][j]*scalingconstant, 0), 1);
+							float gc = Math.min(rc, bc);
+
+							setalphaBG(1-0.5*gc);
+							setColorFloat(rc, gc, bc);
+							setPixel(i, j);
+						}
 					}
 				}
 			}
@@ -892,13 +890,15 @@ public class Renderer extends PeriodicTask {
 
 	}
 	
-	void drawVectors() {
+	void drawOverlay() {
 		delta_t = e.time - t_prev;
 		t_prev = e.time;
+		
+		boolean show_carriers = e.opts.gui_carriers.isSelected();
+		
+		if (show_carriers && !e.opts.gui_paused.isSelected()) {
 
-		if ((VectorMode) e.opts.gui_view_vec_mode.getSelectedItem() == VectorMode.SPECIES && !e.opts.gui_paused.isSelected()) {
-
-			double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/20.0);
+			double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_carrier_density.getValue()/20.0);
 
 			rho_n_dist.prepare(e.rho_n);
 			rho_p_dist.prepare(e.rho_p);
@@ -950,16 +950,14 @@ public class Renderer extends PeriodicTask {
 			C_prev = C;
 		}
 
-		if ((VectorView) e.opts.gui_view_vec.getSelectedItem() != VectorView.NONE) {
-			setalphaBG(1.0);
-			try {
-				if (SemiSim.instance.graphics_threads.size() == SemiSim.n_threads) {
-					graphics_start_barrier.await();
-					graphics_end_barrier.await();
-				}
-			} catch (InterruptedException | BrokenBarrierException e) {
-				e.printStackTrace();
+		setalphaBG(1.0);
+		try {
+			if (SemiSim.instance.graphics_threads.size() == SemiSim.n_threads) {
+				graphics_start_barrier.await();
+				graphics_end_barrier.await();
 			}
+		} catch (InterruptedException | BrokenBarrierException e) {
+			e.printStackTrace();
 		}
 	}
 	
@@ -1082,6 +1080,11 @@ public class Renderer extends PeriodicTask {
 		int line = 1;
 		drawString("Time: " + Utils.getSI(e.time, "s"), hoffset, voffset + line*vspacing, g); line++;
 		drawString("Steps/s: " + Utils.getSI(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), ""), hoffset, voffset + line*vspacing, g); line++;
+		
+		String sv_a = e.controls.scalarmode.getOption() != ScalarMode.NONE? (e.controls.scalarmode.getOption().shorthand + ": " + e.controls.scalarview.getOption().shorthand) : "";
+		String sv_b = e.controls.vectormode.getOption() != VectorMode.NONE? (e.controls.vectormode.getOption().shorthand + ": " + e.controls.vectorview.getOption().shorthand) : "";
+		String sv = Arrays.asList(sv_a, sv_b).stream().filter(s -> s != null && !s.isEmpty()).collect(Collectors.joining(" / "));
+		drawString(sv, hoffset, voffset + line*vspacing, g); line++;
 		if (e.opts.gui_paused.isSelected())
 		{
 			drawString("Paused", hoffset, voffset + line*vspacing, g); line++;
@@ -1143,64 +1146,67 @@ public class Renderer extends PeriodicTask {
 				while (true) {
 					graphics_start_barrier.await();
 
-					double arrowlength = 10.0/scalefactor;
+					VectorMode vector_display_mode = e.controls.vectormode.getOption();
+					ScalarMode scalar_display_mode = e.controls.scalarmode.getOption();
+					ScalarView scalar_view = e.controls.scalarview.getOption();
+					VectorView vector_view = e.controls.vectorview.getOption();
 
-					double vectorscalingconstant = 0;
+					if (vector_display_mode != VectorMode.NONE && vector_view != VectorView.NONE) {
+						double arrowlength = 10.0/scalefactor;
 
-					VectorMode vector_display_mode = (VectorMode)e.opts.gui_view_vec_mode.getSelectedItem();
+						double vectorscalingconstant = 0;
 
-					int density = 75;
 
-					double randomness = 0;
+						int density = 75;
 
-					if (vector_display_mode == VectorMode.ARROWS) {
-						randomness = 0.5;
-					} else if (vector_display_mode == VectorMode.LINES) {
-						randomness = 0.75;
-					}
+						double randomness = 0;
 
-					double[][] vf_x = null;
-					double[][] vf_y = null;
-					boolean isCurrent = false;
+						if (vector_display_mode == VectorMode.ARROWS) {
+							randomness = 0.5;
+						} else if (vector_display_mode == VectorMode.LINES) {
+							randomness = 0.75;
+						}
 
-					switch ((VectorView) e.opts.gui_view_vec.getSelectedItem()) {
-					case NONE:
-						break;
-					case D_FIELD:
-						vf_x = e.Dx;
-						vf_y = e.Dy;
-						break;
-					case E_FIELD:
-						vf_x = e.Ex;
-						vf_y = e.Ey;
-						break;
-					case ELECTRON_CURRENT:
-						vf_x = e.Jx_n;
-						vf_y = e.Jy_n;
-						isCurrent = true;
-						break;
-					case HOLE_CURRENT:
-						vf_x = e.Jx_p;
-						vf_y = e.Jy_p;
-						isCurrent = true;
-						break;
-					case TOTAL_CURRENT:
-						vf_x = e.Jx_free;
-						vf_y = e.Jy_free;
-						isCurrent = true;
-						break;
-					case POYNTING:
-						vf_x = e.Sx;
-						vf_y = e.Sy;
-						break;
-					case EMF:
-						vf_x = e.emfx;
-						vf_y = e.emfy;
-						break;
-					}
+						double[][] vf_x = null;
+						double[][] vf_y = null;
+						boolean isCurrent = false;
 
-					if (vf_x != null)
-					{
+						switch (vector_view) {
+						case NONE:
+							break;
+						case D_FIELD:
+							vf_x = e.Dx;
+							vf_y = e.Dy;
+							break;
+						case E_FIELD:
+							vf_x = e.Ex;
+							vf_y = e.Ey;
+							break;
+						case ELECTRON_CURRENT:
+							vf_x = e.Jx_n;
+							vf_y = e.Jy_n;
+							isCurrent = true;
+							break;
+						case HOLE_CURRENT:
+							vf_x = e.Jx_p;
+							vf_y = e.Jy_p;
+							isCurrent = true;
+							break;
+						case TOTAL_CURRENT:
+							vf_x = e.Jx_free;
+							vf_y = e.Jy_free;
+							isCurrent = true;
+							break;
+						case POYNTING:
+							vf_x = e.Sx;
+							vf_y = e.Sy;
+							break;
+						case EMF:
+							vf_x = e.emfx;
+							vf_y = e.emfy;
+							break;
+						}
+
 						Vector ctr = new Vector(0,0);
 						Vector arrow = new Vector(0,0);
 						Vector tip1 = new Vector(0,0);
@@ -1209,7 +1215,7 @@ public class Renderer extends PeriodicTask {
 						Vector body2 = new Vector(0,0);
 
 						if (vector_display_mode == VectorMode.LINES) {
-							vectorscalingconstant = 0.01*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/5.0)/((VectorView) e.opts.gui_view_vec.getSelectedItem()).scale;
+							vectorscalingconstant = 0.01*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/5.0)/e.controls.vectorview.getOption().scale;
 							rand.setSeed(n_thread);
 							density = 75;
 							for (int i = lower(density); i < upper(density); i++) {
@@ -1244,7 +1250,7 @@ public class Renderer extends PeriodicTask {
 											double nexty = prevy + dy*arrowlength*0.25*sign;
 
 											drawLine((int)((prevx+0.5)*scalefactor), (int)((prevy+0.5)*scalefactor), (int)((nextx+0.5)*scalefactor), (int)((nexty+0.5)*scalefactor), k == 0 && sign == 1,
-												1f, 1f, 1f, (float) alphaFG, 1f);
+											1f, 1f, 1f, (float) alphaFG, 1f);
 
 											prevx = nextx;
 											prevy = nexty;
@@ -1254,7 +1260,7 @@ public class Renderer extends PeriodicTask {
 
 							}
 						} else if (vector_display_mode == VectorMode.ARROWS) {
-							vectorscalingconstant = 0.01*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/5.0)/((VectorView) e.opts.gui_view_vec.getSelectedItem()).scale;
+							vectorscalingconstant = 0.01*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/5.0)/e.controls.vectorview.getOption().scale;
 							rand.setSeed(n_thread);
 							for (int i = lower(density); i < upper(density); i++) {
 								for (int j = 0; j < density; j++) {
@@ -1286,17 +1292,17 @@ public class Renderer extends PeriodicTask {
 									tip2.add(body2);
 									double alphaFG = (0.1*Math.sqrt(fieldmagnitude));
 									drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true,
-										(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
 									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip1.x*scalefactor), (int)(tip1.y*scalefactor), false,
-										(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
 									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip2.x*scalefactor), (int)(tip2.y*scalefactor), false,
-										(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
 								}
 							}
 						} else if (vector_display_mode == VectorMode.DOTS) {
 							boolean paused = e.opts.gui_paused.isSelected();
 
-							vectorscalingconstant = Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/10.0)/((VectorView) e.opts.gui_view_vec.getSelectedItem()).scale;
+							vectorscalingconstant = Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/10.0)/e.controls.vectorview.getOption().scale;
 							int lower = lower(dots.size());
 							int upper = upper(dots.size());
 							for (int i = lower; i < upper; i++) {
@@ -1338,66 +1344,74 @@ public class Renderer extends PeriodicTask {
 
 									double alphaFG = d.brightness;
 									drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
-										1f, 1f, 1f, (float)alphaFG, 1f);
+									1f, 1f, 1f, (float)alphaFG, 1f);
 								}
 							}
-						} else if (vector_display_mode == VectorMode.CONTOUR) {
-							float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/((ScalarView)e.opts.gui_view.getSelectedItem()).scale);
-							double spacing = 0.2/scalingconstant;
-							double contourwidth = 1e-7;
+						}
+					}
+					
+					graphics_mid_barrier.await();
 
-							for (int i = lower(scalefactor*e.nx); i < upper(scalefactor*e.nx); i++) {
-								for (int j = 0; j < scalefactor*e.ny; j++) {
-									double u = Utils.bilinearinterp(scalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5, e.nx, e.ny)/spacing;
-									double v = Utils.bilinearinterp(gradscalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5, e.nx, e.ny)/spacing;
-									double f = ((((u%1)+1.5)%1)/Math.abs(v))/contourwidth;
-									if (f < 1) {
-										drawPixel(i, j, 1f, 1f, 1f, (float)(2*Math.min(f, 1-f)), 1f);
-									}
+					if (scalar_view != ScalarView.NONE && (scalar_display_mode == ScalarMode.CONTOUR_COLORS || scalar_display_mode == ScalarMode.CONTOUR)) {
+						float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/e.controls.scalarview.getOption().scale);
+						double spacing = 0.2/scalingconstant;
+						double contourwidth = 1e-7;
+
+						for (int i = lower(scalefactor*e.nx); i < upper(scalefactor*e.nx); i++) {
+							for (int j = 0; j < scalefactor*e.ny; j++) {
+								double u = Utils.bilinearinterp(scalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5, e.nx, e.ny)/spacing;
+								double v = Utils.bilinearinterp(gradscalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5, e.nx, e.ny)/spacing;
+								double f = ((((u%1)+1.5)%1)/Math.abs(v))/contourwidth;
+								if (f < 1) {
+									drawPixel(i, j, 1f, 1f, 1f, (float)(2*Math.min(f, 1-f)), 1f);
 								}
 							}
-						} else if (vector_display_mode == VectorMode.SPECIES) {
-							boolean paused = e.opts.gui_paused.isSelected();
+						}
+					}
 
-							vectorscalingconstant = Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/10.0)/((VectorView) e.opts.gui_view_vec.getSelectedItem()).scale;
-							int lower = lower(ccdots.size());
-							int upper = upper(ccdots.size());
+					graphics_mid_barrier.await();
 
-							int steps = 10;
-							double dt_dot = delta_t/steps;
+					boolean show_carriers = e.opts.gui_carriers.isSelected();
+					if (show_carriers) {
+						boolean paused = e.opts.gui_paused.isSelected();
 
-							for (int i = lower; i < upper; i++) {
-								ChargeCarrierDot d = ccdots.get(i);
+						int lower = lower(ccdots.size());
+						int upper = upper(ccdots.size());
 
-								if (d.time > 0) {
-									if (!paused) {
-										if (d.species == Species.ELECTRON) {
-											for (int k = 0; k < steps; k++) {
-												double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny));
-												d.x += s*Utils.bilinearinterp(e.Jx_n,d.x-0.5, d.y, e.nx, e.ny);
-												d.y += s*Utils.bilinearinterp(e.Jy_n,d.x, d.y-0.5, e.nx, e.ny);
-											}
-										} else if (d.species == Species.HOLE) {
-											for (int k = 0; k < steps; k++) {
-												double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny));
-												d.x += s*Utils.bilinearinterp(e.Jx_p,d.x-0.5, d.y, e.nx, e.ny);
-												d.y += s*Utils.bilinearinterp(e.Jy_p,d.x, d.y-0.5, e.nx, e.ny);
-											}
+						int steps = 10;
+						double dt_dot = delta_t/steps;
+
+						for (int i = lower; i < upper; i++) {
+							ChargeCarrierDot d = ccdots.get(i);
+
+							if (d.time > 0) {
+								if (!paused) {
+									if (d.species == Species.ELECTRON) {
+										for (int k = 0; k < steps; k++) {
+											double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny));
+											d.x += s*Utils.bilinearinterp(e.Jx_n,d.x-0.5, d.y, e.nx, e.ny);
+											d.y += s*Utils.bilinearinterp(e.Jy_n,d.x, d.y-0.5, e.nx, e.ny);
 										}
-
-										double p = d.time/d.lifespan;
-										d.brightness = 1.0*bump(p, 1/3.0);
+									} else if (d.species == Species.HOLE) {
+										for (int k = 0; k < steps; k++) {
+											double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny));
+											d.x += s*Utils.bilinearinterp(e.Jx_p,d.x-0.5, d.y, e.nx, e.ny);
+											d.y += s*Utils.bilinearinterp(e.Jy_p,d.x, d.y-0.5, e.nx, e.ny);
+										}
 									}
 
-									double alphaFG = d.brightness;
-									if (d.species == Species.ELECTRON/* && -d.random_id*bilinearinterp(e.rho_n, d.x, d.y) < 1*/)
-										drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
-											0.25f, 0.25f, 1f, (float)alphaFG, 1-(float)alphaFG);
-									else if (d.species == Species.HOLE/* && d.random_id*bilinearinterp(e.rho_p, d.x, d.y) < 1*/)
-										drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
-											1f, 0.25f, 0.25f, (float)alphaFG, 1-(float)alphaFG);
-
+									double p = d.time/d.lifespan;
+									d.brightness = 1.0*bump(p, 1/3.0);
 								}
+
+								double alphaFG = d.brightness;
+								if (d.species == Species.ELECTRON/* && -d.random_id*bilinearinterp(e.rho_n, d.x, d.y) < 1*/)
+									drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
+									0.25f, 0.25f, 1f, (float)alphaFG, 1-(float)alphaFG);
+								else if (d.species == Species.HOLE/* && d.random_id*bilinearinterp(e.rho_p, d.x, d.y) < 1*/)
+									drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
+									1f, 0.25f, 0.25f, (float)alphaFG, 1-(float)alphaFG);
+
 							}
 						}
 					}
@@ -1540,27 +1554,27 @@ public class Renderer extends PeriodicTask {
 	}
 
 	public enum ScalarView {
-		NONE("No scalar overlay",															"",				ColorScheme.OTHER,			1),
-		E_FIELD("View E field magnitude",													"V/m",			ColorScheme.GREEN,			1),
-		B_FIELD("View B field",																"T",			ColorScheme.CYAN_YELLOW,	1e-5),
-		CHARGE("View \u03c1: Net charge density",											"C/m^3",		ColorScheme.OTHER,			1e5),
-		CURRENT("View J: Total current magnitude",											"A/m^2",		ColorScheme.GREEN,			1e7),
-		H_FIELD("View H field",																"A/m",			ColorScheme.CYAN_YELLOW,	1e-5/1.257e-6),
-		POTENTIAL("View \u03d5: Electric scalar potential", 								"V",			ColorScheme.RED_BLUE,		1),
-		ENERGY("View u: Electromagnetic energy density",									"J/m^3",		ColorScheme.GREEN,			1),
-		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density",						"C/m^3",		ColorScheme.RED_BLUE,		1),
-		HOLE_CHARGE("View \u03c1\u209A: Hole charge density",								"C/m^3",		ColorScheme.RED_BLUE,		1),
-		COMBINED_CHARGE("View: Combined electron+hole charge density",						"log[C/m^3]",	ColorScheme.OTHER,			1),
-		BACKGROUND_CHARGE("View \u03c1\u2080: Background charge density",					"C/m^3",		ColorScheme.RED_BLUE,		1),
-		HEAT("View Q: Heat dissipation",													"W/m^3",		ColorScheme.RED_BLUE,		1e12),
-		ENTROPY("View s: Entropy generation (Free energy dissipation)",						"J/(m^3 s)",	ColorScheme.RED_BLUE,		1e12),
-		ELECTRON_POTENTIAL("View F\u2099: Electron chemical potential (quasi Fermi level)",	"V",			ColorScheme.RED_BLUE, 		1),
-		HOLE_POTENTIAL("View F\u209A: Hole chemical potential (quasi Fermi level)",			"V",			ColorScheme.RED_BLUE, 		1),
-		AVERAGE_POTENTIAL("View F: Average electrochemical potential",						"V",			ColorScheme.RED_BLUE,		1),
-		GENERATION("View G: Carrier generation rate",										"1/(m^3 s)",	ColorScheme.GREEN,			1e31),
-		RECOMBINATION("View R: Carrier recombination rate",									"1/(m^3 s)",	ColorScheme.GREEN,			1e31),
-		LIGHT("View: Emitted light",														"",				ColorScheme.WHITE,			1e30),
-		DEBUG("Debug",																		"",				ColorScheme.RED_BLUE,		1e-3);
+		NONE("No scalar overlay",															"None",		"",				ColorScheme.OTHER,			1),
+		E_FIELD("View E field magnitude",													"E",		"V/m",			ColorScheme.GREEN,			1),
+		B_FIELD("View B field",																"B",		"T",			ColorScheme.CYAN_YELLOW,	1e-5),
+		CHARGE("View \u03c1: Net charge density",											"\u03c1",	"C/m^3",		ColorScheme.OTHER,			1e5),
+		CURRENT("View J: Total current magnitude",											"J",		"A/m^2",		ColorScheme.GREEN,			1e7),
+		H_FIELD("View H field",																"H",		"A/m",			ColorScheme.CYAN_YELLOW,	1e-5/1.257e-6),
+		POTENTIAL("View \u03d5: Electric scalar potential", 								"\u03d5",	"V",			ColorScheme.RED_BLUE,		1),
+		ENERGY("View u: Electromagnetic energy density",									"u",		"J/m^3",		ColorScheme.GREEN,			1),
+		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density",						"\u03c1\u2099",	"C/m^3",		ColorScheme.RED_BLUE,		1),
+		HOLE_CHARGE("View \u03c1\u209A: Hole charge density",								"\u03c1\u209A",	"C/m^3",		ColorScheme.RED_BLUE,		1),
+		COMBINED_CHARGE("View: Combined electron+hole charge density",						"\u03c1\u2099 + \u03c1\u209A",	"log[C/m^3]",	ColorScheme.OTHER,			1),
+		BACKGROUND_CHARGE("View \u03c1\u2080: Background charge density",					"\u03c1\u2080",	"C/m^3",		ColorScheme.RED_BLUE,		1),
+		HEAT("View Q: Heat dissipation",													"q",		"W/m^3",		ColorScheme.RED_BLUE,		1e12),
+		ENTROPY("View s: Entropy generation (Free energy dissipation)",						"s",		"J/(m^3 s)",	ColorScheme.RED_BLUE,		1e12),
+		ELECTRON_POTENTIAL("View F\u2099: Electron chemical potential (quasi Fermi level)",	"F\u2099",	"V",			ColorScheme.RED_BLUE, 		1),
+		HOLE_POTENTIAL("View F\u209A: Hole chemical potential (quasi Fermi level)",			"F\u209A",	"V",			ColorScheme.RED_BLUE, 		1),
+		AVERAGE_POTENTIAL("View F: Average electrochemical potential",						"F",		"V",			ColorScheme.RED_BLUE,		1),
+		GENERATION("View G: Carrier generation rate",										"G",		"1/(m^3 s)",	ColorScheme.GREEN,			1e31),
+		RECOMBINATION("View R: Carrier recombination rate",									"R",		"1/(m^3 s)",	ColorScheme.GREEN,			1e31),
+		LIGHT("View: Emitted light",														"Light",	"",				ColorScheme.WHITE,			1e30),
+		DEBUG("Debug",																		"Debug",	"",				ColorScheme.RED_BLUE,		1e-3);
 	
 		enum ColorScheme {
 			RED_BLUE, CYAN_YELLOW, GREEN, WHITE, OTHER;
@@ -1568,12 +1582,14 @@ public class Renderer extends PeriodicTask {
 	
 		public String name;
 		public String unit;
+		public String shorthand;
 		public ColorScheme colorscheme;
 		public double scale; //Typical order of magnitude of the quantity
 	
-		ScalarView(String name, String unit, ColorScheme colorScheme, double scale)
+		ScalarView(String name, String shorthand, String unit, ColorScheme colorScheme, double scale)
 		{
 			this.name = name;
+			this.shorthand = shorthand;
 			this.unit = unit;
 			this.colorscheme = colorScheme;
 			this.scale = scale;
@@ -1586,21 +1602,23 @@ public class Renderer extends PeriodicTask {
 	}
 
 	public enum VectorView {
-		NONE("No vector overlay",							1),
-		E_FIELD("View E field",								1),
-		D_FIELD("View D field",								8.85e-12),
-		ELECTRON_CURRENT("View J\u2099: Electron current",	1),
-		HOLE_CURRENT("View J\u209A: Hole current",			1),
-		TOTAL_CURRENT("View J: Total current",				1),
-		EMF("View \u2130: External electromotive force",	1),
-		POYNTING("View S: Poynting vector",					1);
+		NONE("No vector overlay",							"None",		1),
+		E_FIELD("View E field",								"E",		1),
+		D_FIELD("View D field",								"D",		8.85e-12),
+		ELECTRON_CURRENT("View J\u2099: Electron current",	"J\u2099",	1),
+		HOLE_CURRENT("View J\u209A: Hole current",			"J\u209A",	1),
+		TOTAL_CURRENT("View J: Total current",				"J",		1),
+		EMF("View \u2130: External electromotive force",	"\u2130",	1),
+		POYNTING("View S: Poynting vector",					"S",		1);
 	
 		public String name;
+		public String shorthand;
 		public double scale;
 	
-		VectorView(String name, double scale)
+		VectorView(String name, String shorthand, double scale)
 		{
 			this.name = name;
+			this.shorthand = shorthand;
 			this.scale = scale;
 		}
 	
@@ -1610,17 +1628,38 @@ public class Renderer extends PeriodicTask {
 		}
 	}
 
-	public enum VectorMode {
-		ARROWS("Show vectors"),
-		LINES("Show lines"),
-		DOTS("Show dots"),
-		CONTOUR("Show scalar contours"),
-		SPECIES("Show charge carriers");
+	public enum ScalarMode {
+		NONE("Turn off scalar overlay", ""),
+		COLORS("Show colors", "color"),
+		CONTOUR("Show contours", "contours"),
+		CONTOUR_COLORS("Show contours and colors", "color+contours");
 	
 		String name;
-		VectorMode(String name)
+		public String shorthand;
+		ScalarMode(String name, String shorthand)
 		{
 			this.name = name;
+			this.shorthand = shorthand;
+		}
+	
+		@Override
+		public String toString() {
+			return name;
+		}
+	}
+	
+	public enum VectorMode {
+		NONE("Turn off vector overlay", ""),
+		ARROWS("Show vectors", "vectors"),
+		LINES("Show lines", "lines"),
+		DOTS("Show moving dots", "dots");
+	
+		String name;
+		public String shorthand;
+		VectorMode(String name, String shorthand)
+		{
+			this.name = name;
+			this.shorthand = shorthand;
 		}
 	
 		@Override

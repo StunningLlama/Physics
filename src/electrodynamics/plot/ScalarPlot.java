@@ -6,7 +6,6 @@ package electrodynamics.plot;
 
 import org.jfree.data.xy.XYSeries;
 
-import electrodynamics.Renderer;
 import electrodynamics.Simulation;
 import electrodynamics.util.Utils;
 
@@ -26,9 +25,9 @@ public class ScalarPlot extends Plot {
 	
 	@Override
 	public void updatePlot(Simulation e) {
-        String title = ((Renderer.ScalarView)e.opts.gui_view.getSelectedItem()).name;
+        String title = e.controls.scalarview.getOption().name;
         fig.title(title);
-        fig.ylabel(((Renderer.ScalarView)e.opts.gui_view.getSelectedItem()).unit);
+        fig.ylabel(e.controls.scalarview.getOption().unit);
         
 		if (frame.isVisible() && e.frame%10 == 0) {
 

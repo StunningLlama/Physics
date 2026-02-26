@@ -23,14 +23,12 @@ import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
-import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -42,10 +40,13 @@ import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
+import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
+import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
 import electrodynamics.plot.Plot;
 import electrodynamics.util.Font7x5;
+import electrodynamics.util.MenuCheckList;
 import electrodynamics.util.Utils;
 import electrodynamics.util.Vector;
 
@@ -128,9 +129,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	Cursor HAND_CURSOR = new Cursor(Cursor.HAND_CURSOR);
 	Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
-
-	public HashMap<Brush, JRadioButtonMenuItem> brushbuttonmap;
-	public ButtonGroup buttongroup;
+	
+	public MenuCheckList<Brush> brushes = new MenuCheckList<Brush>();
+	public MenuCheckList<ScalarView> scalarview = new MenuCheckList<ScalarView>();
+	public MenuCheckList<VectorView> vectorview = new MenuCheckList<VectorView>();
+	public MenuCheckList<ScalarMode> scalarmode = new MenuCheckList<ScalarMode>();
+	public MenuCheckList<VectorMode> vectormode = new MenuCheckList<VectorMode>();
+	//public JCheckBoxMenuItem carriers = new JCheckBoxMenuItem("Show charge carriers");
 	
 	public List<Snapshot> prev_states = new ArrayList<Snapshot>();
 	public int undoredo_pointer = 0;
@@ -226,6 +231,14 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.opts.gui_material.setVisible(true);
 		} else {
 			e.opts.gui_material.setVisible(false);
+		}
+		
+		if (e.opts.gui_carriers.isSelected()) {
+			e.opts.gui_carrierlbl.setVisible(true);
+			e.opts.gui_carrier_density.setVisible(true);
+		} else {
+			e.opts.gui_carrierlbl.setVisible(false);
+			e.opts.gui_carrier_density.setVisible(false);
 		}
 
 		if (brush_changed) {
@@ -1082,10 +1095,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				frame.setVisible(true);
 				
 			});
-		} else if (ev.getSource() == e.opts.gui_view) {
-			e.updateMiscFields = true;
-		} else if (ev.getSource() == e.opts.gui_view_vec) {
-			e.updateMiscFields = true;
 		} else if (ev.getSource() == e.opts.gui_brush) {
 			e.controls.brush_changed = true;
 		} else if (ev.getSource() == e.opts.gui_adv_settings) {
@@ -1115,9 +1124,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		} else if (ev.getSource() == e.opts.menu_about) {
 			JOptionPane.showConfirmDialog(e.opts, "Brandon's Semiconductor Simulator (SemiSim).\n (c) 2026 Brandon Li", "About", JOptionPane.OK_OPTION);
 		} else if (ev.getSource() instanceof JRadioButtonMenuItem) {
-			for (Brush b : brushbuttonmap.keySet())
-				if (ev.getSource() == brushbuttonmap.get(b))
-					e.opts.gui_brush.setSelectedItem(b);
+			if (scalarview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null || vectorview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null)
+				e.updateMiscFields = true;
+			if (brushes.containsButton((JRadioButtonMenuItem) ev.getSource()) != null)
+				e.opts.gui_brush.setSelectedItem(brushes.getOption());
 		}
 	}
 	
@@ -1126,7 +1136,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	@Override
 	public void itemStateChanged(ItemEvent ev) {
 		if (ev.getSource() == e.opts.gui_brush) {
-			buttongroup.setSelected(brushbuttonmap.get((Brush) e.opts.gui_brush.getSelectedItem()).getModel(), true);
+			brushes.setOption((Brush) e.opts.gui_brush.getSelectedItem());
 		}
 	}
 	
@@ -1282,18 +1292,18 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    ScalarView prev_scalar_view = ScalarView.NONE;
-    VectorView prev_vector_view = VectorView.NONE;
+    ScalarMode prev_scalar_mode = ScalarMode.NONE;
+    VectorMode prev_vector_mode = VectorMode.NONE;
 
     private Action key_scalar_view = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-    		if (e.opts.gui_view.getSelectedItem() == ScalarView.NONE)
-    			e.opts.gui_view.setSelectedItem(prev_scalar_view);
+    		if (e.controls.scalarmode.getOption() == ScalarMode.NONE)
+    			e.controls.scalarmode.setOption(prev_scalar_mode);
     		else
     		{
-    			prev_scalar_view = (ScalarView) e.opts.gui_view.getSelectedItem();
-    			e.opts.gui_view.setSelectedItem(ScalarView.NONE);
+    			prev_scalar_mode = e.controls.scalarmode.getOption();
+    			e.controls.scalarmode.setOption(ScalarMode.NONE);
     		}
         }
     };
@@ -1301,12 +1311,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     private Action key_vector_view = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-    		if (e.opts.gui_view_vec.getSelectedItem() == VectorView.NONE)
-    			e.opts.gui_view_vec.setSelectedItem(prev_vector_view);
+    		if (e.controls.vectormode.getOption()  == VectorMode.NONE)
+    			e.controls.vectormode.setOption(prev_vector_mode);
     		else
     		{
-    			prev_vector_view = (VectorView) e.opts.gui_view_vec.getSelectedItem();
-    			e.opts.gui_view_vec.setSelectedItem(VectorView.NONE);
+    			prev_vector_mode = e.controls.vectormode.getOption();
+    			e.controls.vectormode.setOption(VectorMode.NONE);
     		}
         }
     };
@@ -1629,41 +1639,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	@Override
 	public void keyReleased(KeyEvent e) {}
-
-	public double bilinearinterp(double[][] array, double x, double y) {
-		int xfloor = (int)Math.floor(x);
-		int yfloor = (int)Math.floor(y);
-		double fx = x - xfloor;
-		double fy = y - yfloor;
-		if (Math.abs(x-Math.round(x)) < 1e-2 && Math.abs(y-Math.round(y)) < 1e-2) {
-			int i = (int)Math.round(x);
-			int j = (int)Math.round(y);
-			if (i < 0) i = 0;
-			if (j < 0) j = 0;
-			if (i >= e.nx) i = e.nx - 1;
-			if (j >= e.ny) j = e.ny - 1;
-			return array[i][j];
-		}
-
-		if (xfloor < 0) {
-			xfloor = 0;
-			fx = 0.0;
-		} else if (xfloor >= e.nx - 1) {
-			xfloor = e.nx - 2;
-			fx = 1.0;
-		}
-		if (yfloor < 0) {
-			yfloor = 0;
-			fy = 0.0;
-		} else if (yfloor >= e.ny - 1) {
-			yfloor = e.ny - 2;
-			fy = 1.0;
-		}
-		double va = array[xfloor][yfloor]*(1.0-fx) + array[xfloor+1][yfloor]*fx;
-		double vb = array[xfloor][yfloor+1]*(1.0-fx) + array[xfloor+1][yfloor+1]*fx;
-
-		return va*(1.0-fy) + vb*fy;
-	}
 	
 	class FloodFillCoordinate {
 		int i;

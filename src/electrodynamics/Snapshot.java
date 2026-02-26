@@ -7,6 +7,8 @@ package electrodynamics;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
@@ -21,13 +23,17 @@ public class Snapshot {
 	boolean gui_text_bg;
 	boolean gui_elem_colors;
 	boolean gui_interface;
+	boolean gui_carriers;
 	int gui_simspeed;
 	int gui_simspeed_2;
 	int gui_brightness;
-	int gui_brightness_vec ;
+	int gui_brightness_vec;
+	int gui_carrier_number;
+	
 	String description;
 	ScalarView gui_view;
 	VectorView gui_view_vec;
+	ScalarMode gui_scalar_mode;
 	VectorMode gui_view_vec_mode;
 	BoundaryCondition gui_bc;
 	int gui_parameter1;
@@ -67,11 +73,14 @@ public class Snapshot {
 		gui_brightness = e.opts.gui_brightness.getValue();
 		gui_brightness_vec = e.opts.gui_brightness_vec.getValue();
 		description = e.opts.textPane.getText();
-		gui_view = (ScalarView) e.opts.gui_view.getSelectedItem();
-		gui_view_vec = (VectorView) e.opts.gui_view_vec.getSelectedItem();
-		gui_view_vec_mode = (VectorMode) e.opts.gui_view_vec_mode.getSelectedItem();
+		gui_view = e.controls.scalarview.getOption();
+		gui_view_vec = e.controls.vectorview.getOption();
+		gui_scalar_mode = e.controls.scalarmode.getOption();
+		gui_view_vec_mode = e.controls.vectormode.getOption();
 		gui_bc = (BoundaryCondition) e.opts.gui_bc.getSelectedItem();
 		gui_parameter1 = e.opts.gui_parameter1.getValue();
+		gui_carriers = e.opts.gui_carriers.isSelected();
+		gui_carrier_number = e.opts.gui_carrier_density.getValue();
 
 		ex = copy(e.Ex);
 		ey = copy(e.Ey);
@@ -109,11 +118,14 @@ public class Snapshot {
 		e.opts.gui_brightness.setValue(gui_brightness);
 		e.opts.gui_brightness_vec.setValue(gui_brightness_vec);
 		e.opts.textPane.setText(description);
-		e.opts.gui_view.setSelectedItem(gui_view);
-		e.opts.gui_view_vec.setSelectedItem(gui_view_vec);
-		e.opts.gui_view_vec_mode.setSelectedItem(gui_view_vec_mode);
+		e.controls.scalarview.setOption(gui_view);
+		e.controls.vectorview.setOption(gui_view_vec);
+		e.controls.scalarmode.setOption(gui_scalar_mode);
+		e.controls.vectormode.setOption(gui_view_vec_mode);
 		e.opts.gui_bc.setSelectedItem(gui_bc);
 		e.opts.gui_parameter1.setValue(gui_parameter1);
+		e.opts.gui_carriers.setSelected(gui_carriers);
+		e.opts.gui_carrier_density.setValue(gui_carrier_number);
 
 		//e.setSize(resolution_tmp, width_tmp);
 		//e.resetFields(true);
