@@ -6,6 +6,7 @@ package electrodynamics;
 
 import java.awt.BorderLayout;
 import java.awt.Cursor;
+import java.awt.FlowLayout;
 import java.awt.MouseInfo;
 import java.awt.PointerInfo;
 import java.awt.event.ActionEvent;
@@ -22,9 +23,7 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Queue;
 
 import javax.swing.AbstractAction;
@@ -32,13 +31,18 @@ import javax.swing.Action;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.border.EmptyBorder;
 
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
@@ -137,8 +141,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public MenuCheckList<VectorMode> vectormode = new MenuCheckList<VectorMode>();
 	//public JCheckBoxMenuItem carriers = new JCheckBoxMenuItem("Show charge carriers");
 	
-	public List<Snapshot> prev_states = new ArrayList<Snapshot>();
-	public int undoredo_pointer = 0;
+	public UndoRedo undoredo = new UndoRedo(4);
 	
 	public Controls(Simulation e) {
 		this.e = e;
@@ -871,7 +874,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.updateAllMaterials(false);
 			e.multigridSolve(true, false);
 			
-			captureState();
+			undoredo.captureState(e);
 		}
 
 		prev_boundary = (BoundaryCondition)e.opts.gui_bc.getSelectedItem();
@@ -896,57 +899,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		}
 	}
 	
-	public void resetUndoHistory() {
-		undoredo_pointer = 0;
-		prev_states.clear();
-
-		Snapshot state = new Snapshot();
-		state.store(e);
-		prev_states.add(state);
-	}
-	
-	public void handleUndoRedo() {
-		if (undo) {
-			undoredo_pointer--;
-			if (undoredo_pointer < 0) undoredo_pointer = 0;
-			
-			if (undoredo_pointer >= 0 && undoredo_pointer < prev_states.size()) {
-				prev_states.get(undoredo_pointer).load(e);
-			}
-			
-			undo = false;
-		}
-		
-		if (redo) {
-			undoredo_pointer++;
-			if (undoredo_pointer >= prev_states.size()) undoredo_pointer = prev_states.size()-1;
-			
-			if (undoredo_pointer >= 0 && undoredo_pointer < prev_states.size())
-				prev_states.get(undoredo_pointer).load(e);
-
-			redo = false;
-		}
-	}
-	
-	public void captureState() {
-		int i = undoredo_pointer+1;
-		
-		while (i < prev_states.size()) {
-			prev_states.remove(i);
-		}
-		
-		undoredo_pointer++;
-		Snapshot state = new Snapshot();
-		state.store(e);
-		prev_states.add(state);
-
-		while (prev_states.size() > 4)
-		{
-			prev_states.remove(0);
-			undoredo_pointer--;
-		}
-	}
-
 	public void drawMaterialLine(double x1, double y1, double x2, double y2, Brush brush, BrushShape brushshape, MaterialType mat, double brushsize, double EMF_angle) {
 		Vector a = new Vector(0, 0);
 		Vector b = new Vector(0, 0);
@@ -1123,6 +1075,21 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			redo = true;
 		} else if (ev.getSource() == e.opts.menu_about) {
 			JOptionPane.showConfirmDialog(e.opts, "Brandon's Semiconductor Simulator (SemiSim).\n (c) 2026 Brandon Li", "About", JOptionPane.OK_OPTION);
+		} else if (ev.getSource() == e.opts.menu_img) {
+			SwingUtilities.invokeLater(() -> {
+				ImgDialog dialog = new ImgDialog();
+				dialog.spinner.setValue(e.renderer.canvas_size);
+				dialog.okButton.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent ev) {
+						e.renderer.setCanvasSize((int) dialog.spinner.getValue());
+						e.opts.pack();
+						dialog.dispose();
+					}
+				});
+				dialog.setVisible(true);
+				
+			});
 		} else if (ev.getSource() instanceof JRadioButtonMenuItem) {
 			if (scalarview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null || vectorview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null)
 				e.updateMiscFields = true;
@@ -1131,8 +1098,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		}
 	}
 	
-
-
 	@Override
 	public void itemStateChanged(ItemEvent ev) {
 		if (ev.getSource() == e.opts.gui_brush) {
@@ -1718,6 +1683,47 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		}
 	}
 }
+
+class ImgDialog extends JDialog {
+
+	private static final long serialVersionUID = 1L;
+	private final JPanel contentPanel = new JPanel();
+	public JSpinner spinner;
+	public JButton okButton = new JButton("OK");
+
+	public ImgDialog() {
+		setBounds(100, 100, 180, 151);
+		getContentPane().setLayout(new BorderLayout());
+		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
+		getContentPane().add(contentPanel, BorderLayout.CENTER);
+		contentPanel.setLayout(null);
+		
+		JLabel lblNewLabel = new JLabel("Image size");
+		lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		lblNewLabel.setBounds(33, 17, 111, 16);
+		contentPanel.add(lblNewLabel);
+		
+		spinner = new JSpinner();
+		spinner.setBounds(33, 37, 111, 26);
+		contentPanel.add(spinner);
+		{
+			JPanel buttonPane = new JPanel();
+			buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
+			getContentPane().add(buttonPane, BorderLayout.SOUTH);
+			{
+				okButton.setActionCommand("OK");
+				buttonPane.add(okButton);
+				getRootPane().setDefaultButton(okButton);
+			}
+			{
+				JButton cancelButton = new JButton("Cancel");
+				cancelButton.setActionCommand("Cancel");
+				buttonPane.add(cancelButton);
+			}
+		}
+	}
+}
+
 
 interface FloodFillFunc {
 	boolean isValid(int i, int j);

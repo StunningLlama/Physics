@@ -95,6 +95,8 @@ public class MainWindow extends JFrame {
 	public JScrollBar gui_carrier_density;
 	public JMenu menu_view;
 	public JCheckBox gui_carriers;
+	public JCheckBox gui_borders;
+	public JMenuItem menu_img;
 
 	/**
 	 * Create the frame.
@@ -160,9 +162,6 @@ public class MainWindow extends JFrame {
 		menu_paste.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_paste);
 		
-		separator_2 = new JSeparator();
-		menu_asdf.add(separator_2);
-		
 		menu_rotate = new JMenuItem("Rotate");
 		menu_rotate.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_rotate);
@@ -174,6 +173,12 @@ public class MainWindow extends JFrame {
 		menu_flip_v = new JMenuItem("Flip vertically");
 		menu_flip_v.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_flip_v);
+		
+		separator_2 = new JSeparator();
+		menu_asdf.add(separator_2);
+		
+		menu_img = new JMenuItem("Set image size");
+		menu_asdf.add(menu_img);
 		
 		menu_tools = new JMenu("Tools");
 		menuBar.add(menu_tools);
@@ -397,6 +402,11 @@ public class MainWindow extends JFrame {
 		gui_carriers.setSelected(false);
 		gui_carriers.setBounds(10, 421, 171, 23);
 		panel.add(gui_carriers);
+		
+		gui_borders = new JCheckBox("Show material borders");
+		gui_borders.setSelected(true);
+		gui_borders.setBounds(201, 99, 188, 23);
+		panel.add(gui_borders);
 	}
 
 	public void addTooltips(JComboBox box) {

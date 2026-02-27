@@ -12,8 +12,63 @@ import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
+public class UndoRedo {
+	
+	public List<Snapshot> prev_states = new ArrayList<Snapshot>();
+	public int undoredo_pointer = 0;
+	public int history_size = 0;
+	
+	public UndoRedo(int history_size) {
+		this.history_size = history_size;
+	}
 
-public class Snapshot {
+	public void resetUndoHistory(Simulation e) {
+		undoredo_pointer = 0;
+		prev_states.clear();
+
+		Snapshot state = new Snapshot();
+		state.store(e);
+		prev_states.add(state);
+	}
+
+	public void undo(Simulation e) {
+		undoredo_pointer--;
+		if (undoredo_pointer < 0) undoredo_pointer = 0;
+
+		if (undoredo_pointer >= 0 && undoredo_pointer < prev_states.size()) {
+			prev_states.get(undoredo_pointer).load(e);
+		}
+	}
+
+	public void redo(Simulation e) {
+		undoredo_pointer++;
+		if (undoredo_pointer >= prev_states.size()) undoredo_pointer = prev_states.size()-1;
+
+		if (undoredo_pointer >= 0 && undoredo_pointer < prev_states.size())
+			prev_states.get(undoredo_pointer).load(e);
+	}
+	
+	public void captureState(Simulation e) {
+		int i = undoredo_pointer+1;
+		
+		while (i < prev_states.size()) {
+			prev_states.remove(i);
+		}
+		
+		undoredo_pointer++;
+		Snapshot state = new Snapshot();
+		state.store(e);
+		prev_states.add(state);
+
+		while (prev_states.size() > history_size)
+		{
+			prev_states.remove(0);
+			undoredo_pointer--;
+		}
+	}
+}
+
+class Snapshot {
 	int resolution;
 	double width;
 	double time;

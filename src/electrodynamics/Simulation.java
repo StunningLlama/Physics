@@ -4,7 +4,7 @@
 
 package electrodynamics;
 import java.awt.BorderLayout;
-import java.awt.KeyboardFocusManager;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -21,6 +21,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.swing.InputMap;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
 import javax.swing.KeyStroke;
@@ -351,6 +352,7 @@ public class Simulation extends PeriodicTask {
 		opts.menu_rotate.addActionListener(controls);
 		opts.menu_flip_v.addActionListener(controls);
 		opts.menu_flip_h.addActionListener(controls);
+		opts.menu_img.addActionListener(controls);
 		
 		opts.gui_brush.addItemListener(controls);
 		
@@ -441,7 +443,15 @@ public class Simulation extends PeriodicTask {
     			lastsimspeed = opts.gui_simspeed.getValue();
     			dt = dt_maximum*(lastsimspeed/20.0);
 
-    			controls.handleUndoRedo();
+    			if (controls.undo) {
+    				controls.undoredo.undo(this);
+    				controls.undo = false;
+    			}
+    			
+    			if (controls.redo) {
+    				controls.undoredo.redo(this);
+    				controls.redo = false;
+    			}
     			
     			controls.handleMouseInput();
 
@@ -776,14 +786,14 @@ public class Simulation extends PeriodicTask {
 
 				opts.setTitle("Brandon's semiconductor simulator");
 
-				controls.resetUndoHistory();
+				controls.undoredo.resetUndoHistory(this);
 			}
 
-			renderer.reset();
+			renderer.resetChargeDots();
 
 			initializeAllMaterials();
 			updateAllMaterials(true);
-			controls.captureState();
+			controls.undoredo.captureState(this);
 			checkCFL();
 		}
 		finally {

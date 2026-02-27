@@ -208,7 +208,7 @@ public class SaveManager {
 					e.opts.textPane.setCaretPosition(0);
 					e.updateAllMaterials(false);
 					e.calcMiscFields(true);
-					e.controls.captureState();
+					e.controls.undoredo.captureState(e);
 				} else if (version == 1) {
 
 					e.setSize(e.default_resolution, e.default_width);
@@ -279,7 +279,7 @@ public class SaveManager {
 					e.opts.textPane.setCaretPosition(0);
 					e.updateAllMaterials(false);
 					e.calcMiscFields(true);
-					e.controls.captureState();
+					e.controls.undoredo.captureState(e);
 				}
 
 				dialog.dispose();

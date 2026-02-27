@@ -105,26 +105,33 @@ public class Renderer extends PeriodicTask {
 		image_r = new float[e.nx][e.ny];
 		image_g = new float[e.nx][e.ny];
 		image_b = new float[e.nx][e.ny];
-		scalefactor = (int)((double)canvas_size/e.ny);
-		scalefactor_real = (double)canvas_size/e.ny;
-		if (scalefactor < 1) scalefactor = 1;
 
 		rho_p_dist.init(e.nx, e.ny);
 		rho_n_dist.init(e.nx, e.ny);
 		rho_G_dist.init(e.nx, e.ny);
+		
+		setCanvasSize(canvas_size);
+		
+		resetChargeDots();
+	}
+	
+	public void setCanvasSize(int canvas_size) {
+		this.canvas_size = canvas_size;
+		
+		scalefactor = (int)((double)canvas_size/e.ny);
+		scalefactor_real = (double)canvas_size/e.ny;
+		if (scalefactor < 1) scalefactor = 1;
 
 		imgwidth = (int)Math.ceil(scalefactor*e.nx);
 		imgheight = (int)Math.ceil(scalefactor*e.ny);
 
-		e.canvas.setPreferredSize(new Dimension(imgwidth, imgheight));
+		e.canvas.setPreferredSize(new Dimension(canvas_size, canvas_size));
 		img_back = (BufferedImage) e.opts.createImage(imgwidth, imgheight);
 		img_front = (BufferedImage) e.opts.createImage(imgwidth, imgheight);
 		imgData = ((DataBufferInt)img_back.getRaster().getDataBuffer()).getData();
-		
-		reset();
 	}
 	
-	public void reset() {
+	public void resetChargeDots() {
 		t_prev = e.time;
 		
 		dots.clear();
@@ -480,12 +487,23 @@ public class Renderer extends PeriodicTask {
 		setalphaFG(1);
 
 		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
+		boolean showborders = e.opts.gui_borders.isSelected();
 
 		if (e.opts.gui_elem_colors.isSelected()) {
 			for (int i = 0; i < e.nx; i++) {
 				for (int j = 0; j < e.ny; j++) {
 					setColor(e.materials[i][j].type.color_r, e.materials[i][j].type.color_g, e.materials[i][j].type.color_b);
+					
+					double alpha = 1.0;
+					if (showborders && i > 0 && j > 0 && i < e.nx-1 && j < e.ny-1) {
+						if (e.materials[i+1][j].type != e.materials[i][j].type || e.materials[i][j+1].type != e.materials[i][j].type)
+							alpha -= 0.1;
+						if (e.materials[i-1][j].type != e.materials[i][j].type || e.materials[i][j-1].type != e.materials[i][j].type)
+							alpha += 0.1;
+					}
 
+					setalphaFG(alpha);
+					
 					setPixel(i, j);
 				}
 			}
@@ -493,6 +511,17 @@ public class Renderer extends PeriodicTask {
 			for (int i = 0; i < e.nx; i++) {
 				for (int j = 0; j < e.ny; j++) {
 					setColor(e.materials[i][j].type.color_grayscale, e.materials[i][j].type.color_grayscale, e.materials[i][j].type.color_grayscale);
+
+					double alpha = 1.0;
+					if (showborders && i > 0 && j > 0 && i < e.nx-1 && j < e.ny-1) {
+						if (e.materials[i+1][j].type != e.materials[i][j].type || e.materials[i][j+1].type != e.materials[i][j].type)
+							alpha -= 0.1;
+						if (e.materials[i-1][j].type != e.materials[i][j].type || e.materials[i][j-1].type != e.materials[i][j].type)
+							alpha += 0.1;
+					}
+
+					setalphaFG(alpha);
+
 					setPixel(i, j);
 				}
 			}
@@ -1555,8 +1584,8 @@ public class Renderer extends PeriodicTask {
 
 	public enum ScalarView {
 		NONE("No scalar overlay",															"None",		"",				ColorScheme.OTHER,			1),
-		E_FIELD("View E field magnitude",													"E",		"V/m",			ColorScheme.GREEN,			1),
-		B_FIELD("View B field",																"B",		"T",			ColorScheme.CYAN_YELLOW,	1e-5),
+		E_FIELD("View: E field magnitude",													"E",		"V/m",			ColorScheme.GREEN,			1),
+		B_FIELD("View: B field",																"B",		"T",			ColorScheme.CYAN_YELLOW,	1e-5),
 		CHARGE("View \u03c1: Net charge density",											"\u03c1",	"C/m^3",		ColorScheme.OTHER,			1e5),
 		CURRENT("View J: Total current magnitude",											"J",		"A/m^2",		ColorScheme.GREEN,			1e7),
 		H_FIELD("View H field",																"H",		"A/m",			ColorScheme.CYAN_YELLOW,	1e-5/1.257e-6),
@@ -1565,7 +1594,7 @@ public class Renderer extends PeriodicTask {
 		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density",						"\u03c1\u2099",	"C/m^3",		ColorScheme.RED_BLUE,		1),
 		HOLE_CHARGE("View \u03c1\u209A: Hole charge density",								"\u03c1\u209A",	"C/m^3",		ColorScheme.RED_BLUE,		1),
 		COMBINED_CHARGE("View: Combined electron+hole charge density",						"\u03c1\u2099 + \u03c1\u209A",	"log[C/m^3]",	ColorScheme.OTHER,			1),
-		BACKGROUND_CHARGE("View \u03c1\u2080: Background charge density",					"\u03c1\u2080",	"C/m^3",		ColorScheme.RED_BLUE,		1),
+		BACKGROUND_CHARGE("View \u03c1\u2080: Static charge density (doping)",				"\u03c1\u2080",	"C/m^3",		ColorScheme.RED_BLUE,		1),
 		HEAT("View Q: Heat dissipation",													"q",		"W/m^3",		ColorScheme.RED_BLUE,		1e12),
 		ENTROPY("View s: Entropy generation (Free energy dissipation)",						"s",		"J/(m^3 s)",	ColorScheme.RED_BLUE,		1e12),
 		ELECTRON_POTENTIAL("View F\u2099: Electron chemical potential (quasi Fermi level)",	"F\u2099",	"V",			ColorScheme.RED_BLUE, 		1),
@@ -1603,8 +1632,8 @@ public class Renderer extends PeriodicTask {
 
 	public enum VectorView {
 		NONE("No vector overlay",							"None",		1),
-		E_FIELD("View E field",								"E",		1),
-		D_FIELD("View D field",								"D",		8.85e-12),
+		E_FIELD("View E: Electric field",					"E",		1),
+		D_FIELD("View D: Displacement field",				"D",		8.85e-12),
 		ELECTRON_CURRENT("View J\u2099: Electron current",	"J\u2099",	1),
 		HOLE_CURRENT("View J\u209A: Hole current",			"J\u209A",	1),
 		TOTAL_CURRENT("View J: Total current",				"J",		1),
@@ -1706,7 +1735,8 @@ class RenderCanvas extends JPanel {
 		real.clearRect(0, 0, real.getClipBounds().width, real.getClipBounds().height);
 		boolean need_to_rescale = (e.renderer.scalefactor*e.ny != e.renderer.canvas_size);
 		if (need_to_rescale)
-			((Graphics2D) real).drawImage(e.renderer.img_front, 0, 0, real.getClipBounds().width, real.getClipBounds().height, e.opts);
+			//((Graphics2D) real).drawImage(e.renderer.img_front, 0, 0, real.getClipBounds().width, real.getClipBounds().height, e.opts);
+			((Graphics2D) real).drawImage(e.renderer.img_front, 0, 0, e.renderer.canvas_size, e.renderer.canvas_size, e.opts);
 		else
 			real.drawImage(e.renderer.img_front, 0, 0, e.opts);
 	}
