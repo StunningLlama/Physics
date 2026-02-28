@@ -79,6 +79,7 @@ class Snapshot {
 	boolean gui_elem_colors;
 	boolean gui_interface;
 	boolean gui_carriers;
+	boolean gui_border;
 	int gui_simspeed;
 	int gui_simspeed_2;
 	int gui_brightness;
@@ -136,6 +137,7 @@ class Snapshot {
 		gui_parameter1 = e.opts.gui_parameter1.getValue();
 		gui_carriers = e.opts.gui_carriers.isSelected();
 		gui_carrier_number = e.opts.gui_carrier_density.getValue();
+		gui_border = e.opts.gui_borders.isSelected();
 
 		ex = copy(e.Ex);
 		ey = copy(e.Ey);
@@ -181,6 +183,7 @@ class Snapshot {
 		e.opts.gui_parameter1.setValue(gui_parameter1);
 		e.opts.gui_carriers.setSelected(gui_carriers);
 		e.opts.gui_carrier_density.setValue(gui_carrier_number);
+		e.opts.gui_borders.setSelected(gui_border);
 
 		//e.setSize(resolution_tmp, width_tmp);
 		//e.resetFields(true);

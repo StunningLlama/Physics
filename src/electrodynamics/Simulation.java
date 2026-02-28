@@ -2039,7 +2039,7 @@ class CurrentProbe {
 		}
 		
 		labelcoord.x = (int)(xa-3*dy)-2;
-		labelcoord.y = (int)(ya+4*dx)+2;
+		labelcoord.y = (int)(ya+4*dx);
 	}
 }
 
@@ -2053,7 +2053,7 @@ class VoltageProbe {
 	
 	public void calculateDefaultLabelCoords() {
 		labelcoord.x = x-2;
-		labelcoord.y = y-4;
+		labelcoord.y = y-5;
 	}
 }
 
