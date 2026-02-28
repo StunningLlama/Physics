@@ -1,15 +1,32 @@
-# Build instructions
-Clone the repository using
+# Installation Instructions and Troubleshooting
 
-```bash
-git clone https://github.com/StunningLlama/SemiSim.git
-```
-Building requres Java 1.8 and Maven for dependency management.
+## Installation
+
+1.  Make sure you have the latest version of Java installed. Java can be found [here](https://www.java.com/en/download/manual.jsp).
+2.  Extract the contents of SemiSim.zip into a new folder.
+3.  Double click SemiSim.jar to run it.
+4.  If SemiSim crashes when loading a file:
+    *   Make sure you have a 64-bit version of Java installed.
+
+## Mac OS
+
+1.  If you see "_SemiSim.jar cannot be opened because it is from an unidentified developer_":
+    *   Right click "SemiSim.jar" and click "Open".
+    *   Click "Open" again on the popup window.
+2.  If you are unable to see and open files:
+    *   Go into System Preferences → Security → Privacy → Full Disk Access.
+    *   Add "/System/Library/CoreServices/Jar Launcher.app" to the list and give it disk access.
+
+# Build Instructions
+
+Clone the repository using `bash git clone https://github.com/StunningLlama/SemiSim.git`  
+Note: Building requires JRE 1.8 and Maven for dependency management.
 
 ## Eclipse
-- Go to **File > Import > Existing Maven Projects**
-- Select the cloned repository folder
-- Click Finish
+
+1.  Go to File → Import → Existing Maven Projects
+2.  Select the cloned repository folder
+3.  Click Finish
 
 # Introduction
 
@@ -36,8 +53,9 @@ Because the simulation uses a very simplified model of how semiconductors work, 
 *   Velocity saturation
 *   Fermi level pinning
 *   Different recombination mechanisms
+*   Surface effects
 
-Finally, certain properties of materials differ from their real life counterparts (for example, the charge carrier mobility of the semiconductor material is about 1500x greater than that of Silicon). This was done for educational purposes.
+Finally, certain properties of materials differ from their real life counterparts (for example, the charge carrier mobility of the semiconductor material is about 1500x greater than that of Silicon).
 
 # Simulation features
 
@@ -45,11 +63,40 @@ The interface consists of the simulation area which the user can interact with a
 
 ![Application](images/app.png)
 
-_Simulation area (purple, left) and settings (blue, right)._
+Simulation area (purple, left) and settings (blue, right).
 
 The main way to interact with circuits is to change the strength of voltage sources and turn switches on and off. The quickest way to get started is to load one of the examples and start changing the voltages.
 
-## Vector view modes
+## Simulation variables
+
+Listed below are the most important variables that capture the state of the simulation at a given time:
+
+|     |     |
+| --- | --- |
+| \\(\\vec{E} = (E\_x, E\_y, 0)\\) | Electric field \[V/m\] |
+| \\(\\vec{B} = (0, 0, B\_z)\\) | Magnetic field \[T\] |
+| \\(\\rho\_n\\) | Charge density of electrons \[C/m^3\] |
+| \\(\\rho\_p\\) | Charge density of holes \[C/m^3\] |
+| \\(\\rho = \\rho\_n + \\rho\_p\\) | Net charge density \[C/m^3\] |
+| \\(\\vec{J}\_n = (J\_{nx}, J\_{ny}, 0)\\) | Electron current density \[A/m^2\] |
+| \\(\\vec{J}\_p = (J\_{px}, J\_{py}, 0)\\) | Hole current density \[A/m^2\] |
+| \\(\\vec{J} = \\vec{J}\_n + \\vec{J}\_p\\) | Total current density \[A/m^2\] |
+| \\(\\vec{D} = \\epsilon \\vec{E}\\) | Electric displacement field \[C/m^2\] |
+| \\(\\vec{H} = \\frac{1}{\\mu} \\vec{B}\\) | Magnetic field \[A/m\] |
+| \\(\\vec{S} = \\vec{E}\\times \\vec{H}\\) | Poynting vector \[W/m^2\] |
+| \\(u = \\frac{1}{2}(\\vec{E}\\cdot \\vec{D} + \\vec{B} \\cdot \\vec{H})\\) | Electromagnetic energy density \[J/m^3\] |
+| \\(\\phi\\) | Electric scalar potential \[V\] |
+| \\(G\\) | Charge carrier generation rate \[1/(m^3 s)\] |
+| \\(R\\) | Charge carrier recombination rate \[1/(m^3 s)\] |
+| \\(F\_n\\) | Electron quasi-Fermi level (free energy) \[V\]\* |
+| \\(F\_p\\) | Hole quasi-Fermi level (free energy) \[V\]\* |
+| \\(F\\) | Average free energy \[V\] |
+| \\(Q\\) | Heat dissipation \[J/(s m^3)\] |
+| \\(S\\) | Entropy generation \[J/ (K s m^3)\] |
+
+\* Here free energy is measured per unit of charge instead of per particle, hence the units used are \[V\] and not \[eV\].
+
+## View options
 
 **Arrows:** The direction and brightness of arrows corresponds to the direction and magnitude of the vector field.
 
@@ -80,41 +127,35 @@ The main way to interact with circuits is to change the strength of voltage sour
 | Show text background | Gives text boxes a black background, making the text easier to see. |
 | Display interface | Shows probe info, graph locations, time, and tooltip. |
 | Boundary condition | Choose between a boundary that absorbs outgoing radiation or a perfectly conductive boundary that reflects it. |
-| Scalar view | Choose which field to display as a color scale over the simulation field. |
-| Vector view | Choose which vector field to visualize (only works for 2D vectors, see "Vector view modes"). |
 | Show material colors | If checked, gives each material a different color, making them easier to tell apart. |
 | Timestep | Sets the simulation timestep. The maximum timestep is determined by the CFL condition for the wave equation and diffusion equations for each charge carrier. |
 | Sim steps/frame | Sets the number of iterations performed during each frame. Most of the examples require at least 10 steps/frame to run responsively. The maximum number depends on how good the user's computer is. |
-| Scalar brightness | Sets the brightness of the scalar field. |
-| Vector brightness | Sets the brightness of the vector field. |
-| Save scenario | Saves the current simulation to a file. |
-| Load scenario | Loads a simulation from a file. |
-| Clear all | Removes all materials and resets all fields. |
 | Set fields to zero | Sets all fields to their default values, leaving the materials unchanged. |
-| Advanced settings  | Opens advanced simulation settings window, for advanced users only. |
-| Tool | Selects one of the tools. |
+| Advanced settings | Opens advanced simulation settings window, contains settings to modify physics and material constants. |
 
 ## Tools
 
 |     |     |
 | --- | --- |
 | Interact | Allows user to control voltage sources and turn switches on and off by clicking. |
+| Zoom | Click and drag to zoom into a region. Click to zoom out. |
+| Flashlight | Shines a light on the region under the cursor. Light generates electron and hole pairs. |
 | Draw | Adds material to the field. |
-| Voltage | Adds a voltage probe that measures electrochemical potential at a certain point (See "What do voltmeters actually measure"). |
-| Current  <br>\[click and drag\] | Adds a current probe that measures current across a wire. |
+| Replace | Similar to the draw tool, but overwrites occupied areas. |
+| Line | Draws a line of material. |
+| Fill | Fills a region with a certain material, similar to the bucket tool. |
+| Eraser | Erases material. |
+| Select and move | Makes a rectangular selection which can be dragged around and moved. |
+| Flood select | Selects a contiguous region, similar to the bucket tool. |
+| Text | Place a text cursor allowing text to be typed on the screen. |
+| Voltage probe | Adds a voltage probe that measures electrochemical potential at a certain point (See "What do voltmeters actually measure"). |
+| Current probe | Click and drag to add a current probe that measures current across a wire. |
+| Charge probe | Click and drag to add a charge probe that measures electrical charge within a given region. |
 | Ground | Specifies the point relative to which probes measure voltage (optional). |
 | Delete probe | Click to delete a probe. |
-| Plot bands  <br>\[click and drag, desktop\] | Specifies a 1D line along which the bands are plotted. The plot contains the conduction and valence energy band edges as well as the quasi-Fermi levels of electrons in both bands.<br><br>![Band plot](images/bandplot.png)<br><br>_Valence and conduction band energies shown as solid lines. Quasi-Fermi levels are dashed lines._ |
-| Plot scalar field  <br>\[click and drag, desktop\] | Makes a plot of the currently selected scalar field. |
-| Plot carriers  <br>\[click and drag, desktop\] | Makes a logarithmic plot of the number density of electrons and holes. |
-| Flashlight  <br>\[click and hold, desktop\] | Shines a light on the region under the cursor. Light generates electron and hole pairs. |
-| Replace | Similar to the draw tool, but overwrites occupied areas. |
-| Line  <br>\[click and drag\] | Draws a line of material. |
-| Fill | Fills a region with a certain material, similar to the bucket tool. |
-| Erase | Erases material. |
-| Select | Makes a rectangular selection which can be dragged around and moved. |
-| Select region | Selects a contiguous region, similar to the bucket tool. |
-| Text | Place a text cursor allowing text to be typed on the screen. |
+| Plot bands | Click and drag to plot energy bands along a line. The plot contains the conduction and valence energy band edges as well as the quasi-Fermi levels of electrons and holes.<br><br>![Band plot](images/bandplot.png)<br><br>Valence and conduction band energies shown as solid lines. Quasi-Fermi levels are dashed lines. |
+| Plot scalar field | Click and drag to make a plot of the currently selected scalar field. |
+| Plot carriers | Click an drag to make a logarithmic plot of the number density of electrons and holes. |
 
 ## Keyboard/Mouse Controls
 
@@ -123,43 +164,21 @@ The main way to interact with circuits is to change the strength of voltage sour
 | P or Space | Pause & unpause |
 | F   | Advance frame |
 | Q   | Change brush shape |
-| C   | Toggle material color |
-| V   | Toggle vectors |
-| S   | Toggle scalar colors |
-| T   | Toggle tooltip |
-| G   | Toggle text background |
-| H   | Toggle user interface |
-| Ctrl | Fill area |
+| Mouse wheel | Change brush size |
 | Alt or Option | Pick material |
-| Ctrl-X | Cut |
-| Ctrl-C | Copy |
-| Ctrl-V | Paste |
-| Ctrl-R | Rotate selection |
-| Ctrl-F | Flip horizontally |
-| Ctrl-G | Flip vertically |
-| Ctrl-Z | Undo |
-| Ctrl-Shift-Z | Redo |
-| Ctrl-N | New file |
-| Ctrl-O | Open file |
-| Ctrl-S | Save file |
 | Left mouse | Draw material |
 | Right mouse | Erase material |
 | Middle mouse | Pick material |
-| R | Record probe data (saves to probedata.txt) |
-| 1 | Interact tool |
-| 2 | Draw tool |
-| 3 | Line tool |
-| 4 | Fill tool |
-| 5 | Select tool |
-| [ | Previous tool |
-| ] | Next tool |
+| R   | Record probe data (saves to probedata.txt) |
+| \[  | Previous tool |
+| \]  | Next tool |
 
 ## Materials
 
 |     |     |
 | --- | --- |
-| AC voltage source | Voltage source that oscillates sinusoidally at a fixed frequency. |
 | Voltage source | Generates a voltage that can be used to power circuits. |
+| AC voltage source | Voltage source that oscillates sinusoidally at a fixed frequency. |
 | Switch | Conductivity can be switched on and off by the user. |
 | Metal | Material that conducts electricity very well. |
 | Conductive metal | More conductive than regular metal. |
@@ -183,7 +202,7 @@ The main way to interact with circuits is to change the strength of voltage sour
 
 ![Palette](images/palette.png)
 
-_Colors of all the materials._
+Colors of all the materials.
 
 # Miscellaneous questions and answers
 

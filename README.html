@@ -119,10 +119,12 @@ td:first-child, th:first-child {
           src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js">
   </script>
 
-<h1>Installation Troubleshooting</h1>
-<h2>Running the Program</h2>
+<h1>Installation Instructions and Troubleshooting</h1>
+<h2>Installation</h2>
 <ol>
-  <li>Make sure you have the latest version of Java installed.</li>
+  <li>Make sure you have the latest version of Java installed. Java can be found <a href="https://www.java.com/en/download/manual.jsp">here</a>.</li>
+  <li>Extract the contents of SemiSim.zip into a new folder.</li>
+  <li>Double click SemiSim.jar to run it.</li>
   <li>If SemiSim crashes when loading a file:
     <ul>
       <li>Make sure you have a 64-bit version of Java installed.</li>
@@ -134,16 +136,31 @@ td:first-child, th:first-child {
 <ol>
   <li>If you see "<i>SemiSim.jar cannot be opened because it is from an unidentified developer</i>":
     <ul>
-      <li>Right click "SemiSim.jar" and click <b>Open</b>.</li>
-      <li>Click <b>Open</b> again on the popup window.</li>
+      <li>Right click "SemiSim.jar" and click "Open".</li>
+      <li>Click "Open" again on the popup window.</li>
     </ul>
   </li>
   <li>If you are unable to see and open files:
     <ul>
-      <li>Go into <b>System Preferences → Security → Privacy → Full Disk Access</b>.</li>
-      <li>Add <code>/System/Library/CoreServices/Jar Launcher.app</code> to the list and give it disk access.</li>
+      <li>Go into System Preferences → Security → Privacy → Full Disk Access.</li>
+      <li>Add "/System/Library/CoreServices/Jar Launcher.app" to the list and give it disk access.</li>
     </ul>
   </li>
+</ol>
+
+<h1>Build Instructions</h1>
+
+Clone the repository using
+<code>bash
+git clone https://github.com/StunningLlama/SemiSim.git
+</code><br>
+Note: Building requires JRE 1.8 and Maven for dependency management.
+
+<h2>Eclipse</h2>
+<ol>
+<li>Go to File → Import → Existing Maven Projects</li>
+<li>Select the cloned repository folder</li>
+<li>Click Finish</li>
 </ol>
 
 
@@ -210,7 +227,7 @@ Listed below are the most important variables that capture the state of the simu
 </ul>
 </table>
 * Here free energy is measured per unit of charge instead of per particle, hence the units used are [V] and not [eV].
-<h2>Vector view modes</h2>
+<h2>View options</h2>
   <p><strong>Arrows:</strong> The direction and brightness of arrows corresponds to the direction and magnitude of the vector field. <figure><img src="images/arrows.png" alt="Arrows"></figure></p>
   <p><strong>Lines:</strong> 
 The brightness and density of lines indicates the magnitude of the field. <figure><img src="images/lines.png" alt="Field lines"></figure></p>
@@ -225,43 +242,36 @@ The brightness and density of lines indicates the magnitude of the field. <figur
   <tr><td>Show text background</td><td>Gives text boxes a black background, making the text easier to see.</td></tr>
   <tr><td>Display interface</td><td>Shows probe info, graph locations, time, and tooltip.</td></tr>
   <tr><td>Boundary condition</td><td>Choose between a boundary that absorbs outgoing radiation or a perfectly conductive boundary that reflects it.</td></tr>
-  <tr><td>Scalar view</td><td>Choose which field to display as a color scale over the simulation field.</td></tr>
-  <tr><td>Vector view</td><td>Choose which vector field to visualize (only works for 2D vectors, see "Vector view modes").</td></tr>
   <tr><td>Show material colors</td><td>If checked, gives each material a different color, making them easier to tell apart.</td></tr>
   <tr><td>Timestep</td><td>Sets the simulation timestep. The maximum timestep is determined by the CFL condition for the wave equation and diffusion equations for each charge carrier.</td></tr>
   <tr><td>Sim steps/frame</td><td>Sets the number of iterations performed during each frame. Most of the examples require at least 10 steps/frame to run responsively.
     The maximum number depends on how good the user's computer is.</td></tr>
-  <tr><td>Scalar brightness</td><td>Sets the brightness of the scalar field.</td></tr>
-  <tr><td>Vector brightness</td><td>Sets the brightness of the vector field.</td></tr>
-  <tr><td>Save scenario</td><td>Saves the current simulation to a file.</td></tr>
-  <tr><td>Load scenario</td><td>Loads a simulation from a file. SemiSim comes with a variety of pre-made simulations located in the "examples" folder.</td></tr>
-  <tr><td>Clear all</td><td>Removes all materials and resets all fields.</td></tr>
   <tr><td>Set fields to zero</td><td>Sets all fields to their default values, leaving the materials unchanged.</td></tr>
-  <tr><td>Advanced settings </td><td>Opens advanced simulation settings window, for advanced users only.</td></tr>
-  <tr><td>Tool</td><td>Selects one of the tools.</td></tr>
+  <tr><td>Advanced settings </td><td>Opens advanced simulation settings window, contains settings to modify physics and material constants.</td></tr>
   </table>
 
 <h2>Tools</h2>
 <table>
     <tr><td>Interact</td><td>Allows user to control voltage sources and turn switches on and off by clicking.</td></tr>
+    <tr><td>Zoom</td><td>Click and drag to zoom into a region. Click to zoom out.</td></tr>
+    <tr><td>Flashlight</td><td>Shines a light on the region under the cursor. Light generates electron and hole pairs.</td></tr>
     <tr><td>Draw</td><td>Adds material to the field.</td></tr>
-    <tr><td>Voltage</td><td>Adds a voltage probe that measures electrochemical potential at a certain point (See "What do voltmeters actually measure").</td></tr>
-    <tr><td>Current <br><small>[click and drag]</small></td><td>Adds a current probe that measures current across a wire.
-    </td></tr>
+    <tr><td>Replace</td><td>Similar to the draw tool, but overwrites occupied areas.</td></tr>
+    <tr><td>Line <br><small></small></td><td>Draws a line of material.</td></tr>
+    <tr><td>Fill</td><td>Fills a region with a certain material, similar to the bucket tool.</td></tr>
+    <tr><td>Eraser</td><td>Erases material.</td></tr>
+    <tr><td>Select and move</td><td>Makes a rectangular selection which can be dragged around and moved.</td></tr>
+    <tr><td>Flood select</td><td>Selects a contiguous region, similar to the bucket tool.</td></tr>
+    <tr><td>Text</td><td>Place a text cursor allowing text to be typed on the screen.</td></tr>
+    <tr><td>Voltage probe</td><td>Adds a voltage probe that measures electrochemical potential at a certain point (See "What do voltmeters actually measure").</td></tr>
+    <tr><td>Current probe</td><td>Click and drag to add a current probe that measures current across a wire.</td></tr>
+    <tr><td>Charge probe</td><td>Click and drag to add a charge probe that measures electrical charge within a given region.</td></tr>
     <tr><td>Ground</td><td>Specifies the point relative to which probes measure voltage (optional).</td></tr>
     <tr><td>Delete probe</td><td>Click to delete a probe.</td></tr>
-    <tr><td>Plot bands <br><small>[click and drag]</small></td><td>Specifies a 1D line along which the bands are plotted.
-      The plot contains the conduction and valence energy band edges as well as the quasi-Fermi levels of electrons in both bands.  <figure><img src="images/bandplot.png" alt="Band plot" style="max-width:70%"><figcaption>Valence and conduction band energies shown as solid lines. Quasi-Fermi levels are dashed lines.</figcaption></figure></td></tr>
-    <tr><td>Plot scalar field <br><small>[click and drag]</small></td><td>Makes a plot of the currently selected scalar field.</td></tr>
-    <tr><td>Plot carriers <br><small>[click and drag]</small></td><td>Makes a logarithmic plot of the number density of electrons and holes.</td></tr>
-    <tr><td>Flashlight <br><small>[click and hold]</small></td><td>Shines a light on the region under the cursor. Light generates electron and hole pairs.</td></tr>
-    <tr><td>Replace</td><td>Similar to the draw tool, but overwrites occupied areas.</td></tr>
-    <tr><td>Line <br><small>[click and drag]</small></td><td>Draws a line of material.</td></tr>
-    <tr><td>Fill</td><td>Fills a region with a certain material, similar to the bucket tool.</td></tr>
-    <tr><td>Erase</td><td>Erases material.</td></tr>
-    <tr><td>Select</td><td>Makes a rectangular selection which can be dragged around and moved.</td></tr>
-    <tr><td>Select region</td><td>Selects a contiguous region, similar to the bucket tool.</td></tr>
-    <tr><td>Text</td><td>Place a text cursor allowing text to be typed on the screen.</td></tr>
+    <tr><td>Plot bands</td><td>Click and drag to plot energy bands along a line.
+      The plot contains the conduction and valence energy band edges as well as the quasi-Fermi levels of electrons and holes.  <figure><img src="images/bandplot.png" alt="Band plot" style="max-width:70%"><figcaption>Valence and conduction band energies shown as solid lines. Quasi-Fermi levels are dashed lines.</figcaption></figure></td></tr>
+    <tr><td>Plot scalar field</td><td>Click and drag to make a plot of the currently selected scalar field.</td></tr>
+    <tr><td>Plot carriers</td><td>Click an drag to make a logarithmic plot of the number density of electrons and holes.</td></tr>
 </table>
 
 <h2>Keyboard/Mouse Controls</h2>
@@ -269,34 +279,12 @@ The brightness and density of lines indicates the magnitude of the field. <figur
     <tr><td>P or Space</td><td>Pause &amp; unpause</td></tr>
     <tr><td>F</td><td>Advance frame</td></tr>
     <tr><td>Q</td><td>Change brush shape</td></tr>
-    <tr><td>C</td><td>Toggle material color</td></tr>
-    <tr><td>V</td><td>Toggle vectors</td></tr>
-    <tr><td>S</td><td>Toggle scalar colors</td></tr>
-    <tr><td>T</td><td>Toggle tooltip</td></tr>
-    <tr><td>G</td><td>Toggle text background</td></tr>
-    <tr><td>H</td><td>Toggle user interface</td></tr>
     <tr><td>Mouse wheel</td><td>Change brush size</td></tr>
     <tr><td>Alt or Option</td><td>Pick material</td></tr>
-    <tr><td>Ctrl-X</td><td>Cut</td></tr>
-    <tr><td>Ctrl-C</td><td>Copy</td></tr>
-    <tr><td>Ctrl-V</td><td>Paste</td></tr>
-    <tr><td>Ctrl-R</td><td>Rotate selection</td></tr>
-    <tr><td>Ctrl-F</td><td>Flip horizontally</td></tr>
-    <tr><td>Ctrl-G</td><td>Flip vertically</td></tr>
-    <tr><td>Ctrl-Z</td><td>Undo</td></tr>
-    <tr><td>Ctrl-Shift-Z</td><td>Redo</td></tr>
-    <tr><td>Ctrl-N</td><td>New file</td></tr>
-    <tr><td>Ctrl-O</td><td>Open file</td></tr>
-    <tr><td>Ctrl-S</td><td>Save file</td></tr>
     <tr><td>Left mouse</td><td>Draw material</td></tr>
     <tr><td>Right mouse</td><td>Erase material</td></tr>
     <tr><td>Middle mouse</td><td>Pick material</td></tr>
     <tr><td>R</td><td>Record probe data (saves to probedata.txt)</td></tr>
-    <tr><td>1</td><td>Interact tool</td></tr>
-    <tr><td>2</td><td>Draw tool</td></tr>
-    <tr><td>3</td><td>Line tool</td></tr>
-    <tr><td>4</td><td>Fill tool</td></tr>
-    <tr><td>5</td><td>Select tool</td></tr>
     <tr><td>[</td><td>Previous tool</td></tr>
     <tr><td>]</td><td>Next tool</td></tr>
 </table>
