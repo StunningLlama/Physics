@@ -222,5 +222,5 @@ You might notice that the reading from a voltage probe doesn't match the electri
 
 Because the simulation is in 2D, circuits actually extend infinitely in the z-direction (out of the page), so current flowing through a closed circuit has the same effect as current flowing through a 3D solenoid. If you recall from E&M class, the magnetic field within an infinitely long solenoid is entirely contained within it. This is certainly a point of departure from how we expect circuits to behave. It means that each current loop has its own inductance, and trying to create "inductors" that behave like their 3D counterparts is quite tricky.
 
-Copyright (c) 2025 Brandon Li  
+Copyright (c) 2026 Brandon Li  
 [brandonli.lex@gmail.com](mailto:brandonli.lex@gmail.com)

@@ -1163,7 +1163,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		} else if (ev.getSource() == e.opts.menu_redo) {
 			redo = true;
 		} else if (ev.getSource() == e.opts.menu_about) {
-			JOptionPane.showMessageDialog(e.opts, "Brandon's Semiconductor Simulator / SemiSim.\n (c) 2026 Brandon Li", "About", JOptionPane.INFORMATION_MESSAGE);
+			JOptionPane.showMessageDialog(e.opts, "Brandon's Semiconductor Simulator / SemiSim.\nVersion 1.11\n (c) 2026 Brandon Li", "About", JOptionPane.INFORMATION_MESSAGE);
 		} else if (ev.getSource() == e.opts.menu_img) {
 			SwingUtilities.invokeLater(() -> {
 				ImgDialog dialog = new ImgDialog();
