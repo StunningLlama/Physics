@@ -4,11 +4,15 @@
 
 package electrodynamics;
 import java.awt.BorderLayout;
+import java.awt.Toolkit;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +31,8 @@ import javax.swing.JSeparator;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
 
 import electrodynamics.Controls.Brush;
 import electrodynamics.Renderer.ScalarMode;
@@ -787,6 +793,7 @@ public class Simulation extends PeriodicTask {
 				opts.setTitle("Brandon's semiconductor simulator");
 
 				controls.undoredo.resetUndoHistory(this);
+				controls.resetZoom();
 			}
 
 			renderer.resetChargeDots();
@@ -2021,6 +2028,28 @@ class CurrentProbe {
 	int y2 = 0;
 
 	double current = 0;
+	
+	LabelCoord labelcoord = new LabelCoord();
+	
+	public void calculateDefaultLabelCoords() {
+		double xa = 0.5*(x1+x2);
+		double ya = 0.5*(y1+y2);
+
+		double dx = x2 - x1;
+		double dy = y2 - y1;
+		double len = Utils.length(dx, dy);
+		dx = dx/len;
+		dy = dy/len;
+		if (Math.abs(dx) > Math.abs(dy))
+		{
+			dx = -Math.abs(dx);
+		} else {
+			dy = -2*Math.abs(dy);
+		}
+		
+		labelcoord.x = (int)(xa-3*dy)-2;
+		labelcoord.y = (int)(ya+4*dx)+2;
+	}
 }
 
 class VoltageProbe {
@@ -2028,6 +2057,13 @@ class VoltageProbe {
 	int y = 0;
 
 	double potential = 0;
+
+	LabelCoord labelcoord = new LabelCoord();
+	
+	public void calculateDefaultLabelCoords() {
+		labelcoord.x = x-2;
+		labelcoord.y = y-4;
+	}
 }
 
 class ChargeProbe {
@@ -2038,6 +2074,18 @@ class ChargeProbe {
 	int y2;
 
 	double charge = 0;
+
+	LabelCoord labelcoord = new LabelCoord();
+	
+	public void calculateDefaultLabelCoords() {
+		labelcoord.x = (x1+x2)/2;
+		labelcoord.y = (y1+y2)/2;
+	}
+}
+
+class LabelCoord {
+	int x = -1;
+	int y = -1;
 }
 
 enum Species {
@@ -2113,6 +2161,12 @@ enum MaterialType
 				|| material == MaterialType.SEMI_LIGHT_N_TYPE);
 	}
 
+	public static boolean isInteractable(MaterialType material) {
+		return (material == MaterialType.EMF
+				|| material == MaterialType.AC_EMF
+				|| material == MaterialType.SWITCH);
+	}
+	
 	@Override
 	public String toString() {
 		return "Material: " + name;

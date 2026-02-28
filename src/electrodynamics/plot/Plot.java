@@ -52,10 +52,10 @@ public abstract class Plot {
 	public abstract void updatePlot(Simulation e);
 	
 	public void createPlot(Simulation e) {
-		x1 = e.controls.mx_start_index;
-		y1 = e.controls.my_start_index;
-		x2 = e.controls.mx_index;
-		y2 = e.controls.my_index;
+		x1 = e.controls.mx_start;
+		y1 = e.controls.my_start;
+		x2 = e.controls.mx;
+		y2 = e.controls.my;
 		frame.setVisible(true);
 	}
 }

@@ -90,25 +90,26 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public boolean brush_changed = false;
 
 	public int mousebutton = 0;
+	public int mx_screen = 0;
+	public int my_screen = 0;
+	public int mx_start_screen = 0;
+	public int my_start_screen = 0;
+
 	public int mx = 0;
 	public int my = 0;
 	public int mx_start = 0;
 	public int my_start = 0;
+	public int mxp = 0;
+	public int myp = 0;
 
-	public int mx_index = 0;
-	public int my_index = 0;
-	public int mx_start_index = 0;
-	public int my_start_index = 0;
-
-	public double mx_realspace = 0;
-	public double my_realspace = 0;
-	public double mxp_realspace = 0;
-	public double myp_realspace = 0;
-	public double mx_start_realspace = 0;
-	public double my_start_realspace = 0;
-
-	public int delta_mx_index = 0;
-	public int delta_my_index = 0;
+	public int delta_mx = 0;
+	public int delta_my = 0;
+	
+	public int zoom_i1 = 0;
+	public int zoom_j1 = 0;
+	public int zoom_i2 = 0;
+	public int zoom_j2 = 0;
+	public boolean zoomed = false;
 
 	public boolean EMF_selected = false;
 	public double max_EMF = 5e5;
@@ -142,6 +143,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	//public JCheckBoxMenuItem carriers = new JCheckBoxMenuItem("Show charge carriers");
 	
 	public UndoRedo undoredo = new UndoRedo(4);
+	
+	public LabelCoord labelcoord = null;
 	
 	public Controls(Simulation e) {
 		this.e = e;
@@ -181,33 +184,40 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		}
 		mouse_pressed_prev = mouse_pressed;
 
-		mx_realspace = Math.round((mx-1)/e.renderer.scalefactor_real - 0.5)*e.ds;
-		my_realspace = Math.round((my-1)/e.renderer.scalefactor_real - 0.5)*e.ds;
+		//(mx - 0.5*(e.renderer.scalefactor_real-1))/e.renderer.scalefactor_real
+		
+		if (!zoomed) {
+			mx = (int)Math.round((mx_screen-0.5)/e.renderer.scalefactor_real - 0.5);
+			my = (int)Math.round((my_screen-1.5)/e.renderer.scalefactor_real - 0.5);
 
-		mx_start_realspace =  Math.round((mx_start-1)/e.renderer.scalefactor_real - 0.5)*e.ds;
-		my_start_realspace = Math.round((my_start-1)/e.renderer.scalefactor_real - 0.5)*e.ds;
+			mx_start = (int)Math.round((mx_start_screen-0.5)/e.renderer.scalefactor_real - 0.5);
+			my_start = (int)Math.round((my_start_screen-1.5)/e.renderer.scalefactor_real - 0.5);
+		} else {
+			double sf_x = (zoom_i2-zoom_i1+1)/(double)e.canvas.zoom_bound_x;
+			double sf_y = (zoom_j2-zoom_j1+1)/(double)e.canvas.zoom_bound_y;
 
-		mx_index = (int)Math.round((mx-1)/e.renderer.scalefactor_real - 0.5);
-		my_index = (int)Math.round((my-1)/e.renderer.scalefactor_real - 0.5);
+			mx = (int)Math.round(zoom_i1 + (mx_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
+			my = (int)Math.round(zoom_j1 + (my_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
 
-		mx_start_index = (int)Math.round((mx_start-1)/e.renderer.scalefactor_real - 0.5);
-		my_start_index = (int)Math.round((my_start-1)/e.renderer.scalefactor_real - 0.5);
+			mx_start = (int)Math.round(zoom_i1 + (mx_start_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
+			my_start = (int)Math.round(zoom_j1 + (my_start_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
+		}
 
-		if (mx_index < 0) mx_index = 0;
-		if (my_index < 0) my_index = 0;
-		if (mx_index >= e.nx) mx_index = e.nx-1;
-		if (my_index >= e.ny) my_index = e.ny-1;
+		if (mx < 0) mx = 0;
+		if (my < 0) my = 0;
+		if (mx >= e.nx) mx = e.nx-1;
+		if (my >= e.ny) my = e.ny-1;
 
-		if (mx_start_index < 0) mx_start_index = 0;
-		if (my_start_index < 0) my_start_index = 0;
-		if (mx_start_index >= e.nx) mx_start_index = e.nx-1;
-		if (my_start_index >= e.ny) my_start_index = e.ny-1;
+		if (mx_start < 0) mx_start = 0;
+		if (my_start < 0) my_start = 0;
+		if (mx_start >= e.nx) mx_start = e.nx-1;
+		if (my_start >= e.ny) my_start = e.ny-1;
 
 		e.opts.gui_stepsizelbl.setText("Timestep: " + Utils.getSI(e.dt, "s"));
 		e.opts.gui_stepslbl.setText("Sim steps/frame: " + e.opts.gui_simspeed_2.getValue());
 
-		brushsize = e.ds*(Math.pow(10.0, 2*e.opts.gui_brushsize.getValue()/(50.0*10.0) - 0.75) + e.opts.gui_brushsize.getValue()/10.0 + 0.5);
-		e.opts.lblBrushSize.setText("Brush size: " + (int)Math.ceil(brushsize/e.ds));
+		brushsize = Math.pow(10.0, 2*e.opts.gui_brushsize.getValue()/(50.0*10.0) - 0.75) + e.opts.gui_brushsize.getValue()/10.0 + 0.5;
+		e.opts.lblBrushSize.setText("Brush size: " + (int)Math.ceil(brushsize));
 
 		if (!Brush.isMaterialModifyingBrush(brush))
 		{
@@ -438,7 +448,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case LIGHT:
 
 			if ((mousebutton == MouseEvent.BUTTON2 || alt_down) && pressing) {
-				e.opts.gui_material.setSelectedItem(e.materials[mx_index][my_index].type);
+				e.opts.gui_material.setSelectedItem(e.materials[mx][my].type);
 			}
 
 			double angle = 0;
@@ -480,15 +490,15 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (!(mousebutton == MouseEvent.BUTTON2 || alt_down)) {
 				if (brush == Brush.LINE) {
 					if (releasing) {
-						drawMaterialLine(mx_start_realspace, my_start_realspace, mx_realspace, my_realspace, brush, brushshape, mat, brushsize, angle);
+						drawMaterialLine(mx_start, my_start, mx, my, brush, brushshape, mat, brushsize, angle);
 					}
 				} else if (brush == Brush.FILL) {
 					if (pressing) {
-						MaterialType old_mat = e.materials[mx_index][my_index].type;
+						MaterialType old_mat = e.materials[mx][my].type;
 						MaterialType new_mat = mat;
 						double new_angle = angle;
 						if (new_mat != old_mat) {
-							this.floodFill(mx_index, my_index, new FloodFillFunc() {
+							this.floodFill(mx, my, new FloodFillFunc() {
 								@Override
 								public boolean isValid(int i, int j) {
 									return e.materials[i][j].type == old_mat;
@@ -511,11 +521,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 							{
 								double cx = 0;
 								double cy = 0;
-								cx = i*e.ds;
-								cy = j*e.ds;
+								cx = i;
+								cy = j;
 
-								double px = (cx-mx_realspace);
-								double py = (cy-my_realspace);
+								double px = (cx-mx);
+								double py = (cy-my);
 								double r = 0;
 
 								if (brushshape == BrushShape.CIRCLE)
@@ -537,7 +547,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					}
 				}
 				else if (mouse_pressed) {
-					drawMaterialLine(mxp_realspace, myp_realspace, mx_realspace, my_realspace, brush, brushshape, mat, brushsize, angle);
+					drawMaterialLine(mxp, myp, mx, my, brush, brushshape, mat, brushsize, angle);
 				}
 			}
 
@@ -548,11 +558,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					{
 						double cx = 0;
 						double cy = 0;
-						cx = i*e.ds;
-						cy = j*e.ds;
+						cx = i;
+						cy = j;
 
-						double px = (cx-mx_realspace);
-						double py = (cy-my_realspace);
+						double px = cx-mx;
+						double py = cy-my;
 						double r = 0;
 
 						if (brushshape == BrushShape.CIRCLE)
@@ -567,13 +577,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 
 		case INTERACT:
-			if (e.materials[mx_index][my_index].type == MaterialType.EMF || e.materials[mx_index][my_index].type == MaterialType.AC_EMF || e.materials[mx_index][my_index].type == MaterialType.SWITCH)
+			if (e.materials[mx][my].type == MaterialType.EMF || e.materials[mx][my].type == MaterialType.AC_EMF || e.materials[mx][my].type == MaterialType.SWITCH)
 				e.canvas.setCursor(HAND_CURSOR);
 			else
 				e.canvas.setCursor(DEFAULT_CURSOR);
 
 			if (pressing) {
-				boolean turn_on_EMF = !selected_EMF[mx_index][my_index];
+				boolean turn_on_EMF = !selected_EMF[mx][my];
 
 				for (int i = 0; i < e.nx; i++)
 				{
@@ -584,11 +594,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 				EMF_selected = false;
 
-				if ((e.materials[mx_index][my_index].type == MaterialType.EMF || e.materials[mx_index][my_index].type == MaterialType.AC_EMF) && turn_on_EMF) {
-					this.floodFill(mx_index, my_index, new FloodFillFunc() {
+				if ((e.materials[mx][my].type == MaterialType.EMF || e.materials[mx][my].type == MaterialType.AC_EMF) && turn_on_EMF) {
+					this.floodFill(mx, my, new FloodFillFunc() {
 						@Override
 						public boolean isValid(int i, int j) {
-							return e.materials[i][j].type == e.materials[mx_index][my_index].type && selected_EMF[i][j] != true;
+							return e.materials[i][j].type == e.materials[mx][my].type && selected_EMF[i][j] != true;
 						}
 
 						@Override
@@ -598,15 +608,15 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					});
 					
 					EMF_selected = true;
-					int setting = (int)(Math.round(50*e.materials[mx_index][my_index].emf/max_EMF));
+					int setting = (int)(Math.round(50*e.materials[mx][my].emf/max_EMF));
 					e.opts.gui_parameter3.setValue(setting);
 					prev_EMF_setting = setting;
 				}
 
-				if (e.materials[mx_index][my_index].type == MaterialType.SWITCH) {
-					int active = 1-e.materials[mx_index][my_index].activated;
+				if (e.materials[mx][my].type == MaterialType.SWITCH) {
+					int active = 1-e.materials[mx][my].activated;
 					
-					this.floodFill(mx_index, my_index, new FloodFillFunc() {
+					this.floodFill(mx, my, new FloodFillFunc() {
 						@Override
 						public boolean isValid(int i, int j) {
 							return e.materials[i][j].type == MaterialType.SWITCH && e.materials[i][j].activated != active;
@@ -622,20 +632,33 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 			}
 			break;
+		case ZOOM:
+			if (releasing) {
+				if (mx == mx_start && my == my_start) {
+					zoomed = false;
+				} else {
+					zoom_i1 = Math.min(mx_start, mx);
+					zoom_j1 = Math.min(my_start, my);
+					zoom_i2 = Math.max(mx_start, mx);
+					zoom_j2 = Math.max(my_start, my);
+					zoomed = true;
+				}
+			}
+			break;
 		case FLOODSELECT:
 		case SELECT:
 			if (pressing) {
 				if (brush == Brush.FLOODSELECT && !moving_selection) {
 
-					this.floodFill(mx_index, my_index, new FloodFillFunc() {
+					this.floodFill(mx, my, new FloodFillFunc() {
 						@Override
 						public boolean isValid(int i, int j) {
-							return e.materials[i][j].type == e.materials[mx_index][my_index].type && selected[i][j] != !selected[mx_index][my_index];
+							return e.materials[i][j].type == e.materials[mx][my].type && selected[i][j] != !selected[mx][my];
 						}
 
 						@Override
 						public void fill(int i, int j) {
-							selected[i][j] = !selected[mx_index][my_index];
+							selected[i][j] = !selected[mx][my];
 						}
 					});
 				}
@@ -644,8 +667,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					{
 						for (int j = 0; j < e.ny; j++)
 						{
-							int si = i-delta_mx_index;
-							int sj = j-delta_my_index;
+							int si = i-delta_mx;
+							int sj = j-delta_my;
 							if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && selection[si][sj].m.type != MaterialType.VACUUM) {
 								e.eraseMaterial(i, j);
 								selection[si][sj].paste(e, i, j);
@@ -656,7 +679,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					update = true;
 					moving_selection = false;
 					dragging_selection = false;
-				} else if (!moving_selection && selected[mx_index][my_index]) {
+				} else if (!moving_selection && selected[mx][my]) {
 					for (int i = 0; i < e.nx; i++)
 					{
 						for (int j = 0; j < e.ny; j++)
@@ -672,19 +695,19 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					update = true;
 					moving_selection = true;
 					dragging_selection = true;
-					delta_mx_index = 0;
-					delta_my_index = 0;
+					delta_mx = 0;
+					delta_my = 0;
 				}
 			} else if (mouse_pressed) {
 				if (brush != Brush.FLOODSELECT) {
 					if (dragging_selection) {
-						delta_mx_index = mx_index - mx_start_index;
-						delta_my_index = my_index - my_start_index;
+						delta_mx = mx - mx_start;
+						delta_my = my - my_start;
 					} else {
-						int mx0 = Math.min(mx_start_index, mx_index);
-						int my0 = Math.min(my_start_index, my_index);
-						int mx1 = Math.max(mx_start_index, mx_index);
-						int my1 = Math.max(my_start_index, my_index);
+						int mx0 = Math.min(mx_start, mx);
+						int my0 = Math.min(my_start, my);
+						int mx1 = Math.max(mx_start, mx);
+						int my1 = Math.max(my_start, my);
 
 						for (int i = 0; i < e.nx; i++)
 						{
@@ -700,15 +723,15 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 			} else if (releasing) {
 				if (brush != Brush.FLOODSELECT) {
-					delta_mx_index = mx_index - mx_start_index;
-					delta_my_index = my_index - my_start_index;
+					delta_mx = mx - mx_start;
+					delta_my = my - my_start;
 					if (dragging_selection) {
 						for (int i = 0; i < e.nx; i++)
 						{
 							for (int j = 0; j < e.ny; j++)
 							{
-								int si = i-delta_mx_index;
-								int sj = j-delta_my_index;
+								int si = i-delta_mx;
+								int sj = j-delta_my;
 								if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && selection[si][sj].m.type != MaterialType.VACUUM) {
 									e.eraseMaterial(i, j);
 									selection[si][sj].paste(e, i, j);
@@ -720,7 +743,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						dragging_selection = false;
 						update = true;
 					} else {
-						if (delta_mx_index == 0 && delta_my_index == 0) {
+						if (delta_mx == 0 && delta_my == 0) {
 							for (int i = 0; i < e.nx; i++)
 							{
 								for (int j = 0; j < e.ny; j++)
@@ -732,45 +755,48 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					}
 				}
 			} else {
-				delta_mx_index = mx_index;
-				delta_my_index = my_index;
+				delta_mx = mx;
+				delta_my = my;
 			}
 			break;
 		case CURRENT:
 			if (pressing) {
 				CurrentProbe p = new CurrentProbe();
-				p.x1 = mx_start_index;
-				p.y1 = my_start_index;
-				p.x2 = mx_index;
-				p.y2 = my_index;
+				p.x1 = mx_start;
+				p.y1 = my_start;
+				p.x2 = mx;
+				p.y2 = my;
 				e.currentprobes.add(p);
 			} else if (mouse_pressed) {
-				e.currentprobes.get(e.currentprobes.size()-1).x2 = mx_index;
-				e.currentprobes.get(e.currentprobes.size()-1).y2 = my_index;
+				e.currentprobes.get(e.currentprobes.size()-1).x2 = mx;
+				e.currentprobes.get(e.currentprobes.size()-1).y2 = my;
+				e.currentprobes.get(e.currentprobes.size()-1).calculateDefaultLabelCoords();
 			}
 			break;
 		case VOLTAGE:
 			if (pressing) {
 				VoltageProbe p = new VoltageProbe();
-				p.x = mx_start_index;
-				p.y = my_start_index;
+				p.x = mx_start;
+				p.y = my_start;
 				e.voltageprobes.add(p);
 			} else if (mouse_pressed) {
-				e.voltageprobes.get(e.voltageprobes.size()-1).x = mx_index;
-				e.voltageprobes.get(e.voltageprobes.size()-1).y = my_index;
+				e.voltageprobes.get(e.voltageprobes.size()-1).x = mx;
+				e.voltageprobes.get(e.voltageprobes.size()-1).y = my;
+				e.voltageprobes.get(e.voltageprobes.size()-1).calculateDefaultLabelCoords();
 			}
 			break;
 		case CHARGE:
 				if (pressing) {
 					ChargeProbe p = new ChargeProbe();
-					p.x1 = mx_start_index;
-					p.y1 = my_start_index;
-					p.x2 = mx_index;
-					p.y2 = my_index;
+					p.x1 = mx_start;
+					p.y1 = my_start;
+					p.x2 = mx;
+					p.y2 = my;
 					e.chargeprobes.add(p);
 				} else if (mouse_pressed) {
-					e.chargeprobes.get(e.chargeprobes.size()-1).x2 = mx_index;
-					e.chargeprobes.get(e.chargeprobes.size()-1).y2 = my_index;
+					e.chargeprobes.get(e.chargeprobes.size()-1).x2 = mx;
+					e.chargeprobes.get(e.chargeprobes.size()-1).y2 = my;
+					e.chargeprobes.get(e.chargeprobes.size()-1).calculateDefaultLabelCoords();
 				}
 			break;
 		case DELETEPROBE:
@@ -778,7 +804,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			int i = 0;
 			while(i < e.voltageprobes.size()) {
 				VoltageProbe p = e.voltageprobes.get(i);
-				if (Utils.length(p.x-mx_index, p.y-my_index) < 3) {
+				if (Utils.length(p.x-mx, p.y-my) < 3) {
 					e.canvas.setCursor(HAND_CURSOR);
 					if (pressing) {
 						e.voltageprobes.remove(i);
@@ -791,7 +817,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			i = 0;
 			while(i < e.currentprobes.size()) {
 				CurrentProbe p = e.currentprobes.get(i);
-				if (Utils.length(p.x1-mx_index, p.y1-my_index) < 3 || Utils.length(p.x2-mx_index, p.y2-my_index) < 3) {
+				if (Utils.length(p.x1-mx, p.y1-my) < 3 || Utils.length(p.x2-mx, p.y2-my) < 3) {
 					e.canvas.setCursor(HAND_CURSOR);
 					if (pressing) {
 						e.currentprobes.remove(i);
@@ -804,7 +830,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			i = 0;
 			while(i < e.chargeprobes.size()) {
 				ChargeProbe p = e.chargeprobes.get(i);
-				if (mx_index >= Math.min(p.x1, p.x2) && mx_index <= Math.max(p.x1, p.x2) && my_index >= Math.min(p.y1, p.y2) && my_index <= Math.max(p.y1, p.y2)) {
+				if (mx >= Math.min(p.x1, p.x2) && mx <= Math.max(p.x1, p.x2) && my >= Math.min(p.y1, p.y2) && my <= Math.max(p.y1, p.y2)) {
 					e.canvas.setCursor(HAND_CURSOR);
 					if (pressing) {
 						e.chargeprobes.remove(i);
@@ -814,7 +840,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				i++;
 			}
 			
-			if (e.ground != null && Utils.length(e.ground.x-mx_index, e.ground.y-my_index) < 3) {
+			if (e.ground != null && Utils.length(e.ground.x-mx, e.ground.y-my) < 3) {
 				e.canvas.setCursor(HAND_CURSOR);
 				if (pressing) {
 					e.ground = null;
@@ -822,23 +848,61 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 
 			break;
+		case MOVELABEL:
+			if (pressing) {
+				LabelCoord coord = null;
+				for (VoltageProbe p : e.voltageprobes)
+					coord = selectLabel(p.labelcoord, coord);
+				for (CurrentProbe p : e.currentprobes)
+					coord = selectLabel(p.labelcoord, coord);
+				for (ChargeProbe p : e.chargeprobes)
+					coord = selectLabel(p.labelcoord, coord);
+				if (e.ground != null)
+					coord = selectLabel(e.ground.labelcoord, coord);
+				
+				if (coord != null)
+					labelcoord = coord;
+			} else if (mouse_pressed) {
+				if (labelcoord != null) {
+					labelcoord.x = mx;
+					labelcoord.y = my;
+				}
+			} else if (releasing) {
+				labelcoord = null;
+			} else {
+				e.canvas.setCursor(DEFAULT_CURSOR);
+				LabelCoord coord = null;
+				for (VoltageProbe p : e.voltageprobes)
+					coord = selectLabel(p.labelcoord, coord);
+				for (CurrentProbe p : e.currentprobes)
+					coord = selectLabel(p.labelcoord, coord);
+				for (ChargeProbe p : e.chargeprobes)
+					coord = selectLabel(p.labelcoord, coord);
+				if (e.ground != null)
+					coord = selectLabel(e.ground.labelcoord, coord);
+				
+				if (coord != null)
+					e.canvas.setCursor(HAND_CURSOR);
+			}
+			break;
 		case TEXT:
 			e.canvas.setCursor(HAND_CURSOR);
 			if (mouse_pressed) {
 				startTextInput();
-				text_x = mx_index;
-				text_y = my_index;
+				text_x = mx;
+				text_y = my;
 			}
 			break;
 		case GROUND:
 			if (pressing) {
 				if (e.ground == null)
 					e.ground = new VoltageProbe();
-				e.ground.x = mx_start_index;
-				e.ground.y = my_start_index;
+				e.ground.x = mx_start;
+				e.ground.y = my_start;
 			} else if (mouse_pressed) {
-				e.ground.x = mx_index;
-				e.ground.y = my_index;
+				e.ground.x = mx;
+				e.ground.y = my;
+				e.ground.calculateDefaultLabelCoords();
 			}
 			break;
 		case BANDS:
@@ -879,8 +943,33 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 		prev_boundary = (BoundaryCondition)e.opts.gui_bc.getSelectedItem();
 
-		mxp_realspace = mx_realspace;
-		myp_realspace = my_realspace;
+		mxp = mx;
+		myp = my;
+	}
+	
+	public LabelCoord selectLabel(LabelCoord c_in, LabelCoord c_opt) {
+		if (c_opt == null) {
+			if (Math.abs(c_in.x + 10 - mx) < 10 && Math.abs(c_in.y - 2 - my) < 4) {
+				return c_in;
+			} else {
+				return null;
+			}
+		}
+		
+		return c_opt;
+		//if (Utils.length(c_in.x - mx, c_in.y - my) < Utils.length(c_opt.x - mx, c_opt.y - my)) {
+		//	return c_in;
+		//} else {
+		//	return c_opt;
+		//}
+	}
+	
+	public void resetZoom() {
+		zoom_i1 = 0;
+		zoom_j1 = 0;
+		zoom_i2 = 0;
+		zoom_j2 = 0;
+		zoomed = false;
 	}
 	
 	public void startTextInput() {
@@ -910,8 +999,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			{
 				double cx = 0;
 				double cy = 0;
-				cx = i*e.ds;
-				cy = j*e.ds;
+				cx = i;
+				cy = j;
 
 				a.initialize(x1, y1);
 				b.initialize(x2, y2);
@@ -1074,7 +1163,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		} else if (ev.getSource() == e.opts.menu_redo) {
 			redo = true;
 		} else if (ev.getSource() == e.opts.menu_about) {
-			JOptionPane.showConfirmDialog(e.opts, "Brandon's Semiconductor Simulator (SemiSim).\n (c) 2026 Brandon Li", "About", JOptionPane.OK_OPTION);
+			JOptionPane.showMessageDialog(e.opts, "Brandon's Semiconductor Simulator / SemiSim.\n (c) 2026 Brandon Li", "About", JOptionPane.INFORMATION_MESSAGE);
 		} else if (ev.getSource() == e.opts.menu_img) {
 			SwingUtilities.invokeLater(() -> {
 				ImgDialog dialog = new ImgDialog();
@@ -1118,10 +1207,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public void mousePressed(MouseEvent e) {
 		mouse_pressed = true;
 		mousebutton = e.getButton();
-		mx = e.getX();
-		my = e.getY();
-		mx_start = e.getX();
-		my_start = e.getY();
+		mx_screen = e.getX();
+		my_screen = e.getY();
+		mx_start_screen = e.getX();
+		my_start_screen = e.getY();
 	}
 	@Override
 	public void mouseReleased(MouseEvent e) {
@@ -1130,14 +1219,14 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	@Override
 	public void mouseDragged(MouseEvent e) {
-		mx = e.getX();
-		my = e.getY();
+		mx_screen = e.getX();
+		my_screen = e.getY();
 	}
 
 	@Override
 	public void mouseMoved(MouseEvent arg0) {
-		mx = arg0.getX();
-		my = arg0.getY();
+		mx_screen = arg0.getX();
+		my_screen = arg0.getY();
 	}
 
 	private Action key_pause = new AbstractAction(null) {
@@ -1634,6 +1723,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public enum Brush {
 		INTERACT("Interact"),
 		LIGHT("Flashlight"),
+		ZOOM("Zoom"),
 		DRAW("Draw"),
 		REPLACE("Replace"),
 		LINE("Line"),
@@ -1647,6 +1737,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		CHARGE("Charge probe"),
 		GROUND("Ground"),
 		DELETEPROBE("Delete probe"),
+		MOVELABEL("Move label"),
 		BANDS("Plot bands"),
 		SCALARPLOT("Plot scalar field"),
 		CARRIERPLOT("Plot carriers");

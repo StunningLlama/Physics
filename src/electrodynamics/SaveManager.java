@@ -110,7 +110,7 @@ public class SaveManager {
 				dialog.setVisible(true);
 
 				if (version == 2 || version == 3) {
-
+					setDefaults();
 					int resolution_tmp = e.default_resolution;
 					double width_tmp = e.default_width;
 					VectorMode_old vecmode_old = null;
@@ -128,6 +128,7 @@ public class SaveManager {
 						case "gui_text_bg": e.opts.gui_text_bg.setSelected(fstr.nextBoolean()); break;
 						case "gui_elem_colors": e.opts.gui_elem_colors.setSelected(fstr.nextBoolean()); break;
 						case "gui_interface": e.opts.gui_interface.setSelected(fstr.nextBoolean()); break;
+						case "gui_borders": e.opts.gui_borders.setSelected(fstr.nextBoolean()); break;
 						case "gui_simspeed": e.opts.gui_simspeed.setValue(fstr.nextInt()); break;
 						case "gui_simspeed_2": e.opts.gui_simspeed_2.setValue(fstr.nextInt()); break;
 						case "gui_brightness": e.opts.gui_brightness.setValue(fstr.nextInt()); break;
@@ -208,11 +209,13 @@ public class SaveManager {
 					e.opts.textPane.setCaretPosition(0);
 					e.updateAllMaterials(false);
 					e.calcMiscFields(true);
+					updateLabels();
 					e.controls.undoredo.captureState(e);
 				} else if (version == 1) {
 
 					e.setSize(e.default_resolution, e.default_width);
 					e.resetFields(true);
+					setDefaults();
 					
 					int view_vec_mode = -1;
 
@@ -279,6 +282,7 @@ public class SaveManager {
 					e.opts.textPane.setCaretPosition(0);
 					e.updateAllMaterials(false);
 					e.calcMiscFields(true);
+					updateLabels();
 					e.controls.undoredo.captureState(e);
 				}
 
@@ -296,6 +300,16 @@ public class SaveManager {
 		} finally {
 			e.rwLock.writeLock().unlock();
 		}
+	}
+	
+	public void updateLabels() {
+		for (VoltageProbe p : e.voltageprobes)
+			if (p.labelcoord.x == -1) p.calculateDefaultLabelCoords();
+		for (CurrentProbe p : e.currentprobes)
+			if (p.labelcoord.x == -1) p.calculateDefaultLabelCoords();
+		for (ChargeProbe p : e.chargeprobes)
+			if (p.labelcoord.x == -1) p.calculateDefaultLabelCoords();
+		if (e.ground != null && e.ground.x == -1) e.ground.calculateDefaultLabelCoords();
 	}
 	
 	public void assertNextObject(JsonReader fstr, String name) throws IOException {
@@ -413,6 +427,7 @@ public class SaveManager {
 				header.addProperty("gui_text_bg", e.opts.gui_text_bg.isSelected());
 				header.addProperty("gui_elem_colors", e.opts.gui_elem_colors.isSelected());
 				header.addProperty("gui_interface", e.opts.gui_interface.isSelected());
+				header.addProperty("gui_borders", e.opts.gui_borders.isSelected());
 				header.addProperty("gui_simspeed", e.opts.gui_simspeed.getValue());
 				header.addProperty("gui_simspeed_2", e.opts.gui_simspeed_2.getValue());
 				header.addProperty("gui_brightness", e.opts.gui_brightness.getValue());
@@ -476,6 +491,10 @@ public class SaveManager {
 		} finally {
 			e.rwLock.writeLock().unlock();
 		}
+	}
+	
+	public void setDefaults() {
+		e.opts.gui_borders.setSelected(true);
 	}
 
 	public void writeAdvancedSettings() {
