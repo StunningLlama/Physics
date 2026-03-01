@@ -484,9 +484,9 @@ public class Renderer extends PeriodicTask {
 		setalphaFG(1);
 
 		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
-		boolean showborders = e.opts.gui_borders.isSelected();
+		boolean showborders = e.opts.menu_borders.isSelected();
 
-		if (e.opts.gui_elem_colors.isSelected()) {
+		if (e.opts.menu_elem_colors.isSelected()) {
 			for (int i = 0; i < e.nx; i++) {
 				for (int j = 0; j < e.ny; j++) {
 					setColor(e.materials[i][j].type.color_r, e.materials[i][j].type.color_g, e.materials[i][j].type.color_b);
@@ -525,7 +525,7 @@ public class Renderer extends PeriodicTask {
 		}
 
 		if (e.controls.moving_selection) {
-			if (e.opts.gui_elem_colors.isSelected()) {
+			if (e.opts.menu_elem_colors.isSelected()) {
 				for (int i = 0; i < e.nx; i++) {
 					for (int j = 0; j < e.ny; j++) {
 						int si = i-e.controls.delta_mx;
@@ -831,48 +831,50 @@ public class Renderer extends PeriodicTask {
 		}
 
 
-		if (e.opts.gui_interface.isSelected())
+		if (e.opts.menu_interface.isSelected())
 		{
-			setalphaFG(1.0);
-			setColorFloat(0.5f, 1.0f, 1.0f);
+			if (e.opts.menu_probes.isSelected()) {
+				setalphaFG(1.0);
+				setColorFloat(0.5f, 1.0f, 1.0f);
 
-			for (CurrentProbe p: e.currentprobes) {
-				drawPixelRectangle(p.x1-1, p.y1-1, 3, 3);
-				drawPixelRectangle(p.x2-1, p.y2-1, 3, 3);
-			}
-
-			for (VoltageProbe p: e.voltageprobes) {
-				drawPixelRectangle(p.x-1, p.y-1, 3, 3);
-			}
-			
-			if (e.ground != null) {
-				drawPixelRectangle(e.ground.x-1, e.ground.y-1, 3, 3);
-			}
-
-			setalphaFG(0.3);
-			setColorFloat(0.5f, 1.0f, 1.0f);
-
-			for (CurrentProbe p: e.currentprobes) {
-				drawPixelLine(p.x1, p.y1, p.x2, p.y2);
-				double dx_perp = (p.y2-p.y1);
-				double dy_perp = -(p.x2-p.x1);
-				double norm = Utils.length(dx_perp, dy_perp);
-				if (norm > 0) {
-					dx_perp = dx_perp/norm;
-					dy_perp = dy_perp/norm;
-
-					int dist = 3;
-					
-					setPixel((int)Math.round(p.x1 + dist*dx_perp), (int)Math.round(p.y1+dist*dy_perp));
-					setPixel((int)Math.round(p.x2 + dist*dx_perp), (int)Math.round(p.y2+dist*dy_perp));
+				for (CurrentProbe p: e.currentprobes) {
+					drawPixelRectangle(p.x1-1, p.y1-1, 3, 3);
+					drawPixelRectangle(p.x2-1, p.y2-1, 3, 3);
 				}
-			}
-			
-			for (ChargeProbe p: e.chargeprobes) {
-				drawPixelLine(p.x1, p.y1, p.x2, p.y1);
-				drawPixelLine(p.x2, p.y1, p.x2, p.y2);
-				drawPixelLine(p.x2, p.y2, p.x1, p.y2);
-				drawPixelLine(p.x1, p.y2, p.x1, p.y1);
+
+				for (VoltageProbe p: e.voltageprobes) {
+					drawPixelRectangle(p.x-1, p.y-1, 3, 3);
+				}
+
+				if (e.ground != null) {
+					drawPixelRectangle(e.ground.x-1, e.ground.y-1, 3, 3);
+				}
+
+				setalphaFG(0.3);
+				setColorFloat(0.5f, 1.0f, 1.0f);
+
+				for (CurrentProbe p: e.currentprobes) {
+					drawPixelLine(p.x1, p.y1, p.x2, p.y2);
+					double dx_perp = (p.y2-p.y1);
+					double dy_perp = -(p.x2-p.x1);
+					double norm = Utils.length(dx_perp, dy_perp);
+					if (norm > 0) {
+						dx_perp = dx_perp/norm;
+						dy_perp = dy_perp/norm;
+
+						int dist = 3;
+
+						setPixel((int)Math.round(p.x1 + dist*dx_perp), (int)Math.round(p.y1+dist*dy_perp));
+						setPixel((int)Math.round(p.x2 + dist*dx_perp), (int)Math.round(p.y2+dist*dy_perp));
+					}
+				}
+
+				for (ChargeProbe p: e.chargeprobes) {
+					drawPixelLine(p.x1, p.y1, p.x2, p.y1);
+					drawPixelLine(p.x2, p.y1, p.x2, p.y2);
+					drawPixelLine(p.x2, p.y2, p.x1, p.y2);
+					drawPixelLine(p.x1, p.y2, p.x1, p.y1);
+				}
 			}
 
 			setalphaFG(1.0);
@@ -908,12 +910,12 @@ public class Renderer extends PeriodicTask {
 	}
 	
 	void drawOverlay() {
+		
+		boolean show_carriers = e.opts.gui_carriers.isSelected();
 		delta_t = e.time - t_prev;
 		t_prev = e.time;
 		
-		boolean show_carriers = e.opts.gui_carriers.isSelected();
-		
-		if (show_carriers && !e.opts.gui_paused.isSelected()) {
+		if (show_carriers && (!e.opts.gui_paused.isSelected() || delta_t > 0)) {
 
 			double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_carrier_density.getValue()/20.0);
 
@@ -986,46 +988,44 @@ public class Renderer extends PeriodicTask {
 		RenderingHints.KEY_TEXT_ANTIALIASING,
 		RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-		for (VoltageProbe p: e.voltageprobes) {
+		if (e.opts.menu_probes.isSelected()) {
+			for (VoltageProbe p: e.voltageprobes) {
+				if (e.ground != null)
+					drawMonospacedString("V = " + Utils.getSI_fixedsigfigs(p.potential - e.ground.potential, "V", 1e-6), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+				else
+					drawMonospacedString("V = " + Utils.getSI_fixedsigfigs(p.potential, "V", 1e-6), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+			}
+
 			if (e.ground != null)
-				drawMonospacedString("V = " + Utils.getSI_fixedsigfigs(p.potential - e.ground.potential, "V", 1e-6), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
-			else
-				drawMonospacedString("V = " + Utils.getSI_fixedsigfigs(p.potential, "V", 1e-6), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+				drawMonospacedString("Ground = " + Utils.getSI_fixedsigfigs(e.ground.potential - e.ground.potential, "V", 1e-6), e.ground.labelcoord.x*scalefactor, e.ground.labelcoord.y*scalefactor, g);
+
+			for (CurrentProbe p: e.currentprobes) {
+				drawMonospacedString("I = " + Utils.getSI_fixedsigfigs(p.current*e.depth, "A", 1e-9), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+			}
+
+
+			for (ChargeProbe p: e.chargeprobes) {
+				drawMonospacedString("Q = " + Utils.getSI_fixedsigfigs(p.charge*e.depth, "C"), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+			}
+
+			drawStrings(g);
+			startNewStringLayer();
 		}
-
-		if (e.ground != null)
-			drawMonospacedString("Ground = " + Utils.getSI_fixedsigfigs(e.ground.potential - e.ground.potential, "V", 1e-6), e.ground.labelcoord.x*scalefactor, e.ground.labelcoord.y*scalefactor, g);
-
-		for (CurrentProbe p: e.currentprobes) {
-			drawMonospacedString("I = " + Utils.getSI_fixedsigfigs(p.current*e.depth, "A", 1e-9), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
-		}
-
-
-		for (ChargeProbe p: e.chargeprobes) {
-			drawMonospacedString("Q = " + Utils.getSI_fixedsigfigs(p.charge*e.depth, "C"), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
-		}
-
-		drawStrings(g);
-		startNewStringLayer();
 
 		{
-			double mx_t = e.controls.mx;
-			double my_t = e.controls.my;
-			//double mx_t = (mouseX/(double)scalefactor);
-			//double my_t = (mouseY/(double)scalefactor);
-			int mi = e.controls.mx;
-			int mj = e.controls.my;
+			int mx = e.controls.mx;
+			int my = e.controls.my;
 
-			if (mi < 0)
-				mi = 0;
-			if (mi >= e.nx)
-				mi = e.nx-1;
-			if (mj < 0)
-				mj = 0;
-			if (mj >= e.ny)
-				mj = e.ny-1;
+			if (mx < 0)
+				mx = 0;
+			if (mx >= e.nx)
+				mx = e.nx-1;
+			if (my < 0)
+				my = 0;
+			if (my >= e.ny)
+				my = e.ny-1;
 
-			Material mat = e.materials[mi][mj];
+			Material mat = e.materials[mx][my];
 
 			int vspacing = 12;
 			int voffset = 1 + (int)(e.controls.my_screen*scalefactor/scalefactor_real);
@@ -1034,7 +1034,7 @@ public class Renderer extends PeriodicTask {
 			//int hoffset = 5 + (int)(e.controls.mx*scalefactor)+15;
 
 			if (!e.controls.zoomed) {
-				if (e.opts.gui_tooltip.isSelected()) {
+				if (e.opts.menu_tooltip.isSelected()) {
 					if (voffset + 22*vspacing > e.ny*scalefactor) {
 						voffset = voffset - ((voffset + 22*vspacing) - e.ny*scalefactor);
 					}
@@ -1043,59 +1043,61 @@ public class Renderer extends PeriodicTask {
 					}
 				}
 
-				String name = "Material: " + mat.type.name + (mat.modified? " (Modified)" : "");
-
-				this.drawBigString(name, hoffset, voffset + 1*vspacing, g);
-				if (e.opts.gui_tooltip.isSelected()) {
+				if (e.opts.menu_materialname.isSelected()) {
+					String name = "Material: " + mat.type.name + (mat.modified? " (Modified)" : "");
+					this.drawBigString(name, hoffset, voffset + 1*vspacing, g);
+				}
+				
+				if (e.opts.menu_tooltip.isSelected()) {
 					voffset = voffset+3;
 					int line = 2;
-					drawTwoColumnString("E" , 							Utils.getSI(Utils.bilinearinterp_length(e.Ex, e.Ey, mx_t, my_t, e.nx, e.ny), "V/m", 1e-6), hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("B" , 							Utils.getSI(e.parity*Utils.bilinearinterp(e.Bz, mx_t-0.5, my_t-0.5, e.nx, e.ny), "T", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03d5" , 						Utils.getSI(Utils.bilinearinterp(e.phi,mx_t, my_t, e.nx, e.ny), "V", 1e-6),					hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u2130" , 						Utils.getSI(mat.emf, "V/m", 1e-6),										hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03b5/\u03b5\u2080" , 		Utils.getSI(mat.eps_r, ""),										hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03bc/\u03bc\u2080" , 		Utils.getSI(mat.mu_r, ""),											hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1\u2099" , 				Utils.getSI(Utils.bilinearinterp(e.rho_n, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1\u209A" , 				Utils.getSI(Utils.bilinearinterp(e.rho_p, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1\u2080",					Utils.getSI(Utils.bilinearinterp(e.rho_back, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1" , 						Utils.getSI(Utils.bilinearinterp(e.rho_free, mx_t, my_t, e.nx, e.ny), "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("J\u2099" ,						Utils.getSI(Utils.bilinearinterp_length(e.Jx_n, e.Jy_n, mx_t, my_t, e.nx, e.ny), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("J\u209A" , 					Utils.getSI(Utils.bilinearinterp_length(e.Jx_p, e.Jy_p, mx_t, my_t, e.nx, e.ny), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("J" , 							Utils.getSI(Utils.bilinearinterp_length(e.Jx_free, e.Jy_free, mx_t, my_t, e.nx, e.ny), "A/m^2", 1),	hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("F\u2099" , 					Utils.getSI(Utils.bilinearinterp(e.F_n,mx_t, my_t, e.nx, e.ny)/e.q_n+Utils.bilinearinterp(e.phi,mx_t, my_t, e.nx, e.ny)-e.W_semi/e.eVtoJ, "V", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("F\u209a" , 					Utils.getSI(Utils.bilinearinterp(e.F_p,mx_t, my_t, e.nx, e.ny)/e.q_p+Utils.bilinearinterp(e.phi,mx_t, my_t, e.nx, e.ny)-e.W_semi/e.eVtoJ, "V", 1e-9),	hoffset, voffset + line*vspacing, g); line++;
-					//drawTwoColumnString("E\u2099" , 					Utils.getSI(bilinearinterp(E0_n,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
-					//drawTwoColumnString("E\u209a" , 					Utils.getSI(bilinearinterp(E0_p,mx_t, my_t)/eVtoJ, "eV"),	hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("F" , 							Utils.getSI(Utils.bilinearinterp(e.F,mx_t, my_t, e.nx, e.ny), "V", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
-					//drawTwoColumnString("CMF\u2099" ,					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_n,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_n, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
-					//drawTwoColumnString("CMF\u209A" , 					Utils.getSI(Utils.length(bilinearinterp(e.cmfx_p,mx_t-0.5,my_t), bilinearinterp(e.cmfy_n,mx_t,my_t-0.5))/e.q_p, "V/m", 1e-6),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("x" , 							Utils.getSI(mx_t*e.ds, "m"),								hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("y" , 							Utils.getSI(e.ds*e.ny-(my_t+1)*e.ds, "m"),								hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("E" , 							Utils.getSI(Utils.bilinearinterp_length(e.Ex, e.Ey, mx, my, e.nx, e.ny), "V/m", 1e-6), 				hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("B" , 							Utils.getSI(e.parity*Utils.bilinearinterp(e.Bz, mx-0.5, my-0.5, e.nx, e.ny), "T", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03d5" , 						Utils.getSI(e.phi[mx][my], "V", 1e-6),				hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u2130" , 						Utils.getSI(mat.emf, "V/m", 1e-6),					hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03b5/\u03b5\u2080" , 		Utils.getSI(mat.eps_r, ""),							hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03bc/\u03bc\u2080" , 		Utils.getSI(mat.mu_r, ""),							hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03c1\u2099" , 				Utils.getSI(e.rho_n[mx][my], "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03c1\u209A" , 				Utils.getSI(e.rho_p[mx][my], "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03c1\u2080",					Utils.getSI(e.rho_back[mx][my], "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03c1" , 						Utils.getSI(e.rho_free[mx][my], "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("J\u2099" ,						Utils.getSI(Utils.bilinearinterp_length(e.Jx_n, e.Jy_n, mx, my, e.nx, e.ny), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("J\u209A" , 					Utils.getSI(Utils.bilinearinterp_length(e.Jx_p, e.Jy_p, mx, my, e.nx, e.ny), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("J" , 							Utils.getSI(Utils.bilinearinterp_length(e.Jx_free, e.Jy_free, mx, my, e.nx, e.ny), "A/m^2", 1),		hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("F\u2099" , 					Utils.getSI(e.F_n[mx][my]/e.q_n + e.phi[mx][my] - e.W_semi/e.eVtoJ, "V", 1e-9),						hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("F\u209a" , 					Utils.getSI(e.F_p[mx][my]/e.q_p + e.phi[mx][my] - e.W_semi/e.eVtoJ, "V", 1e-9),						hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("F" , 							Utils.getSI(e.F[mx][my], "V", 1e-9),				hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("x" , 							Utils.getSI(mx*e.ds, "m"),							hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("y" , 							Utils.getSI(e.ds*e.ny-(my+1)*e.ds, "m"),			hoffset, voffset + line*vspacing, g); line++;
 				}
 			}
+			
+			drawStrings(g);
+			startNewStringLayer();
 		}
-
-		drawStrings(g);
-		startNewStringLayer();
 
 		int vspacing = 13;
 		int voffset = 3;
 		int hoffset = 5;
 		int line = 1;
-		drawString("Time: " + Utils.getSI(e.time, "s"), hoffset, voffset + line*vspacing, g); line++;
-		drawString("Steps/s: " + Utils.getSI(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), ""), hoffset, voffset + line*vspacing, g); line++;
 		
-		String sv_a = e.controls.scalarmode.getOption() != ScalarMode.NONE? (e.controls.scalarmode.getOption().shorthand + ": " + e.controls.scalarview.getOption().shorthand) : "";
-		String sv_b = e.controls.vectormode.getOption() != VectorMode.NONE? (e.controls.vectormode.getOption().shorthand + ": " + e.controls.vectorview.getOption().shorthand) : "";
-		String sv = Arrays.asList(sv_a, sv_b).stream().filter(s -> s != null && !s.isEmpty()).collect(Collectors.joining(" / "));
-		drawString(sv, hoffset, voffset + line*vspacing, g); line++;
-		if (e.opts.gui_paused.isSelected())
-		{
-			drawString("Paused", hoffset, voffset + line*vspacing, g); line++;
+		if (e.opts.menu_time.isSelected()) {
+			drawString("Time: " + Utils.getSI(e.time, "s"), hoffset, voffset + line*vspacing, g); line++;
+			drawString("Steps/s: " + Utils.getSI(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), ""), hoffset, voffset + line*vspacing, g); line++;
+
+			String sv_a = e.controls.scalarmode.getOption() != ScalarMode.NONE? (e.controls.scalarmode.getOption().shorthand + ": " + e.controls.scalarview.getOption().shorthand) : "";
+			String sv_b = e.controls.vectormode.getOption() != VectorMode.NONE? (e.controls.vectormode.getOption().shorthand + ": " + e.controls.vectorview.getOption().shorthand) : "";
+			String sv = Arrays.asList(sv_a, sv_b).stream().filter(s -> s != null && !s.isEmpty()).collect(Collectors.joining(" / "));
+			drawString(sv, hoffset, voffset + line*vspacing, g); line++;
+			if (e.opts.gui_paused.isSelected())
+			{
+				drawString("Paused", hoffset, voffset + line*vspacing, g); line++;
+			}
+			if (e.sign_violation) {
+				drawString("Warning: Numerical instability detected. Please decrease timestep.", hoffset, voffset + line*vspacing, g); line++;
+			}
 		}
-		if (e.sign_violation) {
-			drawString("Warning: Numerical instability detected. Please decrease timestep.", hoffset, voffset + line*vspacing, g); line++;
-		}
+		
 		if (e.controls.debugging) {
 			long total = Runtime.getRuntime().totalMemory();
 			long used  = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
@@ -1376,7 +1378,6 @@ public class Renderer extends PeriodicTask {
 
 					boolean show_carriers = e.opts.gui_carriers.isSelected();
 					if (show_carriers) {
-						boolean paused = e.opts.gui_paused.isSelected();
 
 						int lower = lower(ccdots.size());
 						int upper = upper(ccdots.size());
@@ -1388,7 +1389,7 @@ public class Renderer extends PeriodicTask {
 							ChargeCarrierDot d = ccdots.get(i);
 
 							if (d.time > 0) {
-								if (!paused) {
+								if (delta_t > 0) {
 									if (d.species == Species.ELECTRON) {
 										for (int k = 0; k < steps; k++) {
 											double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny));
@@ -1432,7 +1433,7 @@ public class Renderer extends PeriodicTask {
 
 	public void drawStrings(Graphics g) {
 
-		boolean dodraw = e.opts.gui_text_bg.isSelected() && e.opts.gui_interface.isSelected();
+		boolean dodraw = e.opts.menu_text_bg.isSelected() && e.opts.menu_interface.isSelected();
 
 		for (Text text : texts) {
 			text.computeDimensions(g);
@@ -1464,7 +1465,7 @@ public class Renderer extends PeriodicTask {
 			}
 		}
 		
-		dodraw = e.opts.gui_interface.isSelected();
+		dodraw = e.opts.menu_interface.isSelected();
 
 		for (Text text : texts) {
 			if (dodraw || text.isError) {
@@ -1563,17 +1564,17 @@ public class Renderer extends PeriodicTask {
 
 	public enum ScalarView {
 		NONE("No scalar overlay",															"None",		"",				ColorScheme.OTHER,			1),
-		E_FIELD("View: E field magnitude",													"E",		"V/m",			ColorScheme.GREEN,			1),
-		B_FIELD("View: B field",																"B",		"T",			ColorScheme.CYAN_YELLOW,	1e-5),
-		CHARGE("View \u03c1: Net charge density",											"\u03c1",	"C/m^3",		ColorScheme.OTHER,			1e5),
+		E_FIELD("View: E field magnitude",													"E",		"V/m",			ColorScheme.GREEN,			1e5),
+		B_FIELD("View: B field",															"B",		"T",			ColorScheme.CYAN_YELLOW,	1e-5),
+		CHARGE("View \u03c1: Net charge density",											"\u03c1",	"C/m^3",		ColorScheme.OTHER,			1e1),
 		CURRENT("View J: Total current magnitude",											"J",		"A/m^2",		ColorScheme.GREEN,			1e7),
 		H_FIELD("View H field",																"H",		"A/m",			ColorScheme.CYAN_YELLOW,	1e-5/1.257e-6),
 		POTENTIAL("View \u03d5: Electric scalar potential", 								"\u03d5",	"V",			ColorScheme.RED_BLUE,		1),
 		ENERGY("View u: Electromagnetic energy density",									"u",		"J/m^3",		ColorScheme.GREEN,			1),
-		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density",						"\u03c1\u2099",	"C/m^3",		ColorScheme.RED_BLUE,		1),
-		HOLE_CHARGE("View \u03c1\u209A: Hole charge density",								"\u03c1\u209A",	"C/m^3",		ColorScheme.RED_BLUE,		1),
+		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density",						"\u03c1\u2099",	"C/m^3",	ColorScheme.RED_BLUE,		1e1),
+		HOLE_CHARGE("View \u03c1\u209A: Hole charge density",								"\u03c1\u209A",	"C/m^3",	ColorScheme.RED_BLUE,		1e1),
 		COMBINED_CHARGE("View: Combined electron+hole charge density",						"\u03c1\u2099 + \u03c1\u209A",	"log[C/m^3]",	ColorScheme.OTHER,			1),
-		BACKGROUND_CHARGE("View \u03c1\u2080: Static charge density (doping)",				"\u03c1\u2080",	"C/m^3",		ColorScheme.RED_BLUE,		1),
+		BACKGROUND_CHARGE("View \u03c1\u2080: Static charge density (doping)",				"\u03c1\u2080",	"C/m^3",	ColorScheme.RED_BLUE,		1e1),
 		HEAT("View Q: Heat dissipation",													"q",		"W/m^3",		ColorScheme.RED_BLUE,		1e12),
 		ENTROPY("View s: Entropy generation (Free energy dissipation)",						"s",		"J/(m^3 s)",	ColorScheme.RED_BLUE,		1e12),
 		ELECTRON_POTENTIAL("View F\u2099: Electron chemical potential (quasi Fermi level)",	"F\u2099",	"V",			ColorScheme.RED_BLUE, 		1),

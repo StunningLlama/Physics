@@ -1138,7 +1138,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			});
 		} else if (ev.getSource() == e.opts.gui_brush) {
 			e.controls.brush_changed = true;
-		} else if (ev.getSource() == e.opts.gui_adv_settings) {
+		} else if (ev.getSource() == e.opts.menu_advancedsettings) {
 			e.savemanager.writeAdvancedSettings();
 			e.adv_opts.setVisible(true);
 		} else if (ev.getSource() == e.adv_opts.btn_apply) {
@@ -1146,6 +1146,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.adv_opts.setVisible(false);
 		} else if (ev.getSource() == e.adv_opts.btn_cancel) {
 			e.adv_opts.setVisible(false);
+		} else if (ev.getSource() == e.opts.gui_carriers) {
+			e.opts.menu_carriers.setSelected(e.opts.gui_carriers.isSelected());
+		} else if (ev.getSource() == e.opts.menu_carriers) {
+			e.opts.gui_carriers.setSelected(e.opts.menu_carriers.isSelected());
 		} else if (ev.getSource() == e.opts.menu_cut) {
 			cut = true;
 		} else if (ev.getSource() == e.opts.menu_copy) {
@@ -1176,9 +1180,15 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						dialog.dispose();
 					}
 				});
+				dialog.cancelButton.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent ev) { dialog.dispose(); }
+				});
 				dialog.setVisible(true);
 				
 			});
+		} else if (ev.getSource() == e.opts.menu_debug) {
+			debugging = !debugging;
 		} else if (ev.getSource() instanceof JRadioButtonMenuItem) {
 			if (scalarview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null || vectorview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null)
 				e.updateMiscFields = true;
@@ -1247,7 +1257,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		@Override
         public void actionPerformed(ActionEvent ev) {
 			debugging = !debugging;
-			//Timer.allEnabled = debugging;
+			e.opts.menu_debug.setSelected(debugging);
         }
     };
 
@@ -1342,7 +1352,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     private Action key_color = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-    		e.opts.gui_elem_colors.setSelected(!e.opts.gui_elem_colors.isSelected());
+    		e.opts.menu_elem_colors.setSelected(!e.opts.menu_elem_colors.isSelected());
         }
     };
 
@@ -1378,14 +1388,14 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     private Action key_tooltip = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-    		e.opts.gui_tooltip.setSelected(!e.opts.gui_tooltip.isSelected());
+    		e.opts.menu_tooltip.setSelected(!e.opts.menu_tooltip.isSelected());
         }
     };
 
     private Action key_textbg = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-    		e.opts.gui_text_bg.setSelected(!e.opts.gui_text_bg.isSelected());
+    		e.opts.menu_text_bg.setSelected(!e.opts.menu_text_bg.isSelected());
         }
     };
 
@@ -1413,7 +1423,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     private Action key_rendertext = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			e.opts.gui_interface.setSelected(!e.opts.gui_interface.isSelected());
+			e.opts.menu_interface.setSelected(!e.opts.menu_interface.isSelected());
         }
     };
     
@@ -1781,6 +1791,7 @@ class ImgDialog extends JDialog {
 	private final JPanel contentPanel = new JPanel();
 	public JSpinner spinner;
 	public JButton okButton = new JButton("OK");
+	public JButton cancelButton = new JButton("Cancel");
 
 	public ImgDialog() {
 		setBounds(100, 100, 180, 151);
@@ -1793,25 +1804,19 @@ class ImgDialog extends JDialog {
 		lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		lblNewLabel.setBounds(33, 17, 111, 16);
 		contentPanel.add(lblNewLabel);
-		
+
 		spinner = new JSpinner();
 		spinner.setBounds(33, 37, 111, 26);
 		contentPanel.add(spinner);
-		{
-			JPanel buttonPane = new JPanel();
-			buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
-			getContentPane().add(buttonPane, BorderLayout.SOUTH);
-			{
-				okButton.setActionCommand("OK");
-				buttonPane.add(okButton);
-				getRootPane().setDefaultButton(okButton);
-			}
-			{
-				JButton cancelButton = new JButton("Cancel");
-				cancelButton.setActionCommand("Cancel");
-				buttonPane.add(cancelButton);
-			}
-		}
+
+		JPanel buttonPane = new JPanel();
+		buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		getContentPane().add(buttonPane, BorderLayout.SOUTH);
+		
+		buttonPane.add(okButton);
+		getRootPane().setDefaultButton(okButton);
+		
+		buttonPane.add(cancelButton);
 	}
 }
 

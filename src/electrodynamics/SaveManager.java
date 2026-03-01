@@ -124,16 +124,19 @@ public class SaveManager {
 						case "time": e.time = fstr.nextDouble(); break;
 						case "phase": e.AC_phase = fstr.nextDouble(); break;
 						case "gui_paused": e.opts.gui_paused.setSelected(fstr.nextBoolean()); break;
-						case "gui_tooltip": e.opts.gui_tooltip.setSelected(fstr.nextBoolean()); break;
-						case "gui_text_bg": e.opts.gui_text_bg.setSelected(fstr.nextBoolean()); break;
-						case "gui_elem_colors": e.opts.gui_elem_colors.setSelected(fstr.nextBoolean()); break;
-						case "gui_interface": e.opts.gui_interface.setSelected(fstr.nextBoolean()); break;
-						case "gui_borders": e.opts.gui_borders.setSelected(fstr.nextBoolean()); break;
+						case "gui_tooltip": e.opts.menu_tooltip.setSelected(fstr.nextBoolean()); break;
+						case "gui_text_bg": e.opts.menu_text_bg.setSelected(fstr.nextBoolean()); break;
+						case "gui_elem_colors": e.opts.menu_elem_colors.setSelected(fstr.nextBoolean()); break;
+						case "gui_interface": e.opts.menu_interface.setSelected(fstr.nextBoolean()); break;
+						case "gui_borders": e.opts.menu_borders.setSelected(fstr.nextBoolean()); break;
+						case "gui_carriers": e.opts.gui_carriers.setSelected(fstr.nextBoolean()); break;
+						case "show_material": e.opts.menu_materialname.setSelected(fstr.nextBoolean()); break;
+						case "show_probes": e.opts.menu_probes.setSelected(fstr.nextBoolean()); break;
+						case "show_time": e.opts.menu_time.setSelected(fstr.nextBoolean()); break;
 						case "gui_simspeed": e.opts.gui_simspeed.setValue(fstr.nextInt()); break;
 						case "gui_simspeed_2": e.opts.gui_simspeed_2.setValue(fstr.nextInt()); break;
 						case "gui_brightness": e.opts.gui_brightness.setValue(fstr.nextInt()); break;
 						case "gui_brightness_vec": e.opts.gui_brightness_vec.setValue(fstr.nextInt()); break;
-						case "gui_carriers": e.opts.gui_carriers.setSelected(fstr.nextBoolean()); break;
 						case "gui_carrier_density": e.opts.gui_carrier_density.setValue(fstr.nextInt()); break;
 						case "description": e.opts.textPane.setText(fstr.nextString()); break;
 						case "gui_view": e.controls.scalarview.setOption(gson.fromJson(fstr, Renderer.ScalarView.class)); break; // ver 2
@@ -151,6 +154,7 @@ public class SaveManager {
 					if (vecmode_old != null)
 						vecmode_old.applySetting(e);
 					fstr.endObject();
+					e.opts.menu_carriers.setSelected(e.opts.gui_carriers.isSelected());
 
 					e.setSize(resolution_tmp, width_tmp);
 					e.resetFields(true);
@@ -199,7 +203,6 @@ public class SaveManager {
 						fstr.endObject();
 						e.advsettings_tweaked = true;
 					} else {
-						readDefaultSettings();
 						e.advsettings_tweaked = false;
 					}
 
@@ -224,8 +227,8 @@ public class SaveManager {
 						switch (name){
 						case "time": e.time = fstr.nextDouble(); break;
 						case "gui_paused": e.opts.gui_paused.setSelected(fstr.nextBoolean()); break;
-						case "gui_tooltip": e.opts.gui_tooltip.setSelected(fstr.nextBoolean()); break;
-						case "gui_text_bg": e.opts.gui_text_bg.setSelected(fstr.nextBoolean()); break;
+						case "gui_tooltip": e.opts.menu_tooltip.setSelected(fstr.nextBoolean()); break;
+						case "gui_text_bg": e.opts.menu_text_bg.setSelected(fstr.nextBoolean()); break;
 						case "gui_view": e.controls.scalarview.setOption(fstr.nextInt()); break;
 						case "gui_view_vec": e.controls.vectorview.setOption(fstr.nextInt()); break;
 						case "gui_view_vec_mode": view_vec_mode = fstr.nextInt(); break;
@@ -233,7 +236,7 @@ public class SaveManager {
 						case "gui_simspeed_2": e.opts.gui_simspeed_2.setValue(fstr.nextInt()); break;
 						case "gui_brightness": e.opts.gui_brightness.setValue(fstr.nextInt()); break;
 						case "gui_brightness_vec": e.opts.gui_brightness_vec.setValue(fstr.nextInt()); break;
-						case "gui_elem_colors": e.opts.gui_elem_colors.setSelected(fstr.nextBoolean()); break;
+						case "gui_elem_colors": e.opts.menu_elem_colors.setSelected(fstr.nextBoolean()); break;
 						case "gui_bc": e.opts.gui_bc.setSelectedIndex(fstr.nextInt()); break;
 						case "description": e.opts.textPane.setText(fstr.nextString()); break;
 
@@ -272,11 +275,9 @@ public class SaveManager {
 						vecmode_old.applySetting(e);
 					}
 
-					e.opts.gui_interface.setSelected(true);
+					e.opts.menu_interface.setSelected(true);
 					fstr.endObject();
 					fstr.close();
-
-					readDefaultSettings();
 					
 					e.opts.textPane.setEditable(false);
 					e.opts.textPane.setCaretPosition(0);
@@ -423,16 +424,19 @@ public class SaveManager {
 				header.addProperty("time", e.time);
 				header.addProperty("phase", e.AC_phase);
 				header.addProperty("gui_paused", e.opts.gui_paused.isSelected());
-				header.addProperty("gui_tooltip", e.opts.gui_tooltip.isSelected());
-				header.addProperty("gui_text_bg", e.opts.gui_text_bg.isSelected());
-				header.addProperty("gui_elem_colors", e.opts.gui_elem_colors.isSelected());
-				header.addProperty("gui_interface", e.opts.gui_interface.isSelected());
-				header.addProperty("gui_borders", e.opts.gui_borders.isSelected());
+				header.addProperty("gui_tooltip", e.opts.menu_tooltip.isSelected());
+				header.addProperty("gui_text_bg", e.opts.menu_text_bg.isSelected());
+				header.addProperty("gui_elem_colors", e.opts.menu_elem_colors.isSelected());
+				header.addProperty("gui_interface", e.opts.menu_interface.isSelected());
+				header.addProperty("gui_borders", e.opts.menu_borders.isSelected());
+				header.addProperty("show_material", e.opts.menu_materialname.isSelected());
+				header.addProperty("show_probes", e.opts.menu_probes.isSelected());
+				header.addProperty("show_time", e.opts.menu_time.isSelected());
+				header.addProperty("gui_carriers", e.opts.gui_carriers.isSelected());
 				header.addProperty("gui_simspeed", e.opts.gui_simspeed.getValue());
 				header.addProperty("gui_simspeed_2", e.opts.gui_simspeed_2.getValue());
 				header.addProperty("gui_brightness", e.opts.gui_brightness.getValue());
 				header.addProperty("gui_brightness_vec", e.opts.gui_brightness_vec.getValue());
-				header.addProperty("gui_carriers", e.opts.gui_carriers.isSelected());
 				header.addProperty("gui_carrier_density", e.opts.gui_carrier_density.getValue());
 				header.addProperty("description", e.opts.textPane.getText());
 				header.add("scalarview", gson.toJsonTree(e.controls.scalarview.getOption()));
@@ -494,7 +498,7 @@ public class SaveManager {
 	}
 	
 	public void setDefaults() {
-		e.opts.gui_borders.setSelected(true);
+		e.opts.setDefaults();
 	}
 
 	public void writeAdvancedSettings() {
@@ -583,24 +587,6 @@ public class SaveManager {
 			default: fstr.skipValue(); break; // skip others
 			}
 		}
-	}
-	
-	public void storeDefaultSettings() {
-		//Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
-		//JsonObject obj = new JsonObject();
-		//writeAdvancedSettings(gson, obj);
-		//defaultsettings = gson.toJson(obj);
-	}
-	
-	public void readDefaultSettings() {
-		//if (defaultsettings != null) {
-		//	Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
-		//	try {
-		//		readAdvancedSettings (gson, new JsonReader(new StringReader(defaultsettings)));
-		//	} catch (IOException | RuntimeException e) {
-		//		e.printStackTrace();
-		//	}
-		//}
 	}
 
 	public String formatDouble(double d) {

@@ -3,8 +3,6 @@
 // See LICENSE.txt for full license details.
 
 package electrodynamics;
-import java.awt.BorderLayout;
-import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -19,22 +17,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javax.swing.InputMap;
 import javax.swing.JOptionPane;
-import javax.swing.JSeparator;
-import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import electrodynamics.Controls.Brush;
-import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
-import electrodynamics.Renderer.VectorMode;
-import electrodynamics.Renderer.VectorView;
 import electrodynamics.plot.BandPlot;
 import electrodynamics.plot.CarrierPlot;
 import electrodynamics.plot.Plot;
 import electrodynamics.plot.ScalarPlot;
-import electrodynamics.util.MenuBuilder;
 import electrodynamics.util.PeriodicTask;
 import electrodynamics.util.Timer;
 import electrodynamics.util.Utils;
@@ -312,95 +301,20 @@ public class Simulation extends PeriodicTask {
 		opts = new MainWindow();
 		canvas = new RenderCanvas(this);
 		canvas.setFocusable(true);
+		adv_opts = new AdvancedOptions();
+		datafile = new File(datafilename);
 
 		bandplot = new BandPlot(); plots.add(bandplot);
 		scalarplot = new ScalarPlot(); plots.add(scalarplot);
 		carrierplot = new CarrierPlot(); plots.add(carrierplot);
 
 		SemiSim.detect64Bit();
-		
-		savemanager.storeDefaultSettings();
 
 		setSize(default_resolution, default_width);
 		resetFields(true);
 		
-		opts.add(canvas, BorderLayout.CENTER);
-		canvas.addMouseListener(controls);
-		canvas.addMouseMotionListener(controls);
-		canvas.addMouseWheelListener(controls);
-		canvas.addKeyListener(controls);
-		opts.gui_reset.addActionListener(controls);
-		opts.gui_brush.addActionListener(controls);
-		opts.gui_material.addActionListener(controls);
-		opts.gui_adv_settings.addActionListener(controls);
-		
-		opts.menu_open.addActionListener(controls);
-		opts.menu_save.addActionListener(controls);
-		opts.menu_about.addActionListener(controls);
-		opts.menu_help.addActionListener(controls);
-		opts.menu_undo.addActionListener(controls);
-		opts.menu_redo.addActionListener(controls);
-		opts.menu_save.addActionListener(controls);
-		opts.menu_cut.addActionListener(controls);
-		opts.menu_copy.addActionListener(controls);
-		opts.menu_paste.addActionListener(controls);
-		opts.menu_editdesc.addActionListener(controls);
-		opts.menu_new.addActionListener(controls);
-		opts.menu_rotate.addActionListener(controls);
-		opts.menu_flip_v.addActionListener(controls);
-		opts.menu_flip_h.addActionListener(controls);
-		opts.menu_img.addActionListener(controls);
-		
-		opts.gui_brush.addItemListener(controls);
-		
-		
-		controls.brushes.initialize(Brush.values(), opts.menu_tools, controls, Brush.INTERACT, new Brush[] {Brush.DRAW, Brush.VOLTAGE, Brush.BANDS});
-
-		controls.scalarview.initialize(ScalarView.values(), opts.menu_view, controls, ScalarView.CHARGE, null);
-		opts.menu_view.add(new JSeparator());
-		controls.scalarmode.initialize(ScalarMode.values(), opts.menu_view, controls, ScalarMode.COLORS, null);
-		opts.menu_view.add(new JSeparator());
-		controls.vectorview.initialize(VectorView.values(), opts.menu_view, controls, VectorView.E_FIELD, null);
-		opts.menu_view.add(new JSeparator());
-		controls.vectormode.initialize(VectorMode.values(), opts.menu_view, controls, VectorMode.ARROWS, null);
-
-		controls.brushes.buttonmap.get(Brush.INTERACT).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_1, 0));
-		controls.brushes.buttonmap.get(Brush.DRAW).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_2, 0));
-		controls.brushes.buttonmap.get(Brush.LINE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_3, 0));
-		controls.brushes.buttonmap.get(Brush.FILL).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_4, 0));
-		controls.brushes.buttonmap.get(Brush.SELECT).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_5, 0));
-
-		controls.scalarmode.buttonmap.get(ScalarMode.NONE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, 0));
-		controls.vectormode.buttonmap.get(VectorMode.NONE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, 0));
-		
-		MenuBuilder.addDirectoryToMenu(opts.menu_examples, new File("examples"), savemanager.fileextension, (File f) -> savemanager.readfile(f));
-
-		//opts.gui_material.removeItem(MaterialType.ABSORBER);
-		controls.scalarview.removeOption(ScalarView.DEBUG);
-		controls.scalarview.removeOption(ScalarView.NONE);
-		controls.vectorview.removeOption(VectorView.NONE);
-
-		opts.gui_parameter1.setEnabled(true);
-		opts.gui_parameter1.setVisible(true);
-		opts.gui_parameter1_text.setEnabled(true);
-		opts.gui_parameter1_text.setVisible(true);
-
-		opts.pack();
-
-		controls.addKeyBinds(canvas);
-		controls.addKeyBinds(opts.panel);
-
-		adv_opts = new AdvancedOptions();
-		adv_opts.btn_apply.addActionListener(controls);
-		adv_opts.btn_cancel.addActionListener(controls);
-		adv_opts.setVisible(false);
-		
-		InputMap im = (InputMap)UIManager.get("Button.focusInputMap");
-		im.put(KeyStroke.getKeyStroke("pressed SPACE"), "none");
-		im.put(KeyStroke.getKeyStroke("released SPACE"), "none");
-
-
-		datafile = new File(datafilename);
+		opts.initialize(this);
+		adv_opts.initialize(this);
 
 		try {
 			datastream = new PrintWriter(new FileOutputStream(datafile));
@@ -462,6 +376,8 @@ public class Simulation extends PeriodicTask {
     			} else if (updateMiscFields) {
     				calcMiscFields(false);
     			}
+
+    			setDebugInfo();
     			
     			if (numerical_overflow)
     				opts.gui_paused.setSelected(true);
@@ -1256,32 +1172,10 @@ public class Simulation extends PeriodicTask {
 		}
 
 		if (controls.logdata) {
-			String data = "";
-			data += ("t = " + Utils.getSI(time, "s"));
-
-			for (VoltageProbe p: voltageprobes) {
-				if (ground != null)
-					data += (", V(" + Utils.getSI(p.x*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y+1)*ds, "m") + ") = " + Utils.getSI(p.potential-ground.potential, "V"));
-				else
-					data += (", V(" + Utils.getSI(p.x*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y+1)*ds, "m") + ") = " + Utils.getSI(p.potential, "V"));
-			}
-
-			for (CurrentProbe p: currentprobes) {
-				data += (", I(" + Utils.getSI(p.x1*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y1+1)*ds, "m") + " - " + Utils.getSI(p.x2*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y2+1)*ds, "m") + ") = " + Utils.getSI(p.current*depth, "A"));
-			}
-			for (ChargeProbe p: chargeprobes) {
-				data += (", Q(" + Utils.getSI(p.x1*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y1+1)*ds, "m") + " - " + Utils.getSI(p.x2*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y2+1)*ds, "m") + ") = " + Utils.getSI(p.charge*depth, "C"));
-			}
-
-			data += "\n";
-
-			datastream.print(data);
-			datastream.flush();
-
-			renderer.probetexttimer = 30;
+			logProbeData();
 			controls.logdata = false;
 		}
-
+		
 		updateMiscFields = false;
 
 		t8.stop();
@@ -1993,6 +1887,97 @@ public class Simulation extends PeriodicTask {
 				}
 			}
 		}
+	}
+	
+	public void logProbeData() {
+		String data = "";
+		data += ("t = " + Utils.getSI(time, "s"));
+
+		for (VoltageProbe p: voltageprobes) {
+			if (ground != null)
+				data += (", V(" + Utils.getSI(p.x*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y+1)*ds, "m") + ") = " + Utils.getSI(p.potential-ground.potential, "V"));
+			else
+				data += (", V(" + Utils.getSI(p.x*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y+1)*ds, "m") + ") = " + Utils.getSI(p.potential, "V"));
+		}
+
+		for (CurrentProbe p: currentprobes) {
+			data += (", I(" + Utils.getSI(p.x1*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y1+1)*ds, "m") + " - " + Utils.getSI(p.x2*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y2+1)*ds, "m") + ") = " + Utils.getSI(p.current*depth, "A"));
+		}
+		for (ChargeProbe p: chargeprobes) {
+			data += (", Q(" + Utils.getSI(p.x1*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y1+1)*ds, "m") + " - " + Utils.getSI(p.x2*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y2+1)*ds, "m") + ") = " + Utils.getSI(p.charge*depth, "C"));
+		}
+
+		data += "\n";
+
+		datastream.print(data);
+		datastream.flush();
+
+		renderer.probetexttimer = 30;
+	}
+	
+	public String prevDesc = "";
+	
+	public void setDebugInfo() {
+		if (!controls.debugging) {
+			if (prevDesc != "") {
+				opts.textPane.setText(prevDesc);
+				prevDesc = "";
+			}
+
+			return;
+		}
+		
+		if (prevDesc == "")
+			prevDesc = opts.textPane.getText();
+		
+		int mx = controls.mx;
+		int my = controls.my;
+		Material mat = materials[mx][my];
+		
+		String str = "";
+		str += ("x\t"  						+	Utils.getSI(mx*ds, "m") + "\n");
+		str += ("y\t"  						+	Utils.getSI(ds*ny-(my+1)*ds, "m") + "\n");
+		str += "\nFields\n";
+		str += ("E\t"  						+	Utils.getSI(Utils.bilinearinterp_length(Ex, Ey, mx, my, nx, ny), "V/m") + "\n");
+		str += ("D\t"  						+	Utils.getSI(Utils.bilinearinterp_length(Dx, Dy, mx, my, nx, ny), "C/m^2") + "\n");
+		str += ("B\t"  						+	Utils.getSI(parity*Utils.bilinearinterp(Bz, mx-0.5, my-0.5, nx, ny), "T") + "\n");
+		str += ("H\t"  						+	Utils.getSI(parity*Utils.bilinearinterp(Hz, mx-0.5, my-0.5, nx, ny), "A/m") + "\n");
+		str += "\nCharge/current\n";
+		str += ("\u03c1\u2099\t"  			+	Utils.getSI(rho_n[mx][my], "C/m^3") + "\n");
+		str += ("\u03c1\u209A\t"  			+	Utils.getSI(rho_p[mx][my], "C/m^3") + "\n");
+		str += ("\u03c1\u2080\t"			+	Utils.getSI(rho_back[mx][my], "C/m^3") + "\n");
+		str += ("\u03c1 abs\t"				+	Utils.getSI(rho_abs[mx][my], "C/m^3") + "\n");
+		str += ("\u03c1\t"  				+	Utils.getSI(rho_free[mx][my], "C/m^3") + "\n");
+		str += ("J\u2099\t" 				+	Utils.getSI(Utils.bilinearinterp_length(Jx_n, Jy_n, mx, my, nx, ny), "A/m^2") + "\n");
+		str += ("J\u209A\t"  				+	Utils.getSI(Utils.bilinearinterp_length(Jx_p, Jy_p, mx, my, nx, ny), "A/m^2") + "\n");
+		str += ("J abs\t"  					+	Utils.getSI(Utils.bilinearinterp_length(Jx_abs, Jy_abs, mx, my, nx, ny), "A/m^2") + "\n");
+		str += ("J\t"  						+	Utils.getSI(Utils.bilinearinterp_length(Jx_free, Jy_free, mx, my, nx, ny), "A/m^2") + "\n");
+		str += "\nThermodynamic quantities\n";
+		str += ("S\t"  						+	Utils.getSI(Utils.bilinearinterp_length(Sx, Sy, mx, my, nx, ny), "W/m^2") + "\n");
+		str += ("u\t"  						+	Utils.getSI(u[mx][my], "J/m^3") + "\n");
+		str += ("\u03d5\t"  				+	Utils.getSI(phi[mx][my], "V") + "\n");
+		str += ("F\u2099\t"  				+	Utils.getSI(F_n[mx][my]/q_n + phi[mx][my] - W_semi/eVtoJ, "V") + "\n");
+		str += ("F\u209a\t"  				+	Utils.getSI(F_p[mx][my]/q_p + phi[mx][my] - W_semi/eVtoJ, "V") + "\n");
+		str += ("F\t"  						+	Utils.getSI(F[mx][my], "V") + "\n");
+		str += ("G\t"  						+	Utils.getSI(G[mx][my], "/m^3 s") + "\n");
+		str += ("R\t"  						+	Utils.getSI(R[mx][my], "/m^3 s") + "\n");
+		str += ("Electron CMF\t"  			+	Utils.getSI(Utils.bilinearinterp_length(cmfy_n, cmfy_n, mx, my, nx, ny), "J/m") + "\n");
+		str += ("Hole CMF\t"  				+	Utils.getSI(Utils.bilinearinterp_length(cmfy_p, cmfy_p, mx, my, nx, ny), "J/m") + "\n");
+		str += ("EMF\t"  					+	Utils.getSI(Utils.bilinearinterp_length(emfx, emfy, mx, my, nx, ny), "V/m") + "\n");
+		str += "\nMaterial properties\n";
+		str += ("Type\t"  					+	mat.type.name + "\n");
+		str += ("\u2130\t"  				+	Utils.getSI(mat.emf, "V/m") + "\n");
+		str += ("\u03b5/\u03b5\u2080\t" 	+	Utils.getSI(mat.eps_r, "") + "\n");
+		str += ("\u03bc/\u03bc\u2080\t"  	+	Utils.getSI(mat.mu_r, "") + "\n");
+		str += ("ni\t"  					+	Utils.getSI(mat.ni, "/m^3") + "\n");
+		str += ("W\t"  						+	Utils.getSI(mat.W, "eV") + "\n");
+		str += ("Eb\t"  					+	Utils.getSI(mat.Eb, "eV") + "\n");
+		str += ("Ea\t"  					+	Utils.getSI(mat.Ea, "J") + "\n");
+		str += ("Absorptivity\t"  			+	Utils.getSI(mat.absorptivity, "") + "\n");
+		str += ("Conducting\t"  			+	mat.conducting + "\n");
+		str += ("Semicond.\t"  				+	mat.semiconducting + "\n");
+		
+		opts.textPane.setText(str);
 	}
 }
 

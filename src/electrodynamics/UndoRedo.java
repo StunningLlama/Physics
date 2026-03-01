@@ -120,10 +120,10 @@ class Snapshot {
 		//width = e.width;
 		time = e.time;
 		gui_paused = e.opts.gui_paused.isSelected();
-		gui_tooltip = e.opts.gui_tooltip.isSelected();
-		gui_text_bg = e.opts.gui_text_bg.isSelected();
-		gui_elem_colors = e.opts.gui_elem_colors.isSelected();
-		gui_interface = e.opts.gui_interface.isSelected();
+		gui_tooltip = e.opts.menu_tooltip.isSelected();
+		gui_text_bg = e.opts.menu_text_bg.isSelected();
+		gui_elem_colors = e.opts.menu_elem_colors.isSelected();
+		gui_interface = e.opts.menu_interface.isSelected();
 		gui_simspeed = e.opts.gui_simspeed.getValue();
 		gui_simspeed_2 = e.opts.gui_simspeed_2.getValue();
 		gui_brightness = e.opts.gui_brightness.getValue();
@@ -137,7 +137,7 @@ class Snapshot {
 		gui_parameter1 = e.opts.gui_parameter1.getValue();
 		gui_carriers = e.opts.gui_carriers.isSelected();
 		gui_carrier_number = e.opts.gui_carrier_density.getValue();
-		gui_border = e.opts.gui_borders.isSelected();
+		gui_border = e.opts.menu_borders.isSelected();
 
 		ex = copy(e.Ex);
 		ey = copy(e.Ey);
@@ -166,10 +166,10 @@ class Snapshot {
 		//double width_tmp = width;
 		e.time = time;
 		e.opts.gui_paused.setSelected(gui_paused);
-		e.opts.gui_tooltip.setSelected(gui_tooltip);
-		e.opts.gui_text_bg.setSelected(gui_text_bg);
-		e.opts.gui_elem_colors.setSelected(gui_elem_colors);
-		e.opts.gui_interface.setSelected(gui_interface);
+		e.opts.menu_tooltip.setSelected(gui_tooltip);
+		e.opts.menu_text_bg.setSelected(gui_text_bg);
+		e.opts.menu_elem_colors.setSelected(gui_elem_colors);
+		e.opts.menu_interface.setSelected(gui_interface);
 		e.opts.gui_simspeed.setValue(gui_simspeed);
 		e.opts.gui_simspeed_2.setValue(gui_simspeed_2);
 		e.opts.gui_brightness.setValue(gui_brightness);
@@ -181,9 +181,9 @@ class Snapshot {
 		e.controls.vectormode.setOption(gui_view_vec_mode);
 		e.opts.gui_bc.setSelectedItem(gui_bc);
 		e.opts.gui_parameter1.setValue(gui_parameter1);
-		e.opts.gui_carriers.setSelected(gui_carriers);
+		e.opts.gui_carriers.setSelected(gui_carriers); e.opts.menu_carriers.setSelected(gui_carriers);
 		e.opts.gui_carrier_density.setValue(gui_carrier_number);
-		e.opts.gui_borders.setSelected(gui_border);
+		e.opts.menu_borders.setSelected(gui_border);
 
 		//e.setSize(resolution_tmp, width_tmp);
 		//e.resetFields(true);

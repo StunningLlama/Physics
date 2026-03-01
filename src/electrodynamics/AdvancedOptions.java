@@ -228,4 +228,10 @@ public class AdvancedOptions extends JFrame {
 		T.setBounds(498, 237, 98, 26);
 		contentPane.add(T);
 	}
+	
+	public void initialize(Simulation e) {
+		btn_apply.addActionListener(e.controls);
+		btn_cancel.addActionListener(e.controls);
+		setVisible(false);
+	}
 }
