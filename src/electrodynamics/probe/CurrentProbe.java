@@ -73,7 +73,7 @@ public class CurrentProbe extends Probe {
 		}
 
 		current = J*e.depth;
-		if (savedatapoint) data.addData(current);
+		if (savedatapoint) data.addData(current, e.time);
 	}
 
 	public double accumCurrent(int x0, int y0, int x1, int y1, double[][] Jx, double[][] Jy, double ds) {

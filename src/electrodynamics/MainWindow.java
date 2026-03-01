@@ -38,10 +38,12 @@ import java.awt.event.KeyEvent;
 import java.io.File;
 import java.awt.event.InputEvent;
 
+import electrodynamics.Controls.Brush;
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
+import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.util.MenuBuilder;
 
 import javax.swing.JCheckBoxMenuItem;
@@ -113,6 +115,8 @@ public class MainWindow extends JFrame {
 	public JCheckBoxMenuItem menu_time;
 	public JMenuItem menu_advancedsettings;
 	public JCheckBoxMenuItem menu_debug;
+	public JScrollBar gui_plotinterval;
+	public JLabel gui_plotinterval_text;
 
 	/**
 	 * Create the frame.
@@ -447,6 +451,18 @@ public class MainWindow extends JFrame {
 						textPane.setMargin(new Insets(4, 4, 4, 4));
 						textPane.setLineWrap(true);
 						textPane.setEditable(false);
+						
+						gui_plotinterval_text = new JLabel("Probe plot interval");
+						gui_plotinterval_text.setBounds(211, 293, 161, 14);
+						panel.add(gui_plotinterval_text);
+						
+						gui_plotinterval = new JScrollBar();
+						gui_plotinterval.setValue(10);
+						gui_plotinterval.setMinimum(1);
+						gui_plotinterval.setOrientation(JScrollBar.HORIZONTAL);
+						gui_plotinterval.setMaximum(60);
+						gui_plotinterval.setBounds(201, 314, 171, 17);
+						panel.add(gui_plotinterval);
 	}
 
 	public void addTooltips(JComboBox box) {
@@ -478,6 +494,7 @@ public class MainWindow extends JFrame {
 		menu_probes.setSelected(true);
 		menu_time.setSelected(true);
 		gui_carriers.setSelected(false);
+		gui_brush.setSelectedItem(Brush.INTERACT);
 	}
 	
 	public void initialize(Simulation e) {

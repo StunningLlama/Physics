@@ -25,7 +25,6 @@ import electrodynamics.plot.CarrierPlot;
 import electrodynamics.plot.Plot;
 import electrodynamics.plot.ProbePlot;
 import electrodynamics.plot.ScalarPlot;
-import electrodynamics.probe.Probe;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
 import electrodynamics.probe.VoltageProbe;
@@ -50,7 +49,7 @@ public class Simulation extends PeriodicTask {
 	
 	/* Parts */
 	
-	public RenderCanvas canvas;
+	public Renderer.RenderCanvas canvas;
 	public MainWindow opts;
 	public AdvancedOptions adv_opts;
 	public Renderer renderer;
@@ -149,6 +148,10 @@ public class Simulation extends PeriodicTask {
 	public double E_b_metal = 1.12*eVtoJ;			// Same as semiconductor
 	public double recomb_rate_metal = 1e8/ni_semi;
 
+	public double ni_currentsource = ni_metal;
+	public double currentsource_mobility = 0.0002;
+	public double currentsource_sigma = ni_currentsource*e_charge*(mu_electron + mu_hole)*currentsource_mobility;
+
 	// Only reason activation energy needed is to smoothly public interpolate rate constant
 	public double recomb_cross_section = 1e-10;
 	public double arrhenius_prefactor = recomb_cross_section*Math.sqrt(8*(k*T)/(Math.PI*e_mass/2));
@@ -246,12 +249,13 @@ public class Simulation extends PeriodicTask {
 	public double[][] cmfx_p;		// Chemical-motive force for holes
 	public double[][] cmfy_p;
 
-	public double[][] emfx;		// External electromotive force
+	public double[][] emfx;					// External electromotive force
 	public double[][] emfy;
-	public double[][] epsx;		// Dielectric constant
+	public double[][] epsx;					// Dielectric constant
 	public double[][] epsy;
-	public double[][] mu_z;		// Relative permeability
+	public double[][] mu_z;					// Relative permeability
 
+	public double[][] relative_mobility;	// Mobility relative to metal
 	public int[][] conducting;		// Does the material have partially filled bands
 	public int[][] conducting_x;
 	public int[][] conducting_y;
@@ -307,7 +311,7 @@ public class Simulation extends PeriodicTask {
 		renderer = new Renderer(this);
 		savemanager = new SaveManager(this);
 		opts = new MainWindow();
-		canvas = new RenderCanvas(this);
+		canvas = renderer.new RenderCanvas(this);
 		canvas.setFocusable(true);
 		adv_opts = new AdvancedOptions();
 		datafile = new File(datafilename);
@@ -315,9 +319,9 @@ public class Simulation extends PeriodicTask {
 		bandplot = new BandPlot(); plots.add(bandplot);
 		scalarplot = new ScalarPlot(); plots.add(scalarplot);
 		carrierplot = new CarrierPlot(); plots.add(carrierplot);
-		voltageprobeplot = new ProbePlot("Voltage plot", "Voltage [V]", "V", 1); plots.add(voltageprobeplot);
-		currentprobeplot = new ProbePlot("Current plot", "Current [A]", "I", 1); plots.add(currentprobeplot);
-		chargeprobeplot = new ProbePlot("Charge plot", "Charge [fC]", "Q", 1e15); plots.add(chargeprobeplot);
+		voltageprobeplot = new ProbePlot("Voltage probe plot", "Voltage [V]", "V", 1); plots.add(voltageprobeplot);
+		currentprobeplot = new ProbePlot("Current probe plot", "Current [A]", "I", 1); plots.add(currentprobeplot);
+		chargeprobeplot = new ProbePlot("Charge probe plot", "Charge [fC]", "Q", 1e15); plots.add(chargeprobeplot);
 		
 		for (Plot p : plots)
 			p.initalize();
@@ -486,6 +490,7 @@ public class Simulation extends PeriodicTask {
 			rho_back = new double[nx][ny];
 			rho_free = new double[nx][ny];
 			mobility_factor = new double[nx][ny];
+			relative_mobility = new double[nx][ny];
 
 			Jx_abs = new double[nx][ny];
 			Jy_abs = new double[nx][ny];
@@ -623,6 +628,8 @@ public class Simulation extends PeriodicTask {
 						epsy[i][j] = eps0;
 						mu_z[i][j] = mu0;
 
+						relative_mobility[i][j] = 1.0;
+
 						conducting[i][j] = 0;
 						conducting_x[i][j] = 0;
 						conducting_y[i][j] = 0;
@@ -633,6 +640,9 @@ public class Simulation extends PeriodicTask {
 						absorptivity[i][j] = 0;
 						absorptivity_x[i][j] = 0;
 						absorptivity_y[i][j] = 0;
+
+						controls.selected[i][j] = false;
+						controls.selected_EMF[i][j] = false;
 					}
 
 					Ex [i][j] = 0.0;
@@ -693,13 +703,15 @@ public class Simulation extends PeriodicTask {
 					S[i][j] = 0.0;
 					F[i][j] = 0.0;
 					debug[i][j] = 0.0;
-
-					controls.selected[i][j] = false;
-					controls.selected_EMF[i][j] = false;
 				}
+			}
+			
+			if (resetall) {
+				controls.EMF_selected = false;
 			}
 
 			numerical_overflow = false;
+			sign_violation = false;
 			
 			if (resetall) {
 				voltageprobes.clear();
@@ -716,6 +728,11 @@ public class Simulation extends PeriodicTask {
 				controls.undoredo.resetUndoHistory(this);
 				controls.resetZoom();
 			}
+			
+			for (VoltageProbe p : voltageprobes) p.data.resetData();
+			for (CurrentProbe p : currentprobes) p.data.resetData();
+			for (ChargeProbe p : chargeprobes) p.data.resetData();
+			if (ground != null) ground.data.resetData();
 
 			renderer.resetChargeDots();
 
@@ -887,7 +904,7 @@ public class Simulation extends PeriodicTask {
 								rho_free[i][j] = rho_abs[i][j]+rho_n[i][j]+rho_p[i][j]+rho_back[i][j];
 
 								double E_avg = Math.sqrt(0.5*(Ex[i][j]*Ex[i][j] + Ex[i-1][j]*Ex[i-1][j] + Ey[i][j]*Ey[i][j] + Ey[i][j-1]*Ey[i][j-1]));
-								mobility_factor[i][j] = Math.min(1, E_sat/E_avg);
+								mobility_factor[i][j] = Math.min(relative_mobility[i][j], E_sat/E_avg);
 							}
 						}
 					}
@@ -1174,15 +1191,15 @@ public class Simulation extends PeriodicTask {
 			ground.calcVoltage(this, false);
 
 		for (VoltageProbe p: voltageprobes) {
-			p.calcVoltage(this, frame%10 == 0);
+			p.calcVoltage(this, frame%controls.plotinterval == 0);
 		}
 
 		for (CurrentProbe p: currentprobes) {
-			p.calcCurrent(this, frame%10 == 0);
+			p.calcCurrent(this, frame%controls.plotinterval == 0);
 		}
 		
 		for (ChargeProbe p: chargeprobes) {
-			p.calcCharge(this, frame%10 == 0);
+			p.calcCharge(this, frame%controls.plotinterval == 0);
 		}
 
 		if (controls.logdata) {
@@ -1316,6 +1333,7 @@ public class Simulation extends PeriodicTask {
 			{
 				rho_back[i][j] = materials[i][j].rho_back;
 				conducting[i][j] = materials[i][j].conducting*materials[i][j].activated;
+				relative_mobility[i][j] = (materials[i][j].type == MaterialType.CURRENT)? currentsource_mobility : 1;
 			}
 		}
 		for (int i = 0; i < nx-1; i++)
@@ -1525,7 +1543,7 @@ public class Simulation extends PeriodicTask {
 		else if (material == MaterialType.POS_CHARGE) materials[i][j].rho_back = staticcharge_density;
 		else if (material == MaterialType.NEG_CHARGE) materials[i][j].rho_back = -staticcharge_density;
 
-		if (MaterialType.isConducting(material))
+		if (material.isConducting())
 		{
 			materials[i][j].conducting = 1;
 			materials[i][j].ni = ni_metal;
@@ -1537,9 +1555,10 @@ public class Simulation extends PeriodicTask {
 			else if (material == MaterialType.METAL_LOW_W) materials[i][j].W = W_metal_low;
 			else if (material == MaterialType.METAL_HIGH_C) materials[i][j].ni = ni_metal_high;
 			else if (material == MaterialType.METAL_LOW_C) materials[i][j].ni = ni_metal_low;
+			else if (material == MaterialType.CURRENT) materials[i][j].ni = ni_currentsource;
 		}
 
-		if (MaterialType.isSemiconducting(material))
+		if (material.isSemiconducting())
 		{
 			materials[i][j].conducting = 1;
 			materials[i][j].semiconducting = 1;
@@ -1916,191 +1935,24 @@ public class Simulation extends PeriodicTask {
 		if (index < 26) return String.valueOf((char)('a'+index));
 		return String.valueOf(index - 26);
 	}
-}
-
-enum BoundaryCondition {
-	DISSIPATIVE("Absorbing boundary"),
-	CONDUCTING("Conducting boundary");
-
-	String name;
-	BoundaryCondition(String name)
-	{
-		this.name = name;
-	}
-
-	@Override
-	public String toString() {
-		return name;
-	}
-}
-
-enum Species {
-	ELECTRON, HOLE;
-}
-
-enum MaterialType
-{
-
-	EMF					("Voltage source (Adjustable)",			230, 216, 46, 230),
-	AC_EMF				("AC voltage source (Adjustable)",		230, 150, 216, 230),
-	SWITCH				("Switch",								194, 194, 194, 120),
-	METAL				("Metal",								153, 153, 153, 130),
-	METAL_HIGH_C		("Conductive metal",					191, 191, 191, 130),
-	METAL_LOW_C			("Resistive metal",						94, 94, 94, 130),
-	METAL_HIGH_W		("High workfunction metal",				163, 116, 116, 130),
-	METAL_LOW_W			("Low workfunction metal",				116, 121, 163, 130),
-	SEMI				("Intrinsic semiconductor",				207,  161, 212, 110),
-	SEMI_P_TYPE			("P-type semiconductor",				191,  74,  34, 110),
-	SEMI_N_TYPE			("N-type semiconductor",				 84, 123, 191, 110),
-	SEMI_HEAVY_P_TYPE	("Heavily doped P-type semiconductor",	204,  41,  41, 110),
-	SEMI_HEAVY_N_TYPE	("Heavily doped N-type semiconductor",	 39,  52, 194, 110),
-	SEMI_LIGHT_P_TYPE	("Lightly doped P-type semiconductor",	201, 131,  73, 110),
-	SEMI_LIGHT_N_TYPE	("Lightly doped N-type semiconductor",	137, 188, 204, 110),
-	DIELECTRIC			("Dielectric",							 81, 171,  51, 80),
-	FERROMAGNET			("Ferromagnet",							116, 50, 117, 80),
-	POS_CHARGE			("Positive static charge",				116, 50, 50, 80),
-	NEG_CHARGE			("Negative static charge",				50, 50, 117, 80),
-	DECO				("Decoration",							255, 255, 255, 255),
-	ABSORBER			("Absorber",							 50,  50,  50),
-	VACUUM				("Vacuum",								 20,  20,  20);
-
-	String name;
-	int color_r;
-	int color_g;
-	int color_b;
-	int color_grayscale;
-
-	MaterialType(String name, int r, int g, int b) {
-		this.name = name;
-		color_r = r;
-		color_g = g;
-		color_b = b;
-		color_grayscale = (int)(0.7*Math.max(Math.max(r, g), b));
-	}
-
-	MaterialType(String name, int r, int g, int b, int grayscale_brightness) {
-		this.name = name;
-		color_r = r;
-		color_g = g;
-		color_b = b;
-		color_grayscale = grayscale_brightness;
-	}
-
-	public static boolean isConducting(MaterialType material) {
-		return (material == MaterialType.EMF
-				|| material == MaterialType.AC_EMF
-				|| material == MaterialType.SWITCH
-				|| material == MaterialType.METAL
-				|| material == MaterialType.METAL_HIGH_W
-				|| material == MaterialType.METAL_LOW_W
-				|| material == MaterialType.METAL_HIGH_C
-				|| material == MaterialType.METAL_LOW_C);
-	}
-
-	public static boolean isSemiconducting(MaterialType material) {
-		return (material == MaterialType.SEMI_P_TYPE
-				|| material == MaterialType.SEMI_N_TYPE
-				|| material == MaterialType.SEMI
-				|| material == MaterialType.SEMI_HEAVY_P_TYPE
-				|| material == MaterialType.SEMI_HEAVY_N_TYPE
-				|| material == MaterialType.SEMI_LIGHT_P_TYPE
-				|| material == MaterialType.SEMI_LIGHT_N_TYPE);
-	}
-
-	public static boolean isInteractable(MaterialType material) {
-		return (material == MaterialType.EMF
-				|| material == MaterialType.AC_EMF
-				|| material == MaterialType.SWITCH);
-	}
 	
-	@Override
-	public String toString() {
-		return "Material: " + name;
-	}
-}
+	public enum BoundaryCondition {
+		DISSIPATIVE("Absorbing boundary"),
+		CONDUCTING("Conducting boundary");
 
-class Material implements Cloneable {
-	MaterialType type = MaterialType.VACUUM;
-
-	boolean modified = false;
-	boolean auto_placed = true;
-	int activated = 1;
-	int conducting = 0;
-	int semiconducting = 0;
-	double emf = 0.0;			// EMF strength
-	double emf_direction = 0.0;	// EMF direction
-	double eps_r = 1.0;			// Permittivity
-	double mu_r = 1.0;			// Permeability
-	double rho_back = 0.0;		// Background charge density
-	double ni = 0;				// Equilibrium carrier density
-	double W = 0;				// Work function
-	double Eb = 0;				// Bandgap
-	double Ea = 0;				// Recombination activation energy
-	double absorptivity = 0.0;
-
-	public void erase() {
-		type = MaterialType.VACUUM;
-		modified = false;
-		auto_placed = true;
-		activated = 1;
-		conducting = 0;
-		semiconducting = 0;
-		emf = 0.0;
-		emf_direction = 0.0;
-		eps_r = 1.0;
-		mu_r = 1.0;
-		rho_back = 0.0;
-		ni = 0;
-		W = 0;
-		Eb = 0;
-		Ea = 0;
-		absorptivity = 0;
-	}
-
-    @Override
-    public Material clone() {
-        try {
-			return (Material) super.clone();
-		} catch (CloneNotSupportedException e) {
-			return null;
+		String name;
+		BoundaryCondition(String name)
+		{
+			this.name = name;
 		}
-    }
-}
 
-class ClipboardMaterial implements Cloneable {
-	double rho_n = 0;
-	double rho_p = 0;
-	Material m = new Material();
-	
-	public ClipboardMaterial() {};
+		@Override
+		public String toString() {
+			return name;
+		}
+	}
 
-	public ClipboardMaterial(Material m) {
-		this.m = m.clone();
+	public enum Species {
+		ELECTRON, HOLE;
 	}
-	
-    public ClipboardMaterial(Simulation e, int i, int j) {
-    	this(e.materials[i][j]);
-    	rho_n = e.rho_n[i][j];
-    	rho_p = e.rho_p[i][j];
-    }
-    
-    public void paste(Simulation e, int i, int j) {
-    	e.materials[i][j] = m.clone();
-    	e.rho_n[i][j] = rho_n;
-    	e.rho_p[i][j] = rho_p;
-    }
-	
-	public void erase() {
-		m.erase();
-		rho_n = 0;
-		rho_p = 0;
-	}
-	
-    @Override
-    public ClipboardMaterial clone() {
-        ClipboardMaterial mat = new ClipboardMaterial(m);
-        mat.rho_n = rho_n;
-        mat.rho_p = rho_p;
-        return mat;
-    }
 }

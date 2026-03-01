@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import javax.swing.JPanel;
 
 import electrodynamics.Controls.Brush;
+import electrodynamics.Simulation.Species;
 import electrodynamics.plot.Plot;
 import electrodynamics.plot.ProbePlot;
 import electrodynamics.probe.ChargeProbe;
@@ -723,7 +724,7 @@ public class Renderer extends PeriodicTask {
 		for (int i = 0; i < e.nx; i++) {
 			for (int j = 0; j < e.ny; j++) {
 				MaterialType type = e.materials[i][j].type;
-				if (MaterialType.isInteractable(type) && i > 0 && j > 0 && i < e.nx-1 && j < e.ny-1) {
+				if (type.isInteractable() && i > 0 && j > 0 && i < e.nx-1 && j < e.ny-1) {
 					int ci = 0;
 					int cj = 0;
 					int shading = 0;
@@ -880,6 +881,26 @@ public class Renderer extends PeriodicTask {
 					drawPixelLine(p.x2, p.y1, p.x2, p.y2);
 					drawPixelLine(p.x2, p.y2, p.x1, p.y2);
 					drawPixelLine(p.x1, p.y2, p.x1, p.y1);
+				}
+				
+
+				setalphaFG(0.1);
+				setColorFloat(1.0f, 1.0f, 1.0f);
+				
+				for (CurrentProbe p: e.currentprobes) {
+					drawPixelLine((p.x1 + p.x2)/2, (p.y1+p.y2)/2, p.labelcoord.x, p.labelcoord.y);
+				}
+
+				for (VoltageProbe p: e.voltageprobes) {
+					drawPixelLine(p.x, p.y, p.labelcoord.x, p.labelcoord.y);
+				}
+				
+				for (ChargeProbe p: e.chargeprobes) {
+					drawPixelLine((p.x1 + p.x2)/2, (p.y1+p.y2)/2, p.labelcoord.x, p.labelcoord.y);
+				}
+
+				if (e.ground != null) {
+					drawPixelLine(e.ground.x, e.ground.y, e.ground.labelcoord.x, e.ground.labelcoord.y);
 				}
 			}
 
@@ -1581,7 +1602,7 @@ public class Renderer extends PeriodicTask {
 		ENERGY("View u: Electromagnetic energy density",									"u",		"J/m^3",		ColorScheme.GREEN,			1),
 		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density",						"\u03c1\u2099",	"C/m^3",	ColorScheme.RED_BLUE,		1e1),
 		HOLE_CHARGE("View \u03c1\u209A: Hole charge density",								"\u03c1\u209A",	"C/m^3",	ColorScheme.RED_BLUE,		1e1),
-		COMBINED_CHARGE("View: Combined electron+hole charge density",						"\u03c1\u2099 + \u03c1\u209A",	"log[C/m^3]",	ColorScheme.OTHER,			1),
+		COMBINED_CHARGE("View: Combined electron+hole charge density",						"\u03c1\u2099 and \u03c1\u209A",	"log[C/m^3]",	ColorScheme.OTHER,			1),
 		BACKGROUND_CHARGE("View \u03c1\u2080: Static charge density (doping)",				"\u03c1\u2080",	"C/m^3",	ColorScheme.RED_BLUE,		1e1),
 		HEAT("View Q: Heat dissipation",													"q",		"W/m^3",		ColorScheme.RED_BLUE,		1e12),
 		ENTROPY("View s: Entropy generation (Free energy dissipation)",						"s",		"J/(m^3 s)",	ColorScheme.RED_BLUE,		1e12),
@@ -1620,8 +1641,8 @@ public class Renderer extends PeriodicTask {
 
 	public enum VectorView {
 		NONE("No vector overlay",							"None",		1),
-		E_FIELD("View E: Electric field",					"E",		1),
-		D_FIELD("View D: Displacement field",				"D",		8.85e-12),
+		E_FIELD("View E: Electric field",					"E",		10),
+		D_FIELD("View D: Displacement field",				"D",		10*8.85e-12),
 		ELECTRON_CURRENT("View J\u2099: Electron current",	"J\u2099",	1),
 		HOLE_CURRENT("View J\u209A: Hole current",			"J\u209A",	1),
 		TOTAL_CURRENT("View J: Total current",				"J",		1),
@@ -1685,7 +1706,7 @@ public class Renderer extends PeriodicTask {
 		}
 	}
 	
-	class Dot {
+	public class Dot {
 		double x = 0;
 		double y = 0;
 		double lifespan = 0;
@@ -1700,7 +1721,7 @@ public class Renderer extends PeriodicTask {
 		}
 	}
 
-	class ChargeCarrierDot extends Dot {
+	public class ChargeCarrierDot extends Dot {
 		Species species;
 		double random_id;
 		
@@ -1710,52 +1731,51 @@ public class Renderer extends PeriodicTask {
 			this.random_id = random_id;
 		}
 	}
-}
+	
+	public class RenderCanvas extends JPanel {
 
+		private static final long serialVersionUID = 7369516276529576171L;
+		public int zoom_bound_x = 0;
+		public int zoom_bound_y = 0;
+		public int offset_x = 0;
+		public int offset_y = 0;
 
-class RenderCanvas extends JPanel {
-
-	private static final long serialVersionUID = 7369516276529576171L;
-	public int zoom_bound_x = 0;
-	public int zoom_bound_y = 0;
-	public int offset_x = 0;
-	public int offset_y = 0;
-
-	Simulation e;
-	@Override
-	public void paintComponent(Graphics real) {
-		Graphics2D g = ((Graphics2D)real);
-		g.setBackground(Color.BLACK);
-		g.clearRect(0, 0, g.getClipBounds().width, g.getClipBounds().height);
-		
-		if (!e.controls.zoomed) {
-			boolean need_to_rescale = (e.renderer.scalefactor*e.ny != e.renderer.canvas_size);
-			if (need_to_rescale)
-				g.drawImage(e.renderer.img_front, 0, 0, e.renderer.canvas_size, e.renderer.canvas_size, e.opts);
-			else
-				g.drawImage(e.renderer.img_front, 0, 0, e.opts);
-		} else {
-			int smin = Math.min(e.controls.zoom_i2 - e.controls.zoom_i1 + 1, e.controls.zoom_j2 - e.controls.zoom_j1 + 1);
-			int smax = Math.max(e.controls.zoom_i2 - e.controls.zoom_i1 + 1, e.controls.zoom_j2 - e.controls.zoom_j1 + 1);
-			int dim2 = (int) e.renderer.canvas_size*smin/smax;
+		Simulation e;
+		@Override
+		public void paintComponent(Graphics real) {
+			Graphics2D g = ((Graphics2D)real);
+			g.setBackground(Color.BLACK);
+			g.clearRect(0, 0, g.getClipBounds().width, g.getClipBounds().height);
 			
-			if (e.controls.zoom_i2 - e.controls.zoom_i1 < e.controls.zoom_j2 - e.controls.zoom_j1) {
-				zoom_bound_x = dim2 - 1;
-				zoom_bound_y = e.renderer.canvas_size - 1;
-				offset_x = (e.renderer.canvas_size - dim2)/2;
-				offset_y = 0;
+			if (!e.controls.zoomed) {
+				boolean need_to_rescale = (e.renderer.scalefactor*e.ny != e.renderer.canvas_size);
+				if (need_to_rescale)
+					g.drawImage(e.renderer.img_front, 0, 0, e.renderer.canvas_size, e.renderer.canvas_size, e.opts);
+				else
+					g.drawImage(e.renderer.img_front, 0, 0, e.opts);
 			} else {
-				zoom_bound_x = e.renderer.canvas_size - 1;
-				zoom_bound_y = dim2 - 1;
-				offset_x = 0;
-				offset_y = (e.renderer.canvas_size - dim2)/2;
+				int smin = Math.min(e.controls.zoom_i2 - e.controls.zoom_i1 + 1, e.controls.zoom_j2 - e.controls.zoom_j1 + 1);
+				int smax = Math.max(e.controls.zoom_i2 - e.controls.zoom_i1 + 1, e.controls.zoom_j2 - e.controls.zoom_j1 + 1);
+				int dim2 = (int) e.renderer.canvas_size*smin/smax;
+				
+				if (e.controls.zoom_i2 - e.controls.zoom_i1 < e.controls.zoom_j2 - e.controls.zoom_j1) {
+					zoom_bound_x = dim2 - 1;
+					zoom_bound_y = e.renderer.canvas_size - 1;
+					offset_x = (e.renderer.canvas_size - dim2)/2;
+					offset_y = 0;
+				} else {
+					zoom_bound_x = e.renderer.canvas_size - 1;
+					zoom_bound_y = dim2 - 1;
+					offset_x = 0;
+					offset_y = (e.renderer.canvas_size - dim2)/2;
+				}
+				g.drawImage(e.renderer.img_front, offset_x, offset_y, zoom_bound_x+1+offset_x, zoom_bound_y+1+offset_y, 
+					e.controls.zoom_i1*e.renderer.scalefactor, e.controls.zoom_j1*e.renderer.scalefactor, (e.controls.zoom_i2+1)*e.renderer.scalefactor, (e.controls.zoom_j2+1)*e.renderer.scalefactor, e.opts);
 			}
-			g.drawImage(e.renderer.img_front, offset_x, offset_y, zoom_bound_x+1+offset_x, zoom_bound_y+1+offset_y, 
-				e.controls.zoom_i1*e.renderer.scalefactor, e.controls.zoom_j1*e.renderer.scalefactor, (e.controls.zoom_i2+1)*e.renderer.scalefactor, (e.controls.zoom_j2+1)*e.renderer.scalefactor, e.opts);
 		}
-	}
 
-	public RenderCanvas(Simulation w) {
-		e = w;
+		public RenderCanvas(Simulation w) {
+			e = w;
+		}
 	}
 }

@@ -48,6 +48,7 @@ import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
+import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.plot.Plot;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
@@ -117,6 +118,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	public boolean EMF_selected = false;
 	public double max_EMF = 5e5;
+	public double max_current = 5e7;
 
 	Brush prev_brush;
 	public double brushsize = 0;
@@ -126,6 +128,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public boolean[][] under_brush;
 	public boolean[][] selected;
 	public boolean[][] selected_EMF;
+	
+	public boolean iscurrentselected = false;
 
 	public ClipboardMaterial[][] selection;
 	public ClipboardMaterial[][] clipboard;
@@ -137,6 +141,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public boolean texting = false;
 
 	public double flashlight_strength = 1e31;
+	
+	public int plotinterval = 10;
 
 	Cursor HAND_CURSOR = new Cursor(Cursor.HAND_CURSOR);
 	Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
@@ -258,6 +264,14 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		} else {
 			e.opts.gui_carrierlbl.setVisible(false);
 			e.opts.gui_carrier_density.setVisible(false);
+		}
+		
+		if (brush == Brush.PROBEPLOT) {
+			e.opts.gui_plotinterval.setVisible(true);
+			e.opts.gui_plotinterval_text.setVisible(true);
+		} else {
+			e.opts.gui_plotinterval.setVisible(false);
+			e.opts.gui_plotinterval_text.setVisible(false);
 		}
 
 		if (brush_changed) {
@@ -482,25 +496,25 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			double angle = 0;
 			MaterialType mat = (MaterialType) e.opts.gui_material.getSelectedItem();
 
-			if (mat == MaterialType.EMF || mat == MaterialType.AC_EMF) {
+			if (mat.hasEMF()) {
 				e.opts.gui_parameter2.setVisible(true);
 				e.opts.gui_parameter2_text.setVisible(true);
 
 				int directionval = e.opts.gui_parameter2.getValue()/6;
 				if (directionval == 0) {
-					e.opts.gui_parameter2_text.setText("EMF direction: Up");
+					e.opts.gui_parameter2_text.setText("Direction: Up");
 					angle = -Math.PI/2;
 				}
 				if (directionval == 1) {
-					e.opts.gui_parameter2_text.setText("EMF direction: Right");
+					e.opts.gui_parameter2_text.setText("Direction: Right");
 					angle = 0;
 				}
 				if (directionval == 2) {
-					e.opts.gui_parameter2_text.setText("EMF direction: Down");
+					e.opts.gui_parameter2_text.setText("Direction: Down");
 					angle = Math.PI/2;
 				}
 				if (directionval == 3) {
-					e.opts.gui_parameter2_text.setText("EMF direction: Left");
+					e.opts.gui_parameter2_text.setText("Direction: Left");
 					angle = Math.PI;
 				}
 				//e.opts.gui_parameter2_text.setText("Brush orientation: " + directionval*(360/24) + " deg");
@@ -536,7 +550,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 								public void fill(int i, int j) {
 									e.eraseMaterial(i, j);
 									e.initializeMaterial(i, j, new_mat);
-									if (new_mat == MaterialType.EMF || new_mat == MaterialType.AC_EMF) e.materials[i][j].emf_direction = new_angle;
+									if (new_mat.hasEMF()) e.materials[i][j].emf_direction = new_angle;
 								}
 							});
 						}
@@ -605,7 +619,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 
 		case INTERACT:
-			if (e.materials[mx][my].type == MaterialType.EMF || e.materials[mx][my].type == MaterialType.AC_EMF || e.materials[mx][my].type == MaterialType.SWITCH)
+			if (e.materials[mx][my].type.isInteractable())
 				e.canvas.setCursor(HAND_CURSOR);
 			else
 				e.canvas.setCursor(DEFAULT_CURSOR);
@@ -622,7 +636,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 				EMF_selected = false;
 
-				if ((e.materials[mx][my].type == MaterialType.EMF || e.materials[mx][my].type == MaterialType.AC_EMF) && turn_on_EMF) {
+				if ((e.materials[mx][my].type.hasEMF()) && turn_on_EMF) {
 					this.floodFill(mx, my, new FloodFillFunc() {
 						@Override
 						public boolean isValid(int i, int j) {
@@ -636,7 +650,15 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					});
 					
 					EMF_selected = true;
-					int setting = (int)(Math.round(50*e.materials[mx][my].emf/max_EMF));
+					iscurrentselected = e.materials[mx][my].type == MaterialType.CURRENT;
+					
+					int setting = 0;
+					if (!iscurrentselected)
+						setting = (int)(Math.round(50*e.materials[mx][my].emf/max_EMF));
+					else {
+						setting = (int)(Math.round(50*e.materials[mx][my].emf/(max_current/e.currentsource_sigma)));
+					}
+					
 					e.opts.gui_parameter3.setValue(setting);
 					prev_EMF_setting = setting;
 				}
@@ -944,6 +966,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (releasing) e.carrierplot.createPlot(e);
 			break;
 		case PROBEPLOT:
+			plotinterval = e.opts.gui_plotinterval.getValue();
 			if (!e.voltageprobeplot.frame.isVisible() && e.voltageprobes.size() > 0)
 				e.voltageprobeplot.createPlot(e);
 			if (!e.currentprobeplot.frame.isVisible() && e.currentprobes.size() > 0)
@@ -1066,7 +1089,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					} else if (e.materials[i][j].type == MaterialType.VACUUM || brush == Brush.REPLACE) {
 						e.eraseMaterial(i, j);
 						e.initializeMaterial(i, j, mat);
-						if (mat == MaterialType.EMF || mat == MaterialType.AC_EMF) e.materials[i][j].emf_direction = EMF_angle;
+						if (mat.hasEMF()) e.materials[i][j].emf_direction = EMF_angle;
 					}
 				}
 			}
@@ -1075,12 +1098,21 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	
 	public void setEMFs() {
 		int EMF_setting = e.opts.gui_parameter3.getValue();
-		double new_EMF = max_EMF*EMF_setting/50.0;
+		
+		double new_EMF = 0;
+		if (!iscurrentselected) {
+			new_EMF = max_EMF*EMF_setting/50.0;
+		} else {
+			new_EMF = (max_current/e.currentsource_sigma)*EMF_setting/50.0;
+		}
 
 		if (e.opts.gui_brush.getSelectedItem() == Brush.INTERACT && EMF_selected) {
 			e.opts.gui_parameter3.setVisible(true);
 			e.opts.gui_parameter3_text.setVisible(true);
-			e.opts.gui_parameter3_text.setText("EMF: " + Utils.getSI(new_EMF, "V/m"));
+			if (!iscurrentselected)
+				e.opts.gui_parameter3_text.setText("EMF: " + Utils.getSI(new_EMF, "V/m"));
+			else
+				e.opts.gui_parameter3_text.setText("J: " + Utils.getSI(new_EMF*e.currentsource_sigma, "A/m^2"));
 		} else {
 			e.opts.gui_parameter3.setVisible(false);
 			e.opts.gui_parameter3_text.setVisible(false);
@@ -1092,7 +1124,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			{
 				for (int j = 0; j < e.ny; j++)
 				{
-					if ((e.materials[i][j].type == MaterialType.EMF || e.materials[i][j].type == MaterialType.AC_EMF) && selected_EMF[i][j]) {
+					if (e.materials[i][j].type.hasEMF() && selected_EMF[i][j]) {
 						e.materials[i][j].emf = new_EMF;
 					}
 				}
@@ -1824,45 +1856,45 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			return (brush == Brush.LINE || brush == Brush.BANDS || brush == Brush.SCALARPLOT || brush == Brush.CARRIERPLOT);
 		}
 	}
-}
+	
+	class ImgDialog extends JDialog {
 
-class ImgDialog extends JDialog {
+		private static final long serialVersionUID = 1L;
+		private final JPanel contentPanel = new JPanel();
+		public JSpinner spinner;
+		public JButton okButton = new JButton("OK");
+		public JButton cancelButton = new JButton("Cancel");
 
-	private static final long serialVersionUID = 1L;
-	private final JPanel contentPanel = new JPanel();
-	public JSpinner spinner;
-	public JButton okButton = new JButton("OK");
-	public JButton cancelButton = new JButton("Cancel");
+		public ImgDialog() {
+			setBounds(100, 100, 180, 151);
+			getContentPane().setLayout(new BorderLayout());
+			contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
+			getContentPane().add(contentPanel, BorderLayout.CENTER);
+			contentPanel.setLayout(null);
+			
+			JLabel lblNewLabel = new JLabel("Image size");
+			lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
+			lblNewLabel.setBounds(33, 17, 111, 16);
+			contentPanel.add(lblNewLabel);
 
-	public ImgDialog() {
-		setBounds(100, 100, 180, 151);
-		getContentPane().setLayout(new BorderLayout());
-		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
-		getContentPane().add(contentPanel, BorderLayout.CENTER);
-		contentPanel.setLayout(null);
-		
-		JLabel lblNewLabel = new JLabel("Image size");
-		lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		lblNewLabel.setBounds(33, 17, 111, 16);
-		contentPanel.add(lblNewLabel);
+			spinner = new JSpinner();
+			spinner.setBounds(33, 37, 111, 26);
+			contentPanel.add(spinner);
 
-		spinner = new JSpinner();
-		spinner.setBounds(33, 37, 111, 26);
-		contentPanel.add(spinner);
-
-		JPanel buttonPane = new JPanel();
-		buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		getContentPane().add(buttonPane, BorderLayout.SOUTH);
-		
-		buttonPane.add(okButton);
-		getRootPane().setDefaultButton(okButton);
-		
-		buttonPane.add(cancelButton);
+			JPanel buttonPane = new JPanel();
+			buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
+			getContentPane().add(buttonPane, BorderLayout.SOUTH);
+			
+			buttonPane.add(okButton);
+			getRootPane().setDefaultButton(okButton);
+			
+			buttonPane.add(cancelButton);
+		}
 	}
-}
 
 
-interface FloodFillFunc {
-	boolean isValid(int i, int j);
-	void fill(int i, int j);
+	interface FloodFillFunc {
+		boolean isValid(int i, int j);
+		void fill(int i, int j);
+	}
 }

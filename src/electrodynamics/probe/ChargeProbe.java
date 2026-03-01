@@ -36,6 +36,6 @@ public class ChargeProbe extends Probe {
 		}
 
 		charge = Q*e.depth;
-		if (savedatapoint) data.addData(charge);
+		if (savedatapoint) data.addData(charge, e.time);
 	}
 }

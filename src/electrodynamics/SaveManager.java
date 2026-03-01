@@ -32,6 +32,7 @@ import com.google.gson.stream.JsonReader;
 
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.VectorMode;
+import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
 import electrodynamics.probe.VoltageProbe;
@@ -199,6 +200,11 @@ public class SaveManager {
 						}
 					}
 					fstr.endObject();
+
+					for (VoltageProbe p : e.voltageprobes) p.data.fixWeirdIssue();
+					for (CurrentProbe p : e.currentprobes) p.data.fixWeirdIssue();
+					for (ChargeProbe p : e.chargeprobes) p.data.fixWeirdIssue();
+					if (e.ground != null) e.ground.data.fixWeirdIssue();
 
 					if (testNextObject(fstr, "advsettings")) {
 						fstr.beginObject();
@@ -396,7 +402,7 @@ public class SaveManager {
 				outfile = new File(outfile.getAbsolutePath() + fileextension);
 
 			if (outfile.exists()) {
-				result = JOptionPane.showConfirmDialog(e.opts, "A file with that name already exists. Do you wish to overwrite it?", "Message", JOptionPane.YES_NO_OPTION);
+				result = JOptionPane.showConfirmDialog(e.opts, "A file named " + outfile.getName() + " already exists. Do you wish to overwrite it?", "Message", JOptionPane.YES_NO_OPTION);
 				if (result != JOptionPane.OK_OPTION)
 					return;
 			}

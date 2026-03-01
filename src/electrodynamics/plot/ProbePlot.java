@@ -47,8 +47,9 @@ public class ProbePlot extends Plot {
 				dat.setNotify(false);
 				dat.clear();
 				
-				for (int i = 0; i < p.data.data.length; i++) {
-					dat.add(i, scalefactor*p.data.data[i]);
+				for (int i = 0; i < p.data.data_size; i++) {
+					if (!Double.isNaN(p.data.data[i]))
+						dat.add(1e12*(p.data.time[i] - p.data.time[p.data.data_size-1]), scalefactor*p.data.data[i]);
 				}
 				
 				index++;
@@ -59,7 +60,7 @@ public class ProbePlot extends Plot {
 			}
 			
 			fig.chart.getXYPlot().setRangeZeroBaselineVisible(true);
-			fig.xlabel("Time");
+			fig.xlabel("Time [ps]");
 			fig.ylabel(yaxis);
 			frame.setTitle(title);
 		}

@@ -18,6 +18,6 @@ public class VoltageProbe extends Probe {
 		if (this != e.ground && e.ground != null)
 			potential -= e.ground.potential;
 		
-		if (savedatapoint) data.addData(potential);
+		if (savedatapoint) data.addData(potential, e.time);
 	}
 }
