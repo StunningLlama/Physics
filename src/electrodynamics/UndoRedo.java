@@ -12,6 +12,9 @@ import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
+import electrodynamics.probe.ChargeProbe;
+import electrodynamics.probe.CurrentProbe;
+import electrodynamics.probe.VoltageProbe;
 public class UndoRedo {
 	
 	public List<Snapshot> prev_states = new ArrayList<Snapshot>();
@@ -46,6 +49,14 @@ public class UndoRedo {
 
 		if (undoredo_pointer >= 0 && undoredo_pointer < prev_states.size())
 			prev_states.get(undoredo_pointer).load(e);
+	}
+	
+	public boolean canRedo() {
+		return undoredo_pointer < prev_states.size()-1;
+	}
+	
+	public boolean canUndo() {
+		return undoredo_pointer > 0;
 	}
 	
 	public void captureState(Simulation e) {

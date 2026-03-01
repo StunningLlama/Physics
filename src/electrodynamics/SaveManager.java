@@ -32,6 +32,9 @@ import com.google.gson.stream.JsonReader;
 
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.VectorMode;
+import electrodynamics.probe.ChargeProbe;
+import electrodynamics.probe.CurrentProbe;
+import electrodynamics.probe.VoltageProbe;
 
 public class SaveManager {
 	Simulation e;
@@ -310,7 +313,7 @@ public class SaveManager {
 			if (p.labelcoord.x == -1) p.calculateDefaultLabelCoords();
 		for (ChargeProbe p : e.chargeprobes)
 			if (p.labelcoord.x == -1) p.calculateDefaultLabelCoords();
-		if (e.ground != null && e.ground.x == -1) e.ground.calculateDefaultLabelCoords();
+		if (e.ground != null && e.ground.labelcoord.x == -1) e.ground.calculateDefaultLabelCoords();
 	}
 	
 	public void assertNextObject(JsonReader fstr, String name) throws IOException {

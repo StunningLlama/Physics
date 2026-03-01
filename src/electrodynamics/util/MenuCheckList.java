@@ -55,7 +55,8 @@ public class MenuCheckList<T extends Enum<?>> implements ActionListener {
 
 
 	public void setOption(T t) {
-		buttongroup.setSelected(buttonmap.get(t).getModel(), true);
+		if (buttonmap.get(t) != null)
+			buttongroup.setSelected(buttonmap.get(t).getModel(), true);
 	}
 	
 	public void setOption(int i) {

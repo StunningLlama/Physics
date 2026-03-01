@@ -14,10 +14,9 @@ public class BandPlot extends Plot {
 	public XYSeries E_p_data;
 	public XYSeries F_n_data;
 	public XYSeries F_p_data;
-	//public XYSeries F_data;
-
-	public BandPlot() {
-		super();
+	
+	public void initialize() {
+		super.initalize();
         fig.xlabel("Position");
         fig.ylabel("Energy (eV)");
         frame.setTitle("Band diagram");

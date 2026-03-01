@@ -23,7 +23,12 @@ import electrodynamics.Renderer.ScalarView;
 import electrodynamics.plot.BandPlot;
 import electrodynamics.plot.CarrierPlot;
 import electrodynamics.plot.Plot;
+import electrodynamics.plot.ProbePlot;
 import electrodynamics.plot.ScalarPlot;
+import electrodynamics.probe.Probe;
+import electrodynamics.probe.ChargeProbe;
+import electrodynamics.probe.CurrentProbe;
+import electrodynamics.probe.VoltageProbe;
 import electrodynamics.util.PeriodicTask;
 import electrodynamics.util.Timer;
 import electrodynamics.util.Utils;
@@ -56,6 +61,9 @@ public class Simulation extends PeriodicTask {
 	public BandPlot bandplot;
 	public ScalarPlot scalarplot;
 	public CarrierPlot carrierplot;
+	public ProbePlot voltageprobeplot;
+	public ProbePlot currentprobeplot;
+	public ProbePlot chargeprobeplot;
 	
 	
 	/* Multithreading */
@@ -307,6 +315,12 @@ public class Simulation extends PeriodicTask {
 		bandplot = new BandPlot(); plots.add(bandplot);
 		scalarplot = new ScalarPlot(); plots.add(scalarplot);
 		carrierplot = new CarrierPlot(); plots.add(carrierplot);
+		voltageprobeplot = new ProbePlot("Voltage plot", "Voltage [V]", "V", 1); plots.add(voltageprobeplot);
+		currentprobeplot = new ProbePlot("Current plot", "Current [A]", "I", 1); plots.add(currentprobeplot);
+		chargeprobeplot = new ProbePlot("Charge plot", "Charge [fC]", "Q", 1e15); plots.add(chargeprobeplot);
+		
+		for (Plot p : plots)
+			p.initalize();
 
 		SemiSim.detect64Bit();
 
@@ -1157,18 +1171,18 @@ public class Simulation extends PeriodicTask {
 		}
 
 		if (ground != null)
-			ground.potential = F[ground.x][ground.y];
+			ground.calcVoltage(this, false);
 
 		for (VoltageProbe p: voltageprobes) {
-			p.potential = F[p.x][p.y];
+			p.calcVoltage(this, frame%10 == 0);
 		}
 
 		for (CurrentProbe p: currentprobes) {
-			p.current = calcCurrent(p.x1, p.y1, p.x2, p.y2);
+			p.calcCurrent(this, frame%10 == 0);
 		}
 		
 		for (ChargeProbe p: chargeprobes) {
-			p.charge = calcCharge(p);
+			p.calcCharge(this, frame%10 == 0);
 		}
 
 		if (controls.logdata) {
@@ -1551,92 +1565,6 @@ public class Simulation extends PeriodicTask {
 		System.out.println("Hole diffusion CFL ratio = " + dt_maximum/(ds*ds/(4*D_hole)));
 	}
 
-
-	public double calcCharge(ChargeProbe p) {
-		double Q = 0;
-
-		int n_min = 0;
-		int n_max = 0;
-		int m_min = 0;
-		int m_max = 0;
-
-		n_min = Math.min(p.x1, p.x2);
-		n_max = Math.max(p.x1, p.x2);
-		m_min = Math.min(p.y1, p.y2);
-		m_max = Math.max(p.y1, p.y2);
-
-		for (int n = n_min; n <= n_max; n++) {
-			for (int m = m_min; m <= m_max; m++) {
-				Q += rho_free[n][m]*(ds*ds);
-			}
-		}
-
-		return Q;
-	}
-
-	public double calcCurrent(int x0, int y0, int x1, int y1) {
-		int dy = y1 - y0;
-		int dx = x1 - x0;
-		float t = (float) 0.5;
-		float J = 0;
-
-		if (Math.abs(dx) > Math.abs(dy)) {
-			float m = (float) dy / (float) dx;
-			t += y0;
-			dx = (dx < 0) ? -1 : 1;
-			m *= dx;
-			while (x0 != x1) {
-				int x0_prev = x0;
-				float t_prev = t;
-
-				x0 += dx;
-				t += m;
-
-				J += accumCurrent(x0_prev, (int)t_prev, x0, (int)t, Jx_free, Jy_free);
-
-			}
-		} else {
-			float m = (float) dx / (float) dy;
-			t += x0;
-			dy = (dy < 0) ? -1 : 1;
-			m *= dy;
-			while (y0 != y1) {
-				int y0_prev = y0;
-				float t_prev = t;
-
-				y0 += dy;
-				t += m;
-
-				J += accumCurrent((int)t_prev, y0_prev, (int)t, y0, Jx_free, Jy_free);
-			}
-		}
-
-		return J;
-	}
-
-	public double accumCurrent(int x0, int y0, int x1, int y1, double[][] Jx, double[][] Jy) {
-		int dx = x1-x0;
-		int dy = y1-y0;
-		if (dx == 1 && dy == 0) {
-			return -Jy[x0+1][y0]*ds;
-		} else if (dx == -1 && dy == 0) {
-			return Jy[x0][y0]*ds;
-		} else if (dx == 0 && dy == 1) {
-			return Jx[x0][y0+1]*ds;
-		} else if (dx == 0 && dy == -1) {
-			return -Jx[x0][y0]*ds;
-		} else if (dx == 1 && dy == 1) {
-			return (Jx[x0][y0+1] - Jy[x0+1][y0+1])*ds;
-		} else if (dx == 1 && dy == -1) {
-			return (-Jx[x0][y0] - Jy[x0+1][y0-1])*ds;
-		} else if (dx == -1 && dy == 1) {
-			return (+Jx[x0][y0+1] + Jy[x0][y0+1])*ds;
-		} else if (dx == -1 && dy == -1) {
-			return (-Jx[x0][y0] + Jy[x0][y0-1])*ds;
-		}
-		return 0;
-	}
-
 	public void prescaleDielectric() {
 		downscale_x_vector(epsx, MG_epsx, log2_resolution);
 		downscale_y_vector(epsy, MG_epsy, log2_resolution);
@@ -1893,18 +1821,22 @@ public class Simulation extends PeriodicTask {
 		String data = "";
 		data += ("t = " + Utils.getSI(time, "s"));
 
+		int index = 0;
 		for (VoltageProbe p: voltageprobes) {
-			if (ground != null)
-				data += (", V(" + Utils.getSI(p.x*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y+1)*ds, "m") + ") = " + Utils.getSI(p.potential-ground.potential, "V"));
-			else
-				data += (", V(" + Utils.getSI(p.x*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y+1)*ds, "m") + ") = " + Utils.getSI(p.potential, "V"));
+			data += (", V" + getProbeName(index) + " = " + Utils.getSI(p.potential, "V"));
+			index++;
 		}
-
+		
+		index = 0;
 		for (CurrentProbe p: currentprobes) {
-			data += (", I(" + Utils.getSI(p.x1*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y1+1)*ds, "m") + " - " + Utils.getSI(p.x2*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y2+1)*ds, "m") + ") = " + Utils.getSI(p.current*depth, "A"));
+			data += (", I" + getProbeName(index) + " = " + Utils.getSI(p.current, "A"));
+			index++;
 		}
+		
+		index = 0;
 		for (ChargeProbe p: chargeprobes) {
-			data += (", Q(" + Utils.getSI(p.x1*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y1+1)*ds, "m") + " - " + Utils.getSI(p.x2*ds, "m") + ", " + Utils.getSI(ds*ny-(p.y2+1)*ds, "m") + ") = " + Utils.getSI(p.charge*depth, "C"));
+			data += (", Q" + getProbeName(index) + " = " + Utils.getSI(p.charge, "C"));
+			index++;
 		}
 
 		data += "\n";
@@ -1979,6 +1911,11 @@ public class Simulation extends PeriodicTask {
 		
 		opts.textPane.setText(str);
 	}
+	
+	public String getProbeName(int index) {
+		if (index < 26) return String.valueOf((char)('a'+index));
+		return String.valueOf(index - 26);
+	}
 }
 
 enum BoundaryCondition {
@@ -1995,73 +1932,6 @@ enum BoundaryCondition {
 	public String toString() {
 		return name;
 	}
-}
-
-class CurrentProbe {
-	int x1 = 0;
-	int y1 = 0;
-	int x2 = 0;
-	int y2 = 0;
-
-	double current = 0;
-	
-	LabelCoord labelcoord = new LabelCoord();
-	
-	public void calculateDefaultLabelCoords() {
-		double xa = 0.5*(x1+x2);
-		double ya = 0.5*(y1+y2);
-
-		double dx = x2 - x1;
-		double dy = y2 - y1;
-		double len = Utils.length(dx, dy);
-		dx = dx/len;
-		dy = dy/len;
-		if (Math.abs(dx) > Math.abs(dy))
-		{
-			dx = -Math.abs(dx);
-		} else {
-			dy = -2*Math.abs(dy);
-		}
-		
-		labelcoord.x = (int)(xa-3*dy)-2;
-		labelcoord.y = (int)(ya+4*dx);
-	}
-}
-
-class VoltageProbe {
-	int x = 0;
-	int y = 0;
-
-	double potential = 0;
-
-	LabelCoord labelcoord = new LabelCoord();
-	
-	public void calculateDefaultLabelCoords() {
-		labelcoord.x = x-2;
-		labelcoord.y = y-5;
-	}
-}
-
-class ChargeProbe {
-	int x1;
-	int y1;
-
-	int x2;
-	int y2;
-
-	double charge = 0;
-
-	LabelCoord labelcoord = new LabelCoord();
-	
-	public void calculateDefaultLabelCoords() {
-		labelcoord.x = (x1+x2)/2;
-		labelcoord.y = (y1+y2)/2;
-	}
-}
-
-class LabelCoord {
-	int x = -1;
-	int y = -1;
 }
 
 enum Species {

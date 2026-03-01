@@ -98,6 +98,14 @@ Listed below are the most important variables that capture the state of the simu
 
 ## View options
 
+**Colors:** The value of a field is mapped to a color.
+
+![Colors](images/colors.png)
+
+**Contour:** Contour lines indicate a region on which the scalar field has a constant value.
+
+![Contour lines](images/contour.png)
+
 **Arrows:** The direction and brightness of arrows corresponds to the direction and magnitude of the vector field.
 
 ![Arrows](images/arrows.png)
@@ -110,11 +118,7 @@ Listed below are the most important variables that capture the state of the simu
 
 ![Dots](images/dots.png)
 
-**Contour:** Contour lines indicate a region on which the scalar field has a constant value.
-
-![Contour lines](images/contour.png)
-
-**Charge carriers:** Electrons and holes are represented as blue and red dots, respectively. Both dots move at the actual drift velocities of their corresponding charge carriers and their density accurately reflects the density of charge carriers. This is much more realistic but less flexible than the dots view.
+**Charge carriers:** Electrons and holes are represented as blue and red dots, respectively. Both dots move at the actual drift velocities of their corresponding charge carriers and their density accurately reflects the density of charge carriers.
 
 ![Charge carriers](images/carriers.png)
 
@@ -122,15 +126,11 @@ Listed below are the most important variables that capture the state of the simu
 
 |     |     |
 | --- | --- |
-| Pause | Pauses and unpauses the simulation. |
-| Show detailed info | Displays a tooltip that contains the values of all the simulation variables at the cursor's location. |
-| Show text background | Gives text boxes a black background, making the text easier to see. |
-| Display interface | Shows probe info, graph locations, time, and tooltip. |
 | Boundary condition | Choose between a boundary that absorbs outgoing radiation or a perfectly conductive boundary that reflects it. |
-| Show material colors | If checked, gives each material a different color, making them easier to tell apart. |
 | Timestep | Sets the simulation timestep. The maximum timestep is determined by the CFL condition for the wave equation and diffusion equations for each charge carrier. |
 | Sim steps/frame | Sets the number of iterations performed during each frame. Most of the examples require at least 10 steps/frame to run responsively. The maximum number depends on how good the user's computer is. |
 | Set fields to zero | Sets all fields to their default values, leaving the materials unchanged. |
+| Set image size | Sets the size of the simulation display area. |
 | Advanced settings | Opens advanced simulation settings window, contains settings to modify physics and material constants. |
 
 ## Tools
@@ -138,8 +138,8 @@ Listed below are the most important variables that capture the state of the simu
 |     |     |
 | --- | --- |
 | Interact | Allows user to control voltage sources and turn switches on and off by clicking. |
+| Flashlight | Shines a light on the region under the cursor, creating pairs of electrons and holes. |
 | Zoom | Click and drag to zoom into a region. Click to zoom out. |
-| Flashlight | Shines a light on the region under the cursor. Light generates electron and hole pairs. |
 | Draw | Adds material to the field. |
 | Replace | Similar to the draw tool, but overwrites occupied areas. |
 | Line | Draws a line of material. |
@@ -153,9 +153,11 @@ Listed below are the most important variables that capture the state of the simu
 | Charge probe | Click and drag to add a charge probe that measures electrical charge within a given region. |
 | Ground | Specifies the point relative to which probes measure voltage (optional). |
 | Delete probe | Click to delete a probe. |
+| Move label | Moves labels attached to probes. |
 | Plot bands | Click and drag to plot energy bands along a line. The plot contains the conduction and valence energy band edges as well as the quasi-Fermi levels of electrons and holes.<br><br>![Band plot](images/bandplot.png)<br><br>Valence and conduction band energies shown as solid lines. Quasi-Fermi levels are dashed lines. |
 | Plot scalar field | Click and drag to make a plot of the currently selected scalar field. |
 | Plot carriers | Click an drag to make a logarithmic plot of the number density of electrons and holes. |
+| Plot probe data | Selecting this will create a plot of probe measurements over time. |
 
 ## Keyboard/Mouse Controls
 
@@ -172,6 +174,12 @@ Listed below are the most important variables that capture the state of the simu
 | R   | Record probe data (saves to probedata.txt) |
 | \[  | Previous tool |
 | \]  | Next tool |
+| Ctrl-X | Cut a region made with the select tool |
+| Ctrl-C | Copy a region made with the select tool |
+| Ctrl-V | Paste the clipboard |
+| Ctrl-R | Rotate the clipboard after using the paste command |
+| Ctrl-F | Flip the clipboard horizontally after using the paste command |
+| Ctrl-G | Flip the clipboard vertically |
 
 ## Materials
 

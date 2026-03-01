@@ -49,6 +49,10 @@ import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
 import electrodynamics.plot.Plot;
+import electrodynamics.probe.ChargeProbe;
+import electrodynamics.probe.CurrentProbe;
+import electrodynamics.probe.Probe;
+import electrodynamics.probe.VoltageProbe;
 import electrodynamics.util.Font7x5;
 import electrodynamics.util.MenuCheckList;
 import electrodynamics.util.Utils;
@@ -125,6 +129,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	public ClipboardMaterial[][] selection;
 	public ClipboardMaterial[][] clipboard;
+	public boolean selectionempty = true;
+	public boolean clipboardempty = true;
 
 	public int text_x = 0;
 	public int text_y = 0;
@@ -144,7 +150,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	
 	public UndoRedo undoredo = new UndoRedo(4);
 	
-	public LabelCoord labelcoord = null;
+	public Probe.LabelCoord labelcoord = null;
 	
 	public Controls(Simulation e) {
 		this.e = e;
@@ -285,6 +291,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		if (cut || copy) {
 			int i_min = e.nx-1;
 			int j_min = e.ny-1;
+			clipboardempty = true;
 			for (int i = 0; i < e.nx; i++)
 			{
 				for (int j = 0; j < e.ny; j++)
@@ -307,6 +314,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						if (cut) {
 							e.eraseMaterial(i, j);
 						}
+						
+						clipboardempty = false;
 					}
 					if (cut) {
 						selected[i][j] = false;
@@ -437,7 +446,26 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 		}
 		
+		selectionempty = true;
 
+		for (int i = 0; i < e.nx; i++)
+		{
+			for (int j = 0; j < e.ny; j++)
+			{
+				if (selected[i][j]) {
+					selectionempty = false;
+				}
+			}
+		}
+		
+		e.opts.menu_cut.setEnabled(!selectionempty);
+		e.opts.menu_copy.setEnabled(!selectionempty);
+		e.opts.menu_paste.setEnabled(!clipboardempty);
+		e.opts.menu_rotate.setEnabled(moving_selection);
+		e.opts.menu_flip_h.setEnabled(moving_selection);
+		e.opts.menu_flip_v.setEnabled(moving_selection);
+		e.opts.menu_undo.setEnabled(undoredo.canUndo());
+		e.opts.menu_redo.setEnabled(undoredo.canRedo());
 
 		switch(brush) {
 		case DRAW:
@@ -650,15 +678,16 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (pressing) {
 				if (brush == Brush.FLOODSELECT && !moving_selection) {
 
+					boolean isselected = selected[mx][my];
 					this.floodFill(mx, my, new FloodFillFunc() {
 						@Override
 						public boolean isValid(int i, int j) {
-							return e.materials[i][j].type == e.materials[mx][my].type && selected[i][j] != !selected[mx][my];
+							return e.materials[i][j].type == e.materials[mx][my].type && selected[i][j] == isselected;
 						}
 
 						@Override
 						public void fill(int i, int j) {
-							selected[i][j] = !selected[mx][my];
+							selected[i][j] = !isselected;
 						}
 					});
 				}
@@ -850,7 +879,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 		case MOVELABEL:
 			if (pressing) {
-				LabelCoord coord = null;
+				Probe.LabelCoord coord = null;
 				for (VoltageProbe p : e.voltageprobes)
 					coord = selectLabel(p.labelcoord, coord);
 				for (CurrentProbe p : e.currentprobes)
@@ -871,7 +900,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				labelcoord = null;
 			} else {
 				e.canvas.setCursor(DEFAULT_CURSOR);
-				LabelCoord coord = null;
+				Probe.LabelCoord coord = null;
 				for (VoltageProbe p : e.voltageprobes)
 					coord = selectLabel(p.labelcoord, coord);
 				for (CurrentProbe p : e.currentprobes)
@@ -914,6 +943,14 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case CARRIERPLOT:
 			if (releasing) e.carrierplot.createPlot(e);
 			break;
+		case PROBEPLOT:
+			if (!e.voltageprobeplot.frame.isVisible() && e.voltageprobes.size() > 0)
+				e.voltageprobeplot.createPlot(e);
+			if (!e.currentprobeplot.frame.isVisible() && e.currentprobes.size() > 0)
+				e.currentprobeplot.createPlot(e);
+			if (!e.chargeprobeplot.frame.isVisible() && e.chargeprobes.size() > 0)
+				e.chargeprobeplot.createPlot(e);
+			break;
 		default:
 			break;
 		}
@@ -923,6 +960,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			endTextInput();
 		}
 		
+		e.voltageprobeplot.probes = e.voltageprobes;
+		e.currentprobeplot.probes = e.currentprobes;
+		e.chargeprobeplot.probes = e.chargeprobes;
 		SwingUtilities.invokeLater(() -> { //TODO
 			for (Plot p : e.plots) {
 				p.updatePlot(e);
@@ -947,7 +987,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		myp = my;
 	}
 	
-	public LabelCoord selectLabel(LabelCoord c_in, LabelCoord c_opt) {
+	public Probe.LabelCoord selectLabel(Probe.LabelCoord c_in, Probe.LabelCoord c_opt) {
 		if (c_opt == null) {
 			if (Math.abs(c_in.x + 10 - mx) < 10 && Math.abs(c_in.y - 2 - my) < 4) {
 				return c_in;
@@ -1750,7 +1790,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		MOVELABEL("Move label"),
 		BANDS("Plot bands"),
 		SCALARPLOT("Plot scalar field"),
-		CARRIERPLOT("Plot carriers");
+		CARRIERPLOT("Plot carriers"),
+		PROBEPLOT("Plot probe data");
 	
 		public String name;
 		Brush(String name)

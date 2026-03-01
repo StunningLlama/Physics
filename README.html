@@ -228,33 +228,30 @@ Listed below are the most important variables that capture the state of the simu
 </table>
 * Here free energy is measured per unit of charge instead of per particle, hence the units used are [V] and not [eV].
 <h2>View options</h2>
+  <p><strong>Colors:</strong> The value of a field is mapped to a color. <figure><img src="images/colors.png" alt="Colors"></figure></p>
+  <p><strong>Contour:</strong> Contour lines indicate a region on which the scalar field has a constant value.  <figure><img src="images/contour.png" alt="Contour lines"></figure></p>
   <p><strong>Arrows:</strong> The direction and brightness of arrows corresponds to the direction and magnitude of the vector field. <figure><img src="images/arrows.png" alt="Arrows"></figure></p>
   <p><strong>Lines:</strong> 
 The brightness and density of lines indicates the magnitude of the field. <figure><img src="images/lines.png" alt="Field lines"></figure></p>
   <p><strong>Dots:</strong> The velocity of the dots is proportional to the value of the vector field. <figure><img src="images/dots.png" alt="Dots"></figure></p>
-  <p><strong>Contour:</strong> Contour lines indicate a region on which the scalar field has a constant value.  <figure><img src="images/contour.png" alt="Contour lines"></figure></p>
   <p><strong>Charge carriers:</strong> Electrons and holes are represented as blue and red dots, respectively.
-    Both dots move at the actual drift velocities of their corresponding charge carriers and their density accurately reflects the density of charge carriers. This is much more realistic but less flexible than the dots view. <figure><img src="images/carriers.png" alt="Charge carriers"></figure></p>
+    Both dots move at the actual drift velocities of their corresponding charge carriers and their density accurately reflects the density of charge carriers.<figure><img src="images/carriers.png" alt="Charge carriers"></figure></p>
 <h2>Options</h2>
 <table>
-  <tr><td>Pause</td><td>Pauses and unpauses the simulation.</td></tr>
-  <tr><td>Show detailed info</td><td>Displays a tooltip that contains the values of all the simulation variables at the cursor's location.</td></tr>
-  <tr><td>Show text background</td><td>Gives text boxes a black background, making the text easier to see.</td></tr>
-  <tr><td>Display interface</td><td>Shows probe info, graph locations, time, and tooltip.</td></tr>
   <tr><td>Boundary condition</td><td>Choose between a boundary that absorbs outgoing radiation or a perfectly conductive boundary that reflects it.</td></tr>
-  <tr><td>Show material colors</td><td>If checked, gives each material a different color, making them easier to tell apart.</td></tr>
   <tr><td>Timestep</td><td>Sets the simulation timestep. The maximum timestep is determined by the CFL condition for the wave equation and diffusion equations for each charge carrier.</td></tr>
   <tr><td>Sim steps/frame</td><td>Sets the number of iterations performed during each frame. Most of the examples require at least 10 steps/frame to run responsively.
     The maximum number depends on how good the user's computer is.</td></tr>
   <tr><td>Set fields to zero</td><td>Sets all fields to their default values, leaving the materials unchanged.</td></tr>
+  <tr><td>Set image size </td><td>Sets the size of the simulation display area.</td></tr>
   <tr><td>Advanced settings </td><td>Opens advanced simulation settings window, contains settings to modify physics and material constants.</td></tr>
   </table>
 
 <h2>Tools</h2>
 <table>
     <tr><td>Interact</td><td>Allows user to control voltage sources and turn switches on and off by clicking.</td></tr>
+    <tr><td>Flashlight</td><td>Shines a light on the region under the cursor, creating pairs of electrons and holes.</td></tr>
     <tr><td>Zoom</td><td>Click and drag to zoom into a region. Click to zoom out.</td></tr>
-    <tr><td>Flashlight</td><td>Shines a light on the region under the cursor. Light generates electron and hole pairs.</td></tr>
     <tr><td>Draw</td><td>Adds material to the field.</td></tr>
     <tr><td>Replace</td><td>Similar to the draw tool, but overwrites occupied areas.</td></tr>
     <tr><td>Line <br><small></small></td><td>Draws a line of material.</td></tr>
@@ -268,10 +265,12 @@ The brightness and density of lines indicates the magnitude of the field. <figur
     <tr><td>Charge probe</td><td>Click and drag to add a charge probe that measures electrical charge within a given region.</td></tr>
     <tr><td>Ground</td><td>Specifies the point relative to which probes measure voltage (optional).</td></tr>
     <tr><td>Delete probe</td><td>Click to delete a probe.</td></tr>
+    <tr><td>Move label</td><td>Moves labels attached to probes.</td></tr>
     <tr><td>Plot bands</td><td>Click and drag to plot energy bands along a line.
       The plot contains the conduction and valence energy band edges as well as the quasi-Fermi levels of electrons and holes.  <figure><img src="images/bandplot.png" alt="Band plot" style="max-width:70%"><figcaption>Valence and conduction band energies shown as solid lines. Quasi-Fermi levels are dashed lines.</figcaption></figure></td></tr>
     <tr><td>Plot scalar field</td><td>Click and drag to make a plot of the currently selected scalar field.</td></tr>
     <tr><td>Plot carriers</td><td>Click an drag to make a logarithmic plot of the number density of electrons and holes.</td></tr>
+    <tr><td>Plot probe data</td><td>Selecting this will create a plot of probe measurements over time.</td></tr>
 </table>
 
 <h2>Keyboard/Mouse Controls</h2>
@@ -287,6 +286,12 @@ The brightness and density of lines indicates the magnitude of the field. <figur
     <tr><td>R</td><td>Record probe data (saves to probedata.txt)</td></tr>
     <tr><td>[</td><td>Previous tool</td></tr>
     <tr><td>]</td><td>Next tool</td></tr>
+    <tr><td>Ctrl-X</td><td>Cut a region made with the select tool</td></tr>
+    <tr><td>Ctrl-C</td><td>Copy a region made with the select tool</td></tr>
+    <tr><td>Ctrl-V</td><td>Paste the clipboard</td></tr>
+    <tr><td>Ctrl-R</td><td>Rotate the clipboard after using the paste command</td></tr>
+    <tr><td>Ctrl-F</td><td>Flip the clipboard horizontally after using the paste command</td></tr>
+    <tr><td>Ctrl-G</td><td>Flip the clipboard vertically</td></tr>
 </table>
 
 <h2>Materials</h2>
