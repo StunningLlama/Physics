@@ -157,7 +157,7 @@ Listed below are the most important variables that capture the state of the simu
 | Plot bands | Click and drag to plot energy bands along a line. The plot contains the conduction and valence energy band edges as well as the quasi-Fermi levels of electrons and holes.<br><br>![Band plot](images/bandplot.png)<br><br>Valence and conduction band energies shown as solid lines. Quasi-Fermi levels are dashed lines. |
 | Plot scalar field | Click and drag to make a plot of the currently selected scalar field. |
 | Plot carriers | Click an drag to make a logarithmic plot of the number density of electrons and holes. |
-| Plot probe data | Selecting this will create a plot of probe measurements over time. |
+| Plot probe data | Selecting this will create a plot of probe measurements over time, similar to an oscilloscope. |
 
 ## Keyboard/Mouse Controls
 
@@ -187,6 +187,7 @@ Listed below are the most important variables that capture the state of the simu
 | --- | --- |
 | Voltage source | Generates a voltage that can be used to power circuits. |
 | AC voltage source | Voltage source that oscillates sinusoidally at a fixed frequency. |
+| Current source | Approximation of an ideal current source. Used to generate a constant current density. |
 | Switch | Conductivity can be switched on and off by the user. |
 | Metal | Material that conducts electricity very well. |
 | Conductive metal | More conductive than regular metal. |

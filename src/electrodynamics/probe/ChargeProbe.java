@@ -11,12 +11,14 @@ public class ChargeProbe extends Probe {
 
 	public double charge = 0;
 	
+	@Override
 	public void calculateDefaultLabelCoords() {
 		labelcoord.x = (x1+x2)/2;
 		labelcoord.y = (y1+y2)/2;
 	}
-	
-	public void calcCharge(Simulation e, boolean savedatapoint) {
+
+	@Override
+	public void measure(Simulation e, boolean savedatapoint) {
 		double Q = 0;
 
 		int n_min = 0;

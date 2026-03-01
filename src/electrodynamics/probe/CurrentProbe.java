@@ -10,7 +10,8 @@ public class CurrentProbe extends Probe {
 	public int y2 = 0;
 
 	public double current = 0;
-	
+
+	@Override
 	public void calculateDefaultLabelCoords() {
 		double xa = 0.5*(x1+x2);
 		double ya = 0.5*(y1+y2);
@@ -30,8 +31,9 @@ public class CurrentProbe extends Probe {
 		labelcoord.x = (int)(xa-3*dy)-2;
 		labelcoord.y = (int)(ya+4*dx);
 	}
-	
-	public void calcCurrent(Simulation e, boolean savedatapoint) {
+
+	@Override
+	public void measure(Simulation e, boolean savedatapoint) {
 		int x1_t = x1;
 		int y1_t = y1;
 		int x2_t = x2;

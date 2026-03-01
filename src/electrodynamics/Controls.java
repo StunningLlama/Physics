@@ -32,11 +32,11 @@ import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
@@ -967,6 +967,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 		case PROBEPLOT:
 			plotinterval = e.opts.gui_plotinterval.getValue();
+			e.opts.gui_plotinterval_text.setText("Time resolution: " + Utils.getSI(plotinterval*e.dt*e.iteration_multiplier, "s"));
 			if (!e.voltageprobeplot.frame.isVisible() && e.voltageprobes.size() > 0)
 				e.voltageprobeplot.createPlot(e);
 			if (!e.currentprobeplot.frame.isVisible() && e.currentprobes.size() > 0)
@@ -1039,6 +1040,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		if (!texting) {
 			removeKeyBinds(e.canvas);
 			removeKeyBinds(e.opts.panel);
+			e.opts.menuBar.setEnabled(false);
 			texting = true;
 		}
 	}
@@ -1047,6 +1049,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		if (texting) {
 			addKeyBinds(e.canvas);
 			addKeyBinds(e.opts.panel);
+			e.opts.menuBar.setEnabled(true);
 			texting = false;
 		}
 	}
@@ -1186,27 +1189,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 		else if (ev.getSource() == e.opts.menu_editdesc) {
 			SwingUtilities.invokeLater(() -> {
-				String text = e.opts.textPane.getText();
-				JFrame frame = new JFrame();
-				JTextArea area = new JTextArea();
-				JButton b = new JButton("Save");
-				frame.setSize(500, 500);
-				area.setText(text);
-				area.setEditable(true);
-				area.setLineWrap(true);
-				area.setWrapStyleWord(true);
-				frame.add(area);
-				frame.add(b, BorderLayout.SOUTH);
-				b.addActionListener(new ActionListener() {
-					@Override
-					public void actionPerformed(ActionEvent ev) {
-						e.opts.textPane.setText(area.getText());
-						e.opts.textPane.setEditable(false);
-						frame.dispose();
-					}
-				});
-				frame.setVisible(true);
-				
+				new DescDialog();
 			});
 		} else if (ev.getSource() == e.opts.gui_brush) {
 			e.controls.brush_changed = true;
@@ -1239,25 +1222,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		} else if (ev.getSource() == e.opts.menu_redo) {
 			redo = true;
 		} else if (ev.getSource() == e.opts.menu_about) {
-			JOptionPane.showMessageDialog(e.opts, "Brandon's Semiconductor Simulator / SemiSim.\nVersion 1.11\n (c) 2026 Brandon Li", "About", JOptionPane.INFORMATION_MESSAGE);
+			JOptionPane.showMessageDialog(e.opts, SemiSim.about, "About", JOptionPane.INFORMATION_MESSAGE);
 		} else if (ev.getSource() == e.opts.menu_img) {
 			SwingUtilities.invokeLater(() -> {
-				ImgDialog dialog = new ImgDialog();
-				dialog.spinner.setValue(e.renderer.canvas_size);
-				dialog.okButton.addActionListener(new ActionListener() {
-					@Override
-					public void actionPerformed(ActionEvent ev) {
-						e.renderer.setCanvasSize((int) dialog.spinner.getValue());
-						e.opts.pack();
-						dialog.dispose();
-					}
-				});
-				dialog.cancelButton.addActionListener(new ActionListener() {
-					@Override
-					public void actionPerformed(ActionEvent ev) { dialog.dispose(); }
-				});
-				dialog.setVisible(true);
-				
+				new ImgDialog();
 			});
 		} else if (ev.getSource() == e.opts.menu_debug) {
 			debugging = !debugging;
@@ -1758,6 +1726,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	@Override
 	public void keyPressed(KeyEvent ev) {
 		if (texting) {
+			if (ev.getKeyCode() == KeyEvent.VK_ESCAPE || ev.getKeyCode() == KeyEvent.VK_ENTER) {
+				endTextInput();
+				return;
+			}
+			
 			if (ev.getKeyCode() == KeyEvent.VK_BACK_SPACE || ev.getKeyCode() == KeyEvent.VK_DELETE) {
 				text_x -= 6;
 				for (int i = 0; i < 5; i++) {
@@ -1859,10 +1832,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	
 	class ImgDialog extends JDialog {
 
-		private static final long serialVersionUID = 1L;
+		private static final long serialVersionUID = -6927915016913959947L;
 		private final JPanel contentPanel = new JPanel();
 		public JSpinner spinner;
-		public JButton okButton = new JButton("OK");
+		public JButton okButton = new JButton("Apply");
 		public JButton cancelButton = new JButton("Cancel");
 
 		public ImgDialog() {
@@ -1889,9 +1862,72 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			getRootPane().setDefaultButton(okButton);
 			
 			buttonPane.add(cancelButton);
+			
+
+			spinner.setValue(e.renderer.canvas_size);
+			okButton.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent ev) {
+					e.renderer.setCanvasSize((int) spinner.getValue());
+					e.opts.pack();
+					dispose();
+				}
+			});
+			
+			cancelButton.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent ev) { dispose(); }
+			});
+			
+			setVisible(true);
 		}
 	}
 
+	class DescDialog extends JDialog {
+		private static final long serialVersionUID = -1338819833865147129L;
+		public JButton okButton = new JButton("Apply");
+		public JButton cancelButton = new JButton("Cancel");
+		
+		public DescDialog() {
+			String text = e.opts.textPane.getText();
+			
+			getContentPane().setLayout(new BorderLayout());
+			JTextArea area = new JTextArea();
+			JScrollPane scroll = new JScrollPane(area);
+			setSize(500, 500);
+			area.setText(text);
+			area.setEditable(true);
+			area.setLineWrap(true);
+			area.setWrapStyleWord(true);
+			getContentPane().add(scroll);
+
+			JPanel buttonPane = new JPanel();
+			buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
+			getContentPane().add(buttonPane, BorderLayout.SOUTH);
+			
+			buttonPane.add(okButton);
+			getRootPane().setDefaultButton(okButton);
+			
+			buttonPane.add(cancelButton);
+			
+			okButton.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent ev) {
+					e.opts.textPane.setText(area.getText());
+					e.opts.textPane.setEditable(false);
+					dispose();
+				}
+			});
+			
+			cancelButton.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent ev) {
+					dispose();
+				}
+			});
+			setVisible(true);
+		}
+	}
 
 	interface FloodFillFunc {
 		boolean isValid(int i, int j);

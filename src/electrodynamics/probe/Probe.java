@@ -1,8 +1,13 @@
 package electrodynamics.probe;
 
-public class Probe {
+import electrodynamics.Simulation;
+
+public abstract class Probe {
 	public LabelCoord labelcoord = new LabelCoord();
 	public ProbeData data = new ProbeData();
+
+	public abstract void calculateDefaultLabelCoords();
+	public abstract void measure(Simulation e, boolean savedatapoint);
 	
 	public class LabelCoord {
 		public int x = -1;

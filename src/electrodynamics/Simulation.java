@@ -319,8 +319,8 @@ public class Simulation extends PeriodicTask {
 		bandplot = new BandPlot(); plots.add(bandplot);
 		scalarplot = new ScalarPlot(); plots.add(scalarplot);
 		carrierplot = new CarrierPlot(); plots.add(carrierplot);
-		voltageprobeplot = new ProbePlot("Voltage probe plot", "Voltage [V]", "V", 1); plots.add(voltageprobeplot);
-		currentprobeplot = new ProbePlot("Current probe plot", "Current [A]", "I", 1); plots.add(currentprobeplot);
+		voltageprobeplot = new ProbePlot("Voltage probe plot", "Voltage [mV]", "V", 1e3); plots.add(voltageprobeplot);
+		currentprobeplot = new ProbePlot("Current probe plot", "Current [mA]", "I", 1e3); plots.add(currentprobeplot);
 		chargeprobeplot = new ProbePlot("Charge probe plot", "Charge [fC]", "Q", 1e15); plots.add(chargeprobeplot);
 		
 		for (Plot p : plots)
@@ -366,6 +366,8 @@ public class Simulation extends PeriodicTask {
         					time = 0.0;
         				}
     				});
+    				opts.setTitle(SemiSim.name);
+    				opts.textPane.setText("Description of simulation");
     				controls.reset = false;
     			}
 
@@ -490,7 +492,6 @@ public class Simulation extends PeriodicTask {
 			rho_back = new double[nx][ny];
 			rho_free = new double[nx][ny];
 			mobility_factor = new double[nx][ny];
-			relative_mobility = new double[nx][ny];
 
 			Jx_abs = new double[nx][ny];
 			Jy_abs = new double[nx][ny];
@@ -516,6 +517,7 @@ public class Simulation extends PeriodicTask {
 			cmfy_n = new double[nx][ny];
 			cmfx_p = new double[nx][ny];
 			cmfy_p = new double[nx][ny];
+			relative_mobility = new double[nx][ny];
 			conducting = new int[nx][ny];
 			conducting_x = new int[nx][ny];
 			conducting_y = new int[nx][ny];
@@ -589,7 +591,7 @@ public class Simulation extends PeriodicTask {
 		
 		return true;
 	}
-
+	
 	public void resetFields(boolean resetall) {
 
 		rwLock.writeLock().lock();
@@ -722,8 +724,6 @@ public class Simulation extends PeriodicTask {
 				for (Plot p: plots) {
 					p.frame.setVisible(false);
 				}
-
-				opts.setTitle("Brandon's semiconductor simulator");
 
 				controls.undoredo.resetUndoHistory(this);
 				controls.resetZoom();
@@ -1188,18 +1188,18 @@ public class Simulation extends PeriodicTask {
 		}
 
 		if (ground != null)
-			ground.calcVoltage(this, false);
+			ground.measure(this, false);
 
 		for (VoltageProbe p: voltageprobes) {
-			p.calcVoltage(this, frame%controls.plotinterval == 0);
+			p.measure(this, frame%controls.plotinterval == 0);
 		}
 
 		for (CurrentProbe p: currentprobes) {
-			p.calcCurrent(this, frame%controls.plotinterval == 0);
+			p.measure(this, frame%controls.plotinterval == 0);
 		}
 		
 		for (ChargeProbe p: chargeprobes) {
-			p.calcCharge(this, frame%controls.plotinterval == 0);
+			p.measure(this, frame%controls.plotinterval == 0);
 		}
 
 		if (controls.logdata) {

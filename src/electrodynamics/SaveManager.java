@@ -297,7 +297,7 @@ public class SaveManager {
 				}
 
 				dialog.dispose();
-				e.opts.setTitle("Brandon's semiconductor simulator - " + infile.getName());
+				e.opts.setTitle(SemiSim.name + " - " + infile.getName());
 			} catch (FileNotFoundException ex) {
 				return;
 			} catch (IOException | IllegalArgumentException ex) {
@@ -493,7 +493,7 @@ public class SaveManager {
 				fstr.close();
 
 				dialog.dispose();
-				e.opts.setTitle("Brandon's semiconductor simulator - " + outfile.getName());
+				e.opts.setTitle(SemiSim.name + " - " + outfile.getName());
 			} catch (FileNotFoundException e) {
 				return;
 			} catch (IOException e) {

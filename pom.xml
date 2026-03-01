@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>SemiSim</groupId>
 	<artifactId>SemiSim</artifactId>
-	<version>1.11</version>
+	<version>1.12</version>
 	<dependencies>
 		<dependency>
 			<groupId>org.jfree</groupId>
