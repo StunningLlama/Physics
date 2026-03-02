@@ -28,7 +28,7 @@ public class SemiSim {
 	public static String about = "<html><body><p style='width: 250px;'>Brandon's Semiconductor Simulator / SemiSim.<br>"
 									+ "Version 1.12<br>"
 									+ "(c) 2026 Brandon Li<br><br>"
-									+ "Thanks to Paul Falstad and Ariel Baksh for providing help, feedback, and suggestions.</p></body></html>";
+									+ "Thanks to Paul Falstad, Ariel Baksh, and retconaway for providing help, feedback, and suggestions.</p></body></html>";
 
 	ArrayList<SimulationThread> sim_threads = new ArrayList<>();
 	ArrayList<Renderer.GraphicsThread> graphics_threads = new ArrayList<>();

@@ -67,35 +67,6 @@ Simulation area (purple), controls (blue), and menu bar (green).
 
 The main way to interact with circuits is through voltage sources and switches. A good way to get started with this software is to load one of the many examples.
 
-## Simulation variables
-
-Listed below are the most important variables that capture the state of the simulation at a given time:
-
-|     |     |
-| --- | --- |
-| \\(\\vec{E} = (E\_x, E\_y, 0)\\) | Electric field \[V/m\] |
-| \\(\\vec{B} = (0, 0, B\_z)\\) | Magnetic field \[T\] |
-| \\(\\rho\_n\\) | Charge density of electrons \[C/m^3\] |
-| \\(\\rho\_p\\) | Charge density of holes \[C/m^3\] |
-| \\(\\rho = \\rho\_n + \\rho\_p\\) | Net charge density \[C/m^3\] |
-| \\(\\vec{J}\_n = (J\_{nx}, J\_{ny}, 0)\\) | Electron current density \[A/m^2\] |
-| \\(\\vec{J}\_p = (J\_{px}, J\_{py}, 0)\\) | Hole current density \[A/m^2\] |
-| \\(\\vec{J} = \\vec{J}\_n + \\vec{J}\_p\\) | Total current density \[A/m^2\] |
-| \\(\\vec{D} = \\epsilon \\vec{E}\\) | Electric displacement field \[C/m^2\] |
-| \\(\\vec{H} = \\frac{1}{\\mu} \\vec{B}\\) | Magnetic field \[A/m\] |
-| \\(\\vec{S} = \\vec{E}\\times \\vec{H}\\) | Poynting vector \[W/m^2\] |
-| \\(u = \\frac{1}{2}(\\vec{E}\\cdot \\vec{D} + \\vec{B} \\cdot \\vec{H})\\) | Electromagnetic energy density \[J/m^3\] |
-| \\(\\phi\\) | Electric scalar potential \[V\] |
-| \\(G\\) | Charge carrier generation rate \[1/(m^3 s)\] |
-| \\(R\\) | Charge carrier recombination rate \[1/(m^3 s)\] |
-| \\(F\_n\\) | Electron quasi-Fermi level (free energy) \[V\]\* |
-| \\(F\_p\\) | Hole quasi-Fermi level (free energy) \[V\]\* |
-| \\(F\\) | Average free energy \[V\] |
-| \\(Q\\) | Heat dissipation \[J/(s m^3)\] |
-| \\(S\\) | Entropy generation \[J/ (K s m^3)\] |
-
-\* Here free energy is measured per unit of charge instead of per particle, hence the units used are \[V\] and not \[eV\].
-
 ## View options
 
 **Colors:** The value of a field is mapped to a color.
