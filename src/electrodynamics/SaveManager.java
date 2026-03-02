@@ -44,6 +44,7 @@ public class SaveManager {
 
 	public static File infile;
 	public static File outfile;
+	public static File currentfile;
 	int saveversion = 3;
 	String fileextension = ".semisim";
 	String startingpath = ".";
@@ -298,6 +299,7 @@ public class SaveManager {
 
 				dialog.dispose();
 				e.opts.setTitle(SemiSim.name + " - " + infile.getName());
+				currentfile = infile;
 			} catch (FileNotFoundException ex) {
 				return;
 			} catch (IOException | IllegalArgumentException ex) {
@@ -368,9 +370,14 @@ public class SaveManager {
 		return field;
 	}
 
-	public void writeFile()
+	public void writeFile(boolean saveas)
 	{
 		SwingUtilities.invokeLater(() -> {
+			if (!saveas && currentfile != null && currentfile.exists()) {
+				writeFile(outfile);
+				return;
+			}
+			
 			File testfile = new File(startingpath);
 			if (!testfile.canWrite()) {
 				JOptionPane.showMessageDialog(e.opts,
@@ -494,6 +501,7 @@ public class SaveManager {
 
 				dialog.dispose();
 				e.opts.setTitle(SemiSim.name + " - " + outfile.getName());
+				currentfile = outfile;
 			} catch (FileNotFoundException e) {
 				return;
 			} catch (IOException e) {

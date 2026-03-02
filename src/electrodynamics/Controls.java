@@ -21,8 +21,12 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -59,7 +63,7 @@ import electrodynamics.util.MenuCheckList;
 import electrodynamics.util.Utils;
 import electrodynamics.util.Vector;
 
-public class Controls implements ActionListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener, ItemListener {
+public class Controls implements ActionListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener, ItemListener, WindowListener {
 	Simulation e;
 	
 	/* Keyboard controls */
@@ -68,6 +72,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public boolean clear = false;
 	public boolean reset = false;
 	public boolean save = false;
+	public boolean saveas = false;
 	public boolean load = false;
 	public boolean debugging = false;
 	public boolean cut = false;
@@ -75,6 +80,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public boolean paste = false;
 	public boolean undo = false;
 	public boolean redo = false;
+	public boolean selectall = false;
+	public boolean deselectall = false;
 	public boolean delete = false;
     public boolean shift_down = false;
     public boolean ctrl_down = false;
@@ -83,6 +90,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     public boolean rotate_selection = false;
     public boolean flip_h_selection = false;
     public boolean flip_v_selection = false;
+    public boolean exit = false;
 
 
 	/* Mouse controls */
@@ -90,9 +98,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	PointerInfo pointerinfo = MouseInfo.getPointerInfo();
 	public boolean mouse_pressed = false;
 	public boolean mouse_pressed_prev = false;
+	public boolean pressing = false;
+	public boolean releasing = false;
 	public boolean moving_selection = false;
 	public boolean dragging_selection = false;
 	public boolean brush_changed = false;
+	public boolean update = false;
+	public boolean changesmade = false;
 
 	public int mousebutton = 0;
 	public int mx_screen = 0;
@@ -123,7 +135,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	Brush prev_brush;
 	public double brushsize = 0;
 	public int prev_EMF_setting = 0;
-	BoundaryCondition prev_boundary = null;
+	BoundaryCondition prev_boundary = BoundaryCondition.DISSIPATIVE;
 
 	public boolean[][] under_brush;
 	public boolean[][] selected;
@@ -174,20 +186,21 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		text_y = 0;
 		endTextInput();
 	}
-	
-	public void handleMouseInput() {
-		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
-		BrushShape brushshape = (BrushShape) e.opts.gui_brush_1.getSelectedItem();
 
-		boolean pressing = false;
-		boolean releasing = false;
+	public void handleMouseInput() {
+		transformMouseCoords();
+		processKeyboardCommands();
+		makeUIchanges();
+		applyTool();
+	}
+	
+	public void transformMouseCoords() {
+		pressing = false;
+		releasing = false;
 
 		if (mouse_pressed) {
 			if (!mouse_pressed_prev) {
 				pressing = true;
-				e.canvas.requestFocus();
-				if (Brush.isMaterialModifyingBrush(brush) || brush == Brush.SELECT)
-					e.opts.gui_paused.setSelected(true);
 			}
 		} else {
 			if (mouse_pressed_prev) {
@@ -196,8 +209,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		}
 		mouse_pressed_prev = mouse_pressed;
 
-		//(mx - 0.5*(e.renderer.scalefactor_real-1))/e.renderer.scalefactor_real
-		
 		if (!zoomed) {
 			mx = (int)Math.round((mx_screen-0.5)/e.renderer.scalefactor_real - 0.5);
 			my = (int)Math.round((my_screen-1.5)/e.renderer.scalefactor_real - 0.5);
@@ -224,56 +235,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		if (my_start < 0) my_start = 0;
 		if (mx_start >= e.nx) mx_start = e.nx-1;
 		if (my_start >= e.ny) my_start = e.ny-1;
+	}
 
-		e.opts.gui_stepsizelbl.setText("Timestep: " + Utils.getSI(e.dt, "s"));
-		e.opts.gui_stepslbl.setText("Sim steps/frame: " + e.opts.gui_simspeed_2.getValue());
-
-		brushsize = Math.pow(10.0, 2*e.opts.gui_brushsize.getValue()/(50.0*10.0) - 0.75) + e.opts.gui_brushsize.getValue()/10.0 + 0.5;
-		e.opts.lblBrushSize.setText("Brush size: " + (int)Math.ceil(brushsize));
-
-		if (!Brush.isMaterialModifyingBrush(brush))
-		{
-			e.opts.gui_parameter2.setVisible(false);
-			e.opts.gui_parameter2_text.setVisible(false);
-			e.opts.gui_parameter2_text.setText("");
-		}
-
-
-		if (Brush.isBrushShapeImportant(brush)) {
-			e.opts.gui_brush_1.setVisible(true);
-			e.opts.gui_brush_highlight.setVisible(true);
-			e.opts.gui_brushsize.setVisible(true);
-			e.opts.lblBrushSize.setVisible(true);
-		} else {
-			e.opts.gui_brush_1.setVisible(false);
-			e.opts.gui_brush_highlight.setVisible(false);
-			e.opts.gui_brushsize.setVisible(false);
-			e.opts.lblBrushSize.setVisible(false);
-		}
-
-
-		if (Brush.isMaterialModifyingBrush(brush) && brush != Brush.ERASE) {
-			e.opts.gui_material.setVisible(true);
-		} else {
-			e.opts.gui_material.setVisible(false);
-		}
+	
+	public void processKeyboardCommands() {
+		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
 		
-		if (e.opts.gui_carriers.isSelected()) {
-			e.opts.gui_carrierlbl.setVisible(true);
-			e.opts.gui_carrier_density.setVisible(true);
-		} else {
-			e.opts.gui_carrierlbl.setVisible(false);
-			e.opts.gui_carrier_density.setVisible(false);
-		}
-		
-		if (brush == Brush.PROBEPLOT) {
-			e.opts.gui_plotinterval.setVisible(true);
-			e.opts.gui_plotinterval_text.setVisible(true);
-		} else {
-			e.opts.gui_plotinterval.setVisible(false);
-			e.opts.gui_plotinterval_text.setVisible(false);
-		}
-
 		if (brush_changed) {
 			if (!(brush == Brush.SELECT || brush == Brush.FLOODSELECT)) {
 				for (int i = 0; i < e.nx; i++)
@@ -298,9 +265,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 			brush_changed = false;
 		}
-		
-
-		boolean update = false;
 
 		if (cut || copy) {
 			int i_min = e.nx-1;
@@ -460,6 +424,31 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 		}
 		
+		if (selectall) {
+			for (int i = 0; i < e.nx; i++)
+			{
+				for (int j = 0; j < e.ny; j++)
+				{
+					if (!(e.materials[i][j].auto_placed && e.materials[i][j].type == MaterialType.ABSORBER)) {
+						selected[i][j] = true;
+					}
+				}
+			}
+			e.opts.gui_brush.setSelectedItem(Brush.SELECT);
+			selectall = false;
+		}
+		
+		if (deselectall) {
+			for (int i = 0; i < e.nx; i++)
+			{
+				for (int j = 0; j < e.ny; j++)
+				{
+					selected[i][j] = false;
+				}
+			}
+			deselectall = false;
+		}
+		
 		selectionempty = true;
 
 		for (int i = 0; i < e.nx; i++)
@@ -480,7 +469,73 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		e.opts.menu_flip_v.setEnabled(moving_selection);
 		e.opts.menu_undo.setEnabled(undoredo.canUndo());
 		e.opts.menu_redo.setEnabled(undoredo.canRedo());
+		e.opts.menu_deselectall.setEnabled(!selectionempty);
+	}
+	
+	public void makeUIchanges() {
+		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
+		
+		if (pressing) {
+			e.canvas.requestFocus();
+			if (Brush.isMaterialModifyingBrush(brush) || brush == Brush.SELECT)
+				e.opts.gui_paused.setSelected(true);
+		}
+		
+		e.opts.gui_stepsizelbl.setText("Timestep: " + Utils.getSI(e.dt, "s"));
+		e.opts.gui_stepslbl.setText("Sim steps/frame: " + e.opts.gui_simspeed_2.getValue());
 
+		brushsize = Math.pow(10.0, 2*e.opts.gui_brushsize.getValue()/(50.0*10.0) - 0.75) + e.opts.gui_brushsize.getValue()/10.0 + 0.5;
+		e.opts.lblBrushSize.setText("Brush size: " + (int)Math.ceil(brushsize));
+
+		if (!Brush.isMaterialModifyingBrush(brush))
+		{
+			e.opts.gui_parameter2.setVisible(false);
+			e.opts.gui_parameter2_text.setVisible(false);
+			e.opts.gui_parameter2_text.setText("");
+		}
+
+
+		if (Brush.isBrushShapeImportant(brush)) {
+			e.opts.gui_brush_1.setVisible(true);
+			e.opts.gui_brush_highlight.setVisible(true);
+			e.opts.gui_brushsize.setVisible(true);
+			e.opts.lblBrushSize.setVisible(true);
+		} else {
+			e.opts.gui_brush_1.setVisible(false);
+			e.opts.gui_brush_highlight.setVisible(false);
+			e.opts.gui_brushsize.setVisible(false);
+			e.opts.lblBrushSize.setVisible(false);
+		}
+
+
+		if (Brush.isMaterialModifyingBrush(brush) && brush != Brush.ERASE) {
+			e.opts.gui_material.setVisible(true);
+		} else {
+			e.opts.gui_material.setVisible(false);
+		}
+		
+		if (e.opts.gui_carriers.isSelected()) {
+			e.opts.gui_carrierlbl.setVisible(true);
+			e.opts.gui_carrier_density.setVisible(true);
+		} else {
+			e.opts.gui_carrierlbl.setVisible(false);
+			e.opts.gui_carrier_density.setVisible(false);
+		}
+		
+		if (brush == Brush.PROBEPLOT) {
+			e.opts.gui_plotinterval.setVisible(true);
+			e.opts.gui_plotinterval_text.setVisible(true);
+		} else {
+			e.opts.gui_plotinterval.setVisible(false);
+			e.opts.gui_plotinterval_text.setVisible(false);
+		}
+	}
+	
+	public void applyTool() {
+		
+		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
+		BrushShape brushshape = (BrushShape) e.opts.gui_brush_1.getSelectedItem();
+		
 		switch(brush) {
 		case DRAW:
 		case LINE:
@@ -998,11 +1053,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 		if ((releasing && Brush.isMaterialModifyingBrush(brush)) || (BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary || update) {
 
-			//e.resetFields(false);
 			e.updateAllMaterials(false);
 			e.multigridSolve(true, false);
 			
 			undoredo.captureState(e);
+			
+			changesmade = true;
+			update = false;
 		}
 
 		prev_boundary = (BoundaryCondition)e.opts.gui_bc.getSelectedItem();
@@ -1176,6 +1233,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			clear = true;
 		else if (ev.getSource() == e.opts.menu_new)
 			reset = true;
+		else if (ev.getSource() == e.opts.menu_saveas)
+			saveas = true;
 		else if (ev.getSource() == e.opts.menu_save)
 			save = true;
 		else if (ev.getSource() == e.opts.menu_open)
@@ -1185,6 +1244,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				File helpfile = new File("README.html");
 				java.awt.Desktop.getDesktop().browse(helpfile.toURI());
 			} catch (IOException ex) {
+				ex.printStackTrace();
+			}
+		else if (ev.getSource() == e.opts.menu_github)
+			try {
+				java.awt.Desktop.getDesktop().browse(new URI("https://github.com/StunningLlama/SemiSim/tree/SemiSim"));
+			} catch (IOException | URISyntaxException ex) {
 				ex.printStackTrace();
 			}
 		else if (ev.getSource() == e.opts.menu_editdesc) {
@@ -1217,18 +1282,26 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			flip_h_selection = true;
 		} else if (ev.getSource() == e.opts.menu_flip_v) {
 			flip_v_selection = true;
-		}else if (ev.getSource() == e.opts.menu_undo) {
+		} else if (ev.getSource() == e.opts.menu_undo) {
 			undo = true;
 		} else if (ev.getSource() == e.opts.menu_redo) {
 			redo = true;
+		} else if (ev.getSource() == e.opts.menu_selectall) {
+			selectall = true;
+		} else if (ev.getSource() == e.opts.menu_deselectall) {
+			deselectall = true;
 		} else if (ev.getSource() == e.opts.menu_about) {
 			JOptionPane.showMessageDialog(e.opts, SemiSim.about, "About", JOptionPane.INFORMATION_MESSAGE);
+		} else if (ev.getSource() == e.opts.menu_report) {
+			JOptionPane.showMessageDialog(e.opts, "Please contact Brandon at brandonli.lex@gmail.com\nor go to https://github.com/StunningLlama/SemiSim/issues.", "Report a bug", JOptionPane.INFORMATION_MESSAGE);
 		} else if (ev.getSource() == e.opts.menu_img) {
 			SwingUtilities.invokeLater(() -> {
 				new ImgDialog();
 			});
 		} else if (ev.getSource() == e.opts.menu_debug) {
 			debugging = !debugging;
+		} else if (ev.getSource() == e.opts.menu_exit) {
+			exit = true;
 		} else if (ev.getSource() instanceof JRadioButtonMenuItem) {
 			if (scalarview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null || vectorview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null)
 				e.updateMiscFields = true;
@@ -1381,6 +1454,20 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     		paste = true;
         }
     };
+    
+    private Action key_selectall = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		selectall = true;
+        }
+    };
+    
+    private Action key_deselectall = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		deselectall = true;
+        }
+    };
 
     private Action key_delete = new AbstractAction(null) {
 		@Override
@@ -1471,6 +1558,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		@Override
         public void actionPerformed(ActionEvent ev) {
     		save = true;
+        }
+    };
+    
+    private Action key_saveas = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		saveas = true;
         }
     };
     
@@ -1615,6 +1709,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), key_save);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.META_DOWN_MASK), key_save);
     	contentPane.getActionMap().put(key_save, key_save);
+    	
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_saveas);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.META_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_saveas);
+    	contentPane.getActionMap().put(key_saveas, key_saveas);
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK), key_open);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.META_DOWN_MASK), key_open);
@@ -1635,6 +1733,14 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), key_flip_h);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK), key_flip_h);
     	contentPane.getActionMap().put(key_flip_h, key_flip_h);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK), key_selectall);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.META_DOWN_MASK), key_selectall);
+    	contentPane.getActionMap().put(key_selectall, key_selectall);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK), key_deselectall);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.META_DOWN_MASK), key_deselectall);
+    	contentPane.getActionMap().put(key_deselectall, key_deselectall);
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), key_delete);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), key_delete);
@@ -1933,4 +2039,37 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		boolean isValid(int i, int j);
 		void fill(int i, int j);
 	}
+
+	@Override
+	public void windowOpened(WindowEvent e) {}
+
+	@Override
+	public void windowClosing(WindowEvent ev) {
+		if (e.controls.changesmade) {
+			int result = JOptionPane.showConfirmDialog(e.opts, "There are unsaved changes. Do you still wish to quit?", "Message", JOptionPane.YES_NO_OPTION);
+			if (result == JOptionPane.OK_OPTION)
+			{
+				e.opts.dispose();
+				System.exit(0);
+			}
+		} else {
+			e.opts.dispose();
+			System.exit(0);
+		}
+	}
+
+	@Override
+	public void windowClosed(WindowEvent e) {}
+
+	@Override
+	public void windowIconified(WindowEvent e) {}
+
+	@Override
+	public void windowDeiconified(WindowEvent e) {}
+
+	@Override
+	public void windowActivated(WindowEvent e) {}
+
+	@Override
+	public void windowDeactivated(WindowEvent e) {}
 }

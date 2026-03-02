@@ -368,6 +368,7 @@ public class Simulation extends PeriodicTask {
     				});
     				opts.setTitle(SemiSim.name);
     				opts.textPane.setText("Description of simulation");
+    				SaveManager.currentfile = null;
     				controls.reset = false;
     			}
 
@@ -404,13 +405,25 @@ public class Simulation extends PeriodicTask {
 
 
     			if (controls.save) {
-    				savemanager.writeFile();
+    				savemanager.writeFile(false);
     				controls.save = false;
+    			}
+    			
+    			if (controls.saveas) {
+    				savemanager.writeFile(true);
+    				controls.saveas = false;
     			}
 
     			if (controls.load) {
     				savemanager.readFile();
     				controls.load = false;
+    			}
+
+    			if (controls.exit) {
+    				SwingUtilities.invokeLater(() -> {
+    					controls.windowClosing(null);
+    				});
+    				controls.exit = false;
     			}
 
     			simFPStimer.stop();
@@ -710,6 +723,9 @@ public class Simulation extends PeriodicTask {
 			
 			if (resetall) {
 				controls.EMF_selected = false;
+				controls.changesmade = false;
+				opts.gui_bc.setSelectedItem(BoundaryCondition.DISSIPATIVE);
+				controls.prev_boundary = BoundaryCondition.DISSIPATIVE;
 			}
 
 			numerical_overflow = false;
@@ -1886,6 +1902,7 @@ public class Simulation extends PeriodicTask {
 		Material mat = materials[mx][my];
 		
 		String str = "";
+		str += "Mouse\n";
 		str += ("x\t"  						+	Utils.getSI(mx*ds, "m") + "\n");
 		str += ("y\t"  						+	Utils.getSI(ds*ny-(my+1)*ds, "m") + "\n");
 		str += "\nFields\n";

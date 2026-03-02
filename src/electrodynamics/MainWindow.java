@@ -28,6 +28,7 @@ import javax.swing.JTextArea;
 import javax.swing.ListCellRenderer;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.UIManager;
+import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -83,7 +84,7 @@ public class MainWindow extends JFrame {
 	public JComboBox gui_bc;
 	public JLabel lblBrushSize;
 	public JMenuItem menu_open;
-	public JMenuItem menu_save;
+	public JMenuItem menu_saveas;
 	public JMenuItem menu_about;
 	public JMenuItem menu_help;
 	public JMenuItem menu_cut;
@@ -119,7 +120,16 @@ public class MainWindow extends JFrame {
 	public JScrollBar gui_plotinterval;
 	public JLabel gui_plotinterval_text;
 	public JMenuBar menuBar;
-	private JLabel lblNewLabel;
+	public JLabel lblNewLabel;
+	public JSeparator separator_3;
+	public JMenuItem menu_selectall;
+	public JMenuItem menu_deselectall;
+	public JMenuItem menu_save;
+	private JMenu menu_view_1;
+	public JMenuItem menu_exit;
+	private JSeparator separator_1;
+	public JMenuItem menu_github;
+	public JMenuItem menu_report;
 
 	/**
 	 * Create the frame.
@@ -143,21 +153,22 @@ public class MainWindow extends JFrame {
 		menu_open.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
 		mnNewMenu.add(menu_open);
 		
-		menu_save = new JMenuItem("Save as...");
+		menu_save = new JMenuItem("Save");
 		menu_save.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
 		mnNewMenu.add(menu_save);
+		
+		menu_saveas = new JMenuItem("Save as...");
+		menu_saveas.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+		mnNewMenu.add(menu_saveas);
 		
 		menu_editdesc = new JMenuItem("Edit description...");
 		mnNewMenu.add(menu_editdesc);
 		
-		JSeparator separator_1 = new JSeparator();
+		separator_1 = new JSeparator();
 		mnNewMenu.add(separator_1);
 		
-		menu_about = new JMenuItem("About");
-		mnNewMenu.add(menu_about);
-		
-		menu_help = new JMenuItem("Open manual");
-		mnNewMenu.add(menu_help);
+		menu_exit = new JMenuItem("Exit");
+		mnNewMenu.add(menu_exit);
 		
 		JMenu menu_asdf = new JMenu("Edit");
 		menuBar.add(menu_asdf);
@@ -196,6 +207,17 @@ public class MainWindow extends JFrame {
 		menu_flip_v = new JMenuItem("Flip vertically");
 		menu_flip_v.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_flip_v);
+		
+		separator_3 = new JSeparator();
+		menu_asdf.add(separator_3);
+		
+		menu_selectall = new JMenuItem("Select all");
+		menu_selectall.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK));
+		menu_asdf.add(menu_selectall);
+		
+		menu_deselectall = new JMenuItem("Deselect all");
+		menu_deselectall.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK));
+		menu_asdf.add(menu_deselectall);
 		
 		separator_2 = new JSeparator();
 		menu_asdf.add(separator_2);
@@ -259,6 +281,21 @@ public class MainWindow extends JFrame {
 		
 		menu_examples = new JMenu("Examples");
 		menuBar.add(menu_examples);
+		
+		menu_view_1 = new JMenu("Help");
+		menuBar.add(menu_view_1);
+		
+		menu_help = new JMenuItem("Open manual");
+		menu_view_1.add(menu_help);
+		
+		menu_github = new JMenuItem("Github");
+		menu_view_1.add(menu_github);
+		
+		menu_report = new JMenuItem("Report a bug...");
+		menu_view_1.add(menu_report);
+		
+		menu_about = new JMenuItem("About...");
+		menu_view_1.add(menu_about);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		contentPane.setLayout(new BorderLayout(0, 0));
@@ -288,7 +325,7 @@ public class MainWindow extends JFrame {
 		gui_brushsize.setMaximum(750);
 		gui_brushsize.setValue(250);
 		gui_brushsize.setOrientation(Adjustable.HORIZONTAL);
-		gui_brushsize.setBounds(202, 238, 171, 17);
+		gui_brushsize.setBounds(202, 236, 171, 17);
 		panel.add(gui_brushsize);
 
 		gui_simspeed = new JScrollBar();
@@ -305,7 +342,7 @@ public class MainWindow extends JFrame {
 		gui_brightness.setMinimum(-45);
 		gui_brightness.setMaximum(45);
 		gui_brightness.setOrientation(Adjustable.HORIZONTAL);
-		gui_brightness.setBounds(10, 238, 171, 17);
+		gui_brightness.setBounds(10, 236, 171, 17);
 		panel.add(gui_brightness);
 
 		gui_parameter1 = new JScrollBar();
@@ -314,7 +351,7 @@ public class MainWindow extends JFrame {
 		gui_parameter1.setMaximum(25);
 		gui_parameter1.setMinimum(-15);
 		gui_parameter1.setOrientation(Adjustable.HORIZONTAL);
-		gui_parameter1.setBounds(202, 289, 171, 17);
+		gui_parameter1.setBounds(202, 285, 171, 17);
 		panel.add(gui_parameter1);
 
 		gui_brush = new JComboBox();
@@ -330,30 +367,30 @@ public class MainWindow extends JFrame {
 		panel.add(gui_stepsizelbl);
 
 		JLabel label5 = new JLabel("Scalar brightness");
-		label5.setBounds(20, 218, 150, 14);
+		label5.setBounds(20, 217, 150, 14);
 		panel.add(label5);
 
 		lblBrushSize = new JLabel("Brush size");
-		lblBrushSize.setBounds(212, 218, 138, 14);
+		lblBrushSize.setBounds(212, 217, 138, 14);
 		panel.add(lblBrushSize);
 
 		gui_parameter1_text = new JLabel("");
 		gui_parameter1_text.setEnabled(false);
-		gui_parameter1_text.setBounds(212, 267, 154, 14);
+		gui_parameter1_text.setBounds(212, 264, 154, 14);
 		panel.add(gui_parameter1_text);
 
 		gui_parameter2_text = new JLabel("Direction");
-		gui_parameter2_text.setBounds(212, 322, 161, 14);
+		gui_parameter2_text.setBounds(212, 316, 161, 14);
 		panel.add(gui_parameter2_text);
 
 		gui_parameter2 = new JScrollBar();
 		gui_parameter2.setOrientation(Adjustable.HORIZONTAL);
 		gui_parameter2.setMaximum(34);
-		gui_parameter2.setBounds(202, 341, 171, 17);
+		gui_parameter2.setBounds(202, 335, 171, 17);
 		panel.add(gui_parameter2);
 
 		lblVectorBrightness = new JLabel("Vector field brightness");
-		lblVectorBrightness.setBounds(20, 269, 150, 14);
+		lblVectorBrightness.setBounds(20, 266, 150, 14);
 		panel.add(lblVectorBrightness);
 
 		gui_brightness_vec = new JScrollBar();
@@ -362,7 +399,7 @@ public class MainWindow extends JFrame {
 		gui_brightness_vec.setMinimum(-45);
 		gui_brightness_vec.setMaximum(45);
 		gui_brightness_vec.setBlockIncrement(1);
-		gui_brightness_vec.setBounds(11, 290, 171, 17);
+		gui_brightness_vec.setBounds(11, 286, 171, 17);
 		panel.add(gui_brightness_vec);
 
 		gui_brush_1 = new JComboBox();
@@ -391,11 +428,11 @@ public class MainWindow extends JFrame {
 		gui_parameter3.setOrientation(Adjustable.HORIZONTAL);
 		gui_parameter3.setMaximum(60);
 		gui_parameter3.setBlockIncrement(1);
-		gui_parameter3.setBounds(202, 390, 171, 17);
+		gui_parameter3.setBounds(202, 386, 171, 17);
 		panel.add(gui_parameter3);
 
 		gui_parameter3_text = new JLabel("EMF");
-		gui_parameter3_text.setBounds(212, 369, 150, 14);
+		gui_parameter3_text.setBounds(212, 365, 150, 14);
 		panel.add(gui_parameter3_text);
 
 		gui_brush_highlight = new JCheckBox("Brush highlight");
@@ -419,7 +456,7 @@ public class MainWindow extends JFrame {
 		addTooltips(gui_bc);
 		
 		gui_carrierlbl = new JLabel("Charge carrier density");
-		gui_carrierlbl.setBounds(21, 369, 150, 14);
+		gui_carrierlbl.setBounds(21, 365, 150, 14);
 		panel.add(gui_carrierlbl);
 		
 		gui_carrier_density = new JScrollBar();
@@ -428,12 +465,12 @@ public class MainWindow extends JFrame {
 		gui_carrier_density.setMinimum(-45);
 		gui_carrier_density.setMaximum(45);
 		gui_carrier_density.setBlockIncrement(1);
-		gui_carrier_density.setBounds(11, 390, 171, 17);
+		gui_carrier_density.setBounds(11, 386, 171, 17);
 		panel.add(gui_carrier_density);
 		
 		gui_carriers = new JCheckBox("Show charge carriers");
 		gui_carriers.setSelected(false);
-		gui_carriers.setBounds(11, 326, 171, 23);
+		gui_carriers.setBounds(11, 325, 171, 23);
 		panel.add(gui_carriers);
 		
 		JPanel panel_1 = new JPanel();
@@ -456,7 +493,7 @@ public class MainWindow extends JFrame {
 						textPane.setEditable(false);
 						
 						gui_plotinterval_text = new JLabel("Probe plot interval");
-						gui_plotinterval_text.setBounds(206, 322, 167, 14);
+						gui_plotinterval_text.setBounds(206, 316, 167, 14);
 						panel.add(gui_plotinterval_text);
 						
 						gui_plotinterval = new JScrollBar();
@@ -464,11 +501,11 @@ public class MainWindow extends JFrame {
 						gui_plotinterval.setMinimum(1);
 						gui_plotinterval.setOrientation(JScrollBar.HORIZONTAL);
 						gui_plotinterval.setMaximum(60);
-						gui_plotinterval.setBounds(202, 341, 171, 17);
+						gui_plotinterval.setBounds(202, 337, 171, 17);
 						panel.add(gui_plotinterval);
 						
 						lblNewLabel = new JLabel("Simulation controls");
-						lblNewLabel.setFont(new Font("Lucida Grande", Font.BOLD, 13));
+						lblNewLabel.setFont(new Font("Lucida Grande", Font.PLAIN, 13));
 						lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
 						lblNewLabel.setBounds(115, 11, 150, 16);
 						panel.add(lblNewLabel);
@@ -519,12 +556,13 @@ public class MainWindow extends JFrame {
 		menu_advancedsettings.addActionListener(e.controls);
 		
 		menu_open.addActionListener(e.controls);
+		menu_saveas.addActionListener(e.controls);
 		menu_save.addActionListener(e.controls);
 		menu_about.addActionListener(e.controls);
 		menu_help.addActionListener(e.controls);
 		menu_undo.addActionListener(e.controls);
 		menu_redo.addActionListener(e.controls);
-		menu_save.addActionListener(e.controls);
+		menu_saveas.addActionListener(e.controls);
 		menu_cut.addActionListener(e.controls);
 		menu_copy.addActionListener(e.controls);
 		menu_paste.addActionListener(e.controls);
@@ -533,9 +571,14 @@ public class MainWindow extends JFrame {
 		menu_rotate.addActionListener(e.controls);
 		menu_flip_v.addActionListener(e.controls);
 		menu_flip_h.addActionListener(e.controls);
+		menu_selectall.addActionListener(e.controls);
+		menu_deselectall.addActionListener(e.controls);
 		menu_img.addActionListener(e.controls);
 		menu_carriers.addActionListener(e.controls);
 		menu_debug.addActionListener(e.controls);
+		menu_exit.addActionListener(e.controls);
+		menu_github.addActionListener(e.controls);
+		menu_report.addActionListener(e.controls);
 		
 		gui_brush.addItemListener(e.controls);
 		
@@ -579,5 +622,8 @@ public class MainWindow extends JFrame {
 		InputMap im = (InputMap)UIManager.get("Button.focusInputMap");
 		im.put(KeyStroke.getKeyStroke("pressed SPACE"), "none");
 		im.put(KeyStroke.getKeyStroke("released SPACE"), "none");
+		
+		setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+		addWindowListener(e.controls);
 	}
 }
