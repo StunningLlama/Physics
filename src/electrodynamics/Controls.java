@@ -1293,7 +1293,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		} else if (ev.getSource() == e.opts.menu_about) {
 			JOptionPane.showMessageDialog(e.opts, SemiSim.about, "About", JOptionPane.INFORMATION_MESSAGE);
 		} else if (ev.getSource() == e.opts.menu_report) {
-			JOptionPane.showMessageDialog(e.opts, "Please contact Brandon at brandonli.lex@gmail.com\nor go to https://github.com/StunningLlama/SemiSim/issues.", "Report a bug", JOptionPane.INFORMATION_MESSAGE);
+			JOptionPane.showMessageDialog(e.opts, "<html><body><p style='width: 300px;'>Please contact Brandon at brandonli.lex@gmail.com or go to https://github.com/StunningLlama/SemiSim/issues.</p></body></html>", "Report a bug", JOptionPane.INFORMATION_MESSAGE);
 		} else if (ev.getSource() == e.opts.menu_img) {
 			SwingUtilities.invokeLater(() -> {
 				new ImgDialog();

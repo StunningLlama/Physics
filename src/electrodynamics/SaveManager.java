@@ -374,7 +374,7 @@ public class SaveManager {
 	{
 		SwingUtilities.invokeLater(() -> {
 			if (!saveas && currentfile != null && currentfile.exists()) {
-				writeFile(outfile);
+				writeFile(currentfile);
 				return;
 			}
 			

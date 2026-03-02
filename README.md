@@ -59,13 +59,13 @@ Finally, certain properties of materials differ from their real life counterpart
 
 # Simulation features
 
-The interface consists of the simulation area which the user can interact with and the settings panel containing all the simulation controls.
+The interface consists of the simulation area which the user can interact with, simulation controls that allow various parameters to be adjusted, and a menu bar containing different settings and tools.
 
 ![Application](images/app.png)
 
-Simulation area (purple, left) and settings (blue, right).
+Simulation area (purple), controls (blue), and menu bar (green).
 
-The main way to interact with circuits is to change the strength of voltage sources and turn switches on and off. The quickest way to get started is to load one of the examples and start changing the voltages.
+The main way to interact with circuits is through voltage sources and switches. A good way to get started with this software is to load one of the many examples.
 
 ## Simulation variables
 

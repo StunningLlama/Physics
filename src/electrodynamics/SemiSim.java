@@ -25,7 +25,10 @@ public class SemiSim {
 	public static SemiSim instance;
 	public static int n_threads = Runtime.getRuntime().availableProcessors();
 	public static String name = "Brandon's semiconductor simulator";
-	public static String about = "Brandon's Semiconductor Simulator / SemiSim.\nVersion 1.12\n (c) 2026 Brandon Li";
+	public static String about = "<html><body><p style='width: 250px;'>Brandon's Semiconductor Simulator / SemiSim.<br>"
+									+ "Version 1.12<br>"
+									+ "(c) 2026 Brandon Li<br><br>"
+									+ "Thanks to Paul Falstad and Ariel Baksh for providing help, feedback, and suggestions.</p></body></html>";
 
 	ArrayList<SimulationThread> sim_threads = new ArrayList<>();
 	ArrayList<Renderer.GraphicsThread> graphics_threads = new ArrayList<>();
