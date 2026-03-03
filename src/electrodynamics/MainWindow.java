@@ -12,6 +12,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import javax.imageio.ImageIO;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.InputMap;
 import javax.swing.JButton;
@@ -36,7 +37,9 @@ import javax.swing.JMenu;
 import javax.swing.JSeparator;
 import javax.swing.KeyStroke;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.awt.event.InputEvent;
 
 import electrodynamics.Controls.Brush;
@@ -48,7 +51,6 @@ import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.util.MenuBuilder;
 
 import javax.swing.JCheckBoxMenuItem;
-import javax.swing.SwingConstants;
 
 public class MainWindow extends JFrame {
 
@@ -537,12 +539,12 @@ public class MainWindow extends JFrame {
 		gui_brush.setSelectedItem(Brush.INTERACT);
 		gui_brushsize.setValue(250);
 		gui_simspeed.setValue(20);
-		gui_brightness.setValue(-20);
-		gui_brightness_vec.setValue(-10);
+		gui_brightness.setValue(-15);
+		gui_brightness_vec.setValue(-8);
 		gui_brush_1.setSelectedIndex(1);
 		gui_simspeed_2.setValue(25);
 		gui_material.setSelectedIndex(0);
-		gui_carrier_density.setValue(-45);
+		gui_carrier_density.setValue(10);
 
 		e.controls.brushes.setOption(Controls.Brush.INTERACT);
 		e.controls.scalarview.setOption(ScalarView.CHARGE);
@@ -633,5 +635,14 @@ public class MainWindow extends JFrame {
 		
 		setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 		addWindowListener(e.controls);
+
+		try {
+			BufferedImage icon = ImageIO.read(new File("images/icon.png"));
+			if (icon != null) {
+				setIconImage(icon);
+			}
+		} catch (IOException e1) {}
+		
+		setDefaults(e);
 	}
 }

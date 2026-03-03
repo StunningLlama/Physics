@@ -21,7 +21,6 @@ public class BandPlot extends Plot {
         fig.xlabel("Position");
         fig.ylabel("Energy (eV)");
         frame.setTitle("Band diagram");
-        System.out.println("MEOWOWOWO");
 	}
 	
 	@Override
