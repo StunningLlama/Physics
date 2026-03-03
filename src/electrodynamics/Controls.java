@@ -43,6 +43,7 @@ import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -91,6 +92,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     public boolean flip_h_selection = false;
     public boolean flip_v_selection = false;
     public boolean exit = false;
+    public boolean updateimagesize = false;
 
 
 	/* Mouse controls */
@@ -1940,7 +1942,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 		private static final long serialVersionUID = -6927915016913959947L;
 		private final JPanel contentPanel = new JPanel();
-		public JSpinner spinner;
+		public JTextField spinner;
 		public JButton okButton = new JButton("Apply");
 		public JButton cancelButton = new JButton("Cancel");
 
@@ -1951,12 +1953,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			getContentPane().add(contentPanel, BorderLayout.CENTER);
 			contentPanel.setLayout(null);
 			
-			JLabel lblNewLabel = new JLabel("Image size");
+			JLabel lblNewLabel = new JLabel("Image size (px)");
 			lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
 			lblNewLabel.setBounds(33, 17, 111, 16);
 			contentPanel.add(lblNewLabel);
 
-			spinner = new JSpinner();
+			spinner = new JTextField();
 			spinner.setBounds(33, 37, 111, 26);
 			contentPanel.add(spinner);
 
@@ -1970,13 +1972,29 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			buttonPane.add(cancelButton);
 			
 
-			spinner.setValue(e.renderer.canvas_size);
+			spinner.setText(String.valueOf(e.renderer.canvas_size));
 			okButton.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent ev) {
-					e.renderer.setCanvasSize((int) spinner.getValue());
-					e.opts.pack();
-					dispose();
+					boolean valid = true;
+					int x = 0;
+					try {
+						x = Integer.valueOf(spinner.getText());
+					} catch(NumberFormatException e) {
+						valid = false;
+					}
+					
+					if (!(x > 0 && x < 10000)) {
+						valid = false;
+					}
+					
+					if (valid) {
+						e.renderer.new_canvas_size = x;
+						updateimagesize = true;
+						dispose();
+					} else {
+						JOptionPane.showMessageDialog(e.opts, "Invalid display size. Must be between 1 and 9999.", "Error", JOptionPane.INFORMATION_MESSAGE);
+					}
 				}
 			});
 			

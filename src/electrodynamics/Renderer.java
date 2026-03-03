@@ -91,6 +91,8 @@ public class Renderer extends PeriodicTask {
 	FastRandom frand = new FastRandom();
 	double cc_default_dot_density = 5e11;		// How many electron/hole dots to draw
 	double tau = 1e-12;		// How long a dot stays on the screen
+
+	public int new_canvas_size;
 	
 	/* Performance profiling */
 	

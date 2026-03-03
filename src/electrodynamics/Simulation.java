@@ -363,13 +363,27 @@ public class Simulation extends PeriodicTask {
         				if (result == JOptionPane.OK_OPTION)
         				{
         					resetFields(true);
+            				opts.setDefaults(this);
+            				SaveManager.currentfile = null;
         					time = 0.0;
         				}
     				});
-    				opts.setTitle(SemiSim.name);
-    				opts.textPane.setText("Description of simulation");
-    				SaveManager.currentfile = null;
     				controls.reset = false;
+    			}
+
+    			if (controls.updateimagesize) {
+
+    				SwingUtilities.invokeLater(() -> {
+    					rwLock.writeLock().lock();
+    					try {
+    						renderer.setCanvasSize(renderer.new_canvas_size);
+    						opts.pack();
+    					}
+    					finally {
+    						rwLock.writeLock().unlock();
+    					}
+    				});
+    				controls.updateimagesize = false;
     			}
 
     			lastsimspeed = opts.gui_simspeed.getValue();

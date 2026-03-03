@@ -515,7 +515,7 @@ public class SaveManager {
 	}
 	
 	public void setDefaults() {
-		e.opts.setDefaults();
+		e.opts.setDefaults(e);
 	}
 
 	public void writeAdvancedSettings() {
