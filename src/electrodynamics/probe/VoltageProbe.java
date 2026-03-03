@@ -22,4 +22,17 @@ public class VoltageProbe extends Probe {
 		
 		if (savedatapoint) data.addData(potential, e.time);
 	}
+	
+	@Override
+	public VoltageProbe clone() {
+		VoltageProbe p = null;
+		try {
+			p = (VoltageProbe) super.clone();
+		} catch (CloneNotSupportedException e) {
+			e.printStackTrace();
+		}
+		p.data = data.clone();
+		p.labelcoord = labelcoord.clone();
+		return p;
+	}
 }

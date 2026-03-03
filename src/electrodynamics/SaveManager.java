@@ -93,6 +93,13 @@ public class SaveManager {
 		e.rwLock.writeLock().lock();
 		try {
 			if (infile == null || !infile.exists()) return;
+			
+			if (e.controls.changesmade) {
+				int result = JOptionPane.showConfirmDialog(e.opts, "There are unsaved changes. Do you still wish to open this file?", "Message", JOptionPane.YES_NO_OPTION);
+				if (result != JOptionPane.OK_OPTION)
+					return;
+			}
+			
 			try {
 				JsonReader fstr = new JsonReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(infile))));
 				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
@@ -299,6 +306,7 @@ public class SaveManager {
 
 				dialog.dispose();
 				e.opts.setTitle(SemiSim.name + " - " + infile.getName());
+				e.controls.changesmade = false;
 				currentfile = infile;
 			} catch (FileNotFoundException ex) {
 				return;
@@ -501,6 +509,7 @@ public class SaveManager {
 
 				dialog.dispose();
 				e.opts.setTitle(SemiSim.name + " - " + outfile.getName());
+				e.controls.changesmade = false;
 				currentfile = outfile;
 			} catch (FileNotFoundException e) {
 				return;

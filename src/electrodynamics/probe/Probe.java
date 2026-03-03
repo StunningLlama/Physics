@@ -1,20 +1,30 @@
 package electrodynamics.probe;
 
+import electrodynamics.Material;
 import electrodynamics.Simulation;
 
-public abstract class Probe {
+public abstract class Probe implements Cloneable {
 	public LabelCoord labelcoord = new LabelCoord();
 	public ProbeData data = new ProbeData();
 
 	public abstract void calculateDefaultLabelCoords();
 	public abstract void measure(Simulation e, boolean savedatapoint);
 	
-	public class LabelCoord {
+	public class LabelCoord implements Cloneable {
 		public int x = -1;
 		public int y = -1;
+		
+	    @Override
+	    public LabelCoord clone() {
+	        try {
+				return (LabelCoord) super.clone();
+			} catch (CloneNotSupportedException e) {
+				return null;
+			}
+	    }
 	}
 	
-	public class ProbeData {
+	public class ProbeData implements Cloneable {
 		public int data_size = 100;
 		public double[] data = new double[data_size];
 		public double[] time = new double[data_size];
@@ -46,5 +56,18 @@ public abstract class Probe {
 			data[data_size-1] = datapoint;
 			time[data_size-1] = timepoint;
 		}
+		
+	    @Override
+	    public ProbeData clone() {
+	        ProbeData dat = null;
+			try {
+				dat = (ProbeData) super.clone();
+			} catch (CloneNotSupportedException e) {
+				e.printStackTrace();
+			}
+	        dat.data = data.clone();
+	        dat.time = time.clone();
+	        return dat;
+	    }
 	}
 }

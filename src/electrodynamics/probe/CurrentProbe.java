@@ -77,6 +77,19 @@ public class CurrentProbe extends Probe {
 		current = J*e.depth;
 		if (savedatapoint) data.addData(current, e.time);
 	}
+	
+	@Override
+	public CurrentProbe clone() {
+		CurrentProbe p = null;
+		try {
+			p = (CurrentProbe) super.clone();
+		} catch (CloneNotSupportedException e) {
+			e.printStackTrace();
+		}
+		p.data = data.clone();
+		p.labelcoord = labelcoord.clone();
+		return p;
+	}
 
 	public double accumCurrent(int x0, int y0, int x1, int y1, double[][] Jx, double[][] Jy, double ds) {
 		int dx = x1-x0;

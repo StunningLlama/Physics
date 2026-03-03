@@ -40,4 +40,17 @@ public class ChargeProbe extends Probe {
 		charge = Q*e.depth;
 		if (savedatapoint) data.addData(charge, e.time);
 	}
+	
+	@Override
+	public ChargeProbe clone() {
+		ChargeProbe p = null;
+		try {
+			p = (ChargeProbe) super.clone();
+		} catch (CloneNotSupportedException e) {
+			e.printStackTrace();
+		}
+		p.data = data.clone();
+		p.labelcoord = labelcoord.clone();
+		return p;
+	}
 }

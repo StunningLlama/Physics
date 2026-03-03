@@ -104,7 +104,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public boolean moving_selection = false;
 	public boolean dragging_selection = false;
 	public boolean brush_changed = false;
-	public boolean update = false;
 	public boolean changesmade = false;
 
 	public int mousebutton = 0;
@@ -302,7 +301,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 			}
 
-			if (cut) update = true;
+			if (cut) flagChanges(true);
 
 			cut = false;
 			copy = false;
@@ -327,7 +326,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			moving_selection = true;
 			dragging_selection = false;
 			paste = false;
-			update = true;
+			flagChanges(true);
 		}
 
 		if (delete) {
@@ -341,7 +340,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 			}
 			delete = false;
-			update = true;
+			flagChanges(true);
 		}
 		
 		if (rotate_selection || flip_h_selection || flip_v_selection) {
@@ -734,7 +733,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						}
 					});
 				
-					update = true;
+					updatematerials = true;
 				}
 			}
 			break;
@@ -783,7 +782,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 							}
 						}
 					}
-					update = true;
+					flagChanges(true);
 					moving_selection = false;
 					dragging_selection = false;
 				} else if (!moving_selection && selected[mx][my]) {
@@ -799,7 +798,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 							}
 						}
 					}
-					update = true;
+					flagChanges(true);
 					moving_selection = true;
 					dragging_selection = true;
 					delta_mx = 0;
@@ -848,7 +847,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						}
 						moving_selection = false;
 						dragging_selection = false;
-						update = true;
+						flagChanges(true);
 					} else {
 						if (delta_mx == 0 && delta_my == 0) {
 							for (int i = 0; i < e.nx; i++)
@@ -878,6 +877,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				e.currentprobes.get(e.currentprobes.size()-1).x2 = mx;
 				e.currentprobes.get(e.currentprobes.size()-1).y2 = my;
 				e.currentprobes.get(e.currentprobes.size()-1).calculateDefaultLabelCoords();
+			} else if (releasing) {
+				flagChanges(false);
 			}
 			break;
 		case VOLTAGE:
@@ -890,21 +891,25 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				e.voltageprobes.get(e.voltageprobes.size()-1).x = mx;
 				e.voltageprobes.get(e.voltageprobes.size()-1).y = my;
 				e.voltageprobes.get(e.voltageprobes.size()-1).calculateDefaultLabelCoords();
+			} else if (releasing) {
+				flagChanges(false);
 			}
 			break;
 		case CHARGE:
-				if (pressing) {
-					ChargeProbe p = new ChargeProbe();
-					p.x1 = mx_start;
-					p.y1 = my_start;
-					p.x2 = mx;
-					p.y2 = my;
-					e.chargeprobes.add(p);
-				} else if (mouse_pressed) {
-					e.chargeprobes.get(e.chargeprobes.size()-1).x2 = mx;
-					e.chargeprobes.get(e.chargeprobes.size()-1).y2 = my;
-					e.chargeprobes.get(e.chargeprobes.size()-1).calculateDefaultLabelCoords();
-				}
+			if (pressing) {
+				ChargeProbe p = new ChargeProbe();
+				p.x1 = mx_start;
+				p.y1 = my_start;
+				p.x2 = mx;
+				p.y2 = my;
+				e.chargeprobes.add(p);
+			} else if (mouse_pressed) {
+				e.chargeprobes.get(e.chargeprobes.size()-1).x2 = mx;
+				e.chargeprobes.get(e.chargeprobes.size()-1).y2 = my;
+				e.chargeprobes.get(e.chargeprobes.size()-1).calculateDefaultLabelCoords();
+			} else if (releasing) {
+				flagChanges(false);
+			}
 			break;
 		case DELETEPROBE:
 			e.canvas.setCursor(DEFAULT_CURSOR);
@@ -915,6 +920,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					e.canvas.setCursor(HAND_CURSOR);
 					if (pressing) {
 						e.voltageprobes.remove(i);
+						flagChanges(false);
 						i--;
 					}
 				}
@@ -928,6 +934,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					e.canvas.setCursor(HAND_CURSOR);
 					if (pressing) {
 						e.currentprobes.remove(i);
+						flagChanges(false);
 						i--;
 					}
 				}
@@ -941,6 +948,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					e.canvas.setCursor(HAND_CURSOR);
 					if (pressing) {
 						e.chargeprobes.remove(i);
+						flagChanges(false);
 						i--;
 					}
 				}
@@ -951,6 +959,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				e.canvas.setCursor(HAND_CURSOR);
 				if (pressing) {
 					e.ground = null;
+					flagChanges(false);
 				}
 			}
 
@@ -976,6 +985,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 			} else if (releasing) {
 				labelcoord = null;
+				flagChanges(false);
 			} else {
 				e.canvas.setCursor(DEFAULT_CURSOR);
 				Probe.LabelCoord coord = null;
@@ -1010,6 +1020,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				e.ground.x = mx;
 				e.ground.y = my;
 				e.ground.calculateDefaultLabelCoords();
+			} else if (releasing) {
+				flagChanges(false);
 			}
 			break;
 		case BANDS:
@@ -1049,24 +1061,34 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 		});
 
-
 		setEMFs();
 
-		if ((releasing && Brush.isMaterialModifyingBrush(brush)) || (BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary || update) {
-
+		if ((releasing && Brush.isMaterialModifyingBrush(brush)) || (BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary) {
+			flagChanges(true);
+		}
+		prev_boundary = (BoundaryCondition)e.opts.gui_bc.getSelectedItem();
+		
+		if (updatematerials) {
 			e.updateAllMaterials(false);
 			e.multigridSolve(true, false);
 			
-			undoredo.captureState(e);
-			
-			changesmade = true;
-			update = false;
+			updatematerials = false;
 		}
-
-		prev_boundary = (BoundaryCondition)e.opts.gui_bc.getSelectedItem();
 
 		mxp = mx;
 		myp = my;
+	}
+	
+	public boolean updatematerials = false;
+	
+	public void flagChanges(boolean updateMaterials) {
+		changesmade = true;
+		if (!e.opts.getTitle().endsWith("*"))
+			e.opts.setTitle(e.opts.getTitle() + " *");
+
+		undoredo.captureState(e);
+		
+		updatematerials = updatematerials || updateMaterials;
 	}
 	
 	public Probe.LabelCoord selectLabel(Probe.LabelCoord c_in, Probe.LabelCoord c_opt) {
@@ -1825,8 +1847,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					}
 				}
 				text_x += 6;
+				flagChanges(false);
+				e.updateAllMaterials(false);
 			}
-			e.updateAllMaterials(false);
 		}
 	}
 
@@ -1848,8 +1871,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						}
 					}
 				}
+				flagChanges(false);
+				e.updateAllMaterials(false);
 			}
-			e.updateAllMaterials(false);
 		}
 	}
 

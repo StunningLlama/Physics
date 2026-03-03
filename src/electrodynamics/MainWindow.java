@@ -525,6 +525,8 @@ public class MainWindow extends JFrame {
 	}
 	
 	public void setDefaults(Simulation e) {
+		setTitle(SemiSim.name);
+		
 		menu_interface.setSelected(true);
 		menu_materialname.setSelected(true);
 		menu_tooltip.setSelected(false);

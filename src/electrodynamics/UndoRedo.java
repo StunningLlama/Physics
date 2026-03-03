@@ -7,6 +7,7 @@ package electrodynamics;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
@@ -166,10 +167,10 @@ class Snapshot {
 		jx_p = copy(e.Jx_p);
 		jy_p = copy(e.Jy_p);
 		materials = copy(e.materials);
-		voltageprobes = new ArrayList<VoltageProbe>(e.voltageprobes);
-		currentprobes = new ArrayList<CurrentProbe>(e.currentprobes);
-		chargeprobes = new ArrayList<ChargeProbe>(e.chargeprobes);
-		ground = e.ground;
+		voltageprobes = cloneList(e.voltageprobes, VoltageProbe::clone);
+		currentprobes = cloneList(e.currentprobes, CurrentProbe::clone);
+		chargeprobes = cloneList(e.chargeprobes, ChargeProbe::clone);
+		ground = (e.ground == null)? null : e.ground.clone();
 	}
 	
 
@@ -218,12 +219,11 @@ class Snapshot {
 		e.Jy_p = copy(jy_p);
 
 		e.materials = copy(materials);
+		e.voltageprobes = cloneList(voltageprobes, VoltageProbe::clone);
+		e.currentprobes = cloneList(currentprobes, CurrentProbe::clone);
+		e.chargeprobes = cloneList(chargeprobes, ChargeProbe::clone);
 
-		e.voltageprobes = new ArrayList<VoltageProbe>(voltageprobes);
-		e.currentprobes = new ArrayList<CurrentProbe>(currentprobes);
-		e.chargeprobes = new ArrayList<ChargeProbe>(chargeprobes);
-
-		e.ground = ground;
+		e.ground = (ground == null)? null : ground.clone();
 
 		e.opts.textPane.setEditable(false);
 		e.opts.textPane.setCaretPosition(0);
@@ -256,5 +256,13 @@ class Snapshot {
 		    }
 	    }
 	    return result;
+	}
+	
+	private static <T> List<T> cloneList(List<T> list, UnaryOperator<T> cloner) {
+	    List<T> newList = new ArrayList<T>(list.size());
+	    for (T element : list) {
+	        newList.add(cloner.apply(element));
+	    }
+	    return newList;
 	}
 }
