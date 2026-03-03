@@ -324,7 +324,7 @@ public class Simulation extends PeriodicTask {
 		chargeprobeplot = new ProbePlot("Charge probe plot", "Charge [fC]", "Q", 1e15); plots.add(chargeprobeplot);
 		
 		for (Plot p : plots)
-			p.initalize();
+			p.initialize();
 
 		SemiSim.detect64Bit();
 

@@ -28,7 +28,7 @@ public abstract class Plot {
 		fig = new MatlabChart();
 	}
 	
-	public void initalize() {
+	public void initialize() {
 		createDataSeries();
 		
 		fig.RenderPlot();

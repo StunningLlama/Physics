@@ -22,12 +22,14 @@ public class ProbePlot extends Plot {
 		this.nameprefix = nameprefix;
 		this.scalefactor = scalefactor;
 	}
-	
+
+	@Override
 	public void initialize() {
-		super.initalize();
-		fig.xlabel("Time");
+		super.initialize();
+		fig.xlabel("Time [ps]");
 		fig.ylabel(yaxis);
 		frame.setTitle(title);
+		fig.chart.getXYPlot().setRangeZeroBaselineVisible(true);
 	}
 	
 	@Override
@@ -58,11 +60,6 @@ public class ProbePlot extends Plot {
 			for (Object dat : fig.dataset.getSeries()) {
 				((XYSeries)dat).setNotify(true);
 			}
-			
-			fig.chart.getXYPlot().setRangeZeroBaselineVisible(true);
-			fig.xlabel("Time [ps]");
-			fig.ylabel(yaxis);
-			frame.setTitle(title);
 		}
 	}
 	

@@ -13,8 +13,9 @@ public class ScalarPlot extends Plot {
 
 	public XYSeries data;
 
+	@Override
 	public void initialize() {
-		super.initalize();
+		super.initialize();
         frame.setTitle("Scalar plot");
 	}
 	

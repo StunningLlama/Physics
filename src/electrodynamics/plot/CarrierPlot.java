@@ -14,8 +14,9 @@ public class CarrierPlot extends Plot {
 	public XYSeries rho_n_data;
 	public XYSeries rho_p_data;
 
-	public void initiaze() {
-		super.initalize();
+	@Override
+	public void initialize() {
+		super.initialize();
 		LogarithmicAxis yaxis = new LogarithmicAxis("");
 		yaxis.setLog10TickLabelsFlag(true);
         fig.chart.getXYPlot().setRangeAxis(yaxis);

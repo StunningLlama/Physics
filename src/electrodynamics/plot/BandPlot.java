@@ -14,12 +14,14 @@ public class BandPlot extends Plot {
 	public XYSeries E_p_data;
 	public XYSeries F_n_data;
 	public XYSeries F_p_data;
-	
+
+	@Override
 	public void initialize() {
-		super.initalize();
+		super.initialize();
         fig.xlabel("Position");
         fig.ylabel("Energy (eV)");
         frame.setTitle("Band diagram");
+        System.out.println("MEOWOWOWO");
 	}
 	
 	@Override
