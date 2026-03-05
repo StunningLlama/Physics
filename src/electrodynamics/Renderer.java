@@ -764,7 +764,7 @@ public class Renderer extends PeriodicTask {
 					{
 						offset = -30;
 						if (e.materials[i][j].activated == 0) {
-							offset -= 50;
+							offset -= 100;
 						}
 					} else if (e.materials[i][j].activated == 0) {
 						offset -= 200;

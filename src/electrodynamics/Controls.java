@@ -1169,7 +1169,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				if (r <= brushsize) {
 					if (mat == MaterialType.VACUUM) {
 						e.eraseMaterial(i, j);
-					} else if (e.materials[i][j].type == MaterialType.VACUUM || brush == Brush.REPLACE) {
+					} else if (e.materials[i][j].type == MaterialType.VACUUM ^ brush == Brush.REPLACE) {
 						e.eraseMaterial(i, j);
 						e.initializeMaterial(i, j, mat);
 						if (mat.hasEMF()) e.materials[i][j].emf_direction = EMF_angle;
@@ -2062,6 +2062,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				public void actionPerformed(ActionEvent ev) {
 					e.opts.textPane.setText(area.getText());
 					e.opts.textPane.setEditable(false);
+					flagChanges(false);
 					dispose();
 				}
 			});

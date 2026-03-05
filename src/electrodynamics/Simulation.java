@@ -35,16 +35,15 @@ import electrodynamics.util.Utils;
 public class Simulation extends PeriodicTask {
 	/*
 	 * Demos:
-	 * 	- PN diode (LED)
-	 * 	- Schottky diode
-	 * 	- MOSFET (p-channel, n-channel), depletion & enhancement
-	 * 	- BJT (NPN, PNP)
-	 * 	- JFET (p-channel, n-channel)
-	 *  - IGBT - doesn't work well
-	 *  - MESFET
-	 *  - SCR, maybe
-	 *  - UJT
-	 *  - Darlington pair
+	 * 	- PN diode (LED) [done]
+	 * 	- Schottky diode [done]
+	 * 	- MOSFET (p-channel, n-channel), depletion & enhancement [done]
+	 * 	- BJT (NPN, PNP) [done]
+	 * 	- JFET (p-channel, n-channel) [done]
+	 *  - IGBT - [done, okay]
+	 *  - MESFET [...]
+	 *  - SCR  [done]
+	 *  - Darlington pair [done]
 	 */
 	
 	/* Parts */
