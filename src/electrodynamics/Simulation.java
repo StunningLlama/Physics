@@ -1941,8 +1941,15 @@ public class Simulation extends PeriodicTask {
 	}
 	
 	public String getProbeName(int index) {
-		if (index < 26) return String.valueOf((char)('a'+index));
-		return String.valueOf(index - 26);
+		int newindex = 0;
+		
+		for (int i = 0; i < index; i++) {
+			if (probes.get(i) != ground && probes.get(i).getClass().equals(probes.get(index).getClass()))
+				newindex++;
+		}
+		
+		if (newindex < 26) return String.valueOf((char)('a'+newindex));
+		return String.valueOf(newindex - 26);
 	}
 	
 	public enum BoundaryCondition {
