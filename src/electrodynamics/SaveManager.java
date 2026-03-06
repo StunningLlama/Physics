@@ -11,8 +11,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Predicate;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -35,6 +38,8 @@ import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
+import electrodynamics.probe.FluxProbe;
+import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
 
 public class SaveManager {
@@ -195,24 +200,28 @@ public class SaveManager {
 
 						case "materials": e.materials = validateArraySize((Material[][]) gson.fromJson(fstr, Material[][].class)); break;
 
-						case "voltageprobes": e.voltageprobes = new CopyOnWriteArrayList<>(Arrays.asList(
-						(VoltageProbe[]) gson.fromJson(fstr, VoltageProbe[].class))); break;
-						case "currentprobes": e.currentprobes = new CopyOnWriteArrayList<>(Arrays.asList(
-						(CurrentProbe[]) gson.fromJson(fstr, CurrentProbe[].class))); break;
-						case "chargeprobes": e.chargeprobes = new CopyOnWriteArrayList<>(Arrays.asList(
-						(ChargeProbe[]) gson.fromJson(fstr, ChargeProbe[].class))); break;
+						
 
-						case "ground": e.ground = (VoltageProbe) gson.fromJson(fstr, VoltageProbe.class); break;
+						case "probes": e.probes = new CopyOnWriteArrayList<>(Arrays.asList(
+						(Probe[]) gson.fromJson(fstr, Probe[].class))); break;
+						
+						case "voltageprobes": e.probes.addAll(Arrays.asList(
+						(VoltageProbe[]) gson.fromJson(fstr, VoltageProbe[].class))); break;
+						case "currentprobes": e.probes.addAll(Arrays.asList(
+						(CurrentProbe[]) gson.fromJson(fstr, CurrentProbe[].class))); break;
+						case "chargeprobes": e.probes.addAll(Arrays.asList(
+						(ChargeProbe[]) gson.fromJson(fstr, ChargeProbe[].class))); break;
+						case "fluxprobes": e.probes.addAll(Arrays.asList(
+						(FluxProbe[]) gson.fromJson(fstr, FluxProbe[].class))); break;
+
+						case "ground": e.ground = (VoltageProbe) gson.fromJson(fstr, VoltageProbe.class); e.probes.add(e.ground); break;
 
 						default: fstr.skipValue(); break; // skip others
 						}
 					}
 					fstr.endObject();
 
-					for (VoltageProbe p : e.voltageprobes) p.data.fixWeirdIssue();
-					for (CurrentProbe p : e.currentprobes) p.data.fixWeirdIssue();
-					for (ChargeProbe p : e.chargeprobes) p.data.fixWeirdIssue();
-					if (e.ground != null) e.ground.data.fixWeirdIssue();
+					for (Probe p : e.probes) p.data.fixWeirdIssue();
 
 					if (testNextObject(fstr, "advsettings")) {
 						fstr.beginObject();
@@ -276,12 +285,12 @@ public class SaveManager {
 
 						case "materials": e.materials = validateArraySize((Material[][]) gson.fromJson(fstr, Material[][].class)); break;
 
-						case "voltageprobes": e.voltageprobes = new CopyOnWriteArrayList<>(Arrays.asList(
+						case "voltageprobes": e.probes.addAll(Arrays.asList(
 						(VoltageProbe[]) gson.fromJson(fstr, VoltageProbe[].class))); break;
-						case "currentprobes": e.currentprobes = new CopyOnWriteArrayList<>(Arrays.asList(
+						case "currentprobes": e.probes.addAll(Arrays.asList(
 						(CurrentProbe[]) gson.fromJson(fstr, CurrentProbe[].class))); break;
 
-						case "ground": e.ground = (VoltageProbe) gson.fromJson(fstr, VoltageProbe.class); break;
+						case "ground": e.ground = (VoltageProbe) gson.fromJson(fstr, VoltageProbe.class); e.probes.add(e.ground); break;
 
 						default: fstr.skipValue(); break; // skip others
 						}
@@ -323,13 +332,8 @@ public class SaveManager {
 	}
 	
 	public void updateLabels() {
-		for (VoltageProbe p : e.voltageprobes)
+		for (Probe p : e.probes)
 			if (p.labelcoord.x == -1) p.calculateDefaultLabelCoords();
-		for (CurrentProbe p : e.currentprobes)
-			if (p.labelcoord.x == -1) p.calculateDefaultLabelCoords();
-		for (ChargeProbe p : e.chargeprobes)
-			if (p.labelcoord.x == -1) p.calculateDefaultLabelCoords();
-		if (e.ground != null && e.ground.labelcoord.x == -1) e.ground.calculateDefaultLabelCoords();
 	}
 	
 	public void assertNextObject(JsonReader fstr, String name) throws IOException {
@@ -486,9 +490,10 @@ public class SaveManager {
 				data.add("jx_p", gson.toJsonTree(e.Jx_p));
 				data.add("jy_p", gson.toJsonTree(e.Jy_p));
 				data.add("materials", gson.toJsonTree(e.materials));
-				data.add("voltageprobes", gson.toJsonTree(e.voltageprobes.toArray(new VoltageProbe[e.voltageprobes.size()])));
-				data.add("currentprobes", gson.toJsonTree(e.currentprobes.toArray(new CurrentProbe[e.currentprobes.size()])));
-				data.add("chargeprobes", gson.toJsonTree(e.chargeprobes.toArray(new ChargeProbe[e.chargeprobes.size()])));
+				data.add("voltageprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof VoltageProbe && p != e.ground)).toArray()));
+				data.add("currentprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof CurrentProbe)).toArray()));
+				data.add("chargeprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof ChargeProbe)).toArray()));
+				data.add("fluxprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof FluxProbe)).toArray()));
 				data.add("ground", gson.toJsonTree(e.ground));
 
 				JsonObject advsettings = new JsonObject();
@@ -521,6 +526,12 @@ public class SaveManager {
 		} finally {
 			e.rwLock.writeLock().unlock();
 		}
+	}
+	
+	public ArrayList<Probe> filterByType(List<Probe> list, Predicate<? super Probe> filter) {
+		ArrayList<Probe> listcopy = new ArrayList<Probe>(list);
+		listcopy.removeIf(filter);
+		return listcopy;
 	}
 	
 	public void setDefaults() {

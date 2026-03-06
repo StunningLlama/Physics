@@ -79,13 +79,14 @@ public class CurrentProbe extends Probe {
 	}
 	
 	@Override
+	public boolean ishovering(int mx, int my) {
+		return Utils.length(x1-mx, y1-my) < 3 || Utils.length(x2-mx, y2-my) < 3;
+	}
+	
+	@Override
 	public CurrentProbe clone() {
 		CurrentProbe p = null;
-		try {
-			p = (CurrentProbe) super.clone();
-		} catch (CloneNotSupportedException e) {
-			e.printStackTrace();
-		}
+		p = (CurrentProbe) super.clone();
 		p.data = data.clone();
 		p.labelcoord = labelcoord.clone();
 		return p;

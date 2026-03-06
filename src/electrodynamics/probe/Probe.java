@@ -1,6 +1,5 @@
 package electrodynamics.probe;
 
-import electrodynamics.Material;
 import electrodynamics.Simulation;
 
 public abstract class Probe implements Cloneable {
@@ -9,6 +8,18 @@ public abstract class Probe implements Cloneable {
 
 	public abstract void calculateDefaultLabelCoords();
 	public abstract void measure(Simulation e, boolean savedatapoint);
+	public abstract boolean ishovering(int mx, int my);
+	
+	@Override
+	public Probe clone() {
+		try {
+			return (Probe) super.clone();
+		} catch (CloneNotSupportedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
 	
 	public class LabelCoord implements Cloneable {
 		public int x = -1;

@@ -14,8 +14,7 @@ import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
 import electrodynamics.Simulation.BoundaryCondition;
-import electrodynamics.probe.ChargeProbe;
-import electrodynamics.probe.CurrentProbe;
+import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
 public class UndoRedo {
 	
@@ -123,10 +122,8 @@ class Snapshot {
 	double[][] jy_p;
 	Material[][] materials;
 	
-	List<VoltageProbe> voltageprobes;
-	List<CurrentProbe> currentprobes;
-	List<ChargeProbe> chargeprobes;
-	VoltageProbe ground;
+	List<Probe> probes;
+	int ground_index;
 	
 	public void store(Simulation e) {
 		//resolution = e.resolution;
@@ -167,10 +164,8 @@ class Snapshot {
 		jx_p = copy(e.Jx_p);
 		jy_p = copy(e.Jy_p);
 		materials = copy(e.materials);
-		voltageprobes = cloneList(e.voltageprobes, VoltageProbe::clone);
-		currentprobes = cloneList(e.currentprobes, CurrentProbe::clone);
-		chargeprobes = cloneList(e.chargeprobes, ChargeProbe::clone);
-		ground = (e.ground == null)? null : e.ground.clone();
+		probes = cloneList(e.probes, Probe::clone);
+		ground_index = e.probes.indexOf(e.ground);
 	}
 	
 
@@ -219,11 +214,8 @@ class Snapshot {
 		e.Jy_p = copy(jy_p);
 
 		e.materials = copy(materials);
-		e.voltageprobes = cloneList(voltageprobes, VoltageProbe::clone);
-		e.currentprobes = cloneList(currentprobes, CurrentProbe::clone);
-		e.chargeprobes = cloneList(chargeprobes, ChargeProbe::clone);
-
-		e.ground = (ground == null)? null : ground.clone();
+		e.probes = cloneList(probes, Probe::clone);
+		e.ground = (ground_index == -1)? null : (VoltageProbe) e.probes.get(ground_index);
 
 		e.opts.textPane.setEditable(false);
 		e.opts.textPane.setCaretPosition(0);

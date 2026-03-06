@@ -54,8 +54,10 @@ import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
 import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.plot.Plot;
+import electrodynamics.plot.ProbePlot;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
+import electrodynamics.probe.FluxProbe;
 import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
 import electrodynamics.util.Font7x5;
@@ -872,11 +874,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				p.y1 = my_start;
 				p.x2 = mx;
 				p.y2 = my;
-				e.currentprobes.add(p);
+				e.probes.add(p);
 			} else if (mouse_pressed) {
-				e.currentprobes.get(e.currentprobes.size()-1).x2 = mx;
-				e.currentprobes.get(e.currentprobes.size()-1).y2 = my;
-				e.currentprobes.get(e.currentprobes.size()-1).calculateDefaultLabelCoords();
+				CurrentProbe p = (CurrentProbe) e.probes.get(e.probes.size()-1);
+				p.x2 = mx;
+				p.y2 = my;
+				p.calculateDefaultLabelCoords();
 			} else if (releasing) {
 				flagChanges(false);
 			}
@@ -886,11 +889,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				VoltageProbe p = new VoltageProbe();
 				p.x = mx_start;
 				p.y = my_start;
-				e.voltageprobes.add(p);
+				e.probes.add(p);
 			} else if (mouse_pressed) {
-				e.voltageprobes.get(e.voltageprobes.size()-1).x = mx;
-				e.voltageprobes.get(e.voltageprobes.size()-1).y = my;
-				e.voltageprobes.get(e.voltageprobes.size()-1).calculateDefaultLabelCoords();
+				VoltageProbe p = (VoltageProbe) e.probes.get(e.probes.size()-1);
+				p.x = mx;
+				p.y = my;
+				p.calculateDefaultLabelCoords();
 			} else if (releasing) {
 				flagChanges(false);
 			}
@@ -902,11 +906,29 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				p.y1 = my_start;
 				p.x2 = mx;
 				p.y2 = my;
-				e.chargeprobes.add(p);
+				e.probes.add(p);
 			} else if (mouse_pressed) {
-				e.chargeprobes.get(e.chargeprobes.size()-1).x2 = mx;
-				e.chargeprobes.get(e.chargeprobes.size()-1).y2 = my;
-				e.chargeprobes.get(e.chargeprobes.size()-1).calculateDefaultLabelCoords();
+				ChargeProbe p = (ChargeProbe) e.probes.get(e.probes.size()-1);
+				p.x2 = mx;
+				p.y2 = my;
+				p.calculateDefaultLabelCoords();
+			} else if (releasing) {
+				flagChanges(false);
+			}
+			break;
+		case FLUX:
+			if (pressing) {
+				FluxProbe p = new FluxProbe();
+				p.x1 = mx_start;
+				p.y1 = my_start;
+				p.x2 = mx;
+				p.y2 = my;
+				e.probes.add(p);
+			} else if (mouse_pressed) {
+				FluxProbe p = (FluxProbe) e.probes.get(e.probes.size()-1);
+				p.x2 = mx;
+				p.y2 = my;
+				p.calculateDefaultLabelCoords();
 			} else if (releasing) {
 				flagChanges(false);
 			}
@@ -914,67 +936,26 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case DELETEPROBE:
 			e.canvas.setCursor(DEFAULT_CURSOR);
 			int i = 0;
-			while(i < e.voltageprobes.size()) {
-				VoltageProbe p = e.voltageprobes.get(i);
-				if (Utils.length(p.x-mx, p.y-my) < 3) {
+			while(i < e.probes.size()) {
+				Probe p = e.probes.get(i);
+				if (p.ishovering(mx, my)) {
 					e.canvas.setCursor(HAND_CURSOR);
 					if (pressing) {
-						e.voltageprobes.remove(i);
+						e.probes.remove(i);
+						if (p == e.ground)
+							e.ground = null;
 						flagChanges(false);
 						i--;
 					}
 				}
 				i++;
 			}
-
-			i = 0;
-			while(i < e.currentprobes.size()) {
-				CurrentProbe p = e.currentprobes.get(i);
-				if (Utils.length(p.x1-mx, p.y1-my) < 3 || Utils.length(p.x2-mx, p.y2-my) < 3) {
-					e.canvas.setCursor(HAND_CURSOR);
-					if (pressing) {
-						e.currentprobes.remove(i);
-						flagChanges(false);
-						i--;
-					}
-				}
-				i++;
-			}
-
-			i = 0;
-			while(i < e.chargeprobes.size()) {
-				ChargeProbe p = e.chargeprobes.get(i);
-				if (mx >= Math.min(p.x1, p.x2) && mx <= Math.max(p.x1, p.x2) && my >= Math.min(p.y1, p.y2) && my <= Math.max(p.y1, p.y2)) {
-					e.canvas.setCursor(HAND_CURSOR);
-					if (pressing) {
-						e.chargeprobes.remove(i);
-						flagChanges(false);
-						i--;
-					}
-				}
-				i++;
-			}
-			
-			if (e.ground != null && Utils.length(e.ground.x-mx, e.ground.y-my) < 3) {
-				e.canvas.setCursor(HAND_CURSOR);
-				if (pressing) {
-					e.ground = null;
-					flagChanges(false);
-				}
-			}
-
 			break;
 		case MOVELABEL:
 			if (pressing) {
 				Probe.LabelCoord coord = null;
-				for (VoltageProbe p : e.voltageprobes)
+				for (Probe p : e.probes)
 					coord = selectLabel(p.labelcoord, coord);
-				for (CurrentProbe p : e.currentprobes)
-					coord = selectLabel(p.labelcoord, coord);
-				for (ChargeProbe p : e.chargeprobes)
-					coord = selectLabel(p.labelcoord, coord);
-				if (e.ground != null)
-					coord = selectLabel(e.ground.labelcoord, coord);
 				
 				if (coord != null)
 					labelcoord = coord;
@@ -989,14 +970,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			} else {
 				e.canvas.setCursor(DEFAULT_CURSOR);
 				Probe.LabelCoord coord = null;
-				for (VoltageProbe p : e.voltageprobes)
+				for (Probe p : e.probes)
 					coord = selectLabel(p.labelcoord, coord);
-				for (CurrentProbe p : e.currentprobes)
-					coord = selectLabel(p.labelcoord, coord);
-				for (ChargeProbe p : e.chargeprobes)
-					coord = selectLabel(p.labelcoord, coord);
-				if (e.ground != null)
-					coord = selectLabel(e.ground.labelcoord, coord);
 				
 				if (coord != null)
 					e.canvas.setCursor(HAND_CURSOR);
@@ -1012,8 +987,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 		case GROUND:
 			if (pressing) {
-				if (e.ground == null)
+				if (e.ground == null) {
 					e.ground = new VoltageProbe();
+					e.probes.add(e.ground);
+				}
 				e.ground.x = mx_start;
 				e.ground.y = my_start;
 			} else if (mouse_pressed) {
@@ -1036,12 +1013,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case PROBEPLOT:
 			plotinterval = e.opts.gui_plotinterval.getValue();
 			e.opts.gui_plotinterval_text.setText("Time resolution: " + Utils.getSI(plotinterval*e.dt*e.iteration_multiplier, "s"));
-			if (!e.voltageprobeplot.frame.isVisible() && e.voltageprobes.size() > 0)
-				e.voltageprobeplot.createPlot(e);
-			if (!e.currentprobeplot.frame.isVisible() && e.currentprobes.size() > 0)
-				e.currentprobeplot.createPlot(e);
-			if (!e.chargeprobeplot.frame.isVisible() && e.chargeprobes.size() > 0)
-				e.chargeprobeplot.createPlot(e);
+			for (Plot p : e.plots) {
+				if (p instanceof ProbePlot) {
+					if (!p.frame.isVisible() && ((ProbePlot)p).checkProbesExist(e))
+						p.createPlot(e);
+				}
+			}
 			break;
 		default:
 			break;
@@ -1052,9 +1029,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			endTextInput();
 		}
 		
-		e.voltageprobeplot.probes = e.voltageprobes;
-		e.currentprobeplot.probes = e.currentprobes;
-		e.chargeprobeplot.probes = e.chargeprobes;
 		SwingUtilities.invokeLater(() -> { //TODO
 			for (Plot p : e.plots) {
 				p.updatePlot(e);
@@ -1921,6 +1895,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		VOLTAGE("Voltage probe"),
 		CURRENT("Current probe"),
 		CHARGE("Charge probe"),
+		FLUX("Magnetic flux probe"),
 		GROUND("Ground"),
 		DELETEPROBE("Delete probe"),
 		MOVELABEL("Move label"),

@@ -1,6 +1,7 @@
 package electrodynamics.probe;
 
 import electrodynamics.Simulation;
+import electrodynamics.util.Utils;
 
 public class VoltageProbe extends Probe {
 	public int x = 0;
@@ -24,13 +25,14 @@ public class VoltageProbe extends Probe {
 	}
 	
 	@Override
+	public boolean ishovering(int mx, int my) {
+		return Utils.length(x-mx, y-my) < 3;
+	}
+	
+	@Override
 	public VoltageProbe clone() {
 		VoltageProbe p = null;
-		try {
-			p = (VoltageProbe) super.clone();
-		} catch (CloneNotSupportedException e) {
-			e.printStackTrace();
-		}
+		p = (VoltageProbe) super.clone();
 		p.data = data.clone();
 		p.labelcoord = labelcoord.clone();
 		return p;

@@ -2,14 +2,14 @@ package electrodynamics.probe;
 
 import electrodynamics.Simulation;
 
-public class ChargeProbe extends Probe {
+public class FluxProbe extends Probe {
 	public int x1;
 	public int y1;
 
 	public int x2;
 	public int y2;
 
-	public double charge = 0;
+	public double flux = 0;
 	
 	@Override
 	public void calculateDefaultLabelCoords() {
@@ -19,7 +19,7 @@ public class ChargeProbe extends Probe {
 
 	@Override
 	public void measure(Simulation e, boolean savedatapoint) {
-		double Q = 0;
+		double phi = 0;
 
 		int n_min = 0;
 		int n_max = 0;
@@ -33,12 +33,12 @@ public class ChargeProbe extends Probe {
 
 		for (int n = n_min; n <= n_max; n++) {
 			for (int m = m_min; m <= m_max; m++) {
-				Q += e.rho_free[n][m]*(e.ds*e.ds);
+				phi += e.Bz[n][m]*(e.ds*e.ds);
 			}
 		}
 
-		charge = Q*e.depth;
-		if (savedatapoint) data.addData(charge, e.time);
+		flux = phi;
+		if (savedatapoint) data.addData(flux, e.time);
 	}
 	
 	@Override
@@ -47,9 +47,9 @@ public class ChargeProbe extends Probe {
 	}
 	
 	@Override
-	public ChargeProbe clone() {
-		ChargeProbe p = null;
-		p = (ChargeProbe) super.clone();
+	public FluxProbe clone() {
+		FluxProbe p = null;
+		p = (FluxProbe) super.clone();
 		p.data = data.clone();
 		p.labelcoord = labelcoord.clone();
 		return p;

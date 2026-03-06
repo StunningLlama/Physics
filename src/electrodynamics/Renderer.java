@@ -29,6 +29,8 @@ import electrodynamics.plot.Plot;
 import electrodynamics.plot.ProbePlot;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
+import electrodynamics.probe.FluxProbe;
+import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
 import electrodynamics.util.DistributionSampler;
 import electrodynamics.util.FastRandom;
@@ -842,67 +844,77 @@ public class Renderer extends PeriodicTask {
 
 		if (e.opts.menu_interface.isSelected())
 		{
-			if (e.opts.menu_probes.isSelected()) {
-				setalphaFG(1.0);
-				setColorFloat(0.5f, 1.0f, 1.0f);
-
-				for (CurrentProbe p: e.currentprobes) {
-					drawPixelRectangle(p.x1-1, p.y1-1, 3, 3);
-					drawPixelRectangle(p.x2-1, p.y2-1, 3, 3);
-				}
-
-				for (VoltageProbe p: e.voltageprobes) {
-					drawPixelRectangle(p.x-1, p.y-1, 3, 3);
-				}
-
-				if (e.ground != null) {
-					drawPixelRectangle(e.ground.x-1, e.ground.y-1, 3, 3);
-				}
-
-				setalphaFG(0.3);
-				setColorFloat(0.5f, 1.0f, 1.0f);
-
-				for (CurrentProbe p: e.currentprobes) {
-					drawPixelLine(p.x1, p.y1, p.x2, p.y2);
-					double dx_perp = (p.y2-p.y1);
-					double dy_perp = -(p.x2-p.x1);
-					double norm = Utils.length(dx_perp, dy_perp);
-					if (norm > 0) {
-						dx_perp = dx_perp/norm;
-						dy_perp = dy_perp/norm;
-
-						int dist = 3;
-
-						setPixel((int)Math.round(p.x1 + dist*dx_perp), (int)Math.round(p.y1+dist*dy_perp));
-						setPixel((int)Math.round(p.x2 + dist*dx_perp), (int)Math.round(p.y2+dist*dy_perp));
+			if (e.opts.menu_probes.isSelected())
+			{
+				for (Probe p0 : e.probes) {
+					if (p0 instanceof VoltageProbe) {
+						VoltageProbe p = (VoltageProbe) p0;
+						setalphaFG(1.0);
+						setColorFloat(0.5f, 1.0f, 1.0f);
+						drawPixelRectangle(p.x-1, p.y-1, 3, 3);
+						
+						setalphaFG(0.1);
+						setColorFloat(1.0f, 1.0f, 1.0f);
+						drawPixelLine(p.x, p.y, p.labelcoord.x, p.labelcoord.y);
 					}
-				}
+					else if (p0 instanceof CurrentProbe) {
+						CurrentProbe p = (CurrentProbe) p0;
+						setalphaFG(1.0);
+						setColorFloat(0.5f, 1.0f, 1.0f);
+						drawPixelRectangle(p.x1-1, p.y1-1, 3, 3);
+						drawPixelRectangle(p.x2-1, p.y2-1, 3, 3);
 
-				for (ChargeProbe p: e.chargeprobes) {
-					drawPixelLine(p.x1, p.y1, p.x2, p.y1);
-					drawPixelLine(p.x2, p.y1, p.x2, p.y2);
-					drawPixelLine(p.x2, p.y2, p.x1, p.y2);
-					drawPixelLine(p.x1, p.y2, p.x1, p.y1);
-				}
-				
+						setalphaFG(0.3);
+						setColorFloat(0.5f, 1.0f, 1.0f);
+						drawPixelLine(p.x1, p.y1, p.x2, p.y2);
+						double dx_perp = (p.y2-p.y1);
+						double dy_perp = -(p.x2-p.x1);
+						double norm = Utils.length(dx_perp, dy_perp);
+						if (norm > 0) {
+							dx_perp = dx_perp/norm;
+							dy_perp = dy_perp/norm;
 
-				setalphaFG(0.1);
-				setColorFloat(1.0f, 1.0f, 1.0f);
-				
-				for (CurrentProbe p: e.currentprobes) {
-					drawPixelLine((p.x1 + p.x2)/2, (p.y1+p.y2)/2, p.labelcoord.x, p.labelcoord.y);
-				}
+							int dist = 3;
 
-				for (VoltageProbe p: e.voltageprobes) {
-					drawPixelLine(p.x, p.y, p.labelcoord.x, p.labelcoord.y);
-				}
-				
-				for (ChargeProbe p: e.chargeprobes) {
-					drawPixelLine((p.x1 + p.x2)/2, (p.y1+p.y2)/2, p.labelcoord.x, p.labelcoord.y);
-				}
+							setPixel((int)Math.round(p.x1 + dist*dx_perp), (int)Math.round(p.y1+dist*dy_perp));
+							setPixel((int)Math.round(p.x2 + dist*dx_perp), (int)Math.round(p.y2+dist*dy_perp));
+						}
+						
+						setalphaFG(0.1);
+						setColorFloat(1.0f, 1.0f, 1.0f);
+						drawPixelLine((p.x1 + p.x2)/2, (p.y1+p.y2)/2, p.labelcoord.x, p.labelcoord.y);
+					}
+					else if (p0 instanceof ChargeProbe) {
+						ChargeProbe p = (ChargeProbe) p0;
+						setalphaFG(1.0);
+						setColorFloat(0.5f, 1.0f, 1.0f);
 
-				if (e.ground != null) {
-					drawPixelLine(e.ground.x, e.ground.y, e.ground.labelcoord.x, e.ground.labelcoord.y);
+						setalphaFG(0.3);
+						setColorFloat(0.5f, 1.0f, 1.0f);
+						drawPixelLine(p.x1, p.y1, p.x2, p.y1);
+						drawPixelLine(p.x2, p.y1, p.x2, p.y2);
+						drawPixelLine(p.x2, p.y2, p.x1, p.y2);
+						drawPixelLine(p.x1, p.y2, p.x1, p.y1);
+						
+						setalphaFG(0.1);
+						setColorFloat(1.0f, 1.0f, 1.0f);
+						drawPixelLine((p.x1 + p.x2)/2, (p.y1+p.y2)/2, p.labelcoord.x, p.labelcoord.y);
+					} else if (p0 instanceof FluxProbe) {
+						FluxProbe p = (FluxProbe) p0;
+						setalphaFG(1.0);
+						setColorFloat(0.5f, 1.0f, 1.0f);
+
+						setalphaFG(0.3);
+						setColorFloat(0.5f, 1.0f, 1.0f);
+						drawPixelLine(p.x1, p.y1, p.x2, p.y1);
+						drawPixelLine(p.x2, p.y1, p.x2, p.y2);
+						drawPixelLine(p.x2, p.y2, p.x1, p.y2);
+						drawPixelLine(p.x1, p.y2, p.x1, p.y1);
+						
+						setalphaFG(0.1);
+						setColorFloat(1.0f, 1.0f, 1.0f);
+						drawPixelLine((p.x1 + p.x2)/2, (p.y1+p.y2)/2, p.labelcoord.x, p.labelcoord.y);
+					}
 				}
 			}
 
@@ -1019,23 +1031,17 @@ public class Renderer extends PeriodicTask {
 
 		if (e.opts.menu_probes.isSelected()) {
 			int index = 0;
-			for (VoltageProbe p: e.voltageprobes) {
-				drawMonospacedString("V" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(p.potential, "V", 1e-6), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
-				index++;
-			}
-
-			if (e.ground != null)
-				drawMonospacedString("Ground = " + Utils.getSI_fixedsigfigs(e.ground.potential - e.ground.potential, "V", 1e-6), e.ground.labelcoord.x*scalefactor, e.ground.labelcoord.y*scalefactor, g);
-
-			index = 0;
-			for (CurrentProbe p: e.currentprobes) {
-				drawMonospacedString("I" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(p.current, "A", 1e-9), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
-				index++;
-			}
-
-			index = 0;
-			for (ChargeProbe p: e.chargeprobes) {
-				drawMonospacedString("Q" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(p.charge, "C"), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+			for (Probe p: e.probes) {
+				if (p == e.ground)
+					drawMonospacedString("Ground = " + Utils.getSI_fixedsigfigs(e.ground.potential - e.ground.potential, "V", 1e-6), e.ground.labelcoord.x*scalefactor, e.ground.labelcoord.y*scalefactor, g);
+				else if (p instanceof VoltageProbe)
+					drawMonospacedString("V" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((VoltageProbe)p).potential, "V", 1e-6), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+				else if (p instanceof CurrentProbe)
+					drawMonospacedString("I" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((CurrentProbe)p).current, "A", 1e-9), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+				else if (p instanceof ChargeProbe)
+					drawMonospacedString("Q" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((ChargeProbe)p).charge, "C"), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+				else if (p instanceof FluxProbe)
+					drawMonospacedString("Φ" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((FluxProbe)p).flux, "Wb"), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
 				index++;
 			}
 

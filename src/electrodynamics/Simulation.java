@@ -27,6 +27,8 @@ import electrodynamics.plot.ProbePlot;
 import electrodynamics.plot.ScalarPlot;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
+import electrodynamics.probe.FluxProbe;
+import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
 import electrodynamics.util.PeriodicTask;
 import electrodynamics.util.Timer;
@@ -59,10 +61,6 @@ public class Simulation extends PeriodicTask {
 	public BandPlot bandplot;
 	public ScalarPlot scalarplot;
 	public CarrierPlot carrierplot;
-	public ProbePlot voltageprobeplot;
-	public ProbePlot currentprobeplot;
-	public ProbePlot chargeprobeplot;
-	
 	
 	/* Multithreading */
 	
@@ -287,9 +285,7 @@ public class Simulation extends PeriodicTask {
 	
 	
 	/* Probes */
-	public List<VoltageProbe> voltageprobes = new CopyOnWriteArrayList<>();
-	public List<CurrentProbe> currentprobes = new CopyOnWriteArrayList<>();
-	public List<ChargeProbe> chargeprobes = new CopyOnWriteArrayList<>();
+	public List<Probe> probes = new CopyOnWriteArrayList<>();
 	public VoltageProbe ground = null;
 	public String datafilename = "probedata.txt";
 	public File datafile;
@@ -318,9 +314,10 @@ public class Simulation extends PeriodicTask {
 		bandplot = new BandPlot(); plots.add(bandplot);
 		scalarplot = new ScalarPlot(); plots.add(scalarplot);
 		carrierplot = new CarrierPlot(); plots.add(carrierplot);
-		voltageprobeplot = new ProbePlot("Voltage probe plot", "Voltage [mV]", "V", 1e3); plots.add(voltageprobeplot);
-		currentprobeplot = new ProbePlot("Current probe plot", "Current [mA]", "I", 1e3); plots.add(currentprobeplot);
-		chargeprobeplot = new ProbePlot("Charge probe plot", "Charge [fC]", "Q", 1e15); plots.add(chargeprobeplot);
+		plots.add(new ProbePlot("Voltage probe plot", "Voltage [mV]", "V", 1e3, (p) -> p instanceof VoltageProbe));
+		plots.add(new ProbePlot("Current probe plot", "Current [mA]", "I", 1e3, (p) -> p instanceof CurrentProbe));
+		plots.add(new ProbePlot("Charge probe plot", "Charge [fC]", "Q", 1e15, (p) -> p instanceof ChargeProbe));
+		plots.add(new ProbePlot("Flux probe plot", "Magnetic flux [fWb]", "Wb", 1e15, (p) -> p instanceof FluxProbe));
 		
 		for (Plot p : plots)
 			p.initialize();
@@ -745,9 +742,7 @@ public class Simulation extends PeriodicTask {
 			sign_violation = false;
 			
 			if (resetall) {
-				voltageprobes.clear();
-				currentprobes.clear();
-				chargeprobes.clear();
+				probes.clear();
 				ground = null;
 
 				for (Plot p: plots) {
@@ -758,10 +753,7 @@ public class Simulation extends PeriodicTask {
 				controls.resetZoom();
 			}
 			
-			for (VoltageProbe p : voltageprobes) p.data.resetData();
-			for (CurrentProbe p : currentprobes) p.data.resetData();
-			for (ChargeProbe p : chargeprobes) p.data.resetData();
-			if (ground != null) ground.data.resetData();
+			for (Probe p : probes) p.data.resetData();
 
 			renderer.resetChargeDots();
 
@@ -1219,15 +1211,7 @@ public class Simulation extends PeriodicTask {
 		if (ground != null)
 			ground.measure(this, false);
 
-		for (VoltageProbe p: voltageprobes) {
-			p.measure(this, frame%controls.plotinterval == 0);
-		}
-
-		for (CurrentProbe p: currentprobes) {
-			p.measure(this, frame%controls.plotinterval == 0);
-		}
-		
-		for (ChargeProbe p: chargeprobes) {
+		for (Probe p: probes) {
 			p.measure(this, frame%controls.plotinterval == 0);
 		}
 
@@ -1870,20 +1854,15 @@ public class Simulation extends PeriodicTask {
 		data += ("t = " + Utils.getSI(time, "s"));
 
 		int index = 0;
-		for (VoltageProbe p: voltageprobes) {
-			data += (", V" + getProbeName(index) + " = " + Utils.getSI(p.potential, "V"));
-			index++;
-		}
-		
-		index = 0;
-		for (CurrentProbe p: currentprobes) {
-			data += (", I" + getProbeName(index) + " = " + Utils.getSI(p.current, "A"));
-			index++;
-		}
-		
-		index = 0;
-		for (ChargeProbe p: chargeprobes) {
-			data += (", Q" + getProbeName(index) + " = " + Utils.getSI(p.charge, "C"));
+		for (Probe p: probes) {
+			if (p instanceof VoltageProbe)
+				data += (", V" + getProbeName(index) + " = " + Utils.getSI(((VoltageProbe)p).potential, "V"));
+			if (p instanceof CurrentProbe)
+				data += (", I" + getProbeName(index) + " = " + Utils.getSI(((CurrentProbe) p).current, "A"));
+			if (p instanceof ChargeProbe)
+				data += (", Q" + getProbeName(index) + " = " + Utils.getSI(((ChargeProbe) p).charge, "C"));
+			if (p instanceof FluxProbe)
+				data += (", Φ" + getProbeName(index) + " = " + Utils.getSI(((FluxProbe) p).flux, "Wb"));
 			index++;
 		}
 
