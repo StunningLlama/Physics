@@ -33,6 +33,7 @@ import electrodynamics.probe.FluxProbe;
 import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
 import electrodynamics.util.DistributionSampler;
+import electrodynamics.util.FastList;
 import electrodynamics.util.FastRandom;
 import electrodynamics.util.PeriodicTask;
 import electrodynamics.util.Timer;
@@ -71,13 +72,18 @@ public class Renderer extends PeriodicTask {
 	double delta_t = 0;
 
 	ArrayList<Dot> dots = new ArrayList<>();
-	ArrayList<ChargeCarrierDot> ccdots = new ArrayList<>();
+	FastList<ChargeCarrierDot> ccdots = new FastList<>();
 	int numdots = 2000;
 	double rho_n_max = 0;
 	double rho_p_max = 0;
 	double C_prev = 0;
 
 	int probetexttimer = 0;
+	boolean show_carriers;
+	VectorMode vector_display_mode;
+	ScalarMode scalar_display_mode;
+	ScalarView scalar_view;
+	VectorView vector_view;
 
 	/* Multithreading */
 	
@@ -437,11 +443,13 @@ public class Renderer extends PeriodicTask {
 		
 		e.rwLock.readLock().lock();
 		try {
+			t5.start();
 			drawPixels();
 			drawOverlay();
 			drawText();
 			copyImage(img_back, img_front);
 			e.canvas.repaint();
+			t5.stop();
 
 			FPStimer.stop();
 			FPStimer.start();
@@ -949,68 +957,15 @@ public class Renderer extends PeriodicTask {
 	}
 	
 	void drawOverlay() {
-		
-		boolean show_carriers = e.opts.gui_carriers.isSelected();
 		delta_t = e.time - t_prev;
 		t_prev = e.time;
 
-		t5.start();
-		if (show_carriers && (!e.opts.gui_paused.isSelected() || delta_t > 0)) {
-
-			double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_carrier_density.getValue()/20.0);
-
-			rho_n_dist.prepare(e.rho_n);
-			rho_p_dist.prepare(e.rho_p);
-			rho_G_dist.prepare(e.G);
-
-			double A = e.ds*e.ds;
-			double N_G = rho_G_dist.getTotalAmount()*A*e.e_charge*C*delta_t;
-			double N_n = rho_n_dist.getTotalAmount()*A*C*delta_t/tau;
-			double N_p = rho_p_dist.getTotalAmount()*A*C*delta_t/tau;
-
-			double N_n_excess = Math.max(C-C_prev, 0)*rho_n_dist.getTotalAmount()*A;
-			double N_p_excess = Math.max(C-C_prev, 0)*rho_p_dist.getTotalAmount()*A;
-
-			double P_deficit = Math.max(-(C-C_prev)/C_prev, 0);
-
-			for (int i = ccdots.size() - 1; i >= 0; i--) {
-				ChargeCarrierDot d = ccdots.get(i);
-				d.time -= delta_t;
-				if (d.time < 0)
-					ccdots.remove(i);
-				else {
-					double R_tmp = Utils.bilinearinterp(e.R, d.x, d.y, e.nx, e.ny)*e.e_charge;
-					if (d.species == Species.HOLE) {
-						if (R_tmp > 0 && frand.next() < R_tmp/Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny)*delta_t) {
-							ccdots.remove(i);
-							continue;
-						}
-					} else {
-						if (R_tmp > 0 && frand.next() < -R_tmp/Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny)*delta_t) {
-							ccdots.remove(i);
-							continue;
-						}
-					}
-
-					if (P_deficit > 0 && frand.next() < P_deficit) {
-						ccdots.remove(i);
-						continue;
-					}
-				}
-			}
-
-			rho_n_dist.generateSamples(N_n, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, Species.ELECTRON, frand.next())); });
-			rho_p_dist.generateSamples(N_p, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, Species.HOLE, frand.next())); });
-			rho_G_dist.generateSamples(N_G, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.ELECTRON, frand.next())); });
-			rho_G_dist.generateSamples(N_G, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next())); });
-			rho_n_dist.generateSamples(N_n_excess, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.ELECTRON, frand.next())); });
-			rho_p_dist.generateSamples(N_p_excess, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next())); });
-
-			C_prev = C;
-		}
-		t5.stop();
-
-		setalphaBG(1.0);
+		show_carriers = e.opts.gui_carriers.isSelected();
+		vector_display_mode = e.controls.vectormode.getOption();
+		scalar_display_mode = e.controls.scalarmode.getOption();
+		scalar_view = e.controls.scalarview.getOption();
+		vector_view = e.controls.vectorview.getOption();
+		
 		try {
 			if (SemiSim.instance.graphics_threads.size() == SemiSim.n_threads) {
 				graphics_start_barrier.await();
@@ -1162,7 +1117,7 @@ public class Renderer extends PeriodicTask {
 	}
 
 	class GraphicsThread extends Thread {
-
+		
 		int n_thread;
 		int n_threads;
 		Random rand = new Random();
@@ -1181,17 +1136,11 @@ public class Renderer extends PeriodicTask {
 			return Math.min(((n_thread+1)*n_max)/n_threads, n_max);
 		}
 
-
 		@Override
 		public void run() {
 			try {
 				while (true) {
 					graphics_start_barrier.await();
-
-					VectorMode vector_display_mode = e.controls.vectormode.getOption();
-					ScalarMode scalar_display_mode = e.controls.scalarmode.getOption();
-					ScalarView scalar_view = e.controls.scalarview.getOption();
-					VectorView vector_view = e.controls.vectorview.getOption();
 
 					if (vector_display_mode != VectorMode.NONE && vector_view != VectorView.NONE) {
 						double arrowlength = 10.0/scalefactor;
@@ -1392,9 +1341,9 @@ public class Renderer extends PeriodicTask {
 						}
 					}
 					
-					graphics_mid_barrier.await();
 
 					if (scalar_view != ScalarView.NONE && (scalar_display_mode == ScalarMode.CONTOUR_COLORS || scalar_display_mode == ScalarMode.CONTOUR)) {
+						graphics_mid_barrier.await();
 						float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/e.controls.scalarview.getOption().scale);
 						double spacing = 0.2/scalingconstant;
 						double contourwidth = 1e-7;
@@ -1410,18 +1359,87 @@ public class Renderer extends PeriodicTask {
 							}
 						}
 					}
-
-					graphics_mid_barrier.await();
-
-					boolean show_carriers = e.opts.gui_carriers.isSelected();
+					
+					
 					if (show_carriers) {
 
+						if ((!e.opts.gui_paused.isSelected() || delta_t > 0)) {
+							double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_carrier_density.getValue()/20.0);
+
+							if (n_thread == 0) {
+								rho_n_dist.prepare(e.rho_n);
+								rho_p_dist.prepare(e.rho_p);
+								rho_G_dist.prepare(e.G);
+							}
+							
+							int i_low = lower(ccdots.size());
+							int i_high = upper(ccdots.size());
+
+							graphics_mid_barrier.await();
+
+							double A = e.ds*e.ds;
+							double N_G = rho_G_dist.getTotalAmount()*A*e.e_charge*C*delta_t;
+							double N_n = rho_n_dist.getTotalAmount()*A*C*delta_t/tau;
+							double N_p = rho_p_dist.getTotalAmount()*A*C*delta_t/tau;
+
+							double N_n_excess = Math.max(C-C_prev, 0)*rho_n_dist.getTotalAmount()*A;
+							double N_p_excess = Math.max(C-C_prev, 0)*rho_p_dist.getTotalAmount()*A;
+
+							double P_deficit = Math.max(-(C-C_prev)/C_prev, 0);
+							
+							for (int i = i_low; i < i_high; i++) {
+								ChargeCarrierDot d = ccdots.get(i);
+								if (d == null) continue;
+								
+								d.time -= delta_t;
+								if (d.time < 0) {
+									ccdots.remove(i);
+									i--;
+								}
+								else {
+									double R_tmp = Utils.bilinearinterp(e.R, d.x, d.y, e.nx, e.ny)*e.e_charge;
+									if (d.species == Species.HOLE) {
+										if (R_tmp > 0 && frand.next() < R_tmp/Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny)*delta_t) {
+											ccdots.remove(i);
+											i--;
+											continue;
+										}
+									} else {
+										if (R_tmp > 0 && frand.next() < -R_tmp/Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny)*delta_t) {
+											ccdots.remove(i);
+											i--;
+											continue;
+										}
+									}
+
+									if (P_deficit > 0 && frand.next() < P_deficit) {
+										ccdots.remove(i);
+										i--;
+										continue;
+									}
+								}
+							}
+
+							graphics_mid_barrier.await();
+							
+							rho_n_dist.generateSamples(N_n/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, Species.ELECTRON, frand.next())); });
+							rho_p_dist.generateSamples(N_p/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, Species.HOLE, frand.next())); });
+							rho_G_dist.generateSamples(N_G/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.ELECTRON, frand.next())); });
+							rho_G_dist.generateSamples(N_G/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next())); });
+							rho_n_dist.generateSamples(N_n_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.ELECTRON, frand.next())); });
+							rho_p_dist.generateSamples(N_p_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next())); });
+							
+							C_prev = C;
+						}
+
+						graphics_mid_barrier.await();
+						
 						boolean fast = e.opts.menu_carriers_metal.isSelected();
 						
 						int lower = lower(ccdots.size());
 						int upper = upper(ccdots.size());
 
-						int steps = fast? 2 : 10;
+						int steps = fast? 5 : 10;
 						double dt_dot = delta_t/steps;
 
 						for (int i = lower; i < upper; i++) {

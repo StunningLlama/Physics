@@ -541,7 +541,7 @@ public class MainWindow extends JFrame {
 		menu_carriers.setSelected(false);
 		menu_probes.setSelected(true);
 		menu_time.setSelected(true);
-		menu_carriers_metal.setSelected(false);
+		menu_carriers_metal.setSelected(true);
 		gui_carriers.setSelected(false);
 		gui_paused.setSelected(false);
 		gui_brush.setSelectedItem(Brush.INTERACT);
