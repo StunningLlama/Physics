@@ -437,13 +437,11 @@ public class Renderer extends PeriodicTask {
 		
 		e.rwLock.readLock().lock();
 		try {
-			t5.start();
 			drawPixels();
 			drawOverlay();
 			drawText();
 			copyImage(img_back, img_front);
 			e.canvas.repaint();
-			t5.stop();
 
 			FPStimer.stop();
 			FPStimer.start();
@@ -955,7 +953,8 @@ public class Renderer extends PeriodicTask {
 		boolean show_carriers = e.opts.gui_carriers.isSelected();
 		delta_t = e.time - t_prev;
 		t_prev = e.time;
-		
+
+		t5.start();
 		if (show_carriers && (!e.opts.gui_paused.isSelected() || delta_t > 0)) {
 
 			double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_carrier_density.getValue()/20.0);
@@ -1009,6 +1008,7 @@ public class Renderer extends PeriodicTask {
 
 			C_prev = C;
 		}
+		t5.stop();
 
 		setalphaBG(1.0);
 		try {
@@ -1416,16 +1416,21 @@ public class Renderer extends PeriodicTask {
 					boolean show_carriers = e.opts.gui_carriers.isSelected();
 					if (show_carriers) {
 
+						boolean fast = e.opts.menu_carriers_metal.isSelected();
+						
 						int lower = lower(ccdots.size());
 						int upper = upper(ccdots.size());
 
-						int steps = 10;
+						int steps = fast? 2 : 10;
 						double dt_dot = delta_t/steps;
 
 						for (int i = lower; i < upper; i++) {
 							ChargeCarrierDot d = ccdots.get(i);
 
 							if (d.time > 0) {
+								
+								boolean dorender = !fast || Utils.bilinearinterp(e.semiconducting, d.x, d.y, e.nx, e.ny) > 0;
+								
 								if (delta_t > 0) {
 									if (d.species == Species.ELECTRON) {
 										for (int k = 0; k < steps; k++) {
@@ -1446,10 +1451,10 @@ public class Renderer extends PeriodicTask {
 								}
 
 								double alphaFG = d.brightness;
-								if (d.species == Species.ELECTRON/* && -d.random_id*bilinearinterp(e.rho_n, d.x, d.y) < 1*/)
+								if (dorender && d.species == Species.ELECTRON/* && -d.random_id*bilinearinterp(e.rho_n, d.x, d.y) < 1*/)
 									drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
 									0.25f, 0.25f, 1f, (float)alphaFG, 1-(float)alphaFG);
-								else if (d.species == Species.HOLE/* && d.random_id*bilinearinterp(e.rho_p, d.x, d.y) < 1*/)
+								else if (dorender && d.species == Species.HOLE/* && d.random_id*bilinearinterp(e.rho_p, d.x, d.y) < 1*/)
 									drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
 									1f, 0.25f, 0.25f, (float)alphaFG, 1-(float)alphaFG);
 

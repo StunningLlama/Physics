@@ -1,7 +1,5 @@
 package electrodynamics.plot;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Predicate;
 
 import org.jfree.data.xy.XYSeries;
@@ -17,12 +15,15 @@ public class ProbePlot extends Plot {
 	double scalefactor;
 	Predicate<Probe> probefilter;
 	
-	public ProbePlot(String title, String yaxis, String nameprefix, double scalefactor, Predicate<Probe> probefilter) {
+	int window_offset = 0;
+	
+	public ProbePlot(String title, String yaxis, String nameprefix, double scalefactor, Predicate<Probe> probefilter, int window_offset) {
 		this.title = title;
 		this.yaxis = yaxis;
 		this.nameprefix = nameprefix;
 		this.scalefactor = scalefactor;
 		this.probefilter = probefilter;
+		this.window_offset = window_offset;
 	}
 
 	@Override
@@ -55,6 +56,8 @@ public class ProbePlot extends Plot {
 			fig.dataset.removeAllSeries();
 			fig.colors.clear();
 			fig.strokes.clear();
+			
+			double yrange = 0;
 			for (Probe p : e.probes) {
 				if (probefilter.test(p)) {
 					XYSeries dat = fig.plot("-k", 2.0f, nameprefix + e.getProbeName(index));
@@ -62,8 +65,13 @@ public class ProbePlot extends Plot {
 					dat.clear();
 
 					for (int i = 0; i < p.data.data_size; i++) {
-						if (!Double.isNaN(p.data.data[i]))
-							dat.add(1e12*(p.data.time[i] - p.data.time[p.data.data_size-1]), scalefactor*p.data.data[i]);
+						if (!Double.isNaN(p.data.data[i])) {
+							double datapointy = scalefactor*p.data.data[i];
+							dat.add(1e12*(p.data.time[i] - p.data.time[p.data.data_size-1]), datapointy);
+							if (Math.abs(datapointy) > yrange) {
+								yrange = Math.abs(datapointy);
+							}
+						}
 					}
 
 					index++;
@@ -73,12 +81,15 @@ public class ProbePlot extends Plot {
 			for (Object dat : fig.dataset.getSeries()) {
 				((XYSeries)dat).setNotify(true);
 			}
+
+			fig.chart.getXYPlot().getDomainAxis().setRange(-1e12*100*e.iteration_multiplier*e.controls.plotinterval*e.dt, 0);
+			fig.chart.getXYPlot().getRangeAxis().setRange(-1.1*yrange, 1.1*yrange);
 		}
 	}
 	
 	@Override
 	public void createPlot(Simulation e) {
 		super.createPlot(e);
-		frame.setLocation(300+(int)(200*Math.random()), 300+(int)(200*Math.random()));
+		frame.setLocation(500, 300+window_offset);
 	}
 }

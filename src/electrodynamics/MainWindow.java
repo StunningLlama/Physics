@@ -37,6 +37,7 @@ import javax.swing.JMenu;
 import javax.swing.JSeparator;
 import javax.swing.KeyStroke;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -131,6 +132,7 @@ public class MainWindow extends JFrame {
 	private JSeparator separator_1;
 	public JMenuItem menu_github;
 	public JMenuItem menu_report;
+	public JCheckBoxMenuItem menu_carriers_metal;
 
 	/**
 	 * Create the frame.
@@ -270,6 +272,9 @@ public class MainWindow extends JFrame {
 		
 		menu_carriers = new JCheckBoxMenuItem("Show charge carriers");
 		mnNewMenu_1.add(menu_carriers);
+		
+		menu_carriers_metal = new JCheckBoxMenuItem("Hide carriers in metal");
+		mnNewMenu_1.add(menu_carriers_metal);
 		
 		menu_text_bg = new JCheckBoxMenuItem("Show text background");
 		menu_text_bg.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, 0));
@@ -536,6 +541,7 @@ public class MainWindow extends JFrame {
 		menu_carriers.setSelected(false);
 		menu_probes.setSelected(true);
 		menu_time.setSelected(true);
+		menu_carriers_metal.setSelected(false);
 		gui_carriers.setSelected(false);
 		gui_paused.setSelected(false);
 		gui_brush.setSelectedItem(Brush.INTERACT);
@@ -563,6 +569,12 @@ public class MainWindow extends JFrame {
 		e.canvas.addKeyListener(e.controls);
 		gui_reset.addActionListener(e.controls);
 		gui_brush.addActionListener(e.controls);
+		
+		removeKeyListeners(gui_brush);
+		removeKeyListeners(gui_bc);
+		removeKeyListeners(gui_material);
+		removeKeyListeners(gui_brush_1);
+
 		gui_material.addActionListener(e.controls);
 		gui_carriers.addActionListener(e.controls);
 		menu_advancedsettings.addActionListener(e.controls);
@@ -646,5 +658,12 @@ public class MainWindow extends JFrame {
 		} catch (IOException e1) {}
 		
 		setDefaults(e);
+	}
+	
+	public void removeKeyListeners(Component c) {
+		KeyListener[] list = c.getKeyListeners();
+		for (int i = 0; i < list.length; i++) {
+			c.removeKeyListener(list[i]);
+		}
 	}
 }

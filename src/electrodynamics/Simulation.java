@@ -257,6 +257,8 @@ public class Simulation extends PeriodicTask {
 	public int[][] conducting_x;
 	public int[][] conducting_y;
 
+	public int[][] semiconducting;
+
 	public int[][] ac_x;
 	public int[][] ac_y;
 
@@ -314,10 +316,10 @@ public class Simulation extends PeriodicTask {
 		bandplot = new BandPlot(); plots.add(bandplot);
 		scalarplot = new ScalarPlot(); plots.add(scalarplot);
 		carrierplot = new CarrierPlot(); plots.add(carrierplot);
-		plots.add(new ProbePlot("Voltage probe plot", "Voltage [mV]", "V", 1e3, (p) -> p instanceof VoltageProbe));
-		plots.add(new ProbePlot("Current probe plot", "Current [mA]", "I", 1e3, (p) -> p instanceof CurrentProbe));
-		plots.add(new ProbePlot("Charge probe plot", "Charge [fC]", "Q", 1e15, (p) -> p instanceof ChargeProbe));
-		plots.add(new ProbePlot("Flux probe plot", "Magnetic flux [fWb]", "Wb", 1e15, (p) -> p instanceof FluxProbe));
+		plots.add(new ProbePlot("Voltage probe plot", "Voltage [mV]", "V", 1e3, (p) -> p instanceof VoltageProbe && p != ground, 0));
+		plots.add(new ProbePlot("Current probe plot", "Current [mA]", "I", 1e3, (p) -> p instanceof CurrentProbe, 200));
+		plots.add(new ProbePlot("Charge probe plot", "Charge [fC]", "Q", 1e15, (p) -> p instanceof ChargeProbe, 400));
+		plots.add(new ProbePlot("Flux probe plot", "Magnetic flux [fWb]", "Wb", 1e15, (p) -> p instanceof FluxProbe, 600));
 		
 		for (Plot p : plots)
 			p.initialize();
@@ -542,6 +544,7 @@ public class Simulation extends PeriodicTask {
 			cmfy_p = new double[nx][ny];
 			relative_mobility = new double[nx][ny];
 			conducting = new int[nx][ny];
+			semiconducting = new int[nx][ny];
 			conducting_x = new int[nx][ny];
 			conducting_y = new int[nx][ny];
 			ac_x = new int[nx][ny];
@@ -658,6 +661,8 @@ public class Simulation extends PeriodicTask {
 						conducting[i][j] = 0;
 						conducting_x[i][j] = 0;
 						conducting_y[i][j] = 0;
+						
+						semiconducting[i][j] = 0;
 
 						ac_x[i][j] = 0;
 						ac_y[i][j] = 0;
@@ -1346,6 +1351,7 @@ public class Simulation extends PeriodicTask {
 			{
 				rho_back[i][j] = materials[i][j].rho_back;
 				conducting[i][j] = materials[i][j].conducting*materials[i][j].activated;
+				semiconducting[i][j] = materials[i][j].semiconducting;
 				relative_mobility[i][j] = (materials[i][j].type == MaterialType.CURRENT)? currentsource_mobility : 1;
 			}
 		}
