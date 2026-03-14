@@ -1002,7 +1002,7 @@ public class Renderer extends PeriodicTask {
 			int index = 0;
 			for (Probe p: e.probes) {
 				if (p instanceof Ground)
-					drawMonospacedString("Ground = " + Utils.getSI_fixedsigfigs(((Ground)p).potential - ((Ground)p).potential, "V", 1e-6), ((Ground)p).labelcoord.x*scalefactor, ((Ground)p).labelcoord.y*scalefactor, g);
+					drawMonospacedString("Ground = " + Utils.getSI_fixedsigfigs(((Ground)p).potential - ((Ground)p).potential, "V", 1e-6), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
 				else if (p instanceof VoltageProbe)
 					drawMonospacedString("V" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((VoltageProbe)p).potential, "V", 1e-6), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
 				else if (p instanceof CurrentProbe)

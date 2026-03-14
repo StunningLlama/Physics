@@ -316,7 +316,7 @@ public class Simulation extends PeriodicTask {
 		bandplot = new BandPlot(); plots.add(bandplot);
 		scalarplot = new ScalarPlot(); plots.add(scalarplot);
 		carrierplot = new CarrierPlot(); plots.add(carrierplot);
-		plots.add(new ProbePlot("Voltage probe plot", "Voltage [mV]", "V", 1e3, (p) -> p instanceof VoltageProbe, 0));
+		plots.add(new ProbePlot("Voltage probe plot", "Voltage [mV]", "V", 1e3, (p) -> (p instanceof VoltageProbe && !(p instanceof Ground)), 0));
 		plots.add(new ProbePlot("Current probe plot", "Current [mA]", "I", 1e3, (p) -> p instanceof CurrentProbe, 200));
 		plots.add(new ProbePlot("Charge probe plot", "Charge [fC]", "Q", 1e15, (p) -> p instanceof ChargeProbe, 400));
 		plots.add(new ProbePlot("Flux probe plot", "Magnetic flux [fWb]", "Wb", 1e15, (p) -> p instanceof FluxProbe, 600));
@@ -1862,7 +1862,7 @@ public class Simulation extends PeriodicTask {
 
 		int index = 0;
 		for (Probe p: probes) {
-			if (p instanceof VoltageProbe)
+			if (p instanceof VoltageProbe && !(p instanceof Ground))
 				data += (", V" + getProbeName(index) + " = " + Utils.getSI(((VoltageProbe)p).potential, "V"));
 			if (p instanceof CurrentProbe)
 				data += (", I" + getProbeName(index) + " = " + Utils.getSI(((CurrentProbe) p).current, "A"));
