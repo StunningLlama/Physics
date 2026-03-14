@@ -28,6 +28,7 @@ import electrodynamics.plot.ScalarPlot;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
 import electrodynamics.probe.FluxProbe;
+import electrodynamics.probe.Ground;
 import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
 import electrodynamics.util.PeriodicTask;
@@ -96,8 +97,8 @@ public class Simulation extends PeriodicTask {
 	public int lastsimspeed = 0;
 	public int iteration_multiplier = 0;
 
-	public double error_detection_threshold = 1e-5;
-	public boolean sign_violation = false;
+	public double error_detection_threshold = 1e-3;
+	public int sign_violation = 0;
 	public boolean numerical_overflow = false;
 	
 	public boolean advsettings_tweaked = false;
@@ -288,7 +289,6 @@ public class Simulation extends PeriodicTask {
 	
 	/* Probes */
 	public List<Probe> probes = new CopyOnWriteArrayList<>();
-	public VoltageProbe ground = null;
 	public String datafilename = "probedata.txt";
 	public File datafile;
 	public PrintWriter datastream;
@@ -316,7 +316,7 @@ public class Simulation extends PeriodicTask {
 		bandplot = new BandPlot(); plots.add(bandplot);
 		scalarplot = new ScalarPlot(); plots.add(scalarplot);
 		carrierplot = new CarrierPlot(); plots.add(carrierplot);
-		plots.add(new ProbePlot("Voltage probe plot", "Voltage [mV]", "V", 1e3, (p) -> p instanceof VoltageProbe && p != ground, 0));
+		plots.add(new ProbePlot("Voltage probe plot", "Voltage [mV]", "V", 1e3, (p) -> p instanceof VoltageProbe, 0));
 		plots.add(new ProbePlot("Current probe plot", "Current [mA]", "I", 1e3, (p) -> p instanceof CurrentProbe, 200));
 		plots.add(new ProbePlot("Charge probe plot", "Charge [fC]", "Q", 1e15, (p) -> p instanceof ChargeProbe, 400));
 		plots.add(new ProbePlot("Flux probe plot", "Magnetic flux [fWb]", "Wb", 1e15, (p) -> p instanceof FluxProbe, 600));
@@ -478,13 +478,19 @@ public class Simulation extends PeriodicTask {
 		E_a_semi = -Math.log(recomb_rate_semi/arrhenius_prefactor);
 		E_a_metal = -Math.log(recomb_rate_metal/arrhenius_prefactor);
 	}
+	
+	public void checkCFL() {
+		System.out.println("Wave equation CFL ratio = " + (Math.sqrt(2)*c)/(ds/dt_maximum));
+		System.out.println("Electron diffusion CFL ratio = " + dt_maximum/(ds*ds/(4*D_electron)));
+		System.out.println("Hole diffusion CFL ratio = " + dt_maximum/(ds*ds/(4*D_hole)));
+	}
 
 	public boolean setSize(int resolution, double width) {
 		
 		this.width = width;
 		ds = width/resolution;
 		width = nx*ds;
-		dt_maximum = 0.9*ds/(Math.sqrt(2)*c);
+		dt_maximum = 0.9*Math.min(ds/(Math.sqrt(2)*c), Math.min(ds*ds/(4*D_electron), ds*ds/(4*D_hole)));
 		Hz_dissipation = 0.01*ds*ds/dt_maximum;
 
 		if (resolution == this.resolution) return false;
@@ -605,11 +611,12 @@ public class Simulation extends PeriodicTask {
 				for (int j = 0; j < ny; j++)
 				{
 					materials[i][j] = new Material();
-					controls.selection[i][j] = new ClipboardMaterial();
-					controls.clipboard[i][j] = new ClipboardMaterial();
 				}
 			}
 
+			//controls.selection.clear();
+			//controls.clipboard.clear();
+			
 			resetFields(true);
 		} finally {
 			rwLock.writeLock().unlock();
@@ -630,8 +637,6 @@ public class Simulation extends PeriodicTask {
 					if (resetall) {
 
 						materials[i][j].erase();
-						controls.selection[i][j].erase();
-						controls.clipboard[i][j].erase();
 
 						F0_n[i][j] = 0;
 						F0_p[i][j] = 0;
@@ -735,6 +740,9 @@ public class Simulation extends PeriodicTask {
 					debug[i][j] = 0.0;
 				}
 			}
+
+			controls.selection.clear();
+			controls.clipboard.clear();
 			
 			if (resetall) {
 				controls.EMF_selected = false;
@@ -744,11 +752,10 @@ public class Simulation extends PeriodicTask {
 			}
 
 			numerical_overflow = false;
-			sign_violation = false;
+			sign_violation = 0;
 			
 			if (resetall) {
 				probes.clear();
-				ground = null;
 
 				for (Plot p: plots) {
 					p.frame.setVisible(false);
@@ -1058,7 +1065,7 @@ public class Simulation extends PeriodicTask {
 
 		t8.start();
 
-		sign_violation = false;
+		//sign_violation = 0;
 		double rho_n_max_tmp = 0;
 		double rho_p_max_tmp = 0;
 		for (int i = 0; i < nx; i++)
@@ -1091,7 +1098,7 @@ public class Simulation extends PeriodicTask {
 				R[i][j] = conducting[i][j]*r[i][j]*rho_n[i][j]*rho_p[i][j]/(q_n*q_p);
 
 				if (rho_n[i][j] > error_detection_threshold || rho_p[i][j] < -error_detection_threshold)
-					sign_violation = true;
+					sign_violation = 20;
 
 				if (-rho_n[i][j] > rho_n_max_tmp)
 					rho_n_max_tmp = -rho_n[i][j];
@@ -1212,9 +1219,6 @@ public class Simulation extends PeriodicTask {
 				}
 			}
 		}
-
-		if (ground != null)
-			ground.measure(this, false);
 
 		for (Probe p: probes) {
 			p.measure(this, frame%controls.plotinterval == 0);
@@ -1597,12 +1601,6 @@ public class Simulation extends PeriodicTask {
 		materials[i][j].auto_placed = false;
 	}
 
-	public void checkCFL() {
-		System.out.println("Wave equation CFL ratio = " + (Math.sqrt(2)*c)/(ds/dt_maximum));
-		System.out.println("Electron diffusion CFL ratio = " + dt_maximum/(ds*ds/(4*D_electron)));
-		System.out.println("Hole diffusion CFL ratio = " + dt_maximum/(ds*ds/(4*D_hole)));
-	}
-
 	public void prescaleDielectric() {
 		downscale_x_vector(epsx, MG_epsx, log2_resolution);
 		downscale_y_vector(epsy, MG_epsy, log2_resolution);
@@ -1945,12 +1943,30 @@ public class Simulation extends PeriodicTask {
 		
 		opts.textPane.setText(str);
 	}
+
+	public boolean hasGround() {
+		for (Probe p : probes) {
+			if (p instanceof Ground)
+				return true;
+		}
+		
+		return false;
+	}
+	
+	public Ground getGround() {
+		for (Probe p : probes) {
+			if (p instanceof Ground)
+				return (Ground)p;
+		}
+		
+		return null;
+	}
 	
 	public String getProbeName(int index) {
 		int newindex = 0;
 		
 		for (int i = 0; i < index; i++) {
-			if (probes.get(i) != ground && probes.get(i).getClass().equals(probes.get(index).getClass()))
+			if (probes.get(i).getClass().equals(probes.get(index).getClass()))
 				newindex++;
 		}
 		

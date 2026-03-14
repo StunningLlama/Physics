@@ -58,6 +58,7 @@ import electrodynamics.plot.ProbePlot;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
 import electrodynamics.probe.FluxProbe;
+import electrodynamics.probe.Ground;
 import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
 import electrodynamics.util.Font7x5;
@@ -145,8 +146,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	
 	public boolean iscurrentselected = false;
 
-	public ClipboardMaterial[][] selection;
-	public ClipboardMaterial[][] clipboard;
+	public Clipboard selection;
+	public Clipboard clipboard;
 	public boolean selectionempty = true;
 	public boolean clipboardempty = true;
 
@@ -177,8 +178,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	}
 	
 	void setResolution(int resolution) {
-		selection = new ClipboardMaterial[e.nx][e.ny];
-		clipboard = new ClipboardMaterial[e.nx][e.ny];
+		selection = new Clipboard(e);
+		clipboard = new Clipboard(e);
 
 		under_brush = new boolean[e.nx][e.ny];
 		selected = new boolean[e.nx][e.ny];
@@ -253,6 +254,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					}
 				}
 			}
+			
+			e.probes.forEach((p) -> p.selected = false);
 
 			if (brush != Brush.INTERACT) {
 				for (int i = 0; i < e.nx; i++)
@@ -269,39 +272,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		}
 
 		if (cut || copy) {
-			int i_min = e.nx-1;
-			int j_min = e.ny-1;
-			clipboardempty = true;
-			for (int i = 0; i < e.nx; i++)
-			{
-				for (int j = 0; j < e.ny; j++)
-				{
-					clipboard[i][j].erase();
-					if (selected[i][j] && e.materials[i][j].type != MaterialType.VACUUM) {
-						if (i < i_min) i_min = i;
-						if (j < j_min) j_min = j;
-					}
-				}
-			}
-			for (int i = 0; i < e.nx; i++)
-			{
-				for (int j = 0; j < e.ny; j++)
-				{
-					if (selected[i][j] && e.materials[i][j].type != MaterialType.VACUUM) {
-						
-						clipboard[i-i_min][j-j_min] = new ClipboardMaterial(e, i, j);
-						
-						if (cut) {
-							e.eraseMaterial(i, j);
-						}
-						
-						clipboardempty = false;
-					}
-					if (cut) {
-						selected[i][j] = false;
-					}
-				}
-			}
+			clipboardempty = clipboard.copy(cut);
 
 			if (cut) flagChanges(true);
 
@@ -310,21 +281,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		}
 
 		if (paste) {
-			for (int i = 0; i < e.nx; i++)
-			{
-				for (int j = 0; j < e.ny; j++)
-				{
-					selected[i][j] = false;
-				}
-			}
-
-			for (int i = 0; i < e.nx; i++)
-			{
-				for (int j = 0; j < e.ny; j++)
-				{
-					selection[i][j] = clipboard[i][j].clone();
-				}
-			}
+			clipboard.transfer(selection);
+			
 			moving_selection = true;
 			dragging_selection = false;
 			paste = false;
@@ -341,87 +299,26 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					}
 				}
 			}
+			e.probes.removeIf((p) -> p.selected);
+			
 			delete = false;
 			flagChanges(true);
 		}
 		
 		if (rotate_selection || flip_h_selection || flip_v_selection) {
-			int i_max = 0;
-			int j_max = 0;
-			for (int i = 0; i < e.nx; i++)
-			{
-				for (int j = 0; j < e.ny; j++)
-				{
-					if (selection[i][j].m.type != MaterialType.VACUUM) {
-						if (i > i_max) i_max = i;
-						if (j > j_max) j_max = j;
-					}
-				}
-			}
-			
+
 			if (rotate_selection) {
-				ClipboardMaterial[][] new_selection = new ClipboardMaterial[j_max+1][i_max+1];
-				for (int i = 0; i <= i_max; i++)
-				{
-					for (int j = 0; j <= j_max; j++)
-					{
-						new_selection[j_max-j][i] = selection[i][j].clone();
-						new_selection[j_max-j][i].m.emf_direction += Math.PI/2.0;
-						selection[i][j].erase();
-					}
-				}
-				
-				for (int i = 0; i <= j_max; i++)
-				{
-					for (int j = 0; j <= i_max; j++)
-					{
-						selection[i][j] = new_selection[i][j];
-					}
-				}
+				selection.rotate90();
 				rotate_selection = false;
 			}
 			
 			if (flip_h_selection) {
-				ClipboardMaterial[][] new_selection = new ClipboardMaterial[i_max+1][j_max+1];
-				for (int i = 0; i <= i_max; i++)
-				{
-					for (int j = 0; j <= j_max; j++)
-					{
-						new_selection[i_max-i][j] = selection[i][j].clone();
-						new_selection[i_max-i][j].m.emf_direction = Math.PI - new_selection[i_max-i][j].m.emf_direction;
-						selection[i][j].erase();
-					}
-				}
-				
-				for (int i = 0; i <= i_max; i++)
-				{
-					for (int j = 0; j <= j_max; j++)
-					{
-						selection[i][j] = new_selection[i][j];
-					}
-				}
+				selection.flip_h();
 				flip_h_selection = false;
 			}
 			
 			if (flip_v_selection) {
-				ClipboardMaterial[][] new_selection = new ClipboardMaterial[i_max+1][j_max+1];
-				for (int i = 0; i <= i_max; i++)
-				{
-					for (int j = 0; j <= j_max; j++)
-					{
-						new_selection[i][j_max - j] = selection[i][j].clone();
-						new_selection[i][j_max - j].m.emf_direction = -new_selection[i][j_max - j].m.emf_direction;
-						selection[i][j].erase();
-					}
-				}
-				
-				for (int i = 0; i <= i_max; i++)
-				{
-					for (int j = 0; j <= j_max; j++)
-					{
-						selection[i][j] = new_selection[i][j];
-					}
-				}
+				selection.flip_v();
 				flip_v_selection = false;
 			}
 		}
@@ -436,6 +333,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					}
 				}
 			}
+			e.probes.forEach((p) -> p.selected = true);
 			e.opts.gui_brush.setSelectedItem(Brush.SELECT);
 			selectall = false;
 		}
@@ -448,6 +346,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					selected[i][j] = false;
 				}
 			}
+			e.probes.forEach((p) -> p.selected = false);
 			deselectall = false;
 		}
 		
@@ -462,6 +361,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 			}
 		}
+		for (Probe p : e.probes)
+			if (p.selected)
+				selectionempty = false;
 		
 		e.opts.menu_cut.setEnabled(!selectionempty);
 		e.opts.menu_copy.setEnabled(!selectionempty);
@@ -771,35 +673,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					});
 				}
 				else if (moving_selection && !dragging_selection) {
-					for (int i = 0; i < e.nx; i++)
-					{
-						for (int j = 0; j < e.ny; j++)
-						{
-							int si = i-delta_mx;
-							int sj = j-delta_my;
-							if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && selection[si][sj].m.type != MaterialType.VACUUM) {
-								e.eraseMaterial(i, j);
-								selection[si][sj].paste(e, i, j);
-								selected[i][j] = true;
-							}
-						}
-					}
+					selection.paste(delta_mx, delta_my); 
 					flagChanges(true);
 					moving_selection = false;
 					dragging_selection = false;
 				} else if (!moving_selection && selected[mx][my]) {
-					for (int i = 0; i < e.nx; i++)
-					{
-						for (int j = 0; j < e.ny; j++)
-						{
-							selection[i][j].erase();
-							if (selected[i][j]) {
-								selection[i][j] = new ClipboardMaterial(e, i, j);
-								selected[i][j] = false;
-								e.eraseMaterial(i, j);
-							}
-						}
-					}
+					selection.cut();
 					flagChanges(true);
 					moving_selection = true;
 					dragging_selection = true;
@@ -827,6 +706,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 									selected[i][j] = false;
 							}
 						}
+						
+						for (Probe p : e.probes) {
+							p.selected = p.intersects(mx0, my0, mx1, my1);
+						}
 					}
 				}
 			} else if (releasing) {
@@ -834,19 +717,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					delta_mx = mx - mx_start;
 					delta_my = my - my_start;
 					if (dragging_selection) {
-						for (int i = 0; i < e.nx; i++)
-						{
-							for (int j = 0; j < e.ny; j++)
-							{
-								int si = i-delta_mx;
-								int sj = j-delta_my;
-								if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && selection[si][sj].m.type != MaterialType.VACUUM) {
-									e.eraseMaterial(i, j);
-									selection[si][sj].paste(e, i, j);
-									selected[i][j] = true;
-								}
-							}
-						}
+						selection.paste(delta_mx, delta_my); 
 						moving_selection = false;
 						dragging_selection = false;
 						flagChanges(true);
@@ -859,6 +730,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 									selected[i][j] = false;
 								}
 							}
+							e.probes.forEach((p) -> p.selected = false);
 						}
 					}
 				}
@@ -938,12 +810,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			int i = 0;
 			while(i < e.probes.size()) {
 				Probe p = e.probes.get(i);
-				if (p.ishovering(mx, my)) {
+				if (p.isMouseHovering(mx, my)) {
 					e.canvas.setCursor(HAND_CURSOR);
 					if (pressing) {
 						e.probes.remove(i);
-						if (p == e.ground)
-							e.ground = null;
 						flagChanges(false);
 						i--;
 					}
@@ -987,16 +857,19 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 		case GROUND:
 			if (pressing) {
-				if (e.ground == null) {
-					e.ground = new VoltageProbe();
-					e.probes.add(e.ground);
+				if (!e.hasGround()) {
+					Ground ground = new Ground();
+					e.probes.add(ground);
 				}
-				e.ground.x = mx_start;
-				e.ground.y = my_start;
+				
+				Ground g = e.getGround();
+				g.x = mx_start;
+				g.y = my_start;
 			} else if (mouse_pressed) {
-				e.ground.x = mx;
-				e.ground.y = my;
-				e.ground.calculateDefaultLabelCoords();
+				Ground g = e.getGround();
+				g.x = mx;
+				g.y = my;
+				g.calculateDefaultLabelCoords();
 			} else if (releasing) {
 				flagChanges(false);
 			}

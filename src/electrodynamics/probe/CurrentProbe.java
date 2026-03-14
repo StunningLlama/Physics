@@ -79,7 +79,7 @@ public class CurrentProbe extends Probe {
 	}
 	
 	@Override
-	public boolean ishovering(int mx, int my) {
+	public boolean isMouseHovering(int mx, int my) {
 		return Utils.length(x1-mx, y1-my) < 3 || Utils.length(x2-mx, y2-my) < 3;
 	}
 	
@@ -113,5 +113,51 @@ public class CurrentProbe extends Probe {
 			return (-Jx[x0][y0] + Jy[x0][y0-1])*ds;
 		}
 		return 0;
+	}
+	
+	@Override
+	public void translate(int dx, int dy) {
+		x1 += dx;
+		y1 += dy;
+		x2 += dx;
+		y2 += dy;
+		labelcoord.translate(dx, dy);
+	}
+	
+	@Override
+	public void rotate90(int i_max, int j_max) {
+		int y_tmp = y1;
+		int x_tmp = x1;
+		x1 = j_max-y_tmp;
+		y1 = x_tmp;
+		y_tmp = y2;
+		x_tmp = x2;
+		x2 = j_max-y_tmp;
+		y2 = x_tmp;
+		labelcoord.rotate90(i_max, j_max);
+	}
+
+	@Override
+	public void flip_h(int i_min, int i_max) {
+		x1 = (i_min + i_max) - x1;
+		x2 = (i_min + i_max) - x2;
+		labelcoord.flip_h(i_min, i_max);
+	}
+
+	@Override
+	public void flip_v(int j_min, int j_max) {
+		y1 = (j_min + j_max) - y1;
+		y2 = (j_min + j_max) - y2;
+		labelcoord.flip_v(j_min, j_max);
+	}
+	
+	@Override
+	public boolean intersects(int xmin, int ymin, int xmax, int ymax) {
+		return (x1 >= xmin && x1 <= xmax && y1 >= ymin && y1 <= ymax) || (x2 >= xmin && x2 <= xmax && y2 >= ymin && y2 <= ymax);
+	}
+	
+	@Override
+	public boolean checkInBounds(Simulation e) {
+		return (x1 >= 0 && x1 < e.nx && y1 >= 0 && y1 < e.ny) && (x2 >= 0 && x2 < e.nx && y2 >= 0 && y2 < e.ny);
 	}
 }

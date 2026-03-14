@@ -5,10 +5,17 @@ import electrodynamics.Simulation;
 public abstract class Probe implements Cloneable {
 	public LabelCoord labelcoord = new LabelCoord();
 	public ProbeData data = new ProbeData();
+	public boolean selected = false;
 
 	public abstract void calculateDefaultLabelCoords();
 	public abstract void measure(Simulation e, boolean savedatapoint);
-	public abstract boolean ishovering(int mx, int my);
+	public abstract boolean isMouseHovering(int mx, int my);
+	public abstract boolean intersects(int xmin, int ymin, int xmax, int ymax);
+	public abstract boolean checkInBounds(Simulation e);
+	public abstract void translate(int dx, int dy);
+	public abstract void rotate90(int i_max, int j_max);
+	public abstract void flip_h(int i_min, int i_max);
+	public abstract void flip_v(int j_min, int j_max);
 	
 	@Override
 	public Probe clone() {
@@ -33,6 +40,26 @@ public abstract class Probe implements Cloneable {
 				return null;
 			}
 	    }
+	    
+		public void translate(int dx, int dy) {
+			x += dx;
+			y += dy;
+		}
+
+		public void rotate90(int i_max, int j_max) {
+			int y_tmp = y;
+			int x_tmp = x;
+			x = j_max-y_tmp;
+			y = x_tmp;
+		}
+
+		public void flip_h(int i_min, int i_max) {
+			x = (i_min + i_max) - x;
+		}
+
+		public void flip_v(int j_min, int j_max) {
+			y = (j_min + j_max) - y;
+		}
 	}
 	
 	public class ProbeData implements Cloneable {

@@ -39,6 +39,7 @@ import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
 import electrodynamics.probe.FluxProbe;
+import electrodynamics.probe.Ground;
 import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
 
@@ -214,7 +215,7 @@ public class SaveManager {
 						case "fluxprobes": e.probes.addAll(Arrays.asList(
 						(FluxProbe[]) gson.fromJson(fstr, FluxProbe[].class))); break;
 
-						case "ground": e.ground = (VoltageProbe) gson.fromJson(fstr, VoltageProbe.class); e.probes.add(e.ground); break;
+						case "ground": e.probes.add((Ground) gson.fromJson(fstr, Ground.class)); break;
 
 						default: fstr.skipValue(); break; // skip others
 						}
@@ -290,7 +291,7 @@ public class SaveManager {
 						case "currentprobes": e.probes.addAll(Arrays.asList(
 						(CurrentProbe[]) gson.fromJson(fstr, CurrentProbe[].class))); break;
 
-						case "ground": e.ground = (VoltageProbe) gson.fromJson(fstr, VoltageProbe.class); e.probes.add(e.ground); break;
+						case "ground": e.probes.add((Ground) gson.fromJson(fstr, Ground.class)); break;
 
 						default: fstr.skipValue(); break; // skip others
 						}
@@ -490,11 +491,11 @@ public class SaveManager {
 				data.add("jx_p", gson.toJsonTree(e.Jx_p));
 				data.add("jy_p", gson.toJsonTree(e.Jy_p));
 				data.add("materials", gson.toJsonTree(e.materials));
-				data.add("voltageprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof VoltageProbe && p != e.ground)).toArray()));
+				data.add("voltageprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof VoltageProbe && !(p instanceof Ground))).toArray()));
 				data.add("currentprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof CurrentProbe)).toArray()));
 				data.add("chargeprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof ChargeProbe)).toArray()));
 				data.add("fluxprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof FluxProbe)).toArray()));
-				data.add("ground", gson.toJsonTree(e.ground));
+				data.add("ground", gson.toJsonTree(e.getGround()));
 
 				JsonObject advsettings = new JsonObject();
 				writeAdvancedSettings(gson, advsettings);

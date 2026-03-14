@@ -7,15 +7,14 @@ package electrodynamics;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.UnaryOperator;
-
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
 import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.probe.Probe;
-import electrodynamics.probe.VoltageProbe;
+import electrodynamics.util.Utils;
+
 public class UndoRedo {
 	
 	public List<Snapshot> prev_states = new ArrayList<Snapshot>();
@@ -124,7 +123,6 @@ class Snapshot {
 	Material[][] materials;
 	
 	List<Probe> probes;
-	int ground_index;
 	
 	public void store(Simulation e) {
 		//resolution = e.resolution;
@@ -166,8 +164,7 @@ class Snapshot {
 		jx_p = copy(e.Jx_p);
 		jy_p = copy(e.Jy_p);
 		materials = copy(e.materials);
-		probes = cloneList(e.probes, Probe::clone);
-		ground_index = e.probes.indexOf(e.ground);
+		probes = Utils.cloneList(e.probes, Probe::clone);
 	}
 	
 
@@ -217,8 +214,7 @@ class Snapshot {
 		e.Jy_p = copy(jy_p);
 
 		e.materials = copy(materials);
-		e.probes = cloneList(probes, Probe::clone);
-		e.ground = (ground_index == -1)? null : (VoltageProbe) e.probes.get(ground_index);
+		e.probes = Utils.cloneList(probes, Probe::clone);
 
 		e.opts.textPane.setEditable(false);
 		e.opts.textPane.setCaretPosition(0);
@@ -251,13 +247,5 @@ class Snapshot {
 		    }
 	    }
 	    return result;
-	}
-	
-	private static <T> List<T> cloneList(List<T> list, UnaryOperator<T> cloner) {
-	    List<T> newList = new ArrayList<T>(list.size());
-	    for (T element : list) {
-	        newList.add(cloner.apply(element));
-	    }
-	    return newList;
 	}
 }

@@ -4,6 +4,11 @@
 
 package electrodynamics.util;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
+
 public class Utils {
 	public static double length(double x, double y) {
 		return Math.sqrt(x*x+y*y);
@@ -268,5 +273,22 @@ public class Utils {
 	
 	public static double bilinearinterp_length(double[][] Fx, double[][] Fy, double x, double y, int nx, int ny) {
 		return length(bilinearinterp(Fx, x-0.5, y, nx, ny), bilinearinterp(Fy, x, y-0.5, nx, ny));
+	}
+	
+	public static <T> List<T> cloneList(List<T> list, UnaryOperator<T> cloner) {
+	    List<T> newList = new ArrayList<T>(list.size());
+	    for (T element : list) {
+	        newList.add(cloner.apply(element));
+	    }
+	    return newList;
+	}
+	
+	public static <T> List<T> cloneList(List<T> list, UnaryOperator<T> cloner, Predicate<T> criteria) {
+	    List<T> newList = new ArrayList<T>(list.size());
+	    for (T element : list) {
+	    	if (criteria.test(element))
+	    		newList.add(cloner.apply(element));
+	    }
+	    return newList;
 	}
 }
