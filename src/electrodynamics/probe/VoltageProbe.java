@@ -8,6 +8,11 @@ public class VoltageProbe extends Probe {
 	public int y = 0;
 
 	public double potential = 0;
+	
+	@Override
+	public void reset() {
+		potential = 0;
+	}
 
 	@Override
 	public void calculateDefaultLabelCoords() {

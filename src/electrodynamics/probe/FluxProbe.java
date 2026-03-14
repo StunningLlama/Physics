@@ -12,6 +12,11 @@ public class FluxProbe extends Probe {
 	public double flux = 0;
 	
 	@Override
+	public void reset() {
+		flux = 0;
+	}
+	
+	@Override
 	public void calculateDefaultLabelCoords() {
 		labelcoord.x = (x1+x2)/2;
 		labelcoord.y = (y1+y2)/2;

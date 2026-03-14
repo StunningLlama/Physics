@@ -12,6 +12,11 @@ public class ChargeProbe extends Probe {
 	public double charge = 0;
 	
 	@Override
+	public void reset() {
+		charge = 0;
+	}
+	
+	@Override
 	public void calculateDefaultLabelCoords() {
 		labelcoord.x = (x1+x2)/2;
 		labelcoord.y = (y1+y2)/2;

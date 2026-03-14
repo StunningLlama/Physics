@@ -10,6 +10,11 @@ public class CurrentProbe extends Probe {
 	public int y2 = 0;
 
 	public double current = 0;
+	
+	@Override
+	public void reset() {
+		current = 0;
+	}
 
 	@Override
 	public void calculateDefaultLabelCoords() {

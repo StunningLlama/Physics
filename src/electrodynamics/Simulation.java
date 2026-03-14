@@ -765,7 +765,10 @@ public class Simulation extends PeriodicTask {
 				controls.resetZoom();
 			}
 			
-			for (Probe p : probes) p.data.resetData();
+			for (Probe p : probes) {
+				p.reset();
+				p.data.resetData();
+			}
 
 			renderer.resetChargeDots();
 

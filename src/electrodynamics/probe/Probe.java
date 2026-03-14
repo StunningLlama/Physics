@@ -7,6 +7,7 @@ public abstract class Probe implements Cloneable {
 	public ProbeData data = new ProbeData();
 	public boolean selected = false;
 
+	public abstract void reset();
 	public abstract void calculateDefaultLabelCoords();
 	public abstract void measure(Simulation e, boolean savedatapoint);
 	public abstract boolean isMouseHovering(int mx, int my);
