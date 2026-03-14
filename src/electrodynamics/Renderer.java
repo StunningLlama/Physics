@@ -1449,7 +1449,7 @@ public class Renderer extends PeriodicTask {
 
 						graphics_mid_barrier.await();
 						
-						boolean fast = e.opts.menu_carriers_metal.isSelected();
+						boolean fast = e.opts.menu_hide_carriers_metal.isSelected();
 						
 						int lower = lower(ccdots.size());
 						int upper = upper(ccdots.size());

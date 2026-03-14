@@ -132,7 +132,7 @@ public class MainWindow extends JFrame {
 	private JSeparator separator_1;
 	public JMenuItem menu_github;
 	public JMenuItem menu_report;
-	public JCheckBoxMenuItem menu_carriers_metal;
+	public JCheckBoxMenuItem menu_hide_carriers_metal;
 
 	/**
 	 * Create the frame.
@@ -273,8 +273,8 @@ public class MainWindow extends JFrame {
 		menu_carriers = new JCheckBoxMenuItem("Show charge carriers");
 		mnNewMenu_1.add(menu_carriers);
 		
-		menu_carriers_metal = new JCheckBoxMenuItem("Hide carriers in metal");
-		mnNewMenu_1.add(menu_carriers_metal);
+		menu_hide_carriers_metal = new JCheckBoxMenuItem("Hide carriers in metal");
+		mnNewMenu_1.add(menu_hide_carriers_metal);
 		
 		menu_text_bg = new JCheckBoxMenuItem("Show text background");
 		menu_text_bg.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, 0));
@@ -541,7 +541,7 @@ public class MainWindow extends JFrame {
 		menu_carriers.setSelected(false);
 		menu_probes.setSelected(true);
 		menu_time.setSelected(true);
-		menu_carriers_metal.setSelected(true);
+		menu_hide_carriers_metal.setSelected(true);
 		gui_carriers.setSelected(false);
 		gui_paused.setSelected(false);
 		gui_brush.setSelectedItem(Brush.INTERACT);

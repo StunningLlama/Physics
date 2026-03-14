@@ -148,6 +148,7 @@ public class SaveManager {
 						case "gui_interface": e.opts.menu_interface.setSelected(fstr.nextBoolean()); break;
 						case "gui_borders": e.opts.menu_borders.setSelected(fstr.nextBoolean()); break;
 						case "gui_carriers": e.opts.gui_carriers.setSelected(fstr.nextBoolean()); break;
+						case "gui_hide_carriers_metal": e.opts.menu_hide_carriers_metal.setSelected(fstr.nextBoolean()); break;
 						case "show_material": e.opts.menu_materialname.setSelected(fstr.nextBoolean()); break;
 						case "show_probes": e.opts.menu_probes.setSelected(fstr.nextBoolean()); break;
 						case "show_time": e.opts.menu_time.setSelected(fstr.nextBoolean()); break;
@@ -462,6 +463,7 @@ public class SaveManager {
 				header.addProperty("show_probes", e.opts.menu_probes.isSelected());
 				header.addProperty("show_time", e.opts.menu_time.isSelected());
 				header.addProperty("gui_carriers", e.opts.gui_carriers.isSelected());
+				header.addProperty("gui_hide_carriers_metal", e.opts.menu_hide_carriers_metal.isSelected());
 				header.addProperty("gui_simspeed", e.opts.gui_simspeed.getValue());
 				header.addProperty("gui_simspeed_2", e.opts.gui_simspeed_2.getValue());
 				header.addProperty("gui_brightness", e.opts.gui_brightness.getValue());

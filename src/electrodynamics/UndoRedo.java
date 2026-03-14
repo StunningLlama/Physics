@@ -90,7 +90,7 @@ class Snapshot {
 	boolean gui_elem_colors;
 	boolean gui_interface;
 	boolean gui_carriers;
-	boolean gui_metal;
+	boolean gui_hide_carriers_metal;
 	boolean gui_border;
 	int gui_simspeed;
 	int gui_simspeed_2;
@@ -145,7 +145,7 @@ class Snapshot {
 		gui_bc = (BoundaryCondition) e.opts.gui_bc.getSelectedItem();
 		gui_parameter1 = e.opts.gui_parameter1.getValue();
 		gui_carriers = e.opts.gui_carriers.isSelected();
-		gui_metal = e.opts.menu_carriers_metal.isSelected();
+		gui_hide_carriers_metal = e.opts.menu_hide_carriers_metal.isSelected();
 		gui_carrier_number = e.opts.gui_carrier_density.getValue();
 		gui_border = e.opts.menu_borders.isSelected();
 
@@ -189,7 +189,7 @@ class Snapshot {
 		e.opts.gui_bc.setSelectedItem(gui_bc);
 		e.opts.gui_parameter1.setValue(gui_parameter1);
 		e.opts.gui_carriers.setSelected(gui_carriers); e.opts.menu_carriers.setSelected(gui_carriers);
-		e.opts.menu_carriers_metal.setSelected(gui_metal);
+		e.opts.menu_hide_carriers_metal.setSelected(gui_hide_carriers_metal);
 		e.opts.gui_carrier_density.setValue(gui_carrier_number);
 		e.opts.menu_borders.setSelected(gui_border);
 
