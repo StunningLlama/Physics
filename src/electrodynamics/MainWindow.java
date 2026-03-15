@@ -133,6 +133,7 @@ public class MainWindow extends JFrame {
 	public JMenuItem menu_github;
 	public JMenuItem menu_report;
 	public JCheckBoxMenuItem menu_hide_carriers_metal;
+	public JCheckBoxMenuItem menu_carrier_diffusion;
 
 	/**
 	 * Create the frame.
@@ -270,16 +271,26 @@ public class MainWindow extends JFrame {
 		menu_borders.setSelected(true);
 		mnNewMenu_1.add(menu_borders);
 		
-		menu_carriers = new JCheckBoxMenuItem("Show charge carriers");
-		mnNewMenu_1.add(menu_carriers);
-		
-		menu_hide_carriers_metal = new JCheckBoxMenuItem("Hide carriers in metal");
-		mnNewMenu_1.add(menu_hide_carriers_metal);
-		
 		menu_text_bg = new JCheckBoxMenuItem("Show text background");
 		menu_text_bg.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, 0));
 		menu_text_bg.setSelected(true);
 		mnNewMenu_1.add(menu_text_bg);
+		
+		JSeparator separator_4 = new JSeparator();
+		mnNewMenu_1.add(separator_4);
+		
+		menu_carriers = new JCheckBoxMenuItem("Show charge carriers");
+		mnNewMenu_1.add(menu_carriers);
+		
+		menu_hide_carriers_metal = new JCheckBoxMenuItem("Hide carriers in metal");
+		menu_hide_carriers_metal.setSelected(true);
+		mnNewMenu_1.add(menu_hide_carriers_metal);
+		
+		menu_carrier_diffusion = new JCheckBoxMenuItem("Show carrier diffusion");
+		mnNewMenu_1.add(menu_carrier_diffusion);
+		
+		JSeparator separator_5 = new JSeparator();
+		mnNewMenu_1.add(separator_5);
 		
 		menu_debug = new JCheckBoxMenuItem("Debug mode");
 		menu_debug.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0));
@@ -542,6 +553,7 @@ public class MainWindow extends JFrame {
 		menu_probes.setSelected(true);
 		menu_time.setSelected(true);
 		menu_hide_carriers_metal.setSelected(true);
+		menu_carrier_diffusion.setSelected(false);
 		gui_carriers.setSelected(false);
 		gui_paused.setSelected(false);
 		gui_brush.setSelectedItem(Brush.INTERACT);

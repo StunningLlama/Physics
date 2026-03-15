@@ -98,7 +98,7 @@ public class Simulation extends PeriodicTask {
 	public int iteration_multiplier = 0;
 
 	public double error_detection_threshold = 1e-3;
-	public int sign_violation = 0;
+	public int sign_violation_timer = 0;
 	public boolean numerical_overflow = false;
 	
 	public boolean advsettings_tweaked = false;
@@ -223,6 +223,14 @@ public class Simulation extends PeriodicTask {
 	public double[][] Q;				// Heat dissipation rate
 	public double[][] S;				// Free energy dissipation rate
 	public double[][] F;				// Average total electrochemical potential
+
+	public double[][] drift_x_n;		// Total drift force for electrons
+	public double[][] drift_y_n;
+
+	public double[][] drift_x_p;		// Total drift force for holes
+	public double[][] drift_y_p;
+
+	//public double[][] sqrt_mobility_factor;
 
 	public boolean updateMiscFields = false;
 	public double[][] debug;
@@ -587,6 +595,11 @@ public class Simulation extends PeriodicTask {
 			Q = new double[nx][ny];
 			S = new double[nx][ny];
 			F = new double[nx][ny];
+			drift_x_n = new double[nx][ny];
+			drift_y_n = new double[nx][ny];
+			drift_x_p = new double[nx][ny];
+			drift_y_p = new double[nx][ny];
+			//sqrt_mobility_factor = new double[nx][ny];
 			debug = new double[nx][ny];
 
 			MG_rho0 = new double[nx][ny];
@@ -737,6 +750,14 @@ public class Simulation extends PeriodicTask {
 					Q[i][j] = 0.0;
 					S[i][j] = 0.0;
 					F[i][j] = 0.0;
+
+					drift_x_n[i][j] = 0;
+					drift_y_n[i][j] = 0;
+					drift_x_p[i][j] = 0;
+					drift_y_p[i][j] = 0;
+					
+					//sqrt_mobility_factor[i][j] = 0;
+					
 					debug[i][j] = 0.0;
 				}
 			}
@@ -752,7 +773,7 @@ public class Simulation extends PeriodicTask {
 			}
 
 			numerical_overflow = false;
-			sign_violation = 0;
+			sign_violation_timer = 0;
 			
 			if (resetall) {
 				probes.clear();
@@ -1062,6 +1083,7 @@ public class Simulation extends PeriodicTask {
 	
 	public void calcMiscFields(boolean updatePhi) {
 		ScalarView view_scalar = controls.scalarview.getOption();
+		boolean show_diffusion = opts.menu_carrier_diffusion.isSelected();
 
 		if (updatePhi)
 			multigridSolve(false, true);
@@ -1101,13 +1123,15 @@ public class Simulation extends PeriodicTask {
 				R[i][j] = conducting[i][j]*r[i][j]*rho_n[i][j]*rho_p[i][j]/(q_n*q_p);
 
 				if (rho_n[i][j] > error_detection_threshold || rho_p[i][j] < -error_detection_threshold)
-					sign_violation = 20;
+					sign_violation_timer = 20;
 
 				if (-rho_n[i][j] > rho_n_max_tmp)
 					rho_n_max_tmp = -rho_n[i][j];
 
 				if (rho_p[i][j] > rho_p_max_tmp)
 					rho_p_max_tmp = rho_p[i][j];
+				
+				//sqrt_mobility_factor[i][j] = Math.sqrt(mobility_factor[i][j]);
 			}
 		}
 		renderer.rho_n_max = rho_n_max_tmp;
@@ -1120,6 +1144,12 @@ public class Simulation extends PeriodicTask {
 				Jx_free[i][j] = Jx_n[i][j] + Jx_p[i][j];
 				Dx[i][j] = epsx[i][j]*Ex[i][j];
 				Sy[i][j] = -Ex[i][j]*0.5*(Hz[i][j] + Hz[i][j-1]);
+
+				if (show_diffusion) {
+					double emf_phase = ac_y[i][j]*AC_amplitude+(1-ac_y[i][j]);
+					drift_y_n[i][j] = conducting_y[i][j]*(emf_phase*emfy[i][j] + cmfy_n[i][j]/q_n + Ey[i][j]);
+					drift_y_p[i][j] = conducting_y[i][j]*(emf_phase*emfy[i][j] + cmfy_p[i][j]/q_p + Ey[i][j]);
+				}
 			}
 		}
 
@@ -1130,6 +1160,12 @@ public class Simulation extends PeriodicTask {
 				Jy_free[i][j] = Jy_n[i][j] + Jy_p[i][j];
 				Dy[i][j] = epsy[i][j]*Ey[i][j];
 				Sx[i][j] = Ey[i][j]*0.5*(Hz[i][j] + Hz[i-1][j]);
+
+				if (show_diffusion) {
+					double emf_phase = ac_x[i][j]*AC_amplitude+(1-ac_x[i][j]);
+					drift_x_n[i][j] = conducting_x[i][j]*(emf_phase*emfx[i][j] + cmfx_n[i][j]/q_n + Ex[i][j]);
+					drift_x_p[i][j] = conducting_x[i][j]*(emf_phase*emfx[i][j] + cmfx_p[i][j]/q_p + Ex[i][j]);
+				}
 			}
 		}
 
@@ -1991,9 +2027,5 @@ public class Simulation extends PeriodicTask {
 		public String toString() {
 			return name;
 		}
-	}
-
-	public enum Species {
-		ELECTRON, HOLE;
 	}
 }

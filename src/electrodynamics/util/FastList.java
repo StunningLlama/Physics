@@ -17,6 +17,12 @@ public class FastList<T> {
 		}
 	}
 	
+	public synchronized void replace(int index, T obj) {
+		if (index < list.size()) {
+			list.set(index, obj);
+		}
+	}
+	
 	public T get(int index) {
 		if (index < list.size())
 			return list.get(index);

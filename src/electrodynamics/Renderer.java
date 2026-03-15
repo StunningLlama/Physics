@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 import javax.swing.JPanel;
 
 import electrodynamics.Controls.Brush;
-import electrodynamics.Simulation.Species;
 import electrodynamics.plot.Plot;
 import electrodynamics.plot.ProbePlot;
 import electrodynamics.probe.ChargeProbe;
@@ -49,6 +48,7 @@ public class Renderer extends PeriodicTask {
 	BufferedImage img_back;
 	BufferedImage img_front;
 	public int[] imgData;
+	public int[] depth_buf;
 	public double[][] scalarfield;
 	public double[][] gradscalarfield;
 	public float[][] image_r;
@@ -78,6 +78,7 @@ public class Renderer extends PeriodicTask {
 	double rho_n_max = 0;
 	double rho_p_max = 0;
 	double C_prev = 0;
+	public int carrier_diffusion_warning_timer = 0;
 
 	int probetexttimer = 0;
 	boolean show_carriers;
@@ -100,6 +101,7 @@ public class Renderer extends PeriodicTask {
 	FastRandom frand = new FastRandom();
 	double cc_default_dot_density = 5e11;		// How many electron/hole dots to draw
 	double tau = 1e-12;		// How long a dot stays on the screen
+	double tau_events = tau*0.2;
 
 	public int new_canvas_size;
 	
@@ -142,6 +144,7 @@ public class Renderer extends PeriodicTask {
 		img_back = (BufferedImage) e.opts.createImage(imgwidth, imgheight);
 		img_front = (BufferedImage) e.opts.createImage(imgwidth, imgheight);
 		imgData = ((DataBufferInt)img_back.getRaster().getDataBuffer()).getData();
+		depth_buf = new int[imgData.length];
 	}
 	
 	public void resetChargeDots() {
@@ -247,6 +250,7 @@ public class Renderer extends PeriodicTask {
 				imgData[x + y*scansize] = rgb;
 			}
 		}
+		Arrays.fill(depth_buf, 0);
 		e.t9.stop();
 	}
 
@@ -313,6 +317,34 @@ public class Renderer extends PeriodicTask {
 					if (b > 255)
 						b = 255;
 					imgData[i+j*scansize] = 255<<24 | r << 16 | g << 8 | b;
+				}
+			}
+		}
+	}
+	
+	public void drawRectangle(int x, int y, int w, int h, float col_r, float col_g, float col_b, float alphaFG, float alphaBG, int depth) {
+
+		int scansize = scalefactor*e.nx;
+		int lines = scalefactor*e.ny;
+
+		if (x >= 0 && y >= 0 && x+w < scansize && y+h < lines) {
+
+			for (int i = x; i < x+w; i++) {
+				for (int j = y; j < y+h; j++) {
+					int rgb =  imgData[i+j*scansize];
+					int r = ((int)(((rgb>>16)&255)*alphaBG + 255*col_r*alphaFG));
+					int g = ((int)(((rgb>>8)&255)*alphaBG + 255*col_g*alphaFG));
+					int b = ((int)(((rgb)&255)*alphaBG + 255*col_b*alphaFG));
+					if (r > 255)
+						r = 255;
+					if (g > 255)
+						g = 255;
+					if (b > 255)
+						b = 255;
+					if (depth >= depth_buf[i+j*scansize]) {
+						imgData[i+j*scansize] = 255<<24 | r << 16 | g << 8 | b;
+						depth_buf[i+j*scansize] = depth;
+					}
 				}
 			}
 		}
@@ -1099,8 +1131,8 @@ public class Renderer extends PeriodicTask {
 			{
 				drawString("Paused", hoffset, voffset + line*vspacing, g); line++;
 			}
-			if (e.sign_violation > 0) {
-				e.sign_violation--;
+			if (e.sign_violation_timer > 0) {
+				e.sign_violation_timer--;
 				drawString("Warning: Numerical instability detected. Please decrease timestep.", hoffset, voffset + line*vspacing, g); line++;
 			}
 		}
@@ -1118,9 +1150,11 @@ public class Renderer extends PeriodicTask {
 			drawString(FPStimer.getName() + " " + Utils.getSI(1/FPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
 			drawString(e.simFPStimer.getName() + " " + Utils.getSI(1/e.simFPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
 		}
+		if (carrier_diffusion_warning_timer > 0) {
+			drawError("Error: Metal cannot touch simulation boundary when carrier diffusion view is enabled.", hoffset, voffset + line*vspacing, g); line ++;
+		}
 		if (e.numerical_overflow) {
-			line++;
-			drawError("Error: Numerical overflow detected. Please reset simulation.", hoffset, voffset + line*vspacing, g); line += 2;
+			drawError("Error: Numerical overflow detected. Please reset simulation.", hoffset, voffset + line*vspacing, g); line ++;
 		}
 
 		if (probetexttimer > 0) {
@@ -1379,6 +1413,10 @@ public class Renderer extends PeriodicTask {
 					if (show_carriers) {
 
 						if ((!e.opts.gui_paused.isSelected() || delta_t > 0)) {
+							if (n_thread == 0 && carrier_diffusion_warning_timer > 0) {
+								carrier_diffusion_warning_timer--;
+							}
+							
 							double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_carrier_density.getValue()/20.0);
 
 							if (n_thread == 0) {
@@ -1413,17 +1451,23 @@ public class Renderer extends PeriodicTask {
 								}
 								else {
 									double R_tmp = Utils.bilinearinterp(e.R, d.x, d.y, e.nx, e.ny)*e.e_charge;
-									if (d.species == Species.HOLE) {
+									if (d.type == DotType.HOLE) {
 										if (R_tmp > 0 && frand.next() < R_tmp/Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny)*delta_t) {
-											ccdots.remove(i);
-											i--;
+											//ccdots.remove(i);
+											//i--;
+											ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
+											continue;
+										}
+									} else if (d.type == DotType.ELECTRON) {
+										if (R_tmp > 0 && frand.next() < -R_tmp/Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny)*delta_t) {
+											//ccdots.remove(i);
+											//i--;
+											ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
 											continue;
 										}
 									} else {
-										if (R_tmp > 0 && frand.next() < -R_tmp/Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny)*delta_t) {
-											ccdots.remove(i);
-											i--;
-											continue;
+										if (Utils.bilinearinterp(e.semiconducting, d.x, d.y, e.nx, e.ny) == 0) {
+											d.time -= 5*delta_t;
 										}
 									}
 
@@ -1437,12 +1481,18 @@ public class Renderer extends PeriodicTask {
 
 							graphics_mid_barrier.await();
 							
-							rho_n_dist.generateSamples(N_n/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, Species.ELECTRON, frand.next())); });
-							rho_p_dist.generateSamples(N_p/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, Species.HOLE, frand.next())); });
-							rho_G_dist.generateSamples(N_G/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.ELECTRON, frand.next())); });
-							rho_G_dist.generateSamples(N_G/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next())); });
-							rho_n_dist.generateSamples(N_n_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.ELECTRON, frand.next())); });
-							rho_p_dist.generateSamples(N_p_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), Species.HOLE, frand.next())); });
+							rho_n_dist.generateSamples(N_n/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.ELECTRON, 0)); });
+							rho_p_dist.generateSamples(N_p/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.HOLE, 0)); });
+							rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
+								ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.ELECTRON, 0));
+								ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
+								});
+							rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
+								ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, (int)(000000*frand.next())));
+								ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
+								});
+							rho_n_dist.generateSamples(N_n_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.ELECTRON, 0)); });
+							rho_p_dist.generateSamples(N_p_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, 0)); });
 							
 							C_prev = C;
 						}
@@ -1450,6 +1500,7 @@ public class Renderer extends PeriodicTask {
 						graphics_mid_barrier.await();
 						
 						boolean fast = e.opts.menu_hide_carriers_metal.isSelected();
+						boolean show_diffusion = e.opts.menu_carrier_diffusion.isSelected();
 						
 						int lower = lower(ccdots.size());
 						int upper = upper(ccdots.size());
@@ -1457,41 +1508,88 @@ public class Renderer extends PeriodicTask {
 						int steps = fast? 5 : 10;
 						double dt_dot = delta_t/steps;
 
-						for (int i = lower; i < upper; i++) {
-							ChargeCarrierDot d = ccdots.get(i);
+						try {
+							for (int i = lower; i < upper; i++) {
+								ChargeCarrierDot d = ccdots.get(i);
 
-							if (d.time > 0) {
-								
-								boolean dorender = !fast || Utils.bilinearinterp(e.semiconducting, d.x, d.y, e.nx, e.ny) > 0;
-								
-								if (delta_t > 0) {
-									if (d.species == Species.ELECTRON) {
-										for (int k = 0; k < steps; k++) {
-											double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny));
-											d.x += s*Utils.bilinearinterp(e.Jx_n,d.x-0.5, d.y, e.nx, e.ny);
-											d.y += s*Utils.bilinearinterp(e.Jy_n,d.x, d.y-0.5, e.nx, e.ny);
+								if (d.time > 0) {
+
+									boolean dorender = !fast || Utils.bilinearinterp(e.semiconducting, d.x, d.y, e.nx, e.ny) > 0;
+
+									if (delta_t > 0) {
+										if (!show_diffusion) {
+											if (d.type == DotType.ELECTRON) {
+												for (int k = 0; k < steps; k++) {
+													double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny));
+													d.x += s*Utils.bilinearinterp(e.Jx_n, d.x-0.5, d.y, e.nx, e.ny);
+													d.y += s*Utils.bilinearinterp(e.Jy_n, d.x, d.y-0.5, e.nx, e.ny);
+												}
+											} else if (d.type == DotType.HOLE) {
+												for (int k = 0; k < steps; k++) {
+													double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny));
+													d.x += s*Utils.bilinearinterp(e.Jx_p, d.x-0.5, d.y, e.nx, e.ny);
+													d.y += s*Utils.bilinearinterp(e.Jy_p, d.x, d.y-0.5, e.nx, e.ny);
+												}
+											}
+										} else {
+											if (d.type == DotType.ELECTRON) {
+												double mf = Utils.bilinearinterp(e.mobility_factor, d.x, d.y, e.nx, e.ny);
+												double s = -e.mu_electron*mf*dt_dot/e.ds;
+												double t = Math.sqrt(24*e.D_electron*mf*dt_dot)/e.ds;
+												for (int k = 0; k < steps; k++) {
+													d.x += s*Utils.bilinearinterp(e.drift_x_n, d.x-0.5, d.y, e.nx, e.ny);
+													d.y += s*Utils.bilinearinterp(e.drift_y_n, d.x, d.y-0.5, e.nx, e.ny);
+
+													double dx_diff = t*(frand.next()-0.5);
+													double dy_diff = t*(frand.next()-0.5);
+													if (e.conducting[(int)(d.x+dx_diff+0.5)][(int)(d.y+dy_diff+0.5)] == 1) {
+														d.x += dx_diff;
+														d.y += dy_diff;
+													}
+												}
+											} else if (d.type == DotType.HOLE) {
+												double mf = Utils.bilinearinterp(e.mobility_factor, d.x, d.y, e.nx, e.ny);
+												double s = e.mu_hole*dt_dot*mf/e.ds;
+												double t = Math.sqrt(24*e.D_hole*mf*dt_dot)/e.ds;
+												for (int k = 0; k < steps; k++) {
+													d.x += s*Utils.bilinearinterp(e.drift_x_p, d.x-0.5, d.y, e.nx, e.ny);
+													d.y += s*Utils.bilinearinterp(e.drift_y_p, d.x, d.y-0.5, e.nx, e.ny);
+
+													double dx_diff = t*(frand.next()-0.5);
+													double dy_diff = t*(frand.next()-0.5);
+													if (e.conducting[(int)(d.x+dx_diff+0.5)][(int)(d.y+dy_diff+0.5)] == 1) {
+														d.x += dx_diff;
+														d.y += dy_diff;
+													}
+												}
+											}
 										}
-									} else if (d.species == Species.HOLE) {
-										for (int k = 0; k < steps; k++) {
-											double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny));
-											d.x += s*Utils.bilinearinterp(e.Jx_p,d.x-0.5, d.y, e.nx, e.ny);
-											d.y += s*Utils.bilinearinterp(e.Jy_p,d.x, d.y-0.5, e.nx, e.ny);
+
+										double p = d.time/d.lifespan;
+										d.brightness = 1.0*bump(p, 1/3.0);
+									}
+
+									double alphaFG = d.brightness;
+									if (dorender) {
+										if (d.type == DotType.ELECTRON)
+											drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
+											0.25f, 0.25f, 1f, (float)alphaFG, 1-(float)alphaFG, d.random_id);
+										else if (d.type == DotType.HOLE)
+											drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
+											1f, 0.25f, 0.25f, (float)alphaFG, 1-(float)alphaFG, d.random_id);
+										else if (d.type == DotType.GENERATION) {
+											drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
+											0f, 0f, 0f, (float)alphaFG, 1-(float)alphaFG, d.random_id);
+										} else if (d.type == DotType.RECOMBINATION) {
+											drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
+											1f, 1f, 1f, (float)alphaFG, 1-(float)alphaFG, d.random_id);
 										}
 									}
 
-									double p = d.time/d.lifespan;
-									d.brightness = 1.0*bump(p, 1/3.0);
 								}
-
-								double alphaFG = d.brightness;
-								if (dorender && d.species == Species.ELECTRON/* && -d.random_id*bilinearinterp(e.rho_n, d.x, d.y) < 1*/)
-									drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
-									0.25f, 0.25f, 1f, (float)alphaFG, 1-(float)alphaFG);
-								else if (dorender && d.species == Species.HOLE/* && d.random_id*bilinearinterp(e.rho_p, d.x, d.y) < 1*/)
-									drawRectangle((int)((d.x+0.5)*scalefactor)-1, (int)((d.y+0.5)*scalefactor)-1, 3, 3,
-									1f, 0.25f, 0.25f, (float)alphaFG, 1-(float)alphaFG);
-
 							}
+						} catch (ArrayIndexOutOfBoundsException e) {
+							carrier_diffusion_warning_timer = 20;
 						}
 					}
 					graphics_end_barrier.await();
@@ -1780,14 +1878,18 @@ public class Renderer extends PeriodicTask {
 	}
 
 	public class ChargeCarrierDot extends Dot {
-		Species species;
-		double random_id;
+		DotType type;
+		int random_id;
 		
-		public ChargeCarrierDot(double x, double y, double lifespan, double time, Species species, double random_id) {
+		public ChargeCarrierDot(double x, double y, double lifespan, double time, DotType type, int random_id) {
 			super(x, y, lifespan, time);
-			this.species = species;
+			this.type = type;
 			this.random_id = random_id;
 		}
+	}
+	
+	public enum DotType {
+		ELECTRON, HOLE, GENERATION, RECOMBINATION;
 	}
 	
 	public class RenderCanvas extends JPanel {
