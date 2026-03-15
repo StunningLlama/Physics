@@ -129,6 +129,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public int zoom_j1 = 0;
 	public int zoom_i2 = 0;
 	public int zoom_j2 = 0;
+	
+	public int zoom_i1_pan = 0;
+	public int zoom_j1_pan = 0;
+	public int zoom_i2_pan = 0;
+	public int zoom_j2_pan = 0;
 	public boolean zoomed = false;
 
 	public boolean EMF_selected = false;
@@ -642,7 +647,26 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 			break;
 		case ZOOM:
-			if (releasing) {
+			if (pressing && shift_down) {
+				zoom_i1_pan = zoom_i1;
+				zoom_j1_pan = zoom_j1;
+				zoom_i2_pan = zoom_i2;
+				zoom_j2_pan = zoom_j2;
+			} else if (mouse_pressed && shift_down) {
+				double sf_x = (zoom_i2_pan-zoom_i1_pan+1)/(double)e.canvas.zoom_bound_x;
+				double sf_y = (zoom_j2_pan-zoom_j1_pan+1)/(double)e.canvas.zoom_bound_y;
+
+				int mx_tmp = (int)Math.round(zoom_i1_pan + (mx_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
+				int my_tmp = (int)Math.round(zoom_j1_pan + (my_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
+
+				int mx_start_tmp = (int)Math.round(zoom_i1_pan + (mx_start_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
+				int my_start_tmp = (int)Math.round(zoom_j1_pan + (my_start_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
+				
+				zoom_i1 = zoom_i1_pan - (mx_tmp - mx_start_tmp);
+				zoom_j1 = zoom_j1_pan - (my_tmp - my_start_tmp);
+				zoom_i2 = zoom_i2_pan - (mx_tmp - mx_start_tmp);
+				zoom_j2 = zoom_j2_pan - (my_tmp - my_start_tmp);
+			} else if (releasing && !shift_down) {
 				if (mx == mx_start && my == my_start) {
 					zoomed = false;
 				} else {
@@ -1756,13 +1780,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public enum Brush {
 		INTERACT("Interact"),
 		LIGHT("Flashlight"),
-		ZOOM("Zoom"),
+		ZOOM("Zoom and Pan"),
 		DRAW("Draw"),
 		REPLACE("Replace"),
 		LINE("Line"),
 		FILL("Fill"),
 		ERASE("Eraser"),
-		SELECT("Select and move"),
+		SELECT("Select and Move"),
 		FLOODSELECT("Flood select"),
 		TEXT("Text"),
 		VOLTAGE("Voltage probe"),

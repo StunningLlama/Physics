@@ -447,7 +447,7 @@ public class Renderer extends PeriodicTask {
 			t5.start();
 			drawPixels();
 			drawOverlay();
-			drawText();
+			//drawText();
 			copyImage(img_back, img_front);
 			e.canvas.repaint();
 			t5.stop();
@@ -838,7 +838,7 @@ public class Renderer extends PeriodicTask {
 			drawPixelLine(e.controls.mx_start, e.controls.my_start, e.controls.mx, e.controls.my);
 		}
 
-		if (brush == Brush.ZOOM && e.controls.mouse_pressed_prev) {
+		if (brush == Brush.ZOOM && e.controls.mouse_pressed_prev && !e.controls.shift_down) {
 			int x1 = e.controls.mx_start;
 			int y1 = e.controls.my_start;
 			int x2 = e.controls.mx;
@@ -990,10 +990,10 @@ public class Renderer extends PeriodicTask {
 		}
 	}
 	
-	void drawText() {
+	void drawText(Graphics2D g) {
 		clearStrings();
 
-		Graphics2D g = (Graphics2D) img_back.getGraphics();
+		//Graphics2D g = (Graphics2D) img_back.getGraphics();
 		g.setRenderingHint(
 		RenderingHints.KEY_TEXT_ANTIALIASING,
 		RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -1002,15 +1002,15 @@ public class Renderer extends PeriodicTask {
 			int index = 0;
 			for (Probe p: e.probes) {
 				if (p instanceof Ground)
-					drawMonospacedString("Ground = " + Utils.getSI_fixedsigfigs(((Ground)p).potential - ((Ground)p).potential, "V", 1e-6), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+					drawMonospacedStringSimCoords("Ground = " + Utils.getSI_fixedsigfigs(((Ground)p).potential - ((Ground)p).potential, "V", 1e-6), p.labelcoord.x, p.labelcoord.y, g);
 				else if (p instanceof VoltageProbe)
-					drawMonospacedString("V" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((VoltageProbe)p).potential, "V", 1e-6), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+					drawMonospacedStringSimCoords("V" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((VoltageProbe)p).potential, "V", 1e-6), p.labelcoord.x, p.labelcoord.y, g);
 				else if (p instanceof CurrentProbe)
-					drawMonospacedString("I" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((CurrentProbe)p).current, "A", 1e-9), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+					drawMonospacedStringSimCoords("I" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((CurrentProbe)p).current, "A", 1e-9), p.labelcoord.x, p.labelcoord.y, g);
 				else if (p instanceof ChargeProbe)
-					drawMonospacedString("Q" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((ChargeProbe)p).charge, "C"), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+					drawMonospacedStringSimCoords("Q" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((ChargeProbe)p).charge, "C"), p.labelcoord.x, p.labelcoord.y, g);
 				else if (p instanceof FluxProbe)
-					drawMonospacedString("Φ" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((FluxProbe)p).flux, "Wb"), p.labelcoord.x*scalefactor, p.labelcoord.y*scalefactor, g);
+					drawMonospacedStringSimCoords("Φ" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((FluxProbe)p).flux, "Wb"), p.labelcoord.x, p.labelcoord.y, g);
 				index++;
 			}
 
@@ -1034,18 +1034,18 @@ public class Renderer extends PeriodicTask {
 			Material mat = e.materials[mx][my];
 
 			int vspacing = 12;
-			int voffset = 1 + (int)(e.controls.my_screen*scalefactor/scalefactor_real);
-			int hoffset = 5 + (int)(e.controls.mx_screen*scalefactor/scalefactor_real)+15;
+			int voffset = 1 + (int)(e.controls.my_screen);
+			int hoffset = 5 + (int)(e.controls.mx_screen)+15;
 			//int voffset = 1 + (int)(e.controls.my*scalefactor);
 			//int hoffset = 5 + (int)(e.controls.mx*scalefactor)+15;
 
-			if (!e.controls.zoomed) {
+			//if (!e.controls.zoomed) {
 				if (e.opts.menu_tooltip.isSelected()) {
-					if (voffset + 22*vspacing > e.ny*scalefactor) {
-						voffset = voffset - ((voffset + 22*vspacing) - e.ny*scalefactor);
+					if (voffset + 22*vspacing > e.ny*scalefactor_real) {
+						voffset = voffset - ((voffset + 22*vspacing) - (int)(e.ny*scalefactor_real));
 					}
-					if (hoffset + 120 > e.ny*scalefactor) {
-						hoffset = hoffset - ((hoffset + 120) - e.ny*scalefactor);
+					if (hoffset + 120 > e.nx*scalefactor_real) {
+						hoffset = hoffset - ((hoffset + 120) - (int)(e.nx*scalefactor_real));
 					}
 				}
 
@@ -1076,7 +1076,7 @@ public class Renderer extends PeriodicTask {
 					drawTwoColumnString("x" , 							Utils.getSI(mx*e.ds, "m"),							hoffset, voffset + line*vspacing, g); line++;
 					drawTwoColumnString("y" , 							Utils.getSI(e.ds*e.ny-(my+1)*e.ds, "m"),			hoffset, voffset + line*vspacing, g); line++;
 				}
-			}
+			//}
 			
 			drawStrings(g);
 			startNewStringLayer();
@@ -1569,6 +1569,18 @@ public class Renderer extends PeriodicTask {
 		texts.add(t);
 	}
 	
+	public void drawMonospacedStringSimCoords(String str1, int x, int y, Graphics g) {
+		
+		if (!e.controls.zoomed) {
+			drawMonospacedString(str1, (int) (x*scalefactor_real), (int) (y*scalefactor_real), g);
+		} else {
+			double sf_x = (double)e.canvas.zoom_bound_x/(e.controls.zoom_i2-e.controls.zoom_i1+1);
+			double sf_y = (double)e.canvas.zoom_bound_y/(e.controls.zoom_j2-e.controls.zoom_j1+1);
+
+			drawMonospacedString(str1, (int) ((x-e.controls.zoom_i1+0.5)*sf_x+e.canvas.offset_x), (int) ((y-e.controls.zoom_j1+0.5)*sf_y+e.canvas.offset_y), g);
+		}
+	}
+	
 	public void drawError(String str1, int x, int y, Graphics g) {
 		Text t = new Text(str1, x, y);
 		t.isError = true;
@@ -1818,6 +1830,8 @@ public class Renderer extends PeriodicTask {
 				g.drawImage(e.renderer.img_front, offset_x, offset_y, zoom_bound_x+1+offset_x, zoom_bound_y+1+offset_y, 
 					e.controls.zoom_i1*e.renderer.scalefactor, e.controls.zoom_j1*e.renderer.scalefactor, (e.controls.zoom_i2+1)*e.renderer.scalefactor, (e.controls.zoom_j2+1)*e.renderer.scalefactor, e.opts);
 			}
+			
+			e.renderer.drawText((Graphics2D)g);
 		}
 
 		public RenderCanvas(Simulation w) {
