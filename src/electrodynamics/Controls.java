@@ -253,9 +253,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						selected[i][j] = false;
 					}
 				}
+				
+				e.probes.forEach((p) -> p.selected = false);
 			}
-			
-			e.probes.forEach((p) -> p.selected = false);
 
 			if (brush != Brush.INTERACT) {
 				for (int i = 0; i < e.nx; i++)

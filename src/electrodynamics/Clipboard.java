@@ -137,6 +137,14 @@ public class Clipboard {
 		}
 		
 		probes = Utils.cloneList(e.probes, Probe::clone, (p) -> p.selected);
+		
+		if (clipboardempty && !probes.isEmpty()) {
+			i_min = e.controls.mx_start;
+			j_min = e.controls.my_start;
+			
+			clipboardempty = false;
+		}
+		
 		for (Probe p : probes)
 			p.translate(-i_min, -j_min);
 		
