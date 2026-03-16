@@ -3,6 +3,8 @@ package electrodynamics.probe;
 import electrodynamics.Simulation;
 
 public abstract class Probe implements Cloneable {
+	public static int data_size = 100;
+	
 	public LabelCoord labelcoord = new LabelCoord();
 	public ProbeData data = new ProbeData();
 	public boolean selected = false;
@@ -64,7 +66,7 @@ public abstract class Probe implements Cloneable {
 	}
 	
 	public class ProbeData implements Cloneable {
-		public int data_size = 100;
+		public int data_size = Probe.data_size;
 		public double[] data = new double[data_size];
 		public double[] time = new double[data_size];
 		

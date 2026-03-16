@@ -13,6 +13,7 @@ public class ProbePlot extends Plot {
 	String title;
 	String nameprefix;
 	double scalefactor;
+	double time_scalefactor = 1e12;
 	Predicate<Probe> probefilter;
 	
 	int window_offset = 0;
@@ -58,6 +59,7 @@ public class ProbePlot extends Plot {
 			fig.strokes.clear();
 			
 			double yrange = 0;
+			double tmax = 0;
 			for (Probe p : e.probes) {
 				if (probefilter.test(p)) {
 					XYSeries dat = fig.plot("-k", 2.0f, nameprefix + e.getProbeName(index));
@@ -67,12 +69,15 @@ public class ProbePlot extends Plot {
 					for (int i = 0; i < p.data.data_size; i++) {
 						if (!Double.isNaN(p.data.data[i])) {
 							double datapointy = scalefactor*p.data.data[i];
-							dat.add(1e12*(p.data.time[i] - p.data.time[p.data.data_size-1]), datapointy);
+							dat.add(time_scalefactor*(p.data.time[i]), datapointy);
 							if (Math.abs(datapointy) > yrange) {
 								yrange = Math.abs(datapointy);
 							}
 						}
 					}
+					
+					if (p.data.time[p.data.data_size-1] > tmax)
+						tmax = p.data.time[p.data.data_size-1];
 
 					index++;
 				}
@@ -82,7 +87,8 @@ public class ProbePlot extends Plot {
 				((XYSeries)dat).setNotify(true);
 			}
 
-			fig.chart.getXYPlot().getDomainAxis().setRange(-1e12*100*e.iteration_multiplier*e.controls.plotinterval*e.dt, 0);
+			double time_window = Probe.data_size*e.iteration_multiplier*e.controls.plotinterval*e.dt;
+			fig.chart.getXYPlot().getDomainAxis().setRange(time_scalefactor*(tmax-time_window), time_scalefactor*tmax);
 			fig.chart.getXYPlot().getRangeAxis().setRange(-1.1*yrange, 1.1*yrange);
 		}
 	}
