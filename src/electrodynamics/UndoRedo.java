@@ -131,9 +131,9 @@ class Snapshot {
 	double[][] jx_p;
 	double[][] jy_p;
 	Material[][] materials;
-	
+
 	List<Probe> probes;
-	
+
 	public void store(Simulation e) {
 		time = e.time;
 
@@ -146,11 +146,11 @@ class Snapshot {
 
 		boolean_values = new HashMap<AbstractButton, Boolean>();
 		integer_values = new HashMap<Adjustable, Integer>();
-		
+
 		for (AbstractButton item : e.opts.boolean_names.values()) {
 			boolean_values.put(item, item.isSelected());
 		}
-		
+
 		for (Adjustable item : e.opts.integer_names.values()) {
 			integer_values.put(item, item.getValue());
 		}
@@ -172,53 +172,58 @@ class Snapshot {
 		materials = copy(e.materials);
 		probes = Utils.cloneList(e.probes, Probe::clone);
 	}
-	
+
 
 	public void load(Simulation e) {
-		//int resolution_tmp = resolution;
-		//double width_tmp = width;
-		e.time = time;
-		e.opts.textPane.setText(description);
-		e.controls.scalarview.setOption(gui_view);
-		e.controls.vectorview.setOption(gui_view_vec);
-		e.controls.scalarmode.setOption(gui_scalar_mode);
-		e.controls.vectormode.setOption(gui_view_vec_mode);
-		e.opts.gui_bc.setSelectedItem(gui_bc);
 
-		for (AbstractButton item : boolean_values.keySet()) {
-			item.setSelected(boolean_values.get(item));
+		e.rwLock.writeLock().lock();
+		try {
+			e.time = time;
+			e.opts.textPane.setText(description);
+			e.controls.scalarview.setOption(gui_view);
+			e.controls.vectorview.setOption(gui_view_vec);
+			e.controls.scalarmode.setOption(gui_scalar_mode);
+			e.controls.vectormode.setOption(gui_view_vec_mode);
+			e.opts.gui_bc.setSelectedItem(gui_bc);
+
+			for (AbstractButton item : boolean_values.keySet()) {
+				item.setSelected(boolean_values.get(item));
+			}
+
+			for (Adjustable item : integer_values.keySet()) {
+				item.setValue(integer_values.get(item));
+			}
+
+			e.opts.setRedundantOptions();
+
+			e.Ex = copy(ex); 
+			e.Ey = copy(ey);
+			e.Hz = copy(hz);
+
+			e.rho_abs = copy(rho_c);
+			e.rho_n = copy(rho_n);
+			e.rho_p = copy(rho_p);
+			e.rho_back = copy(rho_back);
+			e.rho_free = copy(rho_free);
+
+			e.Jx_abs = copy(jx_c);
+			e.Jy_abs = copy(jy_c);
+			e.Jx_n = copy(jx_n);
+			e.Jy_n = copy(jy_n);
+			e.Jx_p = copy(jx_p);
+			e.Jy_p = copy(jy_p);
+
+			e.materials = copy(materials);
+			e.probes = Utils.cloneList(probes, Probe::clone);
+
+			e.opts.textPane.setEditable(false);
+			e.opts.textPane.setCaretPosition(0);
+			e.updateAllMaterials(false);
+			e.calcMiscFields(true);
 		}
-		
-		for (Adjustable item : integer_values.keySet()) {
-			item.setValue(integer_values.get(item));
+		finally {
+			e.rwLock.writeLock().unlock();
 		}
-		
-		e.opts.setRedundantOptions();
-
-		e.Ex = copy(ex); 
-		e.Ey = copy(ey);
-		e.Hz = copy(hz);
-
-		e.rho_abs = copy(rho_c);
-		e.rho_n = copy(rho_n);
-		e.rho_p = copy(rho_p);
-		e.rho_back = copy(rho_back);
-		e.rho_free = copy(rho_free);
-
-		e.Jx_abs = copy(jx_c);
-		e.Jy_abs = copy(jy_c);
-		e.Jx_n = copy(jx_n);
-		e.Jy_n = copy(jy_n);
-		e.Jx_p = copy(jx_p);
-		e.Jy_p = copy(jy_p);
-
-		e.materials = copy(materials);
-		e.probes = Utils.cloneList(probes, Probe::clone);
-
-		e.opts.textPane.setEditable(false);
-		e.opts.textPane.setCaretPosition(0);
-		e.updateAllMaterials(false);
-		e.calcMiscFields(true);
 	}
 	
 	public static double[][] copy(double[][] arr) {

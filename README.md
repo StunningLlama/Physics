@@ -89,7 +89,7 @@ The main way to interact with circuits is through voltage sources and switches. 
 
 ![Dots](images/dots.png)
 
-**Charge carriers:** Electrons and holes are represented as blue and red dots, respectively. Both dots move at the actual drift velocities of their corresponding charge carriers and their density accurately reflects the density of charge carriers.
+**Charge carriers:** Electrons and holes are represented as blue and red dots, respectively. Both dots move at the actual drift velocities of their corresponding charge carriers and their density accurately reflects the density of charge carriers. White and black dots represent carrier recombination and generation events.
 
 ![Charge carriers](images/carriers.png)
 
@@ -110,18 +110,19 @@ The main way to interact with circuits is through voltage sources and switches. 
 | --- | --- |
 | Interact | Allows user to control voltage sources and turn switches on and off by clicking. |
 | Flashlight | Shines a light on the region under the cursor, creating pairs of electrons and holes. |
-| Zoom | Click and drag to zoom into a region. Click to zoom out. |
+| Zoom and Pan | Click and drag to zoom into a region. Click to zoom out. Hold shift to pan. |
 | Draw | Adds material to the field. |
 | Replace | Similar to the draw tool, but overwrites occupied areas. |
 | Line | Draws a line of material. |
 | Fill | Fills a region with a certain material, similar to the bucket tool. |
 | Eraser | Erases material. |
-| Select and move | Makes a rectangular selection which can be dragged around and moved. |
+| Select and Move | Makes a rectangular selection which can be dragged around and moved. |
 | Flood select | Selects a contiguous region, similar to the bucket tool. |
 | Text | Place a text cursor allowing text to be typed on the screen. |
 | Voltage probe | Adds a voltage probe that measures electrochemical potential at a certain point (See "What do voltmeters actually measure"). |
 | Current probe | Click and drag to add a current probe that measures current across a wire. |
 | Charge probe | Click and drag to add a charge probe that measures electrical charge within a given region. |
+| Magnetic flux probe | Click and drag to add a probe that measures magnetic flux. |
 | Ground | Specifies the point relative to which probes measure voltage (optional). |
 | Delete probe | Click to delete a probe. |
 | Move label | Moves labels attached to probes. |

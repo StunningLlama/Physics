@@ -356,10 +356,9 @@ public class Simulation extends PeriodicTask {
 
     			if (controls.clear) {
     				SwingUtilities.invokeLater(() -> {
+        				time = 0.0;
     					resetFields(false);
-    					multigridSolve(true, false);
     				});
-    				time = 0.0;
     				controls.clear = false;
     			}
 
@@ -368,10 +367,10 @@ public class Simulation extends PeriodicTask {
         				int result = JOptionPane.showConfirmDialog(opts, "Do you wish to reset the entire simulation?", "Message", JOptionPane.YES_NO_OPTION);
         				if (result == JOptionPane.OK_OPTION)
         				{
+        					time = 0.0;
         					resetFields(true);
             				opts.setDefaults(this);
             				SaveManager.currentfile = null;
-        					time = 0.0;
         				}
     				});
     				controls.reset = false;
@@ -396,12 +395,16 @@ public class Simulation extends PeriodicTask {
     			dt = dt_maximum*(lastsimspeed/20.0);
 
     			if (controls.undo) {
-    				controls.undoredo.undo(this);
+    				SwingUtilities.invokeLater(() -> {
+    					controls.undoredo.undo(this);
+    				});
     				controls.undo = false;
     			}
-    			
+
     			if (controls.redo) {
-    				controls.undoredo.redo(this);
+    				SwingUtilities.invokeLater(() -> {
+    					controls.undoredo.redo(this);
+    				});
     				controls.redo = false;
     			}
     			
@@ -756,6 +759,8 @@ public class Simulation extends PeriodicTask {
 					drift_x_p[i][j] = 0;
 					drift_y_p[i][j] = 0;
 					
+					abs_depth[i][j] = 0;
+					
 					//sqrt_mobility_factor[i][j] = 0;
 					
 					debug[i][j] = 0.0;
@@ -797,6 +802,7 @@ public class Simulation extends PeriodicTask {
 			updateAllMaterials(true);
 			controls.undoredo.captureState(this);
 			checkCFL();
+			multigridSolve(true, false);
 		}
 		finally {
 			rwLock.writeLock().unlock();
@@ -1059,8 +1065,6 @@ public class Simulation extends PeriodicTask {
 
 						t6.stop();
 					}
-
-					stop_barrier.await();
 					
 					if (n_thread == 0) {
 						/* Enforce Gauss law constraint */
@@ -1074,6 +1078,8 @@ public class Simulation extends PeriodicTask {
 
 						controls.advanceframe = false;
 					}
+
+					stop_barrier.await();
 				}
 			} catch (InterruptedException | BrokenBarrierException e) {
 				e.printStackTrace();
@@ -1682,7 +1688,8 @@ public class Simulation extends PeriodicTask {
 						denom += rho_free[i][j]*rho_free[i][j];
 					}
 				}
-				System.out.println("Starting poisson residual: " + Math.sqrt(num/denom));
+				
+				System.out.println("Starting poisson residual: " + Math.sqrt(num/((denom == 0)? 1 : denom)));
 			}
 			if (computePhi) {
 				for (int i = 1; i < nx-1; i++) {
@@ -1770,7 +1777,7 @@ public class Simulation extends PeriodicTask {
 					}
 				}
 
-				System.out.println("Poisson residual: " + Math.sqrt(num/denom));
+				System.out.println("Poisson residual: " + Math.sqrt(num/((denom == 0)? 1 : denom)));
 			}
 
 			if (correctEfield)
