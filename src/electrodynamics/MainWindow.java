@@ -13,6 +13,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import javax.imageio.ImageIO;
+import javax.swing.AbstractButton;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.InputMap;
 import javax.swing.JButton;
@@ -41,6 +42,7 @@ import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.awt.event.InputEvent;
 
 import electrodynamics.Controls.Brush;
@@ -134,6 +136,7 @@ public class MainWindow extends JFrame {
 	public JMenuItem menu_report;
 	public JCheckBoxMenuItem menu_hide_carriers_metal;
 	public JCheckBoxMenuItem menu_carrier_diffusion;
+	public JCheckBoxMenuItem menu_gen_recomb;
 
 	/**
 	 * Create the frame.
@@ -285,6 +288,10 @@ public class MainWindow extends JFrame {
 		menu_hide_carriers_metal = new JCheckBoxMenuItem("Hide carriers in metal");
 		menu_hide_carriers_metal.setSelected(true);
 		mnNewMenu_1.add(menu_hide_carriers_metal);
+		
+		menu_gen_recomb = new JCheckBoxMenuItem("Show generation and recombination");
+		menu_gen_recomb.setSelected(true);
+		mnNewMenu_1.add(menu_gen_recomb);
 		
 		menu_carrier_diffusion = new JCheckBoxMenuItem("Show carrier diffusion");
 		mnNewMenu_1.add(menu_carrier_diffusion);
@@ -540,40 +547,78 @@ public class MainWindow extends JFrame {
 		});
 	}
 	
+
+	HashMap<String, AbstractButton> boolean_names = new HashMap<String, AbstractButton>();
+	HashMap<String, Adjustable> integer_names = new HashMap<String, Adjustable>();
+	
+	public void listSettings() {
+		boolean_names.put("gui_paused", gui_paused);
+		boolean_names.put("gui_tooltip", menu_tooltip);
+		boolean_names.put("gui_text_bg", menu_text_bg);
+		boolean_names.put("gui_elem_colors", menu_elem_colors);
+		boolean_names.put("gui_interface", menu_interface);
+		boolean_names.put("gui_borders", menu_borders);
+		boolean_names.put("show_material", menu_materialname);
+		boolean_names.put("show_probes", menu_probes);
+		boolean_names.put("show_time", menu_time);
+		boolean_names.put("gui_carriers", gui_carriers);
+		boolean_names.put("gui_hide_carriers_metal", menu_hide_carriers_metal);
+		boolean_names.put("show_carrier_diffusion", menu_carrier_diffusion);
+		boolean_names.put("show_gen_recomb", menu_gen_recomb);
+
+		integer_names.put("gui_simspeed", gui_simspeed);
+		integer_names.put("gui_simspeed_2", gui_simspeed_2);
+		integer_names.put("gui_brightness", gui_brightness);
+		integer_names.put("gui_brightness_vec", gui_brightness_vec);
+		integer_names.put("gui_carrier_density", gui_carrier_density);
+		integer_names.put("gui_parameter1", gui_parameter1);
+	}
+	
 	public void setDefaults(Simulation e) {
 		setTitle(SemiSim.name);
-		
-		menu_interface.setSelected(true);
-		menu_materialname.setSelected(true);
+
 		menu_tooltip.setSelected(false);
 		menu_text_bg.setSelected(true);
 		menu_elem_colors.setSelected(true);
+		menu_interface.setSelected(true);
 		menu_borders.setSelected(true);
-		menu_carriers.setSelected(false);
+		menu_materialname.setSelected(true);
 		menu_probes.setSelected(true);
 		menu_time.setSelected(true);
+		gui_carriers.setSelected(false);
 		menu_hide_carriers_metal.setSelected(true);
 		menu_carrier_diffusion.setSelected(false);
-		gui_carriers.setSelected(false);
+		menu_gen_recomb.setSelected(true);
+
+		gui_simspeed.setValue(20);
+		gui_simspeed_2.setValue(25);
+		gui_brightness.setValue(-15);
+		gui_brightness_vec.setValue(-8);
+		gui_carrier_density.setValue(10);
+		gui_parameter1.setValue(0);
+		
 		gui_paused.setSelected(false);
 		gui_brush.setSelectedItem(Brush.INTERACT);
 		gui_brushsize.setValue(250);
-		gui_simspeed.setValue(20);
-		gui_brightness.setValue(-15);
-		gui_brightness_vec.setValue(-8);
 		gui_brush_1.setSelectedIndex(1);
-		gui_simspeed_2.setValue(25);
 		gui_material.setSelectedIndex(0);
-		gui_carrier_density.setValue(10);
 
 		e.controls.brushes.setOption(Controls.Brush.INTERACT);
 		e.controls.scalarview.setOption(ScalarView.CHARGE);
 		e.controls.scalarmode.setOption(ScalarMode.COLORS);
 		e.controls.vectorview.setOption(VectorView.E_FIELD);
 		e.controls.vectormode.setOption(VectorMode.ARROWS);
+		
+		setRedundantOptions();
+	}
+	
+	public void setRedundantOptions() {
+		menu_carriers.setSelected(gui_carriers.isSelected());
 	}
 	
 	public void initialize(Simulation e) {
+		listSettings();
+		
 		getContentPane().add(e.canvas, BorderLayout.CENTER);
 		e.canvas.addMouseListener(e.controls);
 		e.canvas.addMouseMotionListener(e.controls);

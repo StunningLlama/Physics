@@ -4,9 +4,14 @@
 
 package electrodynamics;
 
+import java.awt.Adjustable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+
+import javax.swing.AbstractButton;
+
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
@@ -84,6 +89,9 @@ class Snapshot {
 	double width;
 	double time;
 	
+	HashMap<AbstractButton, Boolean> boolean_values;
+	HashMap<Adjustable, Integer> integer_values;
+	
 	boolean gui_paused;
 	boolean gui_tooltip;
 	boolean gui_text_bg;
@@ -91,6 +99,8 @@ class Snapshot {
 	boolean gui_interface;
 	boolean gui_carriers;
 	boolean gui_hide_carriers_metal;
+	boolean gui_carrier_diffusion;
+	boolean gui_gen_recomb;
 	boolean gui_border;
 	int gui_simspeed;
 	int gui_simspeed_2;
@@ -125,29 +135,25 @@ class Snapshot {
 	List<Probe> probes;
 	
 	public void store(Simulation e) {
-		//resolution = e.resolution;
-		//width = e.width;
 		time = e.time;
-		gui_paused = e.opts.gui_paused.isSelected();
-		gui_tooltip = e.opts.menu_tooltip.isSelected();
-		gui_text_bg = e.opts.menu_text_bg.isSelected();
-		gui_elem_colors = e.opts.menu_elem_colors.isSelected();
-		gui_interface = e.opts.menu_interface.isSelected();
-		gui_simspeed = e.opts.gui_simspeed.getValue();
-		gui_simspeed_2 = e.opts.gui_simspeed_2.getValue();
-		gui_brightness = e.opts.gui_brightness.getValue();
-		gui_brightness_vec = e.opts.gui_brightness_vec.getValue();
-		description = e.opts.textPane.getText();
+
 		gui_view = e.controls.scalarview.getOption();
 		gui_view_vec = e.controls.vectorview.getOption();
 		gui_scalar_mode = e.controls.scalarmode.getOption();
 		gui_view_vec_mode = e.controls.vectormode.getOption();
 		gui_bc = (BoundaryCondition) e.opts.gui_bc.getSelectedItem();
-		gui_parameter1 = e.opts.gui_parameter1.getValue();
-		gui_carriers = e.opts.gui_carriers.isSelected();
-		gui_hide_carriers_metal = e.opts.menu_hide_carriers_metal.isSelected();
-		gui_carrier_number = e.opts.gui_carrier_density.getValue();
-		gui_border = e.opts.menu_borders.isSelected();
+		description = e.opts.textPane.getText();
+
+		boolean_values = new HashMap<AbstractButton, Boolean>();
+		integer_values = new HashMap<Adjustable, Integer>();
+		
+		for (AbstractButton item : e.opts.boolean_names.values()) {
+			boolean_values.put(item, item.isSelected());
+		}
+		
+		for (Adjustable item : e.opts.integer_names.values()) {
+			integer_values.put(item, item.getValue());
+		}
 
 		ex = copy(e.Ex);
 		ey = copy(e.Ey);
@@ -172,29 +178,22 @@ class Snapshot {
 		//int resolution_tmp = resolution;
 		//double width_tmp = width;
 		e.time = time;
-		e.opts.gui_paused.setSelected(gui_paused);
-		e.opts.menu_tooltip.setSelected(gui_tooltip);
-		e.opts.menu_text_bg.setSelected(gui_text_bg);
-		e.opts.menu_elem_colors.setSelected(gui_elem_colors);
-		e.opts.menu_interface.setSelected(gui_interface);
-		e.opts.gui_simspeed.setValue(gui_simspeed);
-		e.opts.gui_simspeed_2.setValue(gui_simspeed_2);
-		e.opts.gui_brightness.setValue(gui_brightness);
-		e.opts.gui_brightness_vec.setValue(gui_brightness_vec);
 		e.opts.textPane.setText(description);
 		e.controls.scalarview.setOption(gui_view);
 		e.controls.vectorview.setOption(gui_view_vec);
 		e.controls.scalarmode.setOption(gui_scalar_mode);
 		e.controls.vectormode.setOption(gui_view_vec_mode);
 		e.opts.gui_bc.setSelectedItem(gui_bc);
-		e.opts.gui_parameter1.setValue(gui_parameter1);
-		e.opts.gui_carriers.setSelected(gui_carriers); e.opts.menu_carriers.setSelected(gui_carriers);
-		e.opts.menu_hide_carriers_metal.setSelected(gui_hide_carriers_metal);
-		e.opts.gui_carrier_density.setValue(gui_carrier_number);
-		e.opts.menu_borders.setSelected(gui_border);
 
-		//e.setSize(resolution_tmp, width_tmp);
-		//e.resetFields(true);
+		for (AbstractButton item : boolean_values.keySet()) {
+			item.setSelected(boolean_values.get(item));
+		}
+		
+		for (Adjustable item : integer_values.keySet()) {
+			item.setValue(integer_values.get(item));
+		}
+		
+		e.opts.setRedundantOptions();
 
 		e.Ex = copy(ex); 
 		e.Ey = copy(ey);

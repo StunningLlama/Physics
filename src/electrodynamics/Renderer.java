@@ -1439,6 +1439,8 @@ public class Renderer extends PeriodicTask {
 							double N_p_excess = Math.max(C-C_prev, 0)*rho_p_dist.getTotalAmount()*A;
 
 							double P_deficit = Math.max(-(C-C_prev)/C_prev, 0);
+
+							boolean show_gen_recomb = e.opts.menu_gen_recomb.isSelected();
 							
 							for (int i = i_low; i < i_high; i++) {
 								ChargeCarrierDot d = ccdots.get(i);
@@ -1453,16 +1455,22 @@ public class Renderer extends PeriodicTask {
 									double R_tmp = Utils.bilinearinterp(e.R, d.x, d.y, e.nx, e.ny)*e.e_charge;
 									if (d.type == DotType.HOLE) {
 										if (R_tmp > 0 && frand.next() < R_tmp/Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny)*delta_t) {
-											//ccdots.remove(i);
-											//i--;
-											ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
+											if (show_gen_recomb) {
+												ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
+											} else {
+												ccdots.remove(i);
+												i--;
+											}
 											continue;
 										}
 									} else if (d.type == DotType.ELECTRON) {
 										if (R_tmp > 0 && frand.next() < -R_tmp/Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny)*delta_t) {
-											//ccdots.remove(i);
-											//i--;
-											ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
+											if (show_gen_recomb) {
+												ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
+											} else {
+												ccdots.remove(i);
+												i--;
+											}
 											continue;
 										}
 									} else {
@@ -1480,25 +1488,25 @@ public class Renderer extends PeriodicTask {
 							}
 
 							graphics_mid_barrier.await();
-							
+
 							rho_n_dist.generateSamples(N_n/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.ELECTRON, 0)); });
 							rho_p_dist.generateSamples(N_p/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.HOLE, 0)); });
 							rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
 								ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.ELECTRON, 0));
-								ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
-								});
+								if (show_gen_recomb) ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
+							});
 							rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
 								ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, (int)(000000*frand.next())));
-								ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
-								});
+								if (show_gen_recomb) ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
+							});
 							rho_n_dist.generateSamples(N_n_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.ELECTRON, 0)); });
 							rho_p_dist.generateSamples(N_p_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, 0)); });
-							
+
 							C_prev = C;
 						}
 
 						graphics_mid_barrier.await();
-						
+
 						boolean fast = e.opts.menu_hide_carriers_metal.isSelected();
 						boolean show_diffusion = e.opts.menu_carrier_diffusion.isSelected();
 						
@@ -1535,7 +1543,7 @@ public class Renderer extends PeriodicTask {
 											if (d.type == DotType.ELECTRON) {
 												double mf = Utils.bilinearinterp(e.mobility_factor, d.x, d.y, e.nx, e.ny);
 												double s = -e.mu_electron*mf*dt_dot/e.ds;
-												double t = Math.sqrt(24*e.D_electron*mf*dt_dot)/e.ds;
+												double t = Math.sqrt(24*e.D_electron*mf*dt_dot)/e.ds; //Random walk PDF obeys diffusion equation. Variance of uniform dist is 12L^2 and variance of heat kernel is 2Dt
 												for (int k = 0; k < steps; k++) {
 													d.x += s*Utils.bilinearinterp(e.drift_x_n, d.x-0.5, d.y, e.nx, e.ny);
 													d.y += s*Utils.bilinearinterp(e.drift_y_n, d.x, d.y-0.5, e.nx, e.ny);
