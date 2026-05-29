@@ -27,11 +27,11 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 public class MatlabChart {
 
-    JFreeChart chart;
-    LegendTitle legend;
-    ArrayList<Color> colors;
-    ArrayList<Stroke> strokes;
-    XYSeriesCollection dataset;
+    public JFreeChart chart;
+    public LegendTitle legend;
+    public ArrayList<Color> colors;
+    public ArrayList<Stroke> strokes;
+    public XYSeriesCollection dataset;
 
     public MatlabChart() {
         colors = new ArrayList<>();

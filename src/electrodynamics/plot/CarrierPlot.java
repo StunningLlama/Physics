@@ -5,22 +5,28 @@
 package electrodynamics.plot;
 
 import org.jfree.chart.axis.LogarithmicAxis;
+import org.jfree.chart.axis.NumberAxis;
 import org.jfree.data.xy.XYSeries;
 
 import electrodynamics.Simulation;
+import electrodynamics.units.Quantity;
 import electrodynamics.util.Utils;
 
 public class CarrierPlot extends Plot {
 	public XYSeries rho_n_data;
 	public XYSeries rho_p_data;
+	
+	public LogarithmicAxis logaxis;
+	public NumberAxis linaxis;
 
-	public CarrierPlot() {
-		super();
-		LogarithmicAxis yaxis = new LogarithmicAxis("");
-		yaxis.setLog10TickLabelsFlag(true);
-        fig.chart.getXYPlot().setRangeAxis(yaxis);
+	@Override
+	public void initialize() {
+		super.initialize();
+		logaxis = new LogarithmicAxis("");
+		logaxis.setLog10TickLabelsFlag(true);
+		linaxis = new NumberAxis("");
+        fig.chart.getXYPlot().setRangeAxis(logaxis);
         fig.xlabel("Position");
-        fig.ylabel("Density (1/m^3)");
         frame.setTitle("Carrier density plot");
 	}
 	
@@ -33,6 +39,17 @@ public class CarrierPlot extends Plot {
 	@Override
 	public void updatePlot(Simulation e) {
 		if (frame.isVisible() && e.frame%10 == 0) {
+			if (e.prefs.chkbox_logscale.isSelected() && fig.chart.getXYPlot().getRangeAxis() != logaxis) {
+		        fig.chart.getXYPlot().setRangeAxis(logaxis);
+			} else if (!e.prefs.chkbox_logscale.isSelected() && fig.chart.getXYPlot().getRangeAxis() != linaxis) {
+		        fig.chart.getXYPlot().setRangeAxis(linaxis);
+			}
+			
+	        double unitquantity = e.units.sys.toSI(1, Quantity.NUMBER_DENSITY);
+	        String unitname = e.units.sys.toString(1, Quantity.NUMBER_DENSITY, "%.0f");
+	        if (unitname.startsWith("1 ")) unitname = "1".concat(unitname.substring(2));
+	        fig.ylabel("Density (" + unitname + ")");
+	        
 			rho_n_data.setNotify(false);
 			rho_p_data.setNotify(false);
 			
@@ -44,11 +61,13 @@ public class CarrierPlot extends Plot {
 				double x = t*(x2 - x1) + x1;
 				double y = t*(y2 - y1) + y1;
 
-				double rho_n = Utils.bilinearinterp_geometric(e.rho_n, x, y, e.nx, e.ny)/e.e_charge;
+				double rho_n = Utils.bilinearinterp_geometric_extrap(e.rho_n, x, y, e.nx, e.ny)/e.e_charge/unitquantity;
 				if (rho_n > 0) rho_n_data.add(t, rho_n);
+				else rho_n_data.add(t, Double.NaN);
 
-				double rho_p = Utils.bilinearinterp_geometric(e.rho_p, x, y, e.nx, e.ny)/e.e_charge;
+				double rho_p = Utils.bilinearinterp_geometric_extrap(e.rho_p, x, y, e.nx, e.ny)/e.e_charge/unitquantity;
 				if (rho_p > 0) rho_p_data.add(t, rho_p);
+				else rho_p_data.add(t, Double.NaN);
 			}
 
 			rho_n_data.setNotify(true);

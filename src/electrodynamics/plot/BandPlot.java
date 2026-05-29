@@ -15,8 +15,9 @@ public class BandPlot extends Plot {
 	public XYSeries F_n_data;
 	public XYSeries F_p_data;
 
-	public BandPlot() {
-		super();
+	@Override
+	public void initialize() {
+		super.initialize();
         fig.xlabel("Position");
         fig.ylabel("Energy (eV)");
         frame.setTitle("Band diagram");
@@ -28,6 +29,7 @@ public class BandPlot extends Plot {
         E_p_data = fig.plot("-r", 2.0f, "E_v");
         F_n_data = fig.plot(".b", 2.0f, "E_Fc");
         F_p_data = fig.plot(".r", 2.0f, "E_Fv");
+        //F_data = fig.plot(".k", 2.0f, "E_F (avg)");
 	}
 	
 	@Override
@@ -37,11 +39,13 @@ public class BandPlot extends Plot {
 			E_p_data.setNotify(false);
 			F_n_data.setNotify(false);
 			F_p_data.setNotify(false);
+			//F_data.setNotify(false);
 			
 			E_n_data.clear();
 			E_p_data.clear();
 			F_n_data.clear();
 			F_p_data.clear();
+			//F_data.clear();
 
 			for (int n = 0; n <= 100; n++) {
 				double t = n/100.0;
@@ -49,16 +53,18 @@ public class BandPlot extends Plot {
 				double y = t*(y2 - y1) + y1;
 
 				// Add chemical energy and electrostatic energy to get band energy
-				E_n_data.add(t, -(Utils.bilinearinterp(e.E0_n, x, y, e.nx, e.ny)/e.q_n+Utils.bilinearinterp(e.phi, x, y, e.nx, e.ny)));
-				E_p_data.add(t, -(Utils.bilinearinterp(e.E0_p, x, y, e.nx, e.ny)/e.q_p+Utils.bilinearinterp(e.phi, x, y, e.nx, e.ny)));
-				F_n_data.add(t, -(Utils.bilinearinterp(e.F_n, x, y, e.nx, e.ny)/e.q_n+Utils.bilinearinterp(e.phi, x, y, e.nx, e.ny)));
-				F_p_data.add(t, -(Utils.bilinearinterp(e.F_p, x, y, e.nx, e.ny)/e.q_p+Utils.bilinearinterp(e.phi, x, y, e.nx, e.ny)));
+				E_n_data.add(t, -(Utils.bilinearinterp_extrap(e.E0_n, x, y, e.nx, e.ny)/e.q_n+Utils.bilinearinterp_extrap(e.phi, e.E0_n, x, y, e.nx, e.ny)));
+				E_p_data.add(t, -(Utils.bilinearinterp_extrap(e.E0_p, x, y, e.nx, e.ny)/e.q_p+Utils.bilinearinterp_extrap(e.phi, e.E0_p, x, y, e.nx, e.ny)));
+				F_n_data.add(t, -(Utils.bilinearinterp_extrap(e.F_n, x, y, e.nx, e.ny)/e.q_n+Utils.bilinearinterp_extrap(e.phi, e.F_n, x, y, e.nx, e.ny)));
+				F_p_data.add(t, -(Utils.bilinearinterp_extrap(e.F_p, x, y, e.nx, e.ny)/e.q_p+Utils.bilinearinterp_extrap(e.phi, e.F_p, x, y, e.nx, e.ny)));
+				//F_data.add(t, -(Utils.bilinearinterp_extrap(e.F, x, y, e.nx, e.ny)+e.W_semi/e.eVtoJ));
 			}
 
 			E_n_data.setNotify(true);
 			E_p_data.setNotify(true);
 			F_n_data.setNotify(true);
 			F_p_data.setNotify(true);
+			//F_data.setNotify(true);
 		}
 	}
 }

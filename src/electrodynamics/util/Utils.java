@@ -4,57 +4,14 @@
 
 package electrodynamics.util;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
+
 public class Utils {
 	public static double length(double x, double y) {
 		return Math.sqrt(x*x+y*y);
-	}
-
-	public static String getSI(double quantity, String unit, double lowerbound) {
-		return getSI(Math.abs(quantity) < lowerbound? 0 : quantity, unit);
-	}
-	
-	public static String getSI(double quantity, String unit) {
-		if (!Double.isFinite(quantity))
-			return Double.toString(quantity) + " " + unit;
-
-		double mag = Math.abs(quantity);
-		String precision = "%.2f";
-		if (mag < 1E-27)
-			return "0 " + unit;
-		else if (mag < 1E-21)
-			return String.format(precision, quantity*1e24) + " y" + unit;
-		else if (mag < 1E-18)
-			return String.format(precision, quantity*1e21) + " z" + unit;
-		else if (mag < 1E-15)
-			return String.format(precision, quantity*1e18) + " a" + unit;
-		else if (mag < 1E-12)
-			return String.format(precision, quantity*1e15) + " f" + unit;
-		else if (mag < 1E-9)
-			return String.format(precision, quantity*1e12) + " p" + unit;
-		else if (mag < 1E-6)
-			return String.format(precision, quantity*1e9) + " n" + unit;
-		else if (mag < 1E-3)
-			return String.format(precision, quantity*1e6) + " \u00b5" + unit;
-		else if (mag < 1)
-			return String.format(precision, quantity*1e3) + " m" + unit;
-		else if (mag < 1E3)
-			return String.format(precision, quantity) + " " + unit;
-		else if (mag < 1E6)
-			return String.format(precision, quantity*1e-3) + " k" + unit;
-		else if (mag < 1E9)
-			return String.format(precision, quantity*1e-6) + " M" + unit;
-		else if (mag < 1E12)
-			return String.format(precision, quantity*1e-9) + " G" + unit;
-		else if (mag < 1E15)
-			return String.format(precision, quantity*1e-12) + " P" + unit;
-		else if (mag < 1E18)
-			return String.format(precision, quantity*1e-15) + " E" + unit;
-		else if (mag < 1E21)
-			return String.format(precision, quantity*1e-18) + " Z" + unit;
-		else if (mag < 1E27)
-			return String.format(precision, quantity*1e-21) + " Y" + unit;
-		else
-			return "infinity " + unit;
 	}
 	
 	public static double clamp(double val, double min, double max) {
@@ -111,12 +68,12 @@ public class Utils {
 		return va*(1.0-fy) + vb*fy;
 	}
 	
-	public static double bilinearinterp_geometric(double[][] array, double x, double y, int nx, int ny) {
+	public static double bilinearinterp(int[][] array, double x, double y, int nx, int ny) {
 		int xfloor = (int)Math.floor(x);
 		int yfloor = (int)Math.floor(y);
 		double fx = x - xfloor;
 		double fy = y - yfloor;
-		if (Math.abs(x-Math.round(x)) < 1e-6 && Math.abs(y-Math.round(y)) < 1e-6) {
+		if (Math.abs(x-Math.round(x)) < 1e-6 || Math.abs(y-Math.round(y)) < 1e-6) {
 			int i = (int)Math.round(x);
 			int j = (int)Math.round(y);
 			if (i < 0) i = 0;
@@ -140,9 +97,137 @@ public class Utils {
 			yfloor = ny - 2;
 			fy = 1.0;
 		}
-		double va = Math.log(Math.abs(array[xfloor][yfloor]))*(1.0-fx) + Math.log(Math.abs(array[xfloor+1][yfloor]))*fx;
-		double vb = Math.log(Math.abs(array[xfloor][yfloor+1]))*(1.0-fx) + Math.log(Math.abs(array[xfloor+1][yfloor+1]))*fx;
+		double va = array[xfloor][yfloor]*(1.0-fx) + array[xfloor+1][yfloor]*fx;
+		double vb = array[xfloor][yfloor+1]*(1.0-fx) + array[xfloor+1][yfloor+1]*fx;
 
-		return Math.exp(va*(1.0-fy) + vb*fy);
+		return va*(1.0-fy) + vb*fy;
+	}
+	
+	public static double bilinearinterp_extrap(double[][] array, double x, double y, int nx, int ny) {
+		int xfloor = (int)Math.floor(x);
+		int yfloor = (int)Math.floor(y);
+		double fx = x - xfloor;
+		double fy = y - yfloor;
+
+		if (xfloor < 0) {
+			xfloor = 0;
+			fx = 0.0;
+		} else if (xfloor >= nx - 1) {
+			xfloor = nx - 2;
+			fx = 1.0;
+		}
+		if (yfloor < 0) {
+			yfloor = 0;
+			fy = 0.0;
+		} else if (yfloor >= ny - 1) {
+			yfloor = ny - 2;
+			fy = 1.0;
+		}
+		double a = array[xfloor][yfloor];
+		double b = array[xfloor+1][yfloor];
+		double c = array[xfloor][yfloor+1];
+		double d = array[xfloor+1][yfloor+1];
+
+		return a*(1-fx)*(1-fy)+b*fx*(1-fy)+c*(1-fx)*fy+d*fx*fy;
+		
+		/*double denom = (Double.isFinite(a)? (1-fx)*(1-fy) : 0) + (Double.isFinite(b)? fx*(1-fy) : 0)
+			+ (Double.isFinite(c)? (1-fx)*fy : 0) + (Double.isFinite(d)? fx*fy : 0);
+		
+		double f = (Double.isFinite(a)? a*(1-fx)*(1-fy) : 0) + (Double.isFinite(b)? b*fx*(1-fy) : 0)
+			+ (Double.isFinite(c)? c*(1-fx)*fy : 0) + (Double.isFinite(d)? d*fx*fy : 0);
+		
+		return f/denom;*/
+	}
+	
+	public static double bilinearinterp_extrap(double[][] array, double[][] ref, double x, double y, int nx, int ny) {
+		int xfloor = (int)Math.floor(x);
+		int yfloor = (int)Math.floor(y);
+		double fx = x - xfloor;
+		double fy = y - yfloor;
+
+		if (xfloor < 0) {
+			xfloor = 0;
+			fx = 0.0;
+		} else if (xfloor >= nx - 1) {
+			xfloor = nx - 2;
+			fx = 1.0;
+		}
+		if (yfloor < 0) {
+			yfloor = 0;
+			fy = 0.0;
+		} else if (yfloor >= ny - 1) {
+			yfloor = ny - 2;
+			fy = 1.0;
+		}
+		double a = array[xfloor][yfloor] + 0*ref[xfloor][yfloor];
+		double b = array[xfloor+1][yfloor] + 0*ref[xfloor+1][yfloor];
+		double c = array[xfloor][yfloor+1] + 0*ref[xfloor][yfloor+1];
+		double d = array[xfloor+1][yfloor+1] + 0*ref[xfloor+1][yfloor+1];
+
+		return a*(1-fx)*(1-fy)+b*fx*(1-fy)+c*(1-fx)*fy+d*fx*fy;
+		
+		/*double denom = (Double.isFinite(a)? (1-fx)*(1-fy) : 0) + (Double.isFinite(b)? fx*(1-fy) : 0)
+			+ (Double.isFinite(c)? (1-fx)*fy : 0) + (Double.isFinite(d)? fx*fy : 0);
+		
+		double f = (Double.isFinite(a)? a*(1-fx)*(1-fy) : 0) + (Double.isFinite(b)? b*fx*(1-fy) : 0)
+			+ (Double.isFinite(c)? c*(1-fx)*fy : 0) + (Double.isFinite(d)? d*fx*fy : 0);
+		
+		return f/denom;*/
+	}
+	
+	public static double bilinearinterp_geometric_extrap(double[][] array, double x, double y, int nx, int ny) {
+		int xfloor = (int)Math.floor(x);
+		int yfloor = (int)Math.floor(y);
+		double fx = x - xfloor;
+		double fy = y - yfloor;
+
+		if (xfloor < 0) {
+			xfloor = 0;
+			fx = 0.0;
+		} else if (xfloor >= nx - 1) {
+			xfloor = nx - 2;
+			fx = 1.0;
+		}
+		if (yfloor < 0) {
+			yfloor = 0;
+			fy = 0.0;
+		} else if (yfloor >= ny - 1) {
+			yfloor = ny - 2;
+			fy = 1.0;
+		}
+		
+		double a = Math.log(Math.abs(array[xfloor][yfloor]));
+		double b = Math.log(Math.abs(array[xfloor+1][yfloor]));
+		double c = Math.log(Math.abs(array[xfloor][yfloor+1]));
+		double d = Math.log(Math.abs(array[xfloor+1][yfloor+1]));
+		
+		double denom = (Double.isFinite(a)? (1-fx)*(1-fy) : 0) + (Double.isFinite(b)? fx*(1-fy) : 0)
+			+ (Double.isFinite(c)? (1-fx)*fy : 0) + (Double.isFinite(d)? fx*fy : 0);
+		
+		double f = (Double.isFinite(a)? a*(1-fx)*(1-fy) : 0) + (Double.isFinite(b)? b*fx*(1-fy) : 0)
+			+ (Double.isFinite(c)? c*(1-fx)*fy : 0) + (Double.isFinite(d)? d*fx*fy : 0);
+		
+		return Math.exp(f/denom);
+	}
+	
+	public static double bilinearinterp_length(double[][] Fx, double[][] Fy, double x, double y, int nx, int ny) {
+		return length(bilinearinterp(Fx, x-0.5, y, nx, ny), bilinearinterp(Fy, x, y-0.5, nx, ny));
+	}
+	
+	public static <T> List<T> cloneList(List<T> list, UnaryOperator<T> cloner) {
+	    List<T> newList = new ArrayList<T>(list.size());
+	    for (T element : list) {
+	        newList.add(cloner.apply(element));
+	    }
+	    return newList;
+	}
+	
+	public static <T> List<T> cloneList(List<T> list, UnaryOperator<T> cloner, Predicate<T> criteria) {
+	    List<T> newList = new ArrayList<T>(list.size());
+	    for (T element : list) {
+	    	if (criteria.test(element))
+	    		newList.add(cloner.apply(element));
+	    }
+	    return newList;
 	}
 }

@@ -1,3 +1,7 @@
+// Copyright (c) Brandon Li 2025-2026
+// This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
+// See LICENSE.txt for full license details.
+
 package electrodynamics;
 
 import java.io.FileNotFoundException;
@@ -20,6 +24,11 @@ public class SemiSim {
 	
 	public static SemiSim instance;
 	public static int n_threads = Runtime.getRuntime().availableProcessors();
+	public static String name = "Brandon's semiconductor simulator";
+	public static String about = "<html><body><p style='width: 250px;'>Brandon's Semiconductor Simulator / SemiSim.<br>"
+									+ "Version 1.15<br>"
+									+ "(c) 2026 Brandon Li<br><br>"
+									+ "Thanks to Paul Falstad, Ariel Baksh, and retconaway for providing help, feedback, and suggestions.</p></body></html>";
 
 	ArrayList<SimulationThread> sim_threads = new ArrayList<>();
 	ArrayList<Renderer.GraphicsThread> graphics_threads = new ArrayList<>();

@@ -1,15 +1,19 @@
-// Copyright (c) Brandon Li 2025
+// Copyright (c) Brandon Li 2025-2026
 // This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
 // See LICENSE.txt for full license details.
 
 package electrodynamics;
 
+import java.awt.BorderLayout;
 import java.awt.Cursor;
+import java.awt.FlowLayout;
 import java.awt.MouseInfo;
 import java.awt.PointerInfo;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -17,27 +21,51 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.Queue;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.InputMap;
+import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
+import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
+import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
+import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.plot.Plot;
+import electrodynamics.plot.ProbePlot;
+import electrodynamics.probe.ChargeProbe;
+import electrodynamics.probe.CurrentProbe;
+import electrodynamics.probe.FluxProbe;
+import electrodynamics.probe.Ground;
+import electrodynamics.probe.Probe;
+import electrodynamics.probe.VoltageProbe;
+import electrodynamics.units.Quantity;
+import electrodynamics.units.Units;
+import electrodynamics.util.CustJRadioButtonMenuItem;
 import electrodynamics.util.Font7x5;
+import electrodynamics.util.MenuCheckList;
 import electrodynamics.util.Utils;
 import electrodynamics.util.Vector;
 
-public class Controls implements ActionListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
+public class Controls implements ActionListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener, ItemListener, WindowListener {
 	Simulation e;
 	
 	/* Keyboard controls */
@@ -46,16 +74,26 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public boolean clear = false;
 	public boolean reset = false;
 	public boolean save = false;
+	public boolean saveas = false;
 	public boolean load = false;
 	public boolean debugging = false;
 	public boolean cut = false;
 	public boolean copy = false;
 	public boolean paste = false;
+	public boolean undo = false;
+	public boolean redo = false;
+	public boolean selectall = false;
+	public boolean deselectall = false;
 	public boolean delete = false;
     public boolean shift_down = false;
     public boolean ctrl_down = false;
     public boolean alt_down = false;
     public boolean logdata = false;
+    public boolean rotate_selection = false;
+    public boolean flip_h_selection = false;
+    public boolean flip_v_selection = false;
+    public boolean exit = false;
+    public boolean updateimagesize = false;
 
 
 	/* Mouse controls */
@@ -63,63 +101,89 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	PointerInfo pointerinfo = MouseInfo.getPointerInfo();
 	public boolean mouse_pressed = false;
 	public boolean mouse_pressed_prev = false;
-	public boolean modifier_pressed = false;
+	public boolean pressing = false;
+	public boolean releasing = false;
 	public boolean moving_selection = false;
 	public boolean dragging_selection = false;
 	public boolean brush_changed = false;
+	public boolean changesmade = false;
 
 	public int mousebutton = 0;
+	public int mx_screen = 0;
+	public int my_screen = 0;
+	public int mx_start_screen = 0;
+	public int my_start_screen = 0;
+
 	public int mx = 0;
 	public int my = 0;
 	public int mx_start = 0;
 	public int my_start = 0;
+	public int mxp = 0;
+	public int myp = 0;
 
-	public int mx_index = 0;
-	public int my_index = 0;
-	public int mx_start_index = 0;
-	public int my_start_index = 0;
-
-	public double mx_realspace = 0;
-	public double my_realspace = 0;
-	public double mxp_realspace = 0;
-	public double myp_realspace = 0;
-	public double mx_start_realspace = 0;
-	public double my_start_realspace = 0;
-
-	public int delta_mx_index = 0;
-	public int delta_my_index = 0;
+	public int delta_mx = 0;
+	public int delta_my = 0;
+	
+	public int zoom_i1 = 0;
+	public int zoom_j1 = 0;
+	public int zoom_i2 = 0;
+	public int zoom_j2 = 0;
+	
+	public int zoom_i1_pan = 0;
+	public int zoom_j1_pan = 0;
+	public int zoom_i2_pan = 0;
+	public int zoom_j2_pan = 0;
+	public boolean zoomed = false;
 
 	public boolean EMF_selected = false;
 	public double max_EMF = 5e5;
+	public double max_current = 5e7;
 
 	Brush prev_brush;
 	public double brushsize = 0;
 	public int prev_EMF_setting = 0;
-	BoundaryCondition prev_boundary = null;
+	BoundaryCondition prev_boundary = BoundaryCondition.DISSIPATIVE;
 
 	public boolean[][] under_brush;
 	public boolean[][] selected;
 	public boolean[][] selected_EMF;
+	
+	public boolean iscurrentselected = false;
 
-	public ClipboardMaterial[][] selection;
-	public ClipboardMaterial[][] clipboard;
+	public Clipboard selection;
+	public Clipboard clipboard;
+	public boolean selectionempty = true;
+	public boolean clipboardempty = true;
 
 	public int text_x = 0;
 	public int text_y = 0;
 	public boolean texting = false;
 
 	public double flashlight_strength = 1e31;
+	
+	public int plotinterval = 10;
 
 	Cursor HAND_CURSOR = new Cursor(Cursor.HAND_CURSOR);
 	Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
+	
+	public MenuCheckList<Brush, JRadioButtonMenuItem> brushes = new MenuCheckList<Brush, JRadioButtonMenuItem>();
+	public MenuCheckList<ScalarView, CustJRadioButtonMenuItem> scalarview = new MenuCheckList<ScalarView, CustJRadioButtonMenuItem>();
+	public MenuCheckList<VectorView, CustJRadioButtonMenuItem> vectorview = new MenuCheckList<VectorView, CustJRadioButtonMenuItem>();
+	public MenuCheckList<ScalarMode, CustJRadioButtonMenuItem> scalarmode = new MenuCheckList<ScalarMode, CustJRadioButtonMenuItem>();
+	public MenuCheckList<VectorMode, CustJRadioButtonMenuItem> vectormode = new MenuCheckList<VectorMode, CustJRadioButtonMenuItem>();
+	//public JCheckBoxMenuItem carriers = new JCheckBoxMenuItem("Show charge carriers");
+	
+	public UndoRedo undoredo = new UndoRedo(4);
+	
+	public Probe.LabelCoord labelcoord = null;
 	
 	public Controls(Simulation e) {
 		this.e = e;
 	}
 	
 	void setResolution(int resolution) {
-		selection = new ClipboardMaterial[e.nx][e.ny];
-		clipboard = new ClipboardMaterial[e.nx][e.ny];
+		selection = new Clipboard(e);
+		clipboard = new Clipboard(e);
 
 		under_brush = new boolean[e.nx][e.ny];
 		selected = new boolean[e.nx][e.ny];
@@ -127,22 +191,23 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		
 		text_x = 0;
 		text_y = 0;
-		texting = false;
+		endTextInput();
+	}
+
+	public void handleMouseInput() {
+		transformMouseCoords();
+		processKeyboardCommands();
+		makeUIchanges();
+		applyTool();
 	}
 	
-	public void handleMouseInput() {
-		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
-		BrushShape brushshape = (BrushShape) e.opts.gui_brush_1.getSelectedItem();
-
-		boolean pressing = false;
-		boolean releasing = false;
+	public void transformMouseCoords() {
+		pressing = false;
+		releasing = false;
 
 		if (mouse_pressed) {
 			if (!mouse_pressed_prev) {
 				pressing = true;
-				e.canvas.requestFocus();
-				if (Brush.isMaterialModifyingBrush(brush) || brush == Brush.SELECT)
-					e.opts.gui_paused.setSelected(true);
 			}
 		} else {
 			if (mouse_pressed_prev) {
@@ -151,61 +216,184 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		}
 		mouse_pressed_prev = mouse_pressed;
 
+		if (!zoomed) {
+			mx = (int)Math.round((mx_screen-0.5)/e.renderer.scalefactor_real - 0.5);
+			my = (int)Math.round((my_screen-1.5)/e.renderer.scalefactor_real - 0.5);
 
-		if (!mouse_pressed && !releasing) {
+			mx_start = (int)Math.round((mx_start_screen-0.5)/e.renderer.scalefactor_real - 0.5);
+			my_start = (int)Math.round((my_start_screen-1.5)/e.renderer.scalefactor_real - 0.5);
+		} else {
+			double sf_x = (zoom_i2-zoom_i1+1)/(double)e.canvas.zoom_bound_x;
+			double sf_y = (zoom_j2-zoom_j1+1)/(double)e.canvas.zoom_bound_y;
 
-			if (ctrl_down || shift_down) {
-				if (!modifier_pressed && Brush.isMaterialModifyingBrush(brush)) {
-					modifier_pressed = true;
-					prev_brush = brush;
+			mx = (int)Math.round(zoom_i1 + (mx_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
+			my = (int)Math.round(zoom_j1 + (my_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
 
-					if (ctrl_down) {
-						e.opts.gui_brush.setSelectedItem(Brush.FILL);
-						brush = (Brush) e.opts.gui_brush.getSelectedItem();
+			mx_start = (int)Math.round(zoom_i1 + (mx_start_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
+			my_start = (int)Math.round(zoom_j1 + (my_start_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
+		}
+
+		if (mx < 0) mx = 0;
+		if (my < 0) my = 0;
+		if (mx >= e.nx) mx = e.nx-1;
+		if (my >= e.ny) my = e.ny-1;
+
+		if (mx_start < 0) mx_start = 0;
+		if (my_start < 0) my_start = 0;
+		if (mx_start >= e.nx) mx_start = e.nx-1;
+		if (my_start >= e.ny) my_start = e.ny-1;
+	}
+
+	
+	public void processKeyboardCommands() {
+		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
+		
+		if (brush_changed) {
+			if (!(brush == Brush.SELECT || brush == Brush.FLOODSELECT)) {
+				for (int i = 0; i < e.nx; i++)
+				{
+					for (int j = 0; j < e.ny; j++)
+					{
+						selected[i][j] = false;
 					}
-					else if (shift_down) {
-						e.opts.gui_brush.setSelectedItem(Brush.LINE);
-						brush = (Brush) e.opts.gui_brush.getSelectedItem();
-					}
-					//r.requestFocus();
 				}
-			} else {
-				if (modifier_pressed) {
-					modifier_pressed = false;
-					e.opts.gui_brush.setSelectedItem(Brush.DRAW);
-					brush = (Brush) e.opts.gui_brush.getSelectedItem();
-					//r.requestFocus();
+				
+				e.probes.forEach((p) -> p.selected = false);
+			}
+
+			if (brush != Brush.INTERACT) {
+				for (int i = 0; i < e.nx; i++)
+				{
+					for (int j = 0; j < e.ny; j++)
+					{
+						selected_EMF[i][j] = false;
+					}
+				}
+				EMF_selected = false;
+			}
+
+			brush_changed = false;
+		}
+
+		if (cut || copy) {
+			clipboardempty = clipboard.copy(cut);
+
+			if (cut) flagChanges(true);
+
+			cut = false;
+			copy = false;
+		}
+
+		if (paste) {
+			clipboard.transfer(selection);
+			
+			moving_selection = true;
+			dragging_selection = false;
+			paste = false;
+			flagChanges(true);
+		}
+
+		if (delete) {
+			for (int i = 0; i < e.nx; i++)
+			{
+				for (int j = 0; j < e.ny; j++)
+				{
+					if (selected[i][j] && e.materials[i][j].type != MaterialType.VACUUM) {
+						e.eraseMaterial(i, j);
+					}
+				}
+			}
+			e.probes.removeIf((p) -> p.selected);
+			
+			delete = false;
+			flagChanges(true);
+		}
+		
+		if (rotate_selection || flip_h_selection || flip_v_selection) {
+
+			if (rotate_selection) {
+				selection.rotate90();
+				rotate_selection = false;
+			}
+			
+			if (flip_h_selection) {
+				selection.flip_h();
+				flip_h_selection = false;
+			}
+			
+			if (flip_v_selection) {
+				selection.flip_v();
+				flip_v_selection = false;
+			}
+		}
+		
+		if (selectall) {
+			for (int i = 0; i < e.nx; i++)
+			{
+				for (int j = 0; j < e.ny; j++)
+				{
+					if (!(e.materials[i][j].auto_placed && e.materials[i][j].type == MaterialType.ABSORBER)) {
+						selected[i][j] = true;
+					}
+				}
+			}
+			e.probes.forEach((p) -> p.selected = true);
+			e.opts.gui_brush.setSelectedItem(Brush.SELECT);
+			selectall = false;
+		}
+		
+		if (deselectall) {
+			for (int i = 0; i < e.nx; i++)
+			{
+				for (int j = 0; j < e.ny; j++)
+				{
+					selected[i][j] = false;
+				}
+			}
+			e.probes.forEach((p) -> p.selected = false);
+			deselectall = false;
+		}
+		
+		selectionempty = true;
+
+		for (int i = 0; i < e.nx; i++)
+		{
+			for (int j = 0; j < e.ny; j++)
+			{
+				if (selected[i][j]) {
+					selectionempty = false;
 				}
 			}
 		}
-
-		mx_realspace = Math.round((mx-1)/(double)e.renderer.scalefactor - 0.5)*e.ds;
-		my_realspace = Math.round((my-1)/(double)e.renderer.scalefactor - 0.5)*e.ds;
-
-		mx_start_realspace =  Math.round((mx_start-1)/(double)e.renderer.scalefactor - 0.5)*e.ds;
-		my_start_realspace = Math.round((my_start-1)/(double)e.renderer.scalefactor - 0.5)*e.ds;
-
-		mx_index = (int)Math.round((mx-1)/(double)e.renderer.scalefactor - 0.5);
-		my_index = (int)Math.round((my-1)/(double)e.renderer.scalefactor - 0.5);
-
-		mx_start_index = (int)Math.round((mx_start-1)/(double)e.renderer.scalefactor - 0.5);
-		my_start_index = (int)Math.round((my_start-1)/(double)e.renderer.scalefactor - 0.5);
-
-		if (mx_index < 0) mx_index = 0;
-		if (my_index < 0) my_index = 0;
-		if (mx_index >= e.nx) mx_index = e.nx-1;
-		if (my_index >= e.ny) my_index = e.ny-1;
-
-		if (mx_start_index < 0) mx_start_index = 0;
-		if (my_start_index < 0) my_start_index = 0;
-		if (mx_start_index >= e.nx) mx_start_index = e.nx-1;
-		if (my_start_index >= e.ny) my_start_index = e.ny-1;
-
-		e.opts.gui_stepsizelbl.setText("Timestep: " + Utils.getSI(e.dt, "s"));
+		for (Probe p : e.probes)
+			if (p.selected)
+				selectionempty = false;
+		
+		e.opts.menu_cut.setEnabled(!selectionempty);
+		e.opts.menu_copy.setEnabled(!selectionempty);
+		e.opts.menu_paste.setEnabled(!clipboardempty);
+		e.opts.menu_rotate.setEnabled(moving_selection);
+		e.opts.menu_flip_h.setEnabled(moving_selection);
+		e.opts.menu_flip_v.setEnabled(moving_selection);
+		e.opts.menu_undo.setEnabled(undoredo.canUndo());
+		e.opts.menu_redo.setEnabled(undoredo.canRedo());
+		e.opts.menu_deselectall.setEnabled(!selectionempty);
+	}
+	
+	public void makeUIchanges() {
+		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
+		
+		if (pressing) {
+			e.canvas.requestFocus();
+			if (Brush.isMaterialModifyingBrush(brush) || brush == Brush.SELECT)
+				e.opts.gui_paused.setSelected(true);
+		}
+		
+		e.opts.gui_stepsizelbl.setText("Timestep: " + e.units.toString(e.dt, Quantity.TIME));
 		e.opts.gui_stepslbl.setText("Sim steps/frame: " + e.opts.gui_simspeed_2.getValue());
 
-		brushsize = ((e.ds*e.nx)/500)*(Math.pow(10.0, e.opts.gui_brushsize.getValue()/500.0) + e.opts.gui_brushsize.getValue()/100.0);
-		e.opts.lblBrushSize.setText("Brush size: " + (int)Math.ceil(brushsize/e.ds));
+		brushsize = Math.pow(10.0, 2*e.opts.gui_brushsize.getValue()/(50.0*10.0) - 0.75) + e.opts.gui_brushsize.getValue()/10.0 + 0.5;
+		e.opts.lblBrushSize.setText("Brush size: " + (int)Math.ceil(brushsize));
 
 		if (!Brush.isMaterialModifyingBrush(brush))
 		{
@@ -233,108 +421,29 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		} else {
 			e.opts.gui_material.setVisible(false);
 		}
-
-		if (brush_changed) {
-			if (!(brush == Brush.SELECT || brush == Brush.FLOODSELECT)) {
-				for (int i = 0; i < e.nx; i++)
-				{
-					for (int j = 0; j < e.ny; j++)
-					{
-						selected[i][j] = false;
-					}
-				}
-			}
-
-			if (brush != Brush.INTERACT) {
-				for (int i = 0; i < e.nx; i++)
-				{
-					for (int j = 0; j < e.ny; j++)
-					{
-						selected_EMF[i][j] = false;
-					}
-				}
-				EMF_selected = false;
-			}
-
-			brush_changed = false;
+		
+		if (e.opts.gui_carriers.isSelected()) {
+			e.opts.gui_carrierlbl.setVisible(true);
+			e.opts.gui_carrier_density.setVisible(true);
+		} else {
+			e.opts.gui_carrierlbl.setVisible(false);
+			e.opts.gui_carrier_density.setVisible(false);
 		}
-
-		boolean update = false;
-
-		if (cut || copy) {
-			int i_min = e.nx-1;
-			int j_min = e.ny-1;
-			for (int i = 0; i < e.nx; i++)
-			{
-				for (int j = 0; j < e.ny; j++)
-				{
-					clipboard[i][j].erase();
-					if (selected[i][j] && e.materials[i][j].type != MaterialType.VACUUM) {
-						if (i < i_min) i_min = i;
-						if (j < j_min) j_min = j;
-					}
-				}
-			}
-			for (int i = 0; i < e.nx; i++)
-			{
-				for (int j = 0; j < e.ny; j++)
-				{
-					if (selected[i][j] && e.materials[i][j].type != MaterialType.VACUUM) {
-						
-						clipboard[i-i_min][j-j_min] = new ClipboardMaterial(e, i, j);
-						
-						if (cut) {
-							e.eraseMaterial(i, j);
-						}
-					}
-					if (cut) {
-						selected[i][j] = false;
-					}
-				}
-			}
-
-			if (cut) update = true;
-
-			cut = false;
-			copy = false;
+		
+		if (brush == Brush.PROBEPLOT) {
+			e.opts.gui_plotinterval.setVisible(true);
+			e.opts.gui_plotinterval_text.setVisible(true);
+		} else {
+			e.opts.gui_plotinterval.setVisible(false);
+			e.opts.gui_plotinterval_text.setVisible(false);
 		}
-
-		if (paste) {
-			for (int i = 0; i < e.nx; i++)
-			{
-				for (int j = 0; j < e.ny; j++)
-				{
-					selected[i][j] = false;
-				}
-			}
-
-			for (int i = 0; i < e.nx; i++)
-			{
-				for (int j = 0; j < e.ny; j++)
-				{
-					selection[i][j] = clipboard[i][j].clone();
-				}
-			}
-			moving_selection = true;
-			dragging_selection = false;
-			paste = false;
-			update = true;
-		}
-
-		if (delete) {
-			for (int i = 0; i < e.nx; i++)
-			{
-				for (int j = 0; j < e.ny; j++)
-				{
-					if (selected[i][j] && e.materials[i][j].type != MaterialType.VACUUM) {
-						e.eraseMaterial(i, j);
-					}
-				}
-			}
-			delete = false;
-			update = true;
-		}
-
+	}
+	
+	public void applyTool() {
+		
+		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
+		BrushShape brushshape = (BrushShape) e.opts.gui_brush_1.getSelectedItem();
+		
 		switch(brush) {
 		case DRAW:
 		case LINE:
@@ -344,31 +453,31 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case LIGHT:
 
 			if ((mousebutton == MouseEvent.BUTTON2 || alt_down) && pressing) {
-				e.opts.gui_material.setSelectedItem(e.materials[mx_index][my_index].type);
+				e.opts.gui_material.setSelectedItem(e.materials[mx][my].type);
 			}
 
 			double angle = 0;
 			MaterialType mat = (MaterialType) e.opts.gui_material.getSelectedItem();
 
-			if (mat == MaterialType.EMF || mat == MaterialType.AC_EMF) {
+			if (mat.hasEMF()) {
 				e.opts.gui_parameter2.setVisible(true);
 				e.opts.gui_parameter2_text.setVisible(true);
 
 				int directionval = e.opts.gui_parameter2.getValue()/6;
 				if (directionval == 0) {
-					e.opts.gui_parameter2_text.setText("EMF direction: Up");
+					e.opts.gui_parameter2_text.setText("Direction: Up");
 					angle = -Math.PI/2;
 				}
 				if (directionval == 1) {
-					e.opts.gui_parameter2_text.setText("EMF direction: Right");
+					e.opts.gui_parameter2_text.setText("Direction: Right");
 					angle = 0;
 				}
 				if (directionval == 2) {
-					e.opts.gui_parameter2_text.setText("EMF direction: Down");
+					e.opts.gui_parameter2_text.setText("Direction: Down");
 					angle = Math.PI/2;
 				}
 				if (directionval == 3) {
-					e.opts.gui_parameter2_text.setText("EMF direction: Left");
+					e.opts.gui_parameter2_text.setText("Direction: Left");
 					angle = Math.PI;
 				}
 				//e.opts.gui_parameter2_text.setText("Brush orientation: " + directionval*(360/24) + " deg");
@@ -386,26 +495,28 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (!(mousebutton == MouseEvent.BUTTON2 || alt_down)) {
 				if (brush == Brush.LINE) {
 					if (releasing) {
-						drawMaterialLine(mx_start_realspace, my_start_realspace, mx_realspace, my_realspace, brush, brushshape, mat, brushsize, angle);
+						drawMaterialLine(mx_start, my_start, mx, my, brush, brushshape, mat, brushsize, angle);
 					}
 				} else if (brush == Brush.FILL) {
 					if (pressing) {
-						MaterialType old_mat = e.materials[mx_index][my_index].type;
+						MaterialType old_mat = e.materials[mx][my].type;
 						MaterialType new_mat = mat;
 						double new_angle = angle;
-						this.floodFill(mx_index, my_index, new FloodFillFunc() {
-							@Override
-							public boolean isValid(int i, int j) {
-								return e.materials[i][j].type == old_mat;
-							}
+						if (new_mat != old_mat) {
+							this.floodFill(mx, my, new FloodFillFunc() {
+								@Override
+								public boolean isValid(int i, int j) {
+									return e.materials[i][j].type == old_mat;
+								}
 
-							@Override
-							public void fill(int i, int j) {
-								e.eraseMaterial(i, j);
-								e.initializeMaterial(i, j, new_mat);
-								if (new_mat == MaterialType.EMF || new_mat == MaterialType.AC_EMF) e.materials[i][j].emf_direction = new_angle;
-							}
-						});
+								@Override
+								public void fill(int i, int j) {
+									e.eraseMaterial(i, j);
+									e.initializeMaterial(i, j, new_mat);
+									if (new_mat.hasEMF()) e.materials[i][j].emf_direction = new_angle;
+								}
+							});
+						}
 					}
 				} else if (brush == Brush.LIGHT) {
 					if (mouse_pressed) {
@@ -415,11 +526,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 							{
 								double cx = 0;
 								double cy = 0;
-								cx = i*e.ds;
-								cy = j*e.ds;
+								cx = i;
+								cy = j;
 
-								double px = (cx-mx_realspace);
-								double py = (cy-my_realspace);
+								double px = (cx-mx);
+								double py = (cy-my);
 								double r = 0;
 
 								if (brushshape == BrushShape.CIRCLE)
@@ -441,7 +552,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					}
 				}
 				else if (mouse_pressed) {
-					drawMaterialLine(mxp_realspace, myp_realspace, mx_realspace, my_realspace, brush, brushshape, mat, brushsize, angle);
+					drawMaterialLine(mxp, myp, mx, my, brush, brushshape, mat, brushsize, angle);
 				}
 			}
 
@@ -450,25 +561,20 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				{
 					for (int j = 0; j < e.ny; j++)
 					{
-						if (e.opts.gui_brush_highlight.isSelected()) {
-							double cx = 0;
-							double cy = 0;
-							cx = i*e.ds;
-							cy = j*e.ds;
+						double cx = 0;
+						double cy = 0;
+						cx = i;
+						cy = j;
 
-							double px = (cx-mx_realspace);
-							double py = (cy-my_realspace);
-							double r = 0;
+						double px = cx-mx;
+						double py = cy-my;
+						double r = 0;
 
-							if (brushshape == BrushShape.CIRCLE)
-								r = Math.sqrt(px*px+py*py);
-							else if (brushshape == BrushShape.SQUARE)
-								r = Math.max(Math.abs(px), Math.abs(py));
-							under_brush[i][j] = (r <= brushsize);
-						}
-						else {
-							under_brush[i][j] = false;
-						}
+						if (brushshape == BrushShape.CIRCLE)
+							r = Math.sqrt(px*px+py*py);
+						else if (brushshape == BrushShape.SQUARE)
+							r = Math.max(Math.abs(px), Math.abs(py));
+						under_brush[i][j] = (r <= brushsize);
 					}
 				}
 			}
@@ -476,13 +582,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 
 		case INTERACT:
-			if (e.materials[mx_index][my_index].type == MaterialType.EMF || e.materials[mx_index][my_index].type == MaterialType.AC_EMF || e.materials[mx_index][my_index].type == MaterialType.SWITCH)
+			if (e.materials[mx][my].type.isInteractable())
 				e.canvas.setCursor(HAND_CURSOR);
 			else
 				e.canvas.setCursor(DEFAULT_CURSOR);
 
 			if (pressing) {
-				boolean turn_on_EMF = !selected_EMF[mx_index][my_index];
+				boolean turn_on_EMF = !selected_EMF[mx][my];
 
 				for (int i = 0; i < e.nx; i++)
 				{
@@ -493,11 +599,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 				EMF_selected = false;
 
-				if ((e.materials[mx_index][my_index].type == MaterialType.EMF || e.materials[mx_index][my_index].type == MaterialType.AC_EMF) && turn_on_EMF) {
-					this.floodFill(mx_index, my_index, new FloodFillFunc() {
+				if ((e.materials[mx][my].type.hasEMF()) && turn_on_EMF) {
+					this.floodFill(mx, my, new FloodFillFunc() {
 						@Override
 						public boolean isValid(int i, int j) {
-							return e.materials[i][j].type == e.materials[mx_index][my_index].type && selected_EMF[i][j] != true;
+							return e.materials[i][j].type == e.materials[mx][my].type && selected_EMF[i][j] != true;
 						}
 
 						@Override
@@ -507,15 +613,23 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					});
 					
 					EMF_selected = true;
-					int setting = (int)(Math.round(50*e.materials[mx_index][my_index].emf/max_EMF));
+					iscurrentselected = e.materials[mx][my].type == MaterialType.CURRENT;
+					
+					int setting = 0;
+					if (!iscurrentselected)
+						setting = (int)(Math.round(50*e.materials[mx][my].emf/max_EMF));
+					else {
+						setting = (int)(Math.round(50*e.materials[mx][my].emf/(max_current/e.currentsource_sigma)));
+					}
+					
 					e.opts.gui_parameter3.setValue(setting);
 					prev_EMF_setting = setting;
 				}
 
-				if (e.materials[mx_index][my_index].type == MaterialType.SWITCH) {
-					int active = 1-e.materials[mx_index][my_index].activated;
+				if (e.materials[mx][my].type == MaterialType.SWITCH) {
+					int active = 1-e.materials[mx][my].activated;
 					
-					this.floodFill(mx_index, my_index, new FloodFillFunc() {
+					this.floodFill(mx, my, new FloodFillFunc() {
 						@Override
 						public boolean isValid(int i, int j) {
 							return e.materials[i][j].type == MaterialType.SWITCH && e.materials[i][j].activated != active;
@@ -527,7 +641,39 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						}
 					});
 				
-					update = true;
+					updatematerials = true;
+				}
+			}
+			break;
+		case ZOOM:
+			if (pressing && shift_down) {
+				zoom_i1_pan = zoom_i1;
+				zoom_j1_pan = zoom_j1;
+				zoom_i2_pan = zoom_i2;
+				zoom_j2_pan = zoom_j2;
+			} else if (mouse_pressed && shift_down) {
+				double sf_x = (zoom_i2_pan-zoom_i1_pan+1)/(double)e.canvas.zoom_bound_x;
+				double sf_y = (zoom_j2_pan-zoom_j1_pan+1)/(double)e.canvas.zoom_bound_y;
+
+				int mx_tmp = (int)Math.round(zoom_i1_pan + (mx_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
+				int my_tmp = (int)Math.round(zoom_j1_pan + (my_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
+
+				int mx_start_tmp = (int)Math.round(zoom_i1_pan + (mx_start_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
+				int my_start_tmp = (int)Math.round(zoom_j1_pan + (my_start_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
+				
+				zoom_i1 = zoom_i1_pan - (mx_tmp - mx_start_tmp);
+				zoom_j1 = zoom_j1_pan - (my_tmp - my_start_tmp);
+				zoom_i2 = zoom_i2_pan - (mx_tmp - mx_start_tmp);
+				zoom_j2 = zoom_j2_pan - (my_tmp - my_start_tmp);
+			} else if (releasing && !shift_down) {
+				if (mx == mx_start && my == my_start) {
+					zoomed = false;
+				} else {
+					zoom_i1 = Math.min(mx_start, mx);
+					zoom_j1 = Math.min(my_start, my);
+					zoom_i2 = Math.max(mx_start, mx);
+					zoom_j2 = Math.max(my_start, my);
+					zoomed = true;
 				}
 			}
 			break;
@@ -536,64 +682,42 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (pressing) {
 				if (brush == Brush.FLOODSELECT && !moving_selection) {
 
-					this.floodFill(mx_index, my_index, new FloodFillFunc() {
+					boolean isselected = selected[mx][my];
+					this.floodFill(mx, my, new FloodFillFunc() {
 						@Override
 						public boolean isValid(int i, int j) {
-							return e.materials[i][j].type == e.materials[mx_index][my_index].type && selected[i][j] != !selected[mx_index][my_index];
+							return e.materials[i][j].type == e.materials[mx][my].type && selected[i][j] == isselected;
 						}
 
 						@Override
 						public void fill(int i, int j) {
-							selected[i][j] = !selected[mx_index][my_index];
+							selected[i][j] = !isselected;
 						}
 					});
 				}
 				else if (moving_selection && !dragging_selection) {
-					for (int i = 0; i < e.nx; i++)
-					{
-						for (int j = 0; j < e.ny; j++)
-						{
-							int si = i-delta_mx_index;
-							int sj = j-delta_my_index;
-							if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && selection[si][sj].type != MaterialType.VACUUM) {
-								e.eraseMaterial(i, j);
-								selection[si][sj].paste(e, i, j);
-								selected[i][j] = true;
-							}
-						}
-					}
-					update = true;
+					selection.paste(delta_mx, delta_my); 
+					flagChanges(true);
 					moving_selection = false;
 					dragging_selection = false;
-				} else if (!moving_selection && selected[mx_index][my_index]) {
-					for (int i = 0; i < e.nx; i++)
-					{
-						for (int j = 0; j < e.ny; j++)
-						{
-							selection[i][j].erase();
-							if (selected[i][j]) {
-								selection[i][j] = new ClipboardMaterial(e, i, j);
-								selected[i][j] = false;
-								e.eraseMaterial(i, j);
-							}
-						}
-					}
-					update = true;
+				} else if (!moving_selection && selected[mx][my]) {
+					selection.cut();
+					flagChanges(true);
 					moving_selection = true;
 					dragging_selection = true;
-					delta_mx_index = 0;
-					delta_my_index = 0;
+					delta_mx = 0;
+					delta_my = 0;
 				}
 			} else if (mouse_pressed) {
 				if (brush != Brush.FLOODSELECT) {
 					if (dragging_selection) {
-						delta_mx_index = mx_index - mx_start_index;
-						delta_my_index = my_index - my_start_index;
+						delta_mx = mx - mx_start;
+						delta_my = my - my_start;
 					} else {
-						int mx0 = Math.min(mx_start_index, mx_index);
-						int my0 = Math.min(my_start_index, my_index);
-						int mx1 = Math.max(mx_start_index, mx_index);
-						int my1 = Math.max(my_start_index, my_index);
+						int mx0 = Math.min(mx_start, mx);
+						int my0 = Math.min(my_start, my);
+						int mx1 = Math.max(mx_start, mx);
+						int my1 = Math.max(my_start, my);
 
 						for (int i = 0; i < e.nx; i++)
 						{
@@ -605,31 +729,23 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 									selected[i][j] = false;
 							}
 						}
+						
+						for (Probe p : e.probes) {
+							p.selected = p.intersects(mx0, my0, mx1, my1);
+						}
 					}
 				}
 			} else if (releasing) {
 				if (brush != Brush.FLOODSELECT) {
-					delta_mx_index = mx_index - mx_start_index;
-					delta_my_index = my_index - my_start_index;
+					delta_mx = mx - mx_start;
+					delta_my = my - my_start;
 					if (dragging_selection) {
-						for (int i = 0; i < e.nx; i++)
-						{
-							for (int j = 0; j < e.ny; j++)
-							{
-								int si = i-delta_mx_index;
-								int sj = j-delta_my_index;
-								if (si >= 0 && sj >= 0 && si < e.nx && sj < e.ny && selection[si][sj].type != MaterialType.VACUUM) {
-									e.eraseMaterial(i, j);
-									selection[si][sj].paste(e, i, j);
-									selected[i][j] = true;
-								}
-							}
-						}
+						selection.paste(delta_mx, delta_my); 
 						moving_selection = false;
 						dragging_selection = false;
-						update = true;
+						flagChanges(true);
 					} else {
-						if (delta_mx_index == 0 && delta_my_index == 0) {
+						if (delta_mx == 0 && delta_my == 0) {
 							for (int i = 0; i < e.nx; i++)
 							{
 								for (int j = 0; j < e.ny; j++)
@@ -637,91 +753,148 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 									selected[i][j] = false;
 								}
 							}
+							e.probes.forEach((p) -> p.selected = false);
 						}
 					}
 				}
 			} else {
-				delta_mx_index = mx_index;
-				delta_my_index = my_index;
+				delta_mx = mx;
+				delta_my = my;
 			}
 			break;
 		case CURRENT:
 			if (pressing) {
 				CurrentProbe p = new CurrentProbe();
-				p.x1 = mx_start_index;
-				p.y1 = my_start_index;
-				p.x2 = mx_index;
-				p.y2 = my_index;
-				e.currentprobes.add(p);
+				p.x1 = mx_start;
+				p.y1 = my_start;
+				p.x2 = mx;
+				p.y2 = my;
+				e.probes.add(p);
 			} else if (mouse_pressed) {
-				e.currentprobes.get(e.currentprobes.size()-1).x2 = mx_index;
-				e.currentprobes.get(e.currentprobes.size()-1).y2 = my_index;
+				CurrentProbe p = (CurrentProbe) e.probes.get(e.probes.size()-1);
+				p.x2 = mx;
+				p.y2 = my;
+				p.calculateDefaultLabelCoords();
+			} else if (releasing) {
+				flagChanges(false);
 			}
 			break;
 		case VOLTAGE:
 			if (pressing) {
 				VoltageProbe p = new VoltageProbe();
-				p.x = mx_start_index;
-				p.y = my_start_index;
-				e.voltageprobes.add(p);
+				p.x = mx_start;
+				p.y = my_start;
+				e.probes.add(p);
 			} else if (mouse_pressed) {
-				e.voltageprobes.get(e.voltageprobes.size()-1).x = mx_index;
-				e.voltageprobes.get(e.voltageprobes.size()-1).y = my_index;
+				VoltageProbe p = (VoltageProbe) e.probes.get(e.probes.size()-1);
+				p.x = mx;
+				p.y = my;
+				p.calculateDefaultLabelCoords();
+			} else if (releasing) {
+				flagChanges(false);
+			}
+			break;
+		case CHARGE:
+			if (pressing) {
+				ChargeProbe p = new ChargeProbe();
+				p.x1 = mx_start;
+				p.y1 = my_start;
+				p.x2 = mx;
+				p.y2 = my;
+				e.probes.add(p);
+			} else if (mouse_pressed) {
+				ChargeProbe p = (ChargeProbe) e.probes.get(e.probes.size()-1);
+				p.x2 = mx;
+				p.y2 = my;
+				p.calculateDefaultLabelCoords();
+			} else if (releasing) {
+				flagChanges(false);
+			}
+			break;
+		case FLUX:
+			if (pressing) {
+				FluxProbe p = new FluxProbe();
+				p.x1 = mx_start;
+				p.y1 = my_start;
+				p.x2 = mx;
+				p.y2 = my;
+				e.probes.add(p);
+			} else if (mouse_pressed) {
+				FluxProbe p = (FluxProbe) e.probes.get(e.probes.size()-1);
+				p.x2 = mx;
+				p.y2 = my;
+				p.calculateDefaultLabelCoords();
+			} else if (releasing) {
+				flagChanges(false);
 			}
 			break;
 		case DELETEPROBE:
 			e.canvas.setCursor(DEFAULT_CURSOR);
 			int i = 0;
-			while(i < e.voltageprobes.size()) {
-				VoltageProbe p = e.voltageprobes.get(i);
-				if (Utils.length(p.x-mx_index, p.y-my_index) < 3) {
+			while(i < e.probes.size()) {
+				Probe p = e.probes.get(i);
+				if (p.isMouseHovering(mx, my)) {
 					e.canvas.setCursor(HAND_CURSOR);
 					if (pressing) {
-						e.voltageprobes.remove(i);
+						e.probes.remove(i);
+						flagChanges(false);
 						i--;
 					}
 				}
 				i++;
 			}
-
-			i = 0;
-			while(i < e.currentprobes.size()) {
-				CurrentProbe p = e.currentprobes.get(i);
-				if (Utils.length(p.x1-mx_index, p.y1-my_index) < 3 || Utils.length(p.x2-mx_index, p.y2-my_index) < 3) {
+			break;
+		case MOVELABEL:
+			if (pressing) {
+				Probe.LabelCoord coord = null;
+				for (Probe p : e.probes)
+					coord = selectLabel(p.labelcoord, coord);
+				
+				if (coord != null)
+					labelcoord = coord;
+			} else if (mouse_pressed) {
+				if (labelcoord != null) {
+					labelcoord.x = mx;
+					labelcoord.y = my;
+				}
+			} else if (releasing) {
+				labelcoord = null;
+				flagChanges(false);
+			} else {
+				e.canvas.setCursor(DEFAULT_CURSOR);
+				Probe.LabelCoord coord = null;
+				for (Probe p : e.probes)
+					coord = selectLabel(p.labelcoord, coord);
+				
+				if (coord != null)
 					e.canvas.setCursor(HAND_CURSOR);
-					if (pressing) {
-						e.currentprobes.remove(i);
-						i--;
-					}
-				}
-				i++;
 			}
-
-			if (e.ground != null && Utils.length(e.ground.x-mx_index, e.ground.y-my_index) < 3) {
-				e.canvas.setCursor(HAND_CURSOR);
-				if (pressing) {
-					e.ground = null;
-				}
-			}
-
 			break;
 		case TEXT:
 			e.canvas.setCursor(HAND_CURSOR);
 			if (mouse_pressed) {
-				texting = true;
-				text_x = mx_index;
-				text_y = my_index;
+				startTextInput();
+				text_x = mx;
+				text_y = my;
 			}
 			break;
 		case GROUND:
 			if (pressing) {
-				if (e.ground == null)
-					e.ground = new VoltageProbe();
-				e.ground.x = mx_start_index;
-				e.ground.y = my_start_index;
+				if (!e.hasGround()) {
+					Ground ground = new Ground();
+					e.probes.add(ground);
+				}
+				
+				Ground g = e.getGround();
+				g.x = mx_start;
+				g.y = my_start;
 			} else if (mouse_pressed) {
-				e.ground.x = mx_index;
-				e.ground.y = my_index;
+				Ground g = e.getGround();
+				g.x = mx;
+				g.y = my;
+				g.calculateDefaultLabelCoords();
+			} else if (releasing) {
+				flagChanges(false);
 			}
 			break;
 		case BANDS:
@@ -733,13 +906,23 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case CARRIERPLOT:
 			if (releasing) e.carrierplot.createPlot(e);
 			break;
+		case PROBEPLOT:
+			plotinterval = e.opts.gui_plotinterval.getValue();
+			e.opts.gui_plotinterval_text.setText("Time resolution: " + e.units.toString(plotinterval*e.dt*e.iteration_multiplier, Quantity.TIME));
+			for (Plot p : e.plots) {
+				if (p instanceof ProbePlot) {
+					if (!p.frame.isVisible() && ((ProbePlot)p).checkProbesExist(e))
+						p.createPlot(e);
+				}
+			}
+			break;
 		default:
 			break;
 		}
 
 		if (brush != Brush.TEXT)
 		{
-			texting = false;
+			endTextInput();
 		}
 		
 		SwingUtilities.invokeLater(() -> { //TODO
@@ -748,22 +931,79 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 		});
 
-
 		setEMFs();
 
-		if ((releasing && Brush.isMaterialModifyingBrush(brush)) || (BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary || update) {
-
-			//e.resetFields(false);
+		if ((releasing && Brush.isMaterialModifyingBrush(brush)) || (BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary) {
+			flagChanges(true);
+		}
+		prev_boundary = (BoundaryCondition)e.opts.gui_bc.getSelectedItem();
+		
+		if (updatematerials) {
 			e.updateAllMaterials(false);
 			e.multigridSolve(true, false);
+			
+			updatematerials = false;
 		}
 
-		prev_boundary = (BoundaryCondition)e.opts.gui_bc.getSelectedItem();
+		mxp = mx;
+		myp = my;
+	}
+	
+	public boolean updatematerials = false;
+	
+	public void flagChanges(boolean updateMaterials) {
+		changesmade = true;
+		if (!e.opts.getTitle().endsWith("*"))
+			e.opts.setTitle(e.opts.getTitle() + " *");
 
-		mxp_realspace = mx_realspace;
-		myp_realspace = my_realspace;
+		undoredo.captureState(e);
+		
+		updatematerials = updatematerials || updateMaterials;
+	}
+	
+	public Probe.LabelCoord selectLabel(Probe.LabelCoord c_in, Probe.LabelCoord c_opt) {
+		if (c_opt == null) {
+			if (Math.abs(c_in.x + 10 - mx) < 10 && Math.abs(c_in.y - 2 - my) < 4) {
+				return c_in;
+			} else {
+				return null;
+			}
+		}
+		
+		return c_opt;
+		//if (Utils.length(c_in.x - mx, c_in.y - my) < Utils.length(c_opt.x - mx, c_opt.y - my)) {
+		//	return c_in;
+		//} else {
+		//	return c_opt;
+		//}
+	}
+	
+	public void resetZoom() {
+		zoom_i1 = 0;
+		zoom_j1 = 0;
+		zoom_i2 = 0;
+		zoom_j2 = 0;
+		zoomed = false;
+	}
+	
+	public void startTextInput() {
+		if (!texting) {
+			removeKeyBinds(e.canvas);
+			removeKeyBinds(e.opts.panel);
+			e.opts.menuBar.setEnabled(false);
+			texting = true;
+		}
 	}
 
+	public void endTextInput() {
+		if (texting) {
+			addKeyBinds(e.canvas);
+			addKeyBinds(e.opts.panel);
+			e.opts.menuBar.setEnabled(true);
+			texting = false;
+		}
+	}
+	
 	public void drawMaterialLine(double x1, double y1, double x2, double y2, Brush brush, BrushShape brushshape, MaterialType mat, double brushsize, double EMF_angle) {
 		Vector a = new Vector(0, 0);
 		Vector b = new Vector(0, 0);
@@ -775,8 +1015,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			{
 				double cx = 0;
 				double cy = 0;
-				cx = i*e.ds;
-				cy = j*e.ds;
+				cx = i;
+				cy = j;
 
 				a.initialize(x1, y1);
 				b.initialize(x2, y2);
@@ -799,10 +1039,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				if (r <= brushsize) {
 					if (mat == MaterialType.VACUUM) {
 						e.eraseMaterial(i, j);
-					} else if (e.materials[i][j].type == MaterialType.VACUUM || brush == Brush.REPLACE) {
+					} else if (e.materials[i][j].type == MaterialType.VACUUM ^ brush == Brush.REPLACE) {
 						e.eraseMaterial(i, j);
 						e.initializeMaterial(i, j, mat);
-						if (mat == MaterialType.EMF || mat == MaterialType.AC_EMF) e.materials[i][j].emf_direction = EMF_angle;
+						if (mat.hasEMF()) e.materials[i][j].emf_direction = EMF_angle;
 					}
 				}
 			}
@@ -811,12 +1051,21 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	
 	public void setEMFs() {
 		int EMF_setting = e.opts.gui_parameter3.getValue();
-		double new_EMF = max_EMF*EMF_setting/50.0;
+		
+		double new_EMF = 0;
+		if (!iscurrentselected) {
+			new_EMF = max_EMF*EMF_setting/50.0;
+		} else {
+			new_EMF = (max_current/e.currentsource_sigma)*EMF_setting/50.0;
+		}
 
 		if (e.opts.gui_brush.getSelectedItem() == Brush.INTERACT && EMF_selected) {
 			e.opts.gui_parameter3.setVisible(true);
 			e.opts.gui_parameter3_text.setVisible(true);
-			e.opts.gui_parameter3_text.setText("EMF: " + Utils.getSI(new_EMF, "V/m"));
+			if (!iscurrentselected)
+				e.opts.gui_parameter3_text.setText("EMF: " + e.units.toString(new_EMF, Quantity.ELECTRIC_FIELD));
+			else
+				e.opts.gui_parameter3_text.setText("J: " + e.units.toString(new_EMF*e.currentsource_sigma, Quantity.CURRENT_DENSITY));
 		} else {
 			e.opts.gui_parameter3.setVisible(false);
 			e.opts.gui_parameter3_text.setVisible(false);
@@ -828,7 +1077,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			{
 				for (int j = 0; j < e.ny; j++)
 				{
-					if ((e.materials[i][j].type == MaterialType.EMF || e.materials[i][j].type == MaterialType.AC_EMF) && selected_EMF[i][j]) {
+					if (e.materials[i][j].type.hasEMF() && selected_EMF[i][j]) {
 						e.materials[i][j].emf = new_EMF;
 					}
 				}
@@ -851,7 +1100,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.opts.gui_parameter1_text.setVisible(false);
 		}
 		
-		e.opts.gui_parameter1_text.setText("AC Freq: " + Utils.getSI(e.AC_freq, "Hz"));
+		e.opts.gui_parameter1_text.setText("AC Freq: " + e.units.toString(e.AC_freq, Quantity.FREQUENCY));
 
 	}
 
@@ -875,28 +1124,34 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public void actionPerformed(ActionEvent ev) {
 		if (ev.getSource() == e.opts.gui_reset)
 			clear = true;
-		else if (ev.getSource() == e.opts.gui_resetall)
+		else if (ev.getSource() == e.opts.menu_new)
 			reset = true;
-		else if (ev.getSource() == e.opts.gui_save)
+		else if (ev.getSource() == e.opts.menu_saveas)
+			saveas = true;
+		else if (ev.getSource() == e.opts.menu_save)
 			save = true;
-		else if (ev.getSource() == e.opts.gui_open)
+		else if (ev.getSource() == e.opts.menu_open)
 			load = true;
-		else if (ev.getSource() == e.opts.gui_help)
+		else if (ev.getSource() == e.opts.menu_help)
 			try {
 				File helpfile = new File("README.html");
 				java.awt.Desktop.getDesktop().browse(helpfile.toURI());
 			} catch (IOException ex) {
 				ex.printStackTrace();
 			}
-		else if (ev.getSource() == e.opts.gui_editdesc) {
-			e.opts.textPane.setEditable(!e.opts.textPane.isEditable());
-		} else if (ev.getSource() == e.opts.gui_view) {
-			e.updateMiscFields = true;
-		} else if (ev.getSource() == e.opts.gui_view_vec) {
-			e.updateMiscFields = true;
+		else if (ev.getSource() == e.opts.menu_github)
+			try {
+				java.awt.Desktop.getDesktop().browse(new URI("https://github.com/StunningLlama/SemiSim/tree/SemiSim"));
+			} catch (IOException | URISyntaxException ex) {
+				ex.printStackTrace();
+			}
+		else if (ev.getSource() == e.opts.menu_editdesc) {
+			SwingUtilities.invokeLater(() -> {
+				new DescDialog();
+			});
 		} else if (ev.getSource() == e.opts.gui_brush) {
 			e.controls.brush_changed = true;
-		} else if (ev.getSource() == e.opts.gui_adv_settings) {
+		} else if (ev.getSource() == e.opts.menu_advancedsettings) {
 			e.savemanager.writeAdvancedSettings();
 			e.adv_opts.setVisible(true);
 		} else if (ev.getSource() == e.adv_opts.btn_apply) {
@@ -904,6 +1159,61 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.adv_opts.setVisible(false);
 		} else if (ev.getSource() == e.adv_opts.btn_cancel) {
 			e.adv_opts.setVisible(false);
+		} else if (ev.getSource() == e.opts.gui_carriers) {
+			e.opts.menu_carriers.setSelected(e.opts.gui_carriers.isSelected());
+		} else if (ev.getSource() == e.opts.menu_carriers) {
+			e.opts.gui_carriers.setSelected(e.opts.menu_carriers.isSelected());
+		} else if (ev.getSource() == e.opts.menu_cut) {
+			cut = true;
+		} else if (ev.getSource() == e.opts.menu_copy) {
+			copy = true;
+		} else if (ev.getSource() == e.opts.menu_paste) {
+			paste = true;
+		} else if (ev.getSource() == e.opts.menu_rotate) {
+			rotate_selection = true;
+		} else if (ev.getSource() == e.opts.menu_flip_h) {
+			flip_h_selection = true;
+		} else if (ev.getSource() == e.opts.menu_flip_v) {
+			flip_v_selection = true;
+		} else if (ev.getSource() == e.opts.menu_undo) {
+			undo = true;
+		} else if (ev.getSource() == e.opts.menu_redo) {
+			redo = true;
+		} else if (ev.getSource() == e.opts.menu_selectall) {
+			selectall = true;
+		} else if (ev.getSource() == e.opts.menu_deselectall) {
+			deselectall = true;
+		} else if (ev.getSource() == e.opts.menu_about) {
+			JOptionPane.showMessageDialog(e.opts, SemiSim.about, "About", JOptionPane.INFORMATION_MESSAGE);
+		} else if (ev.getSource() == e.opts.menu_report) {
+			JOptionPane.showMessageDialog(e.opts, "<html><body><p style='width: 300px;'>Please contact Brandon at brandonli.lex@gmail.com or go to https://github.com/StunningLlama/SemiSim/issues.</p></body></html>", "Report a bug", JOptionPane.INFORMATION_MESSAGE);
+		} else if (ev.getSource() == e.opts.menu_pref) {
+			e.prefs.getPrefs();
+			e.prefs.setVisible(true);
+		} else if (ev.getSource() == e.prefs.btn_apply) {
+			e.prefs.applyPrefs();
+			e.prefs.writeFile(e.prefs.preferences_file);
+			e.prefs.setVisible(false);
+		} else if (ev.getSource() == e.prefs.btn_cancel) {
+			e.prefs.resetPrefs();
+		} else if (ev.getSource() == e.opts.menu_debug) {
+			debugging = !debugging;
+		} else if (ev.getSource() == e.opts.menu_exit) {
+			exit = true;
+		} else if (ev.getSource() == e.prefs.gui_units) {
+			e.units = (Units) e.prefs.gui_units.getSelectedItem();
+		} else if (ev.getSource() instanceof JRadioButtonMenuItem) {
+			if (scalarview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null || vectorview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null)
+				e.updateMiscFields = true;
+			if (brushes.containsButton((JRadioButtonMenuItem) ev.getSource()) != null)
+				e.opts.gui_brush.setSelectedItem(brushes.getOption());
+		}
+	}
+	
+	@Override
+	public void itemStateChanged(ItemEvent ev) {
+		if (ev.getSource() == e.opts.gui_brush) {
+			brushes.setOption((Brush) e.opts.gui_brush.getSelectedItem());
 		}
 	}
 	
@@ -917,13 +1227,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public void mouseExited(MouseEvent arg0) {}
 
 	@Override
-	public void mousePressed(MouseEvent e) {
+	public void mousePressed(MouseEvent ev) {
 		mouse_pressed = true;
-		mousebutton = e.getButton();
-		mx = e.getX();
-		my = e.getY();
-		mx_start = e.getX();
-		my_start = e.getY();
+		mousebutton = ev.getButton();
+		mx_screen = ev.getX();
+		my_screen = ev.getY();
+		mx_start_screen = ev.getX();
+		my_start_screen = ev.getY();
 	}
 	@Override
 	public void mouseReleased(MouseEvent e) {
@@ -932,75 +1242,77 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	@Override
 	public void mouseDragged(MouseEvent e) {
-		mx = e.getX();
-		my = e.getY();
+		mx_screen = e.getX();
+		my_screen = e.getY();
 	}
 
 	@Override
 	public void mouseMoved(MouseEvent arg0) {
-		mx = arg0.getX();
-		my = arg0.getY();
+		mx_screen = arg0.getX();
+		my_screen = arg0.getY();
 	}
 
-	@SuppressWarnings("serial")
 	private Action key_pause = new AbstractAction(null) {
 		@Override
 		public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
 			e.opts.gui_paused.setSelected(!e.opts.gui_paused.isSelected());
 		}
 	};
 
-    @SuppressWarnings("serial")
     private Action key_frame = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
 			advanceframe = true;
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_dbg = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
 			debugging = !debugging;
-			//Timer.allEnabled = debugging;
+			e.opts.menu_debug.setSelected(debugging);
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_changebrush = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
     		e.opts.gui_brush_1.setSelectedIndex((e.opts.gui_brush_1.getSelectedIndex()+1)%2);
         }
     };
+    
+    boolean shift_draw_override = false;
 
-    @SuppressWarnings("serial")
     private Action key_shift = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
     		shift_down = true;
+    		
+    		if ((Brush) e.opts.gui_brush.getSelectedItem() == Brush.DRAW) {
+    			shift_draw_override = true;
+    			e.opts.gui_brush.setSelectedItem(Brush.LINE);
+    		}
         }
     };
-    @SuppressWarnings("serial")
     private Action key_shift_up = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
     		shift_down = false;
+    		
+    		if (shift_draw_override) {
+    			shift_draw_override = false;
+        		if ((Brush) e.opts.gui_brush.getSelectedItem() == Brush.LINE) {
+        			e.opts.gui_brush.setSelectedItem(Brush.DRAW);
+        		}
+    		}
         }
     };
-    @SuppressWarnings("serial")
     private Action key_ctrl = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
     		ctrl_down = true;
         }
     };
-    @SuppressWarnings("serial")
     private Action key_ctrl_up = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1008,7 +1320,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_cut = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1016,7 +1327,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_copy = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1024,84 +1334,98 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
+    private Action key_undo = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		undo = true;
+        }
+    };
+    
+    private Action key_redo = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		redo = true;
+        }
+    };
+
     private Action key_paste = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
     		paste = true;
         }
     };
+    
+    private Action key_selectall = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		selectall = true;
+        }
+    };
+    
+    private Action key_deselectall = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		deselectall = true;
+        }
+    };
 
-    @SuppressWarnings("serial")
     private Action key_delete = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
     		delete = true;
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_color = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
-    		e.opts.gui_elem_colors.setSelected(!e.opts.gui_elem_colors.isSelected());
+    		e.opts.menu_elem_colors.setSelected(!e.opts.menu_elem_colors.isSelected());
         }
     };
 
-    ScalarView prev_scalar_view = ScalarView.NONE;
-    VectorView prev_vector_view = VectorView.NONE;
+    ScalarMode prev_scalar_mode = ScalarMode.NONE;
+    VectorMode prev_vector_mode = VectorMode.NONE;
 
-    @SuppressWarnings("serial")
     private Action key_scalar_view = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
-    		if (e.opts.gui_view.getSelectedItem() == ScalarView.NONE)
-    			e.opts.gui_view.setSelectedItem(prev_scalar_view);
+    		if (e.controls.scalarmode.getOption() == ScalarMode.NONE)
+    			e.controls.scalarmode.setOption(prev_scalar_mode);
     		else
     		{
-    			prev_scalar_view = (ScalarView) e.opts.gui_view.getSelectedItem();
-    			e.opts.gui_view.setSelectedItem(ScalarView.NONE);
+    			prev_scalar_mode = e.controls.scalarmode.getOption();
+    			e.controls.scalarmode.setOption(ScalarMode.NONE);
     		}
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_vector_view = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
-    		if (e.opts.gui_view_vec.getSelectedItem() == VectorView.NONE)
-    			e.opts.gui_view_vec.setSelectedItem(prev_vector_view);
+    		if (e.controls.vectormode.getOption()  == VectorMode.NONE)
+    			e.controls.vectormode.setOption(prev_vector_mode);
     		else
     		{
-    			prev_vector_view = (VectorView) e.opts.gui_view_vec.getSelectedItem();
-    			e.opts.gui_view_vec.setSelectedItem(VectorView.NONE);
+    			prev_vector_mode = e.controls.vectormode.getOption();
+    			e.controls.vectormode.setOption(VectorMode.NONE);
     		}
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_tooltip = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
-    		e.opts.gui_tooltip.setSelected(!e.opts.gui_tooltip.isSelected());
+    		e.opts.menu_tooltip.setSelected(!e.opts.menu_tooltip.isSelected());
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_textbg = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			if (texting) return;
-    		e.opts.gui_text_bg.setSelected(!e.opts.gui_text_bg.isSelected());
+    		e.opts.menu_text_bg.setSelected(!e.opts.menu_text_bg.isSelected());
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_alt = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1109,7 +1433,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_alt_up = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1117,7 +1440,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_logdata = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1125,16 +1447,116 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
 
-    @SuppressWarnings("serial")
     private Action key_rendertext = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-			e.opts.gui_interface.setSelected(!e.opts.gui_interface.isSelected());
+			e.opts.menu_interface.setSelected(!e.opts.menu_interface.isSelected());
+        }
+    };
+    
+    private Action key_save = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		save = true;
+        }
+    };
+    
+    private Action key_saveas = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		saveas = true;
+        }
+    };
+    
+    private Action key_open = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		load = true;
+        }
+    };
+    
+    private Action key_new = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		reset = true;
+        }
+    };
+    
+    private Action key_rotate = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		rotate_selection = true;
+        }
+    };
+    
+    private Action key_flip_v = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		flip_v_selection = true;
+        }
+    };
+    
+    private Action key_flip_h = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		flip_h_selection = true;
+        }
+    };
+    
+    private Action key_1 = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		e.opts.gui_brush.setSelectedItem(Brush.INTERACT);
+        }
+    };
+    
+    private Action key_2 = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		e.opts.gui_brush.setSelectedItem(Brush.DRAW);
+        }
+    };
+    
+    private Action key_3 = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		e.opts.gui_brush.setSelectedItem(Brush.LINE);
+        }
+    };
+    
+    private Action key_4 = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		e.opts.gui_brush.setSelectedItem(Brush.FILL);
+        }
+    };
+    
+    private Action key_5 = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		e.opts.gui_brush.setSelectedItem(Brush.SELECT);
+        }
+    };
+    
+    private Action key_prevtool = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+			if (e.opts.gui_brush.getSelectedIndex() > 0)
+				e.opts.gui_brush.setSelectedIndex(e.opts.gui_brush.getSelectedIndex()-1);
+        }
+    };
+    
+    private Action key_nexttool = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+			if (e.opts.gui_brush.getSelectedIndex() < e.opts.gui_brush.getItemCount()-1)
+				e.opts.gui_brush.setSelectedIndex(e.opts.gui_brush.getSelectedIndex()+1);
         }
     };
 
+
     public void addKeyBinds(JPanel contentPane) {
-    	InputMap map = contentPane.getInputMap(JComponent.WHEN_FOCUSED);
+    	InputMap map = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
     	InputMap map2 = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
     	
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_P, 0), key_pause);
@@ -1176,6 +1598,50 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.META_DOWN_MASK), key_paste);
     	contentPane.getActionMap().put(key_paste, key_paste);
 
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK), key_undo);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.META_DOWN_MASK), key_undo);
+    	contentPane.getActionMap().put(key_undo, key_undo);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_redo);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.META_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_redo);
+    	contentPane.getActionMap().put(key_redo, key_redo);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), key_save);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.META_DOWN_MASK), key_save);
+    	contentPane.getActionMap().put(key_save, key_save);
+    	
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_saveas);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.META_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_saveas);
+    	contentPane.getActionMap().put(key_saveas, key_saveas);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK), key_open);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.META_DOWN_MASK), key_open);
+    	contentPane.getActionMap().put(key_open, key_open);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), key_new);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.META_DOWN_MASK), key_new);
+    	contentPane.getActionMap().put(key_new, key_new);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK), key_rotate);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.META_DOWN_MASK), key_rotate);
+    	contentPane.getActionMap().put(key_rotate, key_rotate);
+    	
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK), key_flip_v);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.META_DOWN_MASK), key_flip_v);
+    	contentPane.getActionMap().put(key_flip_v, key_flip_v);
+    	
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), key_flip_h);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK), key_flip_h);
+    	contentPane.getActionMap().put(key_flip_h, key_flip_h);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK), key_selectall);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.META_DOWN_MASK), key_selectall);
+    	contentPane.getActionMap().put(key_selectall, key_selectall);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK), key_deselectall);
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.META_DOWN_MASK), key_deselectall);
+    	contentPane.getActionMap().put(key_deselectall, key_deselectall);
+
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), key_delete);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), key_delete);
     	contentPane.getActionMap().put(key_delete, key_delete);
@@ -1207,6 +1673,36 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_H, 0), key_rendertext);
     	contentPane.getActionMap().put(key_rendertext, key_rendertext);
 
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_1, 0), key_1);
+    	contentPane.getActionMap().put(key_1, key_1);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_2, 0), key_2);
+    	contentPane.getActionMap().put(key_2, key_2);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_3, 0), key_3);
+    	contentPane.getActionMap().put(key_3, key_3);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_4, 0), key_4);
+    	contentPane.getActionMap().put(key_4, key_4);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_5, 0), key_5);
+    	contentPane.getActionMap().put(key_5, key_5);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, 0), key_prevtool);
+    	contentPane.getActionMap().put(key_prevtool, key_prevtool);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET, 0), key_nexttool);
+    	contentPane.getActionMap().put(key_nexttool, key_nexttool);
+
+    }
+    
+
+    public void removeKeyBinds(JPanel contentPane) {
+    	InputMap map = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    	InputMap map2 = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    	
+    	map.clear();
+    	map2.clear();
     }
 
 	@Override
@@ -1228,14 +1724,20 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					}
 				}
 				text_x += 6;
+				flagChanges(false);
+				e.updateAllMaterials(false);
 			}
-			e.updateAllMaterials(false);
 		}
 	}
 
 	@Override
 	public void keyPressed(KeyEvent ev) {
 		if (texting) {
+			if (ev.getKeyCode() == KeyEvent.VK_ESCAPE || ev.getKeyCode() == KeyEvent.VK_ENTER) {
+				endTextInput();
+				return;
+			}
+			
 			if (ev.getKeyCode() == KeyEvent.VK_BACK_SPACE || ev.getKeyCode() == KeyEvent.VK_DELETE) {
 				text_x -= 6;
 				for (int i = 0; i < 5; i++) {
@@ -1246,48 +1748,14 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						}
 					}
 				}
+				flagChanges(false);
+				e.updateAllMaterials(false);
 			}
-			e.updateAllMaterials(false);
 		}
 	}
 
 	@Override
 	public void keyReleased(KeyEvent e) {}
-
-	public double bilinearinterp(double[][] array, double x, double y) {
-		int xfloor = (int)Math.floor(x);
-		int yfloor = (int)Math.floor(y);
-		double fx = x - xfloor;
-		double fy = y - yfloor;
-		if (Math.abs(x-Math.round(x)) < 1e-2 && Math.abs(y-Math.round(y)) < 1e-2) {
-			int i = (int)Math.round(x);
-			int j = (int)Math.round(y);
-			if (i < 0) i = 0;
-			if (j < 0) j = 0;
-			if (i >= e.nx) i = e.nx - 1;
-			if (j >= e.ny) j = e.ny - 1;
-			return array[i][j];
-		}
-
-		if (xfloor < 0) {
-			xfloor = 0;
-			fx = 0.0;
-		} else if (xfloor >= e.nx - 1) {
-			xfloor = e.nx - 2;
-			fx = 1.0;
-		}
-		if (yfloor < 0) {
-			yfloor = 0;
-			fy = 0.0;
-		} else if (yfloor >= e.ny - 1) {
-			yfloor = e.ny - 2;
-			fy = 1.0;
-		}
-		double va = array[xfloor][yfloor]*(1.0-fx) + array[xfloor+1][yfloor]*fx;
-		double vb = array[xfloor][yfloor+1]*(1.0-fx) + array[xfloor+1][yfloor+1]*fx;
-
-		return va*(1.0-fy) + vb*fy;
-	}
 	
 	class FloodFillCoordinate {
 		int i;
@@ -1317,22 +1785,27 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	public enum Brush {
 		INTERACT("Interact"),
-		DRAW("Draw"),
-		VOLTAGE("Voltage probe"),
-		CURRENT("Current probe"),
-		GROUND("Ground"),
-		DELETEPROBE("Delete probe"),
-		BANDS("Plot bands"),
-		SCALARPLOT("Plot scalar field"),
-		CARRIERPLOT("Plot carriers"),
 		LIGHT("Flashlight"),
+		ZOOM("Zoom and Pan"),
+		DRAW("Draw"),
 		REPLACE("Replace"),
 		LINE("Line"),
 		FILL("Fill"),
 		ERASE("Eraser"),
-		SELECT("Select and move"),
+		SELECT("Select and Move"),
 		FLOODSELECT("Flood select"),
-		TEXT("Text");
+		TEXT("Text"),
+		VOLTAGE("Voltage probe"),
+		CURRENT("Current probe"),
+		CHARGE("Charge probe"),
+		FLUX("Magnetic flux probe"),
+		GROUND("Ground"),
+		DELETEPROBE("Delete probe"),
+		MOVELABEL("Move label"),
+		BANDS("Plot bands"),
+		SCALARPLOT("Plot scalar field"),
+		CARRIERPLOT("Plot carriers"),
+		PROBEPLOT("Plot probe data");
 	
 		public String name;
 		Brush(String name)
@@ -1365,9 +1838,89 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			return (brush == Brush.LINE || brush == Brush.BANDS || brush == Brush.SCALARPLOT || brush == Brush.CARRIERPLOT);
 		}
 	}
-}
 
-interface FloodFillFunc {
-	boolean isValid(int i, int j);
-	void fill(int i, int j);
+	class DescDialog extends JDialog {
+		private static final long serialVersionUID = -1338819833865147129L;
+		public JButton okButton = new JButton("Apply");
+		public JButton cancelButton = new JButton("Cancel");
+		
+		public DescDialog() {
+			String text = e.opts.textPane.getText();
+			
+			getContentPane().setLayout(new BorderLayout());
+			JTextArea area = new JTextArea();
+			JScrollPane scroll = new JScrollPane(area);
+			setSize(500, 500);
+			area.setText(text);
+			area.setEditable(true);
+			area.setLineWrap(true);
+			area.setWrapStyleWord(true);
+			getContentPane().add(scroll);
+
+			JPanel buttonPane = new JPanel();
+			buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
+			getContentPane().add(buttonPane, BorderLayout.SOUTH);
+			
+			buttonPane.add(okButton);
+			getRootPane().setDefaultButton(okButton);
+			
+			buttonPane.add(cancelButton);
+			
+			okButton.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent ev) {
+					e.opts.textPane.setText(area.getText());
+					e.opts.textPane.setEditable(false);
+					flagChanges(false);
+					dispose();
+				}
+			});
+			
+			cancelButton.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent ev) {
+					dispose();
+				}
+			});
+			setVisible(true);
+		}
+	}
+
+	interface FloodFillFunc {
+		boolean isValid(int i, int j);
+		void fill(int i, int j);
+	}
+
+	@Override
+	public void windowOpened(WindowEvent e) {}
+
+	@Override
+	public void windowClosing(WindowEvent ev) {
+		if (e.controls.changesmade) {
+			int result = JOptionPane.showConfirmDialog(e.opts, "There are unsaved changes. Do you still wish to quit?", "Message", JOptionPane.YES_NO_OPTION);
+			if (result == JOptionPane.OK_OPTION)
+			{
+				e.opts.dispose();
+				System.exit(0);
+			}
+		} else {
+			e.opts.dispose();
+			System.exit(0);
+		}
+	}
+
+	@Override
+	public void windowClosed(WindowEvent e) {}
+
+	@Override
+	public void windowIconified(WindowEvent e) {}
+
+	@Override
+	public void windowDeiconified(WindowEvent e) {}
+
+	@Override
+	public void windowActivated(WindowEvent e) {}
+
+	@Override
+	public void windowDeactivated(WindowEvent e) {}
 }

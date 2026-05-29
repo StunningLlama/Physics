@@ -119,10 +119,12 @@ td:first-child, th:first-child {
           src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js">
   </script>
 
-<h1>Installation Troubleshooting</h1>
-<h2>Running the Program</h2>
+<h1>Installation Instructions and Troubleshooting</h1>
+<h2>Installation</h2>
 <ol>
-  <li>Make sure you have the latest version of Java installed.</li>
+  <li>Make sure you have the latest version of Java installed. Java can be found <a href="https://www.java.com/en/download/manual.jsp">here</a>.</li>
+  <li>Extract the contents of SemiSim.zip into a new folder.</li>
+  <li>Double click SemiSim.jar to run it.</li>
   <li>If SemiSim crashes when loading a file:
     <ul>
       <li>Make sure you have a 64-bit version of Java installed.</li>
@@ -134,16 +136,31 @@ td:first-child, th:first-child {
 <ol>
   <li>If you see "<i>SemiSim.jar cannot be opened because it is from an unidentified developer</i>":
     <ul>
-      <li>Right click "SemiSim.jar" and click <b>Open</b>.</li>
-      <li>Click <b>Open</b> again on the popup window.</li>
+      <li>Right click "SemiSim.jar" and click "Open".</li>
+      <li>Click "Open" again on the popup window.</li>
     </ul>
   </li>
   <li>If you are unable to see and open files:
     <ul>
-      <li>Go into <b>System Preferences → Security → Privacy → Full Disk Access</b>.</li>
-      <li>Add <code>/System/Library/CoreServices/Jar Launcher.app</code> to the list and give it disk access.</li>
+      <li>Go into System Preferences → Security → Privacy → Full Disk Access.</li>
+      <li>Add "/System/Library/CoreServices/Jar Launcher.app" to the list and give it disk access.</li>
     </ul>
   </li>
+</ol>
+
+<h1>Build Instructions</h1>
+
+Clone the repository using
+<code>bash
+git clone https://github.com/StunningLlama/SemiSim.git
+</code><br>
+Note: Building requires JRE 1.8 and Maven for dependency management.
+
+<h2>Eclipse</h2>
+<ol>
+<li>Go to File → Import → Existing Maven Projects</li>
+<li>Select the cloned repository folder</li>
+<li>Click Finish</li>
 </ol>
 
 
@@ -176,13 +193,13 @@ Because the simulation uses a very simplified model of how semiconductors work, 
 <li>Velocity saturation</li>
 <li>Fermi level pinning</li>
 <li>Different recombination mechanisms</li>
+<li>Surface effects</li>
 </ul>
 Finally, certain properties of materials differ from their real life counterparts (for example, the charge carrier mobility of the semiconductor material is about 1500x greater than that of Silicon).
-This was done for educational purposes.
 
 <h1>Simulation features</h1>
-The interface consists of the simulation area which the user can interact with and the settings panel containing all the simulation controls. <figure><img src="images/app.png" alt="Application" style="max-width:60%"><figcaption>Simulation area (purple, left) and settings (blue, right).</figcaption></figure>
-The main way to interact with circuits is to change the strength of voltage sources and turn switches on and off. The quickest way to get started is to load one of the examples and start changing the voltages.
+The interface consists of the simulation area which the user can interact with, simulation controls that allow various parameters to be adjusted, and a menu bar containing different settings and tools. <figure><img src="images/app.png" alt="Application" style="max-width:60%"><figcaption>Simulation area (purple), controls (blue), and menu bar (green).</figcaption></figure>
+The main way to interact with circuits is through voltage sources and switches. A good way to get started with this software is to load one of the many examples.
 <h2>Simulation variables</h2>
 Listed below are the most important variables that capture the state of the simulation at a given time:
 <table>
@@ -210,58 +227,51 @@ Listed below are the most important variables that capture the state of the simu
 </ul>
 </table>
 * Here free energy is measured per unit of charge instead of per particle, hence the units used are [V] and not [eV].
-<h2>Vector view modes</h2>
+<h2>View options</h2>
+  <p><strong>Colors:</strong> The value of a field is mapped to a color. <figure><img src="images/colors.png" alt="Colors"></figure></p>
+  <p><strong>Contour:</strong> Contour lines indicate a region on which the scalar field has a constant value.  <figure><img src="images/contour.png" alt="Contour lines"></figure></p>
   <p><strong>Arrows:</strong> The direction and brightness of arrows corresponds to the direction and magnitude of the vector field. <figure><img src="images/arrows.png" alt="Arrows"></figure></p>
   <p><strong>Lines:</strong> 
 The brightness and density of lines indicates the magnitude of the field. <figure><img src="images/lines.png" alt="Field lines"></figure></p>
-  <p><strong>Dots <small>[desktop]</small>:</strong> The velocity of the dots is proportional to the value of the vector field. <figure><img src="images/dots.png" alt="Dots"></figure></p>
-  <p><strong>Contour <small>[desktop]</small>:</strong> Contour lines indicate a region on which the scalar field has a constant value.  <figure><img src="images/contour.png" alt="Contour lines"></figure></p>
-  <p><strong>Charge carriers <small>[desktop]</small>:</strong> Electrons and holes are represented as blue and red dots, respectively.
-    Both dots move at the actual drift velocities of their corresponding charge carriers and their density accurately reflects the density of charge carriers. This is much more realistic but less flexible than the dots view. <figure><img src="images/carriers.png" alt="Charge carriers"></figure></p>
+  <p><strong>Dots:</strong> The velocity of the dots is proportional to the value of the vector field. <figure><img src="images/dots.png" alt="Dots"></figure></p>
+  <p><strong>Charge carriers:</strong> Electrons and holes are represented as blue and red dots, respectively.
+    Both dots move at the actual drift velocities of their corresponding charge carriers and their density accurately reflects the density of charge carriers. White and black dots represent carrier recombination and generation events.<figure><img src="images/carriers.png" alt="Charge carriers"></figure></p>
 <h2>Options</h2>
 <table>
-  <tr><td>Pause</td><td>Pauses and unpauses the simulation.</td></tr>
-  <tr><td>Show detailed info</td><td>Displays a tooltip that contains the values of all the simulation variables at the cursor's location.</td></tr>
-  <tr><td>Show text background</td><td>Gives text boxes a black background, making the text easier to see.</td></tr>
-  <tr><td>Display interface</td><td>Shows probe info, graph locations, time, and tooltip.</td></tr>
   <tr><td>Boundary condition</td><td>Choose between a boundary that absorbs outgoing radiation or a perfectly conductive boundary that reflects it.</td></tr>
-  <tr><td>Scalar view</td><td>Choose which field to display as a color scale over the simulation field.</td></tr>
-  <tr><td>Vector view</td><td>Choose which vector field to visualize (only works for 2D vectors, see "Vector view modes").</td></tr>
-  <tr><td>Show material colors</td><td>If checked, gives each material a different color, making them easier to tell apart.</td></tr>
   <tr><td>Timestep</td><td>Sets the simulation timestep. The maximum timestep is determined by the CFL condition for the wave equation and diffusion equations for each charge carrier.</td></tr>
   <tr><td>Sim steps/frame</td><td>Sets the number of iterations performed during each frame. Most of the examples require at least 10 steps/frame to run responsively.
     The maximum number depends on how good the user's computer is.</td></tr>
-  <tr><td>Scalar brightness</td><td>Sets the brightness of the scalar field.</td></tr>
-  <tr><td>Vector brightness</td><td>Sets the brightness of the vector field.</td></tr>
-  <tr><td>Save scenario</td><td>Saves the current simulation to a file.</td></tr>
-  <tr><td>Load scenario</td><td>Loads a simulation from a file. SemiSim comes with a variety of pre-made simulations located in the "examples" folder.</td></tr>
-  <tr><td>Clear all</td><td>Removes all materials and resets all fields.</td></tr>
   <tr><td>Set fields to zero</td><td>Sets all fields to their default values, leaving the materials unchanged.</td></tr>
-  <tr><td>Advanced settings <br><small>[desktop]</small> </td><td>Opens advanced simulation settings window, for advanced users only.</td></tr>
-  <tr><td>Tool</td><td>Selects one of the tools.</td></tr>
+  <tr><td>Set image size </td><td>Sets the size of the simulation display area.</td></tr>
+  <tr><td>Advanced settings </td><td>Opens advanced simulation settings window, contains settings to modify physics and material constants.</td></tr>
   </table>
 
 <h2>Tools</h2>
 <table>
     <tr><td>Interact</td><td>Allows user to control voltage sources and turn switches on and off by clicking.</td></tr>
+    <tr><td>Flashlight</td><td>Shines a light on the region under the cursor, creating pairs of electrons and holes.</td></tr>
+    <tr><td>Zoom and Pan</td><td>Click and drag to zoom into a region. Click to zoom out. Hold shift to pan.</td></tr>
     <tr><td>Draw</td><td>Adds material to the field.</td></tr>
-    <tr><td>Voltage</td><td>Adds a voltage probe that measures electrochemical potential at a certain point (See "What do voltmeters actually measure").</td></tr>
-    <tr><td>Current <br><small>[click and drag]</small></td><td>Adds a current probe that measures current across a wire.
-    </td></tr>
+    <tr><td>Replace</td><td>Similar to the draw tool, but overwrites occupied areas.</td></tr>
+    <tr><td>Line <br><small></small></td><td>Draws a line of material.</td></tr>
+    <tr><td>Fill</td><td>Fills a region with a certain material, similar to the bucket tool.</td></tr>
+    <tr><td>Eraser</td><td>Erases material.</td></tr>
+    <tr><td>Select and Move</td><td>Makes a rectangular selection which can be dragged around and moved.</td></tr>
+    <tr><td>Flood select</td><td>Selects a contiguous region, similar to the bucket tool.</td></tr>
+    <tr><td>Text</td><td>Place a text cursor allowing text to be typed on the screen.</td></tr>
+    <tr><td>Voltage probe</td><td>Adds a voltage probe that measures electrochemical potential at a certain point (See "What do voltmeters actually measure").</td></tr>
+    <tr><td>Current probe</td><td>Click and drag to add a current probe that measures current across a wire.</td></tr>
+    <tr><td>Charge probe</td><td>Click and drag to add a charge probe that measures electrical charge within a given region.</td></tr>
+	<tr><td>Magnetic flux probe</td><td>Click and drag to add a probe that measures magnetic flux.</td></tr>
     <tr><td>Ground</td><td>Specifies the point relative to which probes measure voltage (optional).</td></tr>
     <tr><td>Delete probe</td><td>Click to delete a probe.</td></tr>
-    <tr><td>Plot bands <br><small>[click and drag, desktop]</small></td><td>Specifies a 1D line along which the bands are plotted.
-      The plot contains the conduction and valence energy band edges as well as the quasi-Fermi levels of electrons in both bands.  <figure><img src="images/bandplot.png" alt="Band plot" style="max-width:70%"><figcaption>Valence and conduction band energies shown as solid lines. Quasi-Fermi levels are dashed lines.</figcaption></figure></td></tr>
-    <tr><td>Plot scalar field <br><small>[click and drag, desktop]</small></td><td>Makes a plot of the currently selected scalar field.</td></tr>
-    <tr><td>Plot carriers <br><small>[click and drag, desktop]</small></td><td>Makes a logarithmic plot of the number density of electrons and holes.</td></tr>
-    <tr><td>Flashlight <br><small>[click and hold, desktop]</small></td><td>Shines a light on the region under the cursor. Light generates electron and hole pairs.</td></tr>
-    <tr><td>Replace</td><td>Similar to the draw tool, but overwrites occupied areas.</td></tr>
-    <tr><td>Line <br><small>[click and drag]</small></td><td>Draws a line of material.</td></tr>
-    <tr><td>Fill</td><td>Fills a region with a certain material, similar to the bucket tool.</td></tr>
-    <tr><td>Erase</td><td>Erases material.</td></tr>
-    <tr><td>Select</td><td>Makes a rectangular selection which can be dragged around and moved.</td></tr>
-    <tr><td>Select region</td><td>Selects a contiguous region, similar to the bucket tool.</td></tr>
-    <tr><td>Text</td><td>Place a text cursor allowing text to be typed on the screen.</td></tr>
+    <tr><td>Move label</td><td>Moves labels attached to probes.</td></tr>
+    <tr><td>Plot bands</td><td>Click and drag to plot energy bands along a line.
+      The plot contains the conduction and valence energy band edges as well as the quasi-Fermi levels of electrons and holes.  <figure><img src="images/bandplot.png" alt="Band plot" style="max-width:70%"><figcaption>Valence and conduction band energies shown as solid lines. Quasi-Fermi levels are dashed lines.</figcaption></figure></td></tr>
+    <tr><td>Plot scalar field</td><td>Click and drag to make a plot of the currently selected scalar field.</td></tr>
+    <tr><td>Plot carriers</td><td>Click an drag to make a logarithmic plot of the number density of electrons and holes.</td></tr>
+    <tr><td>Plot probe data</td><td>Selecting this will create a plot of probe measurements over time, similar to an oscilloscope.</td></tr>
 </table>
 
 <h2>Keyboard/Mouse Controls</h2>
@@ -269,28 +279,27 @@ The brightness and density of lines indicates the magnitude of the field. <figur
     <tr><td>P or Space</td><td>Pause &amp; unpause</td></tr>
     <tr><td>F</td><td>Advance frame</td></tr>
     <tr><td>Q</td><td>Change brush shape</td></tr>
-    <tr><td>C</td><td>Toggle material color</td></tr>
-    <tr><td>V</td><td>Toggle vectors</td></tr>
-    <tr><td>S</td><td>Toggle scalar colors</td></tr>
-    <tr><td>T</td><td>Toggle tooltip</td></tr>
-    <tr><td>G</td><td>Toggle text background</td></tr>
-    <tr><td>H</td><td>Toggle user interface</td></tr>
     <tr><td>Mouse wheel</td><td>Change brush size</td></tr>
-    <tr><td>Shift</td><td>Draw straight lines</td></tr>
-    <tr><td>Ctrl</td><td>Fill area</td></tr>
     <tr><td>Alt or Option</td><td>Pick material</td></tr>
-    <tr><td>Ctrl-X</td><td>Cut</td></tr>
-    <tr><td>Ctrl-C</td><td>Copy</td></tr>
-    <tr><td>Ctrl-V</td><td>Paste</td></tr>
     <tr><td>Left mouse</td><td>Draw material</td></tr>
     <tr><td>Right mouse</td><td>Erase material</td></tr>
     <tr><td>Middle mouse</td><td>Pick material</td></tr>
-    <tr><td>R <small>[desktop]</small></td><td>Record probe data (saves to probedata.txt)</td></tr>
+    <tr><td>R</td><td>Record probe data (saves to probedata.txt)</td></tr>
+    <tr><td>[</td><td>Previous tool</td></tr>
+    <tr><td>]</td><td>Next tool</td></tr>
+    <tr><td>Ctrl-X</td><td>Cut a region made with the select tool</td></tr>
+    <tr><td>Ctrl-C</td><td>Copy a region made with the select tool</td></tr>
+    <tr><td>Ctrl-V</td><td>Paste the clipboard</td></tr>
+    <tr><td>Ctrl-R</td><td>Rotate the clipboard after using the paste command</td></tr>
+    <tr><td>Ctrl-F</td><td>Flip the clipboard horizontally after using the paste command</td></tr>
+    <tr><td>Ctrl-G</td><td>Flip the clipboard vertically</td></tr>
 </table>
 
 <h2>Materials</h2>
 <table>
     <tr><td>Voltage source</td><td>Generates a voltage that can be used to power circuits.</td></tr>
+    <tr><td>AC voltage source</td><td>Voltage source that oscillates sinusoidally at a fixed frequency.</td></tr>
+    <tr><td>Current source</td><td>Approximation of an ideal current source. Used to generate a constant current density.</td></tr>
     <tr><td>Switch</td><td>Conductivity can be switched on and off by the user.</td></tr>
     <tr><td>Metal</td><td>Material that conducts electricity very well.</td></tr>
     <tr><td>Conductive metal</td><td>More conductive than regular metal.</td></tr>
@@ -308,6 +317,7 @@ The brightness and density of lines indicates the magnitude of the field. <figur
     <tr><td>Ferromagnet</td><td>Magnetic material with high relative permeability.</td></tr>
     <tr><td>Positive static charge</td><td>Positively charged insulating material.</td></tr>
     <tr><td>Negative static charge</td><td>Negatively charged insulating material.</td></tr>
+    <tr><td>Absorber</td><td>Absorbs incoming electromagnetic radiation very effectively.</td></tr>
     <tr><td>Decoration</td><td>Used for text or circuit symbols, has no effect otherwise.</td></tr>
     <tr><td>Vacuum</td><td>Empty space.</td></tr>
 </table>
@@ -328,19 +338,19 @@ The simulation runs on a staggered grid with B and rho...
 <h2>Why does this simulation exist?</h2>
 I created this simulator because I wanted to get a deeper understanding of how semiconductors work.
 It's been my experience that there's been a lack of good simulations that demonstrate advanced topics in physics.
-There certaintly exists many educational physics simulations, but they're all either aimed at lower educational levels, or they are very restricted in how the user can interact with the system.
+There certainly exists many educational physics simulations, but they're all either aimed at lower educational levels, or they are very restricted in how the user can interact with the system.
 The only examples I've seen of simulations that combine advanced topics with a generous amount of interactivity are the physics applets written by Paul Falstad, to whom I'm also grateful for looking over my project and helping to convert it to Javascript.
 I've tried to give users many different ways of interacting with the simulation. Circuits can be drawn with just a few clicks of the mouse, allowing users to easily experiment with their own circuits.
 There are also many different ways of visualizing the underlying physics that I've incorporated into the settings. Each one gives a different perspective on the physics that is happening.
 
 <h2>What do the colors mean?</h2>
-In general, the color red is associated with either holes or a positive charge. Blue represents electrons or negative charge. White means both electrons and holes exist a location.
-In the rest of the cases, yellow represents a positve quantity (eg. chemical potential or magnetic field), while cyan is negative. Finally, green is used for quantites that are always positive (eg. energy density).
+In general, the color red is associated with either holes or a positive field. Blue represents electrons or negative fields. White means both electrons and holes exist a location.
+For magnetic fields, cyan/yellow represent fields going in to and out of the page, respectively. Finally, green is used for quantities that are always positive (eg. energy density).
 Note: Each material also has its own color which is unrelated to the aforementioned color scheme.
 
 <h2>What do voltmeters actually measure?</h2>
 You might notice that the reading from a voltage probe doesn't match the electric potential Φ. In reality, voltmeters do not measure Φ but rather differences in electrochemical potential of charge carriers.
-Things get a bit trickier when we ask what the voltage is in a piece of semiconductor, becuase now there are multiple charge carriers! In this case we can try to define voltage as the reading we get when we stick a small metallic
+Things get a bit trickier when we ask what the voltage is in a piece of semiconductor, because now there are multiple charge carriers! In this case we can try to define voltage as the reading we get when we stick a small metallic
 probe at a certain point. This can actually be performed in the simulation, and the result is that the electrochemical potential of the metal lies between that of electrons and holes, closer to whichever one has a larger density.
 I approximate this with a simple weighted average, the result of which is displayed on the voltage probe.
 
@@ -349,7 +359,7 @@ Because the simulation is in 2D, circuits actually extend infinitely in the z-di
 If you recall from E&amp;M class, the magnetic field within an infinitely long solenoid is entirely contained within it. This is certainly a point of departure from how we expect circuits to behave. It means that each current loop has its own inductance,
 and trying to create "inductors" that behave like their 3D counterparts is quite tricky.
 <p>
-    Copyright (c) 2025 Brandon Li<br>
+    Copyright (c) 2026 Brandon Li<br>
     <a href="mailto:brandonli.lex@gmail.com">brandonli.lex@gmail.com</a>
 </p>
 </main>

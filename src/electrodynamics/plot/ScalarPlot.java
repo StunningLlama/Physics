@@ -6,17 +6,19 @@ package electrodynamics.plot;
 
 import org.jfree.data.xy.XYSeries;
 
-import electrodynamics.Renderer;
 import electrodynamics.Simulation;
+import electrodynamics.units.Quantity;
 import electrodynamics.util.Utils;
 
 public class ScalarPlot extends Plot {
 
 	public XYSeries data;
 
-	public ScalarPlot() {
-		super();
+	@Override
+	public void initialize() {
+		super.initialize();
         frame.setTitle("Scalar plot");
+        fig.xlabel("Position");
 	}
 	
 	@Override
@@ -26,9 +28,14 @@ public class ScalarPlot extends Plot {
 	
 	@Override
 	public void updatePlot(Simulation e) {
-        String title = ((Renderer.ScalarView)e.opts.gui_view.getSelectedItem()).name;
+        String title = e.controls.scalarview.getOption().name;
         fig.title(title);
-        fig.ylabel(((Renderer.ScalarView)e.opts.gui_view.getSelectedItem()).unit);
+        Quantity q = e.controls.scalarview.getOption().unit;
+        double unitquantity = e.units.sys.toSI(1, q);
+        //String unitname = e.units.toString(unitquantity, e.controls.scalarview.getOption().unit);
+        String unitname = e.units.sys.toString(1, q, "%.0f");
+        if (unitname.startsWith("1 ")) unitname = unitname.substring(2);
+        fig.ylabel(q.name + " (" + unitname + ")");
         
 		if (frame.isVisible() && e.frame%10 == 0) {
 
@@ -41,7 +48,7 @@ public class ScalarPlot extends Plot {
 				double x = t*(x2 - x1) + x1;
 				double y = t*(y2 - y1) + y1;
 
-				data.add(t, Utils.bilinearinterp(e.renderer.scalarfield, x, y, e.nx, e.ny));
+				data.add(t, Utils.bilinearinterp_extrap(e.renderer.scalarfield, x, y, e.nx, e.ny)/unitquantity);
 			}
 
 			data.setNotify(true);

@@ -95,6 +95,7 @@ public class DistributionSampler {
 	}
 
 	private Coord generateSample() {
+		
 		while (true) {
 			int index = binarySearch(rand.next());
 			int i = index/my;
@@ -109,7 +110,7 @@ public class DistributionSampler {
 	}
 
 	public void generateSamples(double N, GenFunc f) {
-		if (rho_tot <= 0)
+		if (!Double.isFinite(rho_tot) || rho_tot <= 0 || N > 100000)
 			return;
 
 		int N_floor = (int)Math.floor(N);
