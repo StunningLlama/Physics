@@ -53,6 +53,7 @@ import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
 import electrodynamics.Simulation.BoundaryCondition;
+import electrodynamics.util.CustJRadioButtonMenuItem;
 import electrodynamics.util.MenuBuilder;
 
 import javax.swing.JCheckBoxMenuItem;
@@ -666,15 +667,15 @@ public class MainWindow extends JFrame {
 		gui_brush.addItemListener(e.controls);
 		
 		
-		e.controls.brushes.initialize(Controls.Brush.values(), menu_tools, e.controls, Controls.Brush.INTERACT, new Controls.Brush[] {Controls.Brush.DRAW, Controls.Brush.VOLTAGE, Controls.Brush.BANDS});
+		e.controls.brushes.initialize(Controls.Brush.values(), menu_tools, e.controls, Controls.Brush.INTERACT, new Controls.Brush[] {Controls.Brush.DRAW, Controls.Brush.VOLTAGE, Controls.Brush.BANDS}, () -> new JRadioButtonMenuItem());
 
-		e.controls.scalarview.initialize(ScalarView.values(), menu_view, e.controls, ScalarView.CHARGE, null);
+		e.controls.scalarview.initialize(ScalarView.values(), menu_view, e.controls, ScalarView.CHARGE, null, () -> new CustJRadioButtonMenuItem());
 		menu_view.add(new JSeparator());
-		e.controls.scalarmode.initialize(ScalarMode.values(), menu_view, e.controls, ScalarMode.COLORS, null);
+		e.controls.scalarmode.initialize(ScalarMode.values(), menu_view, e.controls, ScalarMode.COLORS, null, () -> new CustJRadioButtonMenuItem());
 		menu_view.add(new JSeparator());
-		e.controls.vectorview.initialize(VectorView.values(), menu_view, e.controls, VectorView.E_FIELD, null);
+		e.controls.vectorview.initialize(VectorView.values(), menu_view, e.controls, VectorView.E_FIELD, null, () -> new CustJRadioButtonMenuItem());
 		menu_view.add(new JSeparator());
-		e.controls.vectormode.initialize(VectorMode.values(), menu_view, e.controls, VectorMode.ARROWS, null);
+		e.controls.vectormode.initialize(VectorMode.values(), menu_view, e.controls, VectorMode.ARROWS, null, () -> new CustJRadioButtonMenuItem());
 
 		e.controls.brushes.buttonmap.get(Controls.Brush.INTERACT).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_1, 0));
 		e.controls.brushes.buttonmap.get(Controls.Brush.DRAW).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_2, 0));

@@ -40,6 +40,7 @@ public class SIUnits extends UnitSystem {
 		case RATE_DENSITY: return "/(m^3 s)";
 		case ENERGY_DENSITY: return "J/m^3";
 		case POWER_DENSITY: return "W/m^3";
+		case ENTROPY_DENSITY_RATE: return "J/(K s m^3)";
 		case INTENSITY: return "W/m^2";
 		}
 		

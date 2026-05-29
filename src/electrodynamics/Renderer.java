@@ -1770,7 +1770,7 @@ public class Renderer extends PeriodicTask {
 		COMBINED_CHARGE("View: Combined electron+hole charge density",						"\u03c1\u2099 and \u03c1\u209A",	Quantity.DIMENSIONLESS,	ColorScheme.OTHER,			1),
 		BACKGROUND_CHARGE("View \u03c1\u2080: Static charge density (doping)",				"\u03c1\u2080",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE,		1e1),
 		HEAT("View Q: Heat dissipation",													"q",		Quantity.POWER_DENSITY,				ColorScheme.RED_BLUE,		1e12),
-		ENTROPY("View s: Entropy generation (Free energy dissipation)",						"s",		Quantity.POWER_DENSITY,				ColorScheme.RED_BLUE,		1e12), //TODO ?
+		ENTROPY("View s: Entropy generation rate",											"s",		Quantity.ENTROPY_DENSITY_RATE,		ColorScheme.RED_BLUE,		3.33e9),
 		ELECTRON_POTENTIAL("View F\u2099: Electron chemical potential (quasi Fermi level)",	"F\u2099",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
 		HOLE_POTENTIAL("View F\u209A: Hole chemical potential (quasi Fermi level)",			"F\u209A",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
 		AVERAGE_POTENTIAL("View F: Average electrochemical potential",						"F",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),

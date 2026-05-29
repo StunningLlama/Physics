@@ -59,6 +59,7 @@ import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
 import electrodynamics.units.Quantity;
 import electrodynamics.units.Units;
+import electrodynamics.util.CustJRadioButtonMenuItem;
 import electrodynamics.util.Font7x5;
 import electrodynamics.util.MenuCheckList;
 import electrodynamics.util.Utils;
@@ -165,11 +166,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	Cursor HAND_CURSOR = new Cursor(Cursor.HAND_CURSOR);
 	Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
 	
-	public MenuCheckList<Brush> brushes = new MenuCheckList<Brush>();
-	public MenuCheckList<ScalarView> scalarview = new MenuCheckList<ScalarView>();
-	public MenuCheckList<VectorView> vectorview = new MenuCheckList<VectorView>();
-	public MenuCheckList<ScalarMode> scalarmode = new MenuCheckList<ScalarMode>();
-	public MenuCheckList<VectorMode> vectormode = new MenuCheckList<VectorMode>();
+	public MenuCheckList<Brush, JRadioButtonMenuItem> brushes = new MenuCheckList<Brush, JRadioButtonMenuItem>();
+	public MenuCheckList<ScalarView, CustJRadioButtonMenuItem> scalarview = new MenuCheckList<ScalarView, CustJRadioButtonMenuItem>();
+	public MenuCheckList<VectorView, CustJRadioButtonMenuItem> vectorview = new MenuCheckList<VectorView, CustJRadioButtonMenuItem>();
+	public MenuCheckList<ScalarMode, CustJRadioButtonMenuItem> scalarmode = new MenuCheckList<ScalarMode, CustJRadioButtonMenuItem>();
+	public MenuCheckList<VectorMode, CustJRadioButtonMenuItem> vectormode = new MenuCheckList<VectorMode, CustJRadioButtonMenuItem>();
 	//public JCheckBoxMenuItem carriers = new JCheckBoxMenuItem("Show charge carriers");
 	
 	public UndoRedo undoredo = new UndoRedo(4);

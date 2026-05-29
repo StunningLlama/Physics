@@ -4,20 +4,21 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.function.Supplier;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JMenu;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JSeparator;
 
-public class MenuCheckList<T extends Enum<?>> implements ActionListener {
+public class MenuCheckList<T extends Enum<?>, U extends JRadioButtonMenuItem> implements ActionListener {
 
-	public HashMap<T, CustJRadioButtonMenuItem> buttonmap = new HashMap<T, CustJRadioButtonMenuItem>();
-	public HashMap<Integer, CustJRadioButtonMenuItem> buttonlist = new HashMap<Integer, CustJRadioButtonMenuItem>();
+	public HashMap<T, U> buttonmap = new HashMap<T, U>();
+	public HashMap<Integer, U> buttonlist = new HashMap<Integer, U>();
 	public ButtonGroup buttongroup = new ButtonGroup();
 	JMenu menu;
 	
-	public void initialize(T[] values, JMenu menu, ActionListener a, T default_option, T[] sep) {
+	public void initialize(T[] values, JMenu menu, ActionListener a, T default_option, T[] sep, Supplier<U> constructor) {
 		this.menu = menu;
 		
 		int i = 0;
@@ -25,7 +26,8 @@ public class MenuCheckList<T extends Enum<?>> implements ActionListener {
 			if (sep != null && Arrays.asList(sep).contains(b))
 				menu.add(new JSeparator());
 			
-			CustJRadioButtonMenuItem button = new CustJRadioButtonMenuItem(b.toString());
+			U button = constructor.get();
+			button.setText(b.toString());
 			buttonmap.put(b, button);
 			buttonlist.put(i, button);
 			button.addActionListener(a);

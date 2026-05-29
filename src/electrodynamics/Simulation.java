@@ -1267,7 +1267,7 @@ public class Simulation extends PeriodicTask {
 
 					double ohm_contrib = 0.5*(Ex[i-1][j]*Jx_free[i-1][j]+Ex[i][j]*Jx_free[i][j]+Ey[i][j-1]*Jy_free[i][j-1]+Ey[i][j]*Jy_free[i][j]);
 
-					S[i][j] = n_contrib + jn_contrib + p_contrib + jp_contrib + ohm_contrib;
+					S[i][j] = (n_contrib + jn_contrib + p_contrib + jp_contrib + ohm_contrib)/T;
 				}
 			}
 		}

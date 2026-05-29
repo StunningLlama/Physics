@@ -22,13 +22,14 @@ public enum Quantity {
 	MAGNETIC_FLUX_DENSITY("Magnetic flux density", 	-1, 0, 1, -1, 0),
 	MAGNETIC_FLUX("Magnetic flux", 					-1, 2, 1, -1, 0),
 	
-	CHARGE_DENSITY("Charge density", 		0, -3, 0, 1, 0),
-	CURRENT_DENSITY("Current density", 		-1, -2, 0, 1, 0),
-	NUMBER_DENSITY("Number density", 		0, -3, 0, 0, 0),
-	RATE_DENSITY("Rate density", 			-1, -3, 0, 0, 0),
-	ENERGY_DENSITY("Energy density", 		-2, -1, 1, 0, 0),
-	POWER_DENSITY("Power density", 			-3, -1, 1, 0, 0),
-	INTENSITY("Intensity", 					-3, 0, 1, 0, 0);
+	CHARGE_DENSITY("Charge density", 				0, -3, 0, 1, 0),
+	CURRENT_DENSITY("Current density", 				-1, -2, 0, 1, 0),
+	NUMBER_DENSITY("Number density", 				0, -3, 0, 0, 0),
+	RATE_DENSITY("Rate density", 					-1, -3, 0, 0, 0),
+	ENERGY_DENSITY("Energy density", 				-2, -1, 1, 0, 0),
+	POWER_DENSITY("Power density", 					-3, -1, 1, 0, 0),
+	ENTROPY_DENSITY_RATE("Entropy density rate",	-3, -1, 1, 0, -1),
+	INTENSITY("Intensity", 							-3, 0, 1, 0, 0);
 	
 	Quantity(String name, int time, int len, int mass, int charge, int temp) {
 		this.name = name;

@@ -40,6 +40,7 @@ public class MixedUnits extends UnitSystem {
 		case RATE_DENSITY: return "/(cm^3 s)";
 		case ENERGY_DENSITY: return "J/cm^3";
 		case POWER_DENSITY: return "W/cm^3";
+		case ENTROPY_DENSITY_RATE: return "J/(K s cm^3)";
 		case INTENSITY: return "W/cm^2";
 		}
 		

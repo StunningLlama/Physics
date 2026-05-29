@@ -8,6 +8,10 @@ public class CustJRadioButtonMenuItem extends JRadioButtonMenuItem {
 
 	private static final long serialVersionUID = 8471715336310341301L;
 
+	public CustJRadioButtonMenuItem() {
+		super();
+	}
+	
 	public CustJRadioButtonMenuItem(String text) {
 		super(text);
 	}

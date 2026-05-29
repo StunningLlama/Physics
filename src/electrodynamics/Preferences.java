@@ -90,19 +90,18 @@ public class Preferences extends JFrame {
 		
 		JLabel lblUnitSystem = new JLabel("Unit system");
 		lblUnitSystem.setToolTipText("Width of simulation domain");
-		lblUnitSystem.setHorizontalAlignment(SwingConstants.CENTER);
-		lblUnitSystem.setBounds(17, 128, 91, 16);
+		lblUnitSystem.setBounds(26, 128, 91, 16);
 		contentPane.add(lblUnitSystem);
 		
 		gui_units = new JComboBox();
 		gui_units.setModel(new DefaultComboBoxModel(Units.values()));
-		gui_units.setBounds(130, 124, 145, 27);
+		gui_units.setBounds(130, 124, 146, 27);
 		contentPane.add(gui_units);
 		
 		chkbox_logscale = new JCheckBox("Use log scale for density plots");
 		chkbox_logscale.setSelected(true);
 		chkbox_logscale.setHorizontalTextPosition(SwingConstants.LEADING);
-		chkbox_logscale.setBounds(21, 95, 255, 23);
+		chkbox_logscale.setBounds(21, 96, 255, 23);
 		contentPane.add(chkbox_logscale);
 	}
 	
