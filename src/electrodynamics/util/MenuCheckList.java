@@ -12,8 +12,8 @@ import javax.swing.JSeparator;
 
 public class MenuCheckList<T extends Enum<?>> implements ActionListener {
 
-	public HashMap<T, JRadioButtonMenuItem> buttonmap = new HashMap<T, JRadioButtonMenuItem>();
-	public HashMap<Integer, JRadioButtonMenuItem> buttonlist = new HashMap<Integer, JRadioButtonMenuItem>();
+	public HashMap<T, CustJRadioButtonMenuItem> buttonmap = new HashMap<T, CustJRadioButtonMenuItem>();
+	public HashMap<Integer, CustJRadioButtonMenuItem> buttonlist = new HashMap<Integer, CustJRadioButtonMenuItem>();
 	public ButtonGroup buttongroup = new ButtonGroup();
 	JMenu menu;
 	
@@ -25,7 +25,7 @@ public class MenuCheckList<T extends Enum<?>> implements ActionListener {
 			if (sep != null && Arrays.asList(sep).contains(b))
 				menu.add(new JSeparator());
 			
-			JRadioButtonMenuItem button = new JRadioButtonMenuItem(b.toString());
+			CustJRadioButtonMenuItem button = new CustJRadioButtonMenuItem(b.toString());
 			buttonmap.put(b, button);
 			buttonlist.put(i, button);
 			button.addActionListener(a);

@@ -13,67 +13,6 @@ public class Utils {
 	public static double length(double x, double y) {
 		return Math.sqrt(x*x+y*y);
 	}
-
-	public static String getSI(double quantity, String unit, double lowerbound) {
-		return getSI(Math.abs(quantity) < lowerbound? 0 : quantity, unit);
-	}
-
-	public static String getSI(double quantity, String unit) {
-		return getSI(quantity, unit, "%.2f");
-	}
-
-	public static String getSI_fixedsigfigs(double quantity, String unit, double lowerbound) {
-		return getSI_fixedsigfigs(Math.abs(quantity) < lowerbound? 0 : quantity, unit);
-	}
-	
-	public static String getSI_fixedsigfigs(double quantity, String unit) {
-		return getSI(quantity, unit, ((quantity > 0)? " " : "") +"%.4g");
-	}
-	
-	public static String getSI(double quantity, String unit, String format) {
-		if (!Double.isFinite(quantity))
-			return Double.toString(quantity) + " " + unit;
-
-		double mag = Math.abs(quantity);
-		
-		String precision = format;
-		if (mag < 1E-27)
-			return "0 " + unit;
-		else if (mag < 1E-21)
-			return String.format(precision, quantity*1e24) + " y" + unit;
-		else if (mag < 1E-18)
-			return String.format(precision, quantity*1e21) + " z" + unit;
-		else if (mag < 1E-15)
-			return String.format(precision, quantity*1e18) + " a" + unit;
-		else if (mag < 1E-12)
-			return String.format(precision, quantity*1e15) + " f" + unit;
-		else if (mag < 1E-9)
-			return String.format(precision, quantity*1e12) + " p" + unit;
-		else if (mag < 1E-6)
-			return String.format(precision, quantity*1e9) + " n" + unit;
-		else if (mag < 1E-3)
-			return String.format(precision, quantity*1e6) + " \u00b5" + unit;
-		else if (mag < 1)
-			return String.format(precision, quantity*1e3) + " m" + unit;
-		else if (mag < 1E3)
-			return String.format(precision, quantity) + " " + unit;
-		else if (mag < 1E6)
-			return String.format(precision, quantity*1e-3) + " k" + unit;
-		else if (mag < 1E9)
-			return String.format(precision, quantity*1e-6) + " M" + unit;
-		else if (mag < 1E12)
-			return String.format(precision, quantity*1e-9) + " G" + unit;
-		else if (mag < 1E15)
-			return String.format(precision, quantity*1e-12) + " T" + unit;
-		else if (mag < 1E18)
-			return String.format(precision, quantity*1e-15) + " P" + unit;
-		else if (mag < 1E21)
-			return String.format(precision, quantity*1e-18) + " E" + unit;
-		else if (mag < 1E27)
-			return String.format(precision, quantity*1e-21) + " Z" + unit;
-		else
-			return "infinity " + unit;
-	}
 	
 	public static double clamp(double val, double min, double max) {
 		if ((val != val) || (val < min)) return min;

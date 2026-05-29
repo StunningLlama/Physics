@@ -36,17 +36,13 @@ import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
-import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
-import javax.swing.JTextField;
 import javax.swing.KeyStroke;
-import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
-import javax.swing.border.EmptyBorder;
 
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
@@ -61,6 +57,8 @@ import electrodynamics.probe.FluxProbe;
 import electrodynamics.probe.Ground;
 import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
+import electrodynamics.units.Quantity;
+import electrodynamics.units.Units;
 import electrodynamics.util.Font7x5;
 import electrodynamics.util.MenuCheckList;
 import electrodynamics.util.Utils;
@@ -390,7 +388,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				e.opts.gui_paused.setSelected(true);
 		}
 		
-		e.opts.gui_stepsizelbl.setText("Timestep: " + Utils.getSI(e.dt, "s"));
+		e.opts.gui_stepsizelbl.setText("Timestep: " + e.units.toString(e.dt, Quantity.TIME));
 		e.opts.gui_stepslbl.setText("Sim steps/frame: " + e.opts.gui_simspeed_2.getValue());
 
 		brushsize = Math.pow(10.0, 2*e.opts.gui_brushsize.getValue()/(50.0*10.0) - 0.75) + e.opts.gui_brushsize.getValue()/10.0 + 0.5;
@@ -909,7 +907,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 		case PROBEPLOT:
 			plotinterval = e.opts.gui_plotinterval.getValue();
-			e.opts.gui_plotinterval_text.setText("Time resolution: " + Utils.getSI(plotinterval*e.dt*e.iteration_multiplier, "s"));
+			e.opts.gui_plotinterval_text.setText("Time resolution: " + e.units.toString(plotinterval*e.dt*e.iteration_multiplier, Quantity.TIME));
 			for (Plot p : e.plots) {
 				if (p instanceof ProbePlot) {
 					if (!p.frame.isVisible() && ((ProbePlot)p).checkProbesExist(e))
@@ -1064,9 +1062,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.opts.gui_parameter3.setVisible(true);
 			e.opts.gui_parameter3_text.setVisible(true);
 			if (!iscurrentselected)
-				e.opts.gui_parameter3_text.setText("EMF: " + Utils.getSI(new_EMF, "V/m"));
+				e.opts.gui_parameter3_text.setText("EMF: " + e.units.toString(new_EMF, Quantity.ELECTRIC_FIELD));
 			else
-				e.opts.gui_parameter3_text.setText("J: " + Utils.getSI(new_EMF*e.currentsource_sigma, "A/m^2"));
+				e.opts.gui_parameter3_text.setText("J: " + e.units.toString(new_EMF*e.currentsource_sigma, Quantity.CURRENT_DENSITY));
 		} else {
 			e.opts.gui_parameter3.setVisible(false);
 			e.opts.gui_parameter3_text.setVisible(false);
@@ -1101,7 +1099,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.opts.gui_parameter1_text.setVisible(false);
 		}
 		
-		e.opts.gui_parameter1_text.setText("AC Freq: " + Utils.getSI(e.AC_freq, "Hz"));
+		e.opts.gui_parameter1_text.setText("AC Freq: " + e.units.toString(e.AC_freq, Quantity.FREQUENCY));
 
 	}
 
@@ -1188,14 +1186,21 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			JOptionPane.showMessageDialog(e.opts, SemiSim.about, "About", JOptionPane.INFORMATION_MESSAGE);
 		} else if (ev.getSource() == e.opts.menu_report) {
 			JOptionPane.showMessageDialog(e.opts, "<html><body><p style='width: 300px;'>Please contact Brandon at brandonli.lex@gmail.com or go to https://github.com/StunningLlama/SemiSim/issues.</p></body></html>", "Report a bug", JOptionPane.INFORMATION_MESSAGE);
-		} else if (ev.getSource() == e.opts.menu_img) {
-			SwingUtilities.invokeLater(() -> {
-				new ImgDialog();
-			});
+		} else if (ev.getSource() == e.opts.menu_pref) {
+			e.prefs.getPrefs();
+			e.prefs.setVisible(true);
+		} else if (ev.getSource() == e.prefs.btn_apply) {
+			e.prefs.applyPrefs();
+			e.prefs.writeFile(e.prefs.preferences_file);
+			e.prefs.setVisible(false);
+		} else if (ev.getSource() == e.prefs.btn_cancel) {
+			e.prefs.resetPrefs();
 		} else if (ev.getSource() == e.opts.menu_debug) {
 			debugging = !debugging;
 		} else if (ev.getSource() == e.opts.menu_exit) {
 			exit = true;
+		} else if (ev.getSource() == e.prefs.gui_units) {
+			e.units = (Units) e.prefs.gui_units.getSelectedItem();
 		} else if (ev.getSource() instanceof JRadioButtonMenuItem) {
 			if (scalarview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null || vectorview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null)
 				e.updateMiscFields = true;
@@ -1221,13 +1226,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public void mouseExited(MouseEvent arg0) {}
 
 	@Override
-	public void mousePressed(MouseEvent e) {
+	public void mousePressed(MouseEvent ev) {
 		mouse_pressed = true;
-		mousebutton = e.getButton();
-		mx_screen = e.getX();
-		my_screen = e.getY();
-		mx_start_screen = e.getX();
-		my_start_screen = e.getY();
+		mousebutton = ev.getButton();
+		mx_screen = ev.getX();
+		my_screen = ev.getY();
+		mx_start_screen = ev.getX();
+		my_start_screen = ev.getY();
 	}
 	@Override
 	public void mouseReleased(MouseEvent e) {
@@ -1830,75 +1835,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		
 		public static boolean drawLine(Brush brush) {
 			return (brush == Brush.LINE || brush == Brush.BANDS || brush == Brush.SCALARPLOT || brush == Brush.CARRIERPLOT);
-		}
-	}
-	
-	class ImgDialog extends JDialog {
-
-		private static final long serialVersionUID = -6927915016913959947L;
-		private final JPanel contentPanel = new JPanel();
-		public JTextField spinner;
-		public JButton okButton = new JButton("Apply");
-		public JButton cancelButton = new JButton("Cancel");
-
-		public ImgDialog() {
-			setBounds(100, 100, 180, 151);
-			getContentPane().setLayout(new BorderLayout());
-			contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
-			getContentPane().add(contentPanel, BorderLayout.CENTER);
-			contentPanel.setLayout(null);
-			
-			JLabel lblNewLabel = new JLabel("Image size (px)");
-			lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
-			lblNewLabel.setBounds(33, 17, 111, 16);
-			contentPanel.add(lblNewLabel);
-
-			spinner = new JTextField();
-			spinner.setBounds(33, 37, 111, 26);
-			contentPanel.add(spinner);
-
-			JPanel buttonPane = new JPanel();
-			buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
-			getContentPane().add(buttonPane, BorderLayout.SOUTH);
-			
-			buttonPane.add(okButton);
-			getRootPane().setDefaultButton(okButton);
-			
-			buttonPane.add(cancelButton);
-			
-
-			spinner.setText(String.valueOf(e.renderer.canvas_size));
-			okButton.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent ev) {
-					boolean valid = true;
-					int x = 0;
-					try {
-						x = Integer.valueOf(spinner.getText());
-					} catch(NumberFormatException e) {
-						valid = false;
-					}
-					
-					if (!(x > 0 && x < 10000)) {
-						valid = false;
-					}
-					
-					if (valid) {
-						e.renderer.new_canvas_size = x;
-						updateimagesize = true;
-						dispose();
-					} else {
-						JOptionPane.showMessageDialog(e.opts, "Invalid display size. Must be between 1 and 9999.", "Error", JOptionPane.INFORMATION_MESSAGE);
-					}
-				}
-			});
-			
-			cancelButton.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent ev) { dispose(); }
-			});
-			
-			setVisible(true);
 		}
 	}
 

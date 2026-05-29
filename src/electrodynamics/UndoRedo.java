@@ -179,22 +179,25 @@ class Snapshot {
 		e.rwLock.writeLock().lock();
 		try {
 			e.time = time;
-			e.opts.textPane.setText(description);
-			e.controls.scalarview.setOption(gui_view);
-			e.controls.vectorview.setOption(gui_view_vec);
-			e.controls.scalarmode.setOption(gui_scalar_mode);
-			e.controls.vectormode.setOption(gui_view_vec_mode);
-			e.opts.gui_bc.setSelectedItem(gui_bc);
 
-			for (AbstractButton item : boolean_values.keySet()) {
-				item.setSelected(boolean_values.get(item));
+			if (e.prefs.chkbox_undo.isSelected()) {
+				e.opts.textPane.setText(description);
+				e.controls.scalarview.setOption(gui_view);
+				e.controls.vectorview.setOption(gui_view_vec);
+				e.controls.scalarmode.setOption(gui_scalar_mode);
+				e.controls.vectormode.setOption(gui_view_vec_mode);
+				e.opts.gui_bc.setSelectedItem(gui_bc);
+
+				for (AbstractButton item : boolean_values.keySet()) {
+					item.setSelected(boolean_values.get(item));
+				}
+
+				for (Adjustable item : integer_values.keySet()) {
+					item.setValue(integer_values.get(item));
+				}
+
+				e.opts.setRedundantOptions();
 			}
-
-			for (Adjustable item : integer_values.keySet()) {
-				item.setValue(integer_values.get(item));
-			}
-
-			e.opts.setRedundantOptions();
 
 			e.Ex = copy(ex); 
 			e.Ey = copy(ey);

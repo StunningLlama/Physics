@@ -32,6 +32,7 @@ import electrodynamics.probe.FluxProbe;
 import electrodynamics.probe.Ground;
 import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
+import electrodynamics.units.Quantity;
 import electrodynamics.util.DistributionSampler;
 import electrodynamics.util.FastList;
 import electrodynamics.util.FastRandom;
@@ -604,7 +605,7 @@ public class Renderer extends PeriodicTask {
 		if (scalarview != ScalarView.NONE && scalarmode != ScalarMode.NONE) {
 			double offset = 0;
 			
-			if (e.hasGround()) {
+			if (e.hasGround() && e.prefs.chkbox_potential.isSelected()) {
 				Ground ground = e.getGround();
 				if (scalarview == ScalarView.ELECTRON_POTENTIAL) {
 					offset = e.conducting[ground.x][ground.y]*(e.F_n[ground.x][ground.y]/e.q_n+e.phi[ground.x][ground.y]-e.W_semi/e.eVtoJ);
@@ -1034,15 +1035,15 @@ public class Renderer extends PeriodicTask {
 			int index = 0;
 			for (Probe p: e.probes) {
 				if (p instanceof Ground)
-					drawMonospacedStringSimCoords("Ground = " + Utils.getSI_fixedsigfigs(((Ground)p).potential - ((Ground)p).potential, "V", 1e-6), p.labelcoord.x, p.labelcoord.y, g);
+					drawMonospacedStringSimCoords("Ground = " + e.units.toString_fixedsigfigs(((Ground)p).potential - ((Ground)p).potential, Quantity.ELECTRIC_POTENTIAL, 1e-6), p.labelcoord.x, p.labelcoord.y, g);
 				else if (p instanceof VoltageProbe)
-					drawMonospacedStringSimCoords("V" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((VoltageProbe)p).potential, "V", 1e-6), p.labelcoord.x, p.labelcoord.y, g);
+					drawMonospacedStringSimCoords("V" + e.getProbeName(index) + " = " + e.units.toString_fixedsigfigs(((VoltageProbe)p).potential, Quantity.ELECTRIC_POTENTIAL, 1e-6), p.labelcoord.x, p.labelcoord.y, g);
 				else if (p instanceof CurrentProbe)
-					drawMonospacedStringSimCoords("I" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((CurrentProbe)p).current, "A", 1e-9), p.labelcoord.x, p.labelcoord.y, g);
+					drawMonospacedStringSimCoords("I" + e.getProbeName(index) + " = " + e.units.toString_fixedsigfigs(((CurrentProbe)p).current, Quantity.ELECTRIC_CURRENT, 1e-9), p.labelcoord.x, p.labelcoord.y, g);
 				else if (p instanceof ChargeProbe)
-					drawMonospacedStringSimCoords("Q" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((ChargeProbe)p).charge, "C"), p.labelcoord.x, p.labelcoord.y, g);
+					drawMonospacedStringSimCoords("Q" + e.getProbeName(index) + " = " + e.units.toString_fixedsigfigs(((ChargeProbe)p).charge, Quantity.CHARGE), p.labelcoord.x, p.labelcoord.y, g);
 				else if (p instanceof FluxProbe)
-					drawMonospacedStringSimCoords("Φ" + e.getProbeName(index) + " = " + Utils.getSI_fixedsigfigs(((FluxProbe)p).flux, "Wb"), p.labelcoord.x, p.labelcoord.y, g);
+					drawMonospacedStringSimCoords("Φ" + e.getProbeName(index) + " = " + e.units.toString_fixedsigfigs(((FluxProbe)p).flux, Quantity.MAGNETIC_FLUX), p.labelcoord.x, p.labelcoord.y, g);
 				index++;
 			}
 
@@ -1089,24 +1090,24 @@ public class Renderer extends PeriodicTask {
 				if (e.opts.menu_tooltip.isSelected()) {
 					voffset = voffset+3;
 					int line = 2;
-					drawTwoColumnString("E" , 							Utils.getSI(Utils.bilinearinterp_length(e.Ex, e.Ey, mx, my, e.nx, e.ny), "V/m", 1e-6), 				hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("B" , 							Utils.getSI(e.parity*Utils.bilinearinterp(e.Bz, mx-0.5, my-0.5, e.nx, e.ny), "T", 1e-9),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03d5" , 						Utils.getSI(e.phi[mx][my], "V", 1e-6),				hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u2130" , 						Utils.getSI(mat.emf, "V/m", 1e-6),					hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03b5/\u03b5\u2080" , 		Utils.getSI(mat.eps_r, ""),							hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03bc/\u03bc\u2080" , 		Utils.getSI(mat.mu_r, ""),							hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1\u2099" , 				Utils.getSI(e.rho_n[mx][my], "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1\u209A" , 				Utils.getSI(e.rho_p[mx][my], "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1\u2080",					Utils.getSI(e.rho_back[mx][my], "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("\u03c1" , 						Utils.getSI(e.rho_free[mx][my], "C/m^3", 1e-9),		hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("J\u2099" ,						Utils.getSI(Utils.bilinearinterp_length(e.Jx_n, e.Jy_n, mx, my, e.nx, e.ny), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("J\u209A" , 					Utils.getSI(Utils.bilinearinterp_length(e.Jx_p, e.Jy_p, mx, my, e.nx, e.ny), "A/m^2", 1),			hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("J" , 							Utils.getSI(Utils.bilinearinterp_length(e.Jx_free, e.Jy_free, mx, my, e.nx, e.ny), "A/m^2", 1),		hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("F\u2099" , 					Utils.getSI(e.F_n[mx][my]/e.q_n + e.phi[mx][my] - e.W_semi/e.eVtoJ, "V", 1e-9),						hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("F\u209a" , 					Utils.getSI(e.F_p[mx][my]/e.q_p + e.phi[mx][my] - e.W_semi/e.eVtoJ, "V", 1e-9),						hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("F" , 							Utils.getSI(e.F[mx][my], "V", 1e-9),				hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("x" , 							Utils.getSI(mx*e.ds, "m"),							hoffset, voffset + line*vspacing, g); line++;
-					drawTwoColumnString("y" , 							Utils.getSI(e.ds*e.ny-(my+1)*e.ds, "m"),			hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("E" , 							e.units.toString(Utils.bilinearinterp_length(e.Ex, e.Ey, mx, my, e.nx, e.ny), Quantity.ELECTRIC_FIELD, 1e-6), 				hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("B" , 							e.units.toString(e.parity*Utils.bilinearinterp(e.Bz, mx-0.5, my-0.5, e.nx, e.ny), Quantity.MAGNETIC_FLUX_DENSITY, 1e-9),			hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03d5" , 						e.units.toString(e.phi[mx][my], Quantity.ELECTRIC_POTENTIAL, 1e-6),				hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u2130" , 						e.units.toString(mat.emf, Quantity.ELECTRIC_FIELD, 1e-6),					hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03b5/\u03b5\u2080" , 		e.units.toString(mat.eps_r, Quantity.DIMENSIONLESS),							hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03bc/\u03bc\u2080" , 		e.units.toString(mat.mu_r, Quantity.DIMENSIONLESS),							hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03c1\u2099" , 				e.units.toString(e.rho_n[mx][my], Quantity.CHARGE_DENSITY, 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03c1\u209A" , 				e.units.toString(e.rho_p[mx][my], Quantity.CHARGE_DENSITY, 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03c1\u2080",					e.units.toString(e.rho_back[mx][my], Quantity.CHARGE_DENSITY, 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("\u03c1" , 						e.units.toString(e.rho_free[mx][my], Quantity.CHARGE_DENSITY, 1e-9),		hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("J\u2099" ,						e.units.toString(Utils.bilinearinterp_length(e.Jx_n, e.Jy_n, mx, my, e.nx, e.ny), Quantity.CURRENT_DENSITY, 1),			hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("J\u209A" , 					e.units.toString(Utils.bilinearinterp_length(e.Jx_p, e.Jy_p, mx, my, e.nx, e.ny), Quantity.CURRENT_DENSITY, 1),			hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("J" , 							e.units.toString(Utils.bilinearinterp_length(e.Jx_free, e.Jy_free, mx, my, e.nx, e.ny), Quantity.CURRENT_DENSITY, 1),		hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("F\u2099" , 					e.units.toString(e.F_n[mx][my]/e.q_n + e.phi[mx][my] - e.W_semi/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL, 1e-9),						hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("F\u209a" , 					e.units.toString(e.F_p[mx][my]/e.q_p + e.phi[mx][my] - e.W_semi/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL, 1e-9),						hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("F" , 							e.units.toString(e.F[mx][my], Quantity.ELECTRIC_POTENTIAL, 1e-9),				hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("x" , 							e.units.toString(mx*e.ds, Quantity.LENGTH),							hoffset, voffset + line*vspacing, g); line++;
+					drawTwoColumnString("y" , 							e.units.toString(e.ds*e.ny-(my+1)*e.ds, Quantity.LENGTH),			hoffset, voffset + line*vspacing, g); line++;
 				}
 			//}
 			
@@ -1120,8 +1121,8 @@ public class Renderer extends PeriodicTask {
 		int line = 1;
 		
 		if (e.opts.menu_time.isSelected()) {
-			drawString("Time: " + Utils.getSI(e.time, "s"), hoffset, voffset + line*vspacing, g); line++;
-			drawString("Steps/s: " + Utils.getSI(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), ""), hoffset, voffset + line*vspacing, g); line++;
+			drawString("Time: " + e.units.toString(e.time, Quantity.TIME), hoffset, voffset + line*vspacing, g); line++;
+			drawString("Steps/s: " + e.units.toString(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), Quantity.DIMENSIONLESS), hoffset, voffset + line*vspacing, g); line++;
 
 			String sv_a = e.controls.scalarmode.getOption() != ScalarMode.NONE? (e.controls.scalarmode.getOption().shorthand + ": " + e.controls.scalarview.getOption().shorthand) : "";
 			String sv_b = e.controls.vectormode.getOption() != VectorMode.NONE? (e.controls.vectormode.getOption().shorthand + ": " + e.controls.vectorview.getOption().shorthand) : "";
@@ -1140,15 +1141,15 @@ public class Renderer extends PeriodicTask {
 		if (e.controls.debugging) {
 			long total = Runtime.getRuntime().totalMemory();
 			long used  = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-			drawString("Used memory " + Utils.getSI(used, "B"), hoffset, voffset + line*vspacing, g); line++;
-			drawString("Total memory " + Utils.getSI(total, "B"), hoffset, voffset + line*vspacing, g); line++;
-			drawString(e.t4.getName() + " " + Utils.getSI(e.t4.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
-			drawString(t5.getName() + " " + Utils.getSI(t5.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
-			drawString(e.t6.getName() + " " + Utils.getSI(e.t6.getAverageTime()*e.opts.gui_simspeed_2.getValue(), "s"), hoffset, voffset + line*vspacing, g); line++;
-			drawString(e.t7.getName() + " " + Utils.getSI(e.t7.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
-			drawString(e.t8.getName() + " " + Utils.getSI(e.t8.getAverageTime(), "s"), hoffset, voffset + line*vspacing, g); line++;
-			drawString(FPStimer.getName() + " " + Utils.getSI(1/FPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
-			drawString(e.simFPStimer.getName() + " " + Utils.getSI(1/e.simFPStimer.getAverageTime(), "Hz"), hoffset, voffset + line*vspacing, g); line++;
+			drawString("Used memory " + e.units.toString(used, Quantity.INFORMATION), hoffset, voffset + line*vspacing, g); line++;
+			drawString("Total memory " + e.units.toString(total, Quantity.INFORMATION), hoffset, voffset + line*vspacing, g); line++;
+			drawString(e.t4.getName() + " " + e.units.toString(e.t4.getAverageTime(), Quantity.TIME), hoffset, voffset + line*vspacing, g); line++;
+			drawString(t5.getName() + " " + e.units.toString(t5.getAverageTime(), Quantity.TIME), hoffset, voffset + line*vspacing, g); line++;
+			drawString(e.t6.getName() + " " + e.units.toString(e.t6.getAverageTime()*e.opts.gui_simspeed_2.getValue(), Quantity.TIME), hoffset, voffset + line*vspacing, g); line++;
+			drawString(e.t7.getName() + " " + e.units.toString(e.t7.getAverageTime(), Quantity.TIME), hoffset, voffset + line*vspacing, g); line++;
+			drawString(e.t8.getName() + " " + e.units.toString(e.t8.getAverageTime(), Quantity.TIME), hoffset, voffset + line*vspacing, g); line++;
+			drawString(FPStimer.getName() + " " + e.units.toString(1/FPStimer.getAverageTime(), Quantity.FREQUENCY), hoffset, voffset + line*vspacing, g); line++;
+			drawString(e.simFPStimer.getName() + " " + e.units.toString(1/e.simFPStimer.getAverageTime(), Quantity.FREQUENCY), hoffset, voffset + line*vspacing, g); line++;
 		}
 		if (carrier_diffusion_warning_timer > 0) {
 			drawError("Error: Metal cannot touch simulation boundary when carrier diffusion view is enabled.", hoffset, voffset + line*vspacing, g); line ++;
@@ -1496,7 +1497,7 @@ public class Renderer extends PeriodicTask {
 								if (show_gen_recomb) ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
 							});
 							rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
-								ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, (int)(000000*frand.next())));
+								ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, 0));
 								if (show_gen_recomb) ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
 							});
 							rho_n_dist.generateSamples(N_n_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.ELECTRON, 0)); });
@@ -1756,39 +1757,39 @@ public class Renderer extends PeriodicTask {
 	}
 
 	public enum ScalarView {
-		NONE("No scalar overlay",															"None",		"",				ColorScheme.OTHER,			1),
-		E_FIELD("View: E field magnitude",													"E",		"V/m",			ColorScheme.GREEN,			1e5),
-		B_FIELD("View: B field",															"B",		"T",			ColorScheme.CYAN_YELLOW,	1e-5),
-		CHARGE("View \u03c1: Net charge density",											"\u03c1",	"C/m^3",		ColorScheme.OTHER,			1e1),
-		CURRENT("View J: Total current magnitude",											"J",		"A/m^2",		ColorScheme.GREEN,			1e7),
-		H_FIELD("View H field",																"H",		"A/m",			ColorScheme.CYAN_YELLOW,	1e-5/1.257e-6),
-		POTENTIAL("View \u03d5: Electric scalar potential", 								"\u03d5",	"V",			ColorScheme.RED_BLUE,		1),
-		ENERGY("View u: Electromagnetic energy density",									"u",		"J/m^3",		ColorScheme.GREEN,			1),
-		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density",						"\u03c1\u2099",	"C/m^3",	ColorScheme.RED_BLUE,		1e1),
-		HOLE_CHARGE("View \u03c1\u209A: Hole charge density",								"\u03c1\u209A",	"C/m^3",	ColorScheme.RED_BLUE,		1e1),
-		COMBINED_CHARGE("View: Combined electron+hole charge density",						"\u03c1\u2099 and \u03c1\u209A",	"log[C/m^3]",	ColorScheme.OTHER,			1),
-		BACKGROUND_CHARGE("View \u03c1\u2080: Static charge density (doping)",				"\u03c1\u2080",	"C/m^3",	ColorScheme.RED_BLUE,		1e1),
-		HEAT("View Q: Heat dissipation",													"q",		"W/m^3",		ColorScheme.RED_BLUE,		1e12),
-		ENTROPY("View s: Entropy generation (Free energy dissipation)",						"s",		"J/(m^3 s)",	ColorScheme.RED_BLUE,		1e12),
-		ELECTRON_POTENTIAL("View F\u2099: Electron chemical potential (quasi Fermi level)",	"F\u2099",	"V",			ColorScheme.RED_BLUE, 		1),
-		HOLE_POTENTIAL("View F\u209A: Hole chemical potential (quasi Fermi level)",			"F\u209A",	"V",			ColorScheme.RED_BLUE, 		1),
-		AVERAGE_POTENTIAL("View F: Average electrochemical potential",						"F",		"V",			ColorScheme.RED_BLUE,		1),
-		GENERATION("View G: Carrier generation rate",										"G",		"1/(m^3 s)",	ColorScheme.GREEN,			1e31),
-		RECOMBINATION("View R: Carrier recombination rate",									"R",		"1/(m^3 s)",	ColorScheme.GREEN,			1e31),
-		LIGHT("View: Emitted light",														"Light",	"",				ColorScheme.WHITE,			1e30),
-		DEBUG("Debug",																		"Debug",	"",				ColorScheme.RED_BLUE,		1e-3);
+		NONE("No scalar overlay",															"None",		Quantity.DIMENSIONLESS,				ColorScheme.OTHER,			1),
+		E_FIELD("View: E field magnitude",													"E",		Quantity.ELECTRIC_FIELD,			ColorScheme.GREEN,			1e5),
+		B_FIELD("View: B field",															"B",		Quantity.MAGNETIC_FLUX_DENSITY,		ColorScheme.CYAN_YELLOW,	1e-5),
+		CHARGE("View \u03c1: Net charge density",											"\u03c1",	Quantity.CHARGE_DENSITY,			ColorScheme.OTHER,			1e1),
+		CURRENT("View J: Total current magnitude",											"J",		Quantity.CURRENT_DENSITY,			ColorScheme.GREEN,			1e7),
+		H_FIELD("View H field",																"H",		Quantity.MAGNETIC_FIELD_STRENGTH,	ColorScheme.CYAN_YELLOW,	1e-5/1.257e-6),
+		POTENTIAL("View \u03d5: Electric scalar potential", 								"\u03d5",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
+		ENERGY("View u: Electromagnetic energy density",									"u",		Quantity.ENERGY_DENSITY,			ColorScheme.GREEN,			1),
+		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density",						"\u03c1\u2099",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE,		1e1),
+		HOLE_CHARGE("View \u03c1\u209A: Hole charge density",								"\u03c1\u209A",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE,		1e1),
+		COMBINED_CHARGE("View: Combined electron+hole charge density",						"\u03c1\u2099 and \u03c1\u209A",	Quantity.DIMENSIONLESS,	ColorScheme.OTHER,			1),
+		BACKGROUND_CHARGE("View \u03c1\u2080: Static charge density (doping)",				"\u03c1\u2080",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE,		1e1),
+		HEAT("View Q: Heat dissipation",													"q",		Quantity.POWER_DENSITY,				ColorScheme.RED_BLUE,		1e12),
+		ENTROPY("View s: Entropy generation (Free energy dissipation)",						"s",		Quantity.POWER_DENSITY,				ColorScheme.RED_BLUE,		1e12), //TODO ?
+		ELECTRON_POTENTIAL("View F\u2099: Electron chemical potential (quasi Fermi level)",	"F\u2099",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
+		HOLE_POTENTIAL("View F\u209A: Hole chemical potential (quasi Fermi level)",			"F\u209A",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
+		AVERAGE_POTENTIAL("View F: Average electrochemical potential",						"F",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
+		GENERATION("View G: Carrier generation rate",										"G",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
+		RECOMBINATION("View R: Carrier recombination rate",									"R",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
+		LIGHT("View: Emitted light",														"Light",	Quantity.DIMENSIONLESS,				ColorScheme.WHITE,			1e30),
+		DEBUG("Debug",																		"Debug",	Quantity.DIMENSIONLESS,				ColorScheme.RED_BLUE,		1e-3);
 	
 		enum ColorScheme {
 			RED_BLUE, CYAN_YELLOW, GREEN, WHITE, OTHER;
 		}
 	
 		public String name;
-		public String unit;
+		public Quantity unit;
 		public String shorthand;
 		public ColorScheme colorscheme;
 		public double scale; //Typical order of magnitude of the quantity
 	
-		ScalarView(String name, String shorthand, String unit, ColorScheme colorScheme, double scale)
+		ScalarView(String name, String shorthand, Quantity unit, ColorScheme colorScheme, double scale)
 		{
 			this.name = name;
 			this.shorthand = shorthand;

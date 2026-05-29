@@ -24,6 +24,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -39,6 +40,7 @@ import javax.swing.JSeparator;
 import javax.swing.KeyStroke;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -109,19 +111,19 @@ public class MainWindow extends JFrame {
 	public JScrollBar gui_carrier_density;
 	public JMenu menu_view;
 	public JCheckBox gui_carriers;
-	public JMenuItem menu_img;
+	public JMenuItem menu_pref;
 	public JMenu mnNewMenu_1;
-	public JCheckBoxMenuItem menu_materialname;
-	public JCheckBoxMenuItem menu_interface;
-	public JCheckBoxMenuItem menu_tooltip;
-	public JCheckBoxMenuItem menu_text_bg;
-	public JCheckBoxMenuItem menu_elem_colors;
-	public JCheckBoxMenuItem menu_borders;
-	public JCheckBoxMenuItem menu_carriers;
-	public JCheckBoxMenuItem menu_probes;
-	public JCheckBoxMenuItem menu_time;
+	public CustJCheckBoxMenuItem menu_materialname;
+	public CustJCheckBoxMenuItem menu_interface;
+	public CustJCheckBoxMenuItem menu_tooltip;
+	public CustJCheckBoxMenuItem menu_text_bg;
+	public CustJCheckBoxMenuItem menu_elem_colors;
+	public CustJCheckBoxMenuItem menu_borders;
+	public CustJCheckBoxMenuItem menu_carriers;
+	public CustJCheckBoxMenuItem menu_probes;
+	public CustJCheckBoxMenuItem menu_time;
 	public JMenuItem menu_advancedsettings;
-	public JCheckBoxMenuItem menu_debug;
+	public CustJCheckBoxMenuItem menu_debug;
 	public JScrollBar gui_plotinterval;
 	public JLabel gui_plotinterval_text;
 	public JMenuBar menuBar;
@@ -134,9 +136,9 @@ public class MainWindow extends JFrame {
 	private JSeparator separator_1;
 	public JMenuItem menu_github;
 	public JMenuItem menu_report;
-	public JCheckBoxMenuItem menu_hide_carriers_metal;
-	public JCheckBoxMenuItem menu_carrier_diffusion;
-	public JCheckBoxMenuItem menu_gen_recomb;
+	public CustJCheckBoxMenuItem menu_hide_carriers_metal;
+	public CustJCheckBoxMenuItem menu_carrier_diffusion;
+	public CustJCheckBoxMenuItem menu_gen_recomb;
 
 	/**
 	 * Create the frame.
@@ -229,8 +231,8 @@ public class MainWindow extends JFrame {
 		separator_2 = new JSeparator();
 		menu_asdf.add(separator_2);
 		
-		menu_img = new JMenuItem("Set image size");
-		menu_asdf.add(menu_img);
+		menu_pref = new JMenuItem("Preferences");
+		menu_asdf.add(menu_pref);
 		
 		menu_advancedsettings = new JMenuItem("Advanced settings");
 		menu_asdf.add(menu_advancedsettings);
@@ -244,37 +246,37 @@ public class MainWindow extends JFrame {
 		mnNewMenu_1 = new JMenu("Graphics");
 		menuBar.add(mnNewMenu_1);
 		
-		menu_interface = new JCheckBoxMenuItem("Display interface");
+		menu_interface = new CustJCheckBoxMenuItem("Display interface");
 		menu_interface.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H, 0));
 		menu_interface.setSelected(true);
 		mnNewMenu_1.add(menu_interface);
 		
-		menu_time = new JCheckBoxMenuItem("Show time");
+		menu_time = new CustJCheckBoxMenuItem("Show time");
 		menu_time.setSelected(true);
 		mnNewMenu_1.add(menu_time);
 		
-		menu_materialname = new JCheckBoxMenuItem("Show material name");
+		menu_materialname = new CustJCheckBoxMenuItem("Show material name");
 		menu_materialname.setSelected(true);
 		mnNewMenu_1.add(menu_materialname);
 		
-		menu_tooltip = new JCheckBoxMenuItem("Show simulation variables");
+		menu_tooltip = new CustJCheckBoxMenuItem("Show simulation variables");
 		menu_tooltip.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_T, 0));
 		mnNewMenu_1.add(menu_tooltip);
 		
-		menu_probes = new JCheckBoxMenuItem("Show probes");
+		menu_probes = new CustJCheckBoxMenuItem("Show probes");
 		menu_probes.setSelected(true);
 		mnNewMenu_1.add(menu_probes);
 		
-		menu_elem_colors = new JCheckBoxMenuItem("Show material colors");
+		menu_elem_colors = new CustJCheckBoxMenuItem("Show material colors");
 		menu_elem_colors.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, 0));
 		menu_elem_colors.setSelected(true);
 		mnNewMenu_1.add(menu_elem_colors);
 		
-		menu_borders = new JCheckBoxMenuItem("Show material borders");
+		menu_borders = new CustJCheckBoxMenuItem("Show material borders");
 		menu_borders.setSelected(true);
 		mnNewMenu_1.add(menu_borders);
 		
-		menu_text_bg = new JCheckBoxMenuItem("Show text background");
+		menu_text_bg = new CustJCheckBoxMenuItem("Show text background");
 		menu_text_bg.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, 0));
 		menu_text_bg.setSelected(true);
 		mnNewMenu_1.add(menu_text_bg);
@@ -282,24 +284,24 @@ public class MainWindow extends JFrame {
 		JSeparator separator_4 = new JSeparator();
 		mnNewMenu_1.add(separator_4);
 		
-		menu_carriers = new JCheckBoxMenuItem("Show charge carriers");
+		menu_carriers = new CustJCheckBoxMenuItem("Show charge carriers");
 		mnNewMenu_1.add(menu_carriers);
 		
-		menu_hide_carriers_metal = new JCheckBoxMenuItem("Hide carriers in metal");
+		menu_hide_carriers_metal = new CustJCheckBoxMenuItem("Hide carriers in metal");
 		menu_hide_carriers_metal.setSelected(true);
 		mnNewMenu_1.add(menu_hide_carriers_metal);
 		
-		menu_gen_recomb = new JCheckBoxMenuItem("Show generation and recombination");
+		menu_gen_recomb = new CustJCheckBoxMenuItem("Show generation and recombination");
 		menu_gen_recomb.setSelected(true);
 		mnNewMenu_1.add(menu_gen_recomb);
 		
-		menu_carrier_diffusion = new JCheckBoxMenuItem("Show carrier diffusion");
+		menu_carrier_diffusion = new CustJCheckBoxMenuItem("Show carrier diffusion");
 		mnNewMenu_1.add(menu_carrier_diffusion);
 		
 		JSeparator separator_5 = new JSeparator();
 		mnNewMenu_1.add(separator_5);
 		
-		menu_debug = new JCheckBoxMenuItem("Debug mode");
+		menu_debug = new CustJCheckBoxMenuItem("Debug mode");
 		menu_debug.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0));
 		mnNewMenu_1.add(menu_debug);
 		
@@ -654,7 +656,7 @@ public class MainWindow extends JFrame {
 		menu_flip_h.addActionListener(e.controls);
 		menu_selectall.addActionListener(e.controls);
 		menu_deselectall.addActionListener(e.controls);
-		menu_img.addActionListener(e.controls);
+		menu_pref.addActionListener(e.controls);
 		menu_carriers.addActionListener(e.controls);
 		menu_debug.addActionListener(e.controls);
 		menu_exit.addActionListener(e.controls);
@@ -722,5 +724,22 @@ public class MainWindow extends JFrame {
 		for (int i = 0; i < list.length; i++) {
 			c.removeKeyListener(list[i]);
 		}
+	}
+
+	class CustJCheckBoxMenuItem extends JCheckBoxMenuItem {
+
+		public CustJCheckBoxMenuItem(String text) {
+			super(text);
+		}
+
+		@Override
+		protected void processMouseEvent(MouseEvent evt) {
+			if (evt.getID() == MouseEvent.MOUSE_RELEASED  && contains(evt.getPoint())) {
+				doClick();
+				setArmed(true);
+			} else
+				super.processMouseEvent(evt);
+		}
+
 	}
 }

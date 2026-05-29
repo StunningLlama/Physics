@@ -31,6 +31,8 @@ import electrodynamics.probe.FluxProbe;
 import electrodynamics.probe.Ground;
 import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
+import electrodynamics.units.Quantity;
+import electrodynamics.units.Units;
 import electrodynamics.util.PeriodicTask;
 import electrodynamics.util.Timer;
 import electrodynamics.util.Utils;
@@ -57,11 +59,14 @@ public class Simulation extends PeriodicTask {
 	public Renderer renderer;
 	public Controls controls;
 	public SaveManager savemanager;
+	public Preferences prefs;
 	
 	public ArrayList<Plot> plots = new ArrayList<>();
 	public BandPlot bandplot;
 	public ScalarPlot scalarplot;
 	public CarrierPlot carrierplot;
+	
+	public Units units = Units.SI;
 	
 	/* Multithreading */
 	
@@ -319,15 +324,16 @@ public class Simulation extends PeriodicTask {
 		canvas = renderer.new RenderCanvas(this);
 		canvas.setFocusable(true);
 		adv_opts = new AdvancedOptions();
+		prefs = new Preferences(this);
 		datafile = new File(datafilename);
 
 		bandplot = new BandPlot(); plots.add(bandplot);
 		scalarplot = new ScalarPlot(); plots.add(scalarplot);
 		carrierplot = new CarrierPlot(); plots.add(carrierplot);
-		plots.add(new ProbePlot("Voltage probe plot", "Voltage [mV]", "V", 1e3, (p) -> (p instanceof VoltageProbe && !(p instanceof Ground)), 0));
-		plots.add(new ProbePlot("Current probe plot", "Current [mA]", "I", 1e3, (p) -> p instanceof CurrentProbe, 200));
-		plots.add(new ProbePlot("Charge probe plot", "Charge [fC]", "Q", 1e15, (p) -> p instanceof ChargeProbe, 400));
-		plots.add(new ProbePlot("Flux probe plot", "Magnetic flux [fWb]", "Wb", 1e15, (p) -> p instanceof FluxProbe, 600));
+		plots.add(new ProbePlot("Voltage probe plot", "Voltage", "V", 1e-3, Quantity.ELECTRIC_POTENTIAL, (p) -> (p instanceof VoltageProbe && !(p instanceof Ground)), 0));
+		plots.add(new ProbePlot("Current probe plot", "Current", "I", 1e-3, Quantity.ELECTRIC_CURRENT, (p) -> p instanceof CurrentProbe, 200));
+		plots.add(new ProbePlot("Charge probe plot", "Charge", "Q", 1e-15, Quantity.CHARGE, (p) -> p instanceof ChargeProbe, 400));
+		plots.add(new ProbePlot("Flux probe plot", "Magnetic flux", "\u03A6", 1e-15, Quantity.MAGNETIC_FLUX, (p) -> p instanceof FluxProbe, 600));
 		
 		for (Plot p : plots)
 			p.initialize();
@@ -339,6 +345,7 @@ public class Simulation extends PeriodicTask {
 		
 		opts.initialize(this);
 		adv_opts.initialize(this);
+		prefs.initialize();
 
 		try {
 			datastream = new PrintWriter(new FileOutputStream(datafile));
@@ -1901,18 +1908,18 @@ public class Simulation extends PeriodicTask {
 	
 	public void logProbeData() {
 		String data = "";
-		data += ("t = " + Utils.getSI(time, "s"));
+		data += ("t = " + units.toString(time, Quantity.TIME));
 
 		int index = 0;
 		for (Probe p: probes) {
 			if (p instanceof VoltageProbe && !(p instanceof Ground))
-				data += (", V" + getProbeName(index) + " = " + Utils.getSI(((VoltageProbe)p).potential, "V"));
+				data += (", V" + getProbeName(index) + " = " + units.toString(((VoltageProbe)p).potential, Quantity.ELECTRIC_POTENTIAL));
 			if (p instanceof CurrentProbe)
-				data += (", I" + getProbeName(index) + " = " + Utils.getSI(((CurrentProbe) p).current, "A"));
+				data += (", I" + getProbeName(index) + " = " + units.toString(((CurrentProbe) p).current, Quantity.ELECTRIC_CURRENT));
 			if (p instanceof ChargeProbe)
-				data += (", Q" + getProbeName(index) + " = " + Utils.getSI(((ChargeProbe) p).charge, "C"));
+				data += (", Q" + getProbeName(index) + " = " + units.toString(((ChargeProbe) p).charge, Quantity.CHARGE));
 			if (p instanceof FluxProbe)
-				data += (", Φ" + getProbeName(index) + " = " + Utils.getSI(((FluxProbe) p).flux, "Wb"));
+				data += (", Φ" + getProbeName(index) + " = " + units.toString(((FluxProbe) p).flux, Quantity.MAGNETIC_FLUX));
 			index++;
 		}
 
@@ -1945,45 +1952,45 @@ public class Simulation extends PeriodicTask {
 		
 		String str = "";
 		str += "Mouse\n";
-		str += ("x\t"  						+	Utils.getSI(mx*ds, "m") + "\n");
-		str += ("y\t"  						+	Utils.getSI(ds*ny-(my+1)*ds, "m") + "\n");
+		str += ("x\t"  						+	units.toString(mx*ds, Quantity.LENGTH) + "\n");
+		str += ("y\t"  						+	units.toString(ds*ny-(my+1)*ds, Quantity.LENGTH) + "\n");
 		str += "\nFields\n";
-		str += ("E\t"  						+	Utils.getSI(Utils.bilinearinterp_length(Ex, Ey, mx, my, nx, ny), "V/m") + "\n");
-		str += ("D\t"  						+	Utils.getSI(Utils.bilinearinterp_length(Dx, Dy, mx, my, nx, ny), "C/m^2") + "\n");
-		str += ("B\t"  						+	Utils.getSI(parity*Utils.bilinearinterp(Bz, mx-0.5, my-0.5, nx, ny), "T") + "\n");
-		str += ("H\t"  						+	Utils.getSI(parity*Utils.bilinearinterp(Hz, mx-0.5, my-0.5, nx, ny), "A/m") + "\n");
+		str += ("E\t"  						+	units.toString(Utils.bilinearinterp_length(Ex, Ey, mx, my, nx, ny), Quantity.ELECTRIC_FIELD) + "\n");
+		str += ("D\t"  						+	units.toString(Utils.bilinearinterp_length(Dx, Dy, mx, my, nx, ny), Quantity.ELECTRIC_FLUX_DENSITY) + "\n");
+		str += ("B\t"  						+	units.toString(parity*Utils.bilinearinterp(Bz, mx-0.5, my-0.5, nx, ny), Quantity.MAGNETIC_FLUX_DENSITY) + "\n");
+		str += ("H\t"  						+	units.toString(parity*Utils.bilinearinterp(Hz, mx-0.5, my-0.5, nx, ny), Quantity.MAGNETIC_FIELD_STRENGTH) + "\n");
 		str += "\nCharge/current\n";
-		str += ("\u03c1\u2099\t"  			+	Utils.getSI(rho_n[mx][my], "C/m^3") + "\n");
-		str += ("\u03c1\u209A\t"  			+	Utils.getSI(rho_p[mx][my], "C/m^3") + "\n");
-		str += ("\u03c1\u2080\t"			+	Utils.getSI(rho_back[mx][my], "C/m^3") + "\n");
-		str += ("\u03c1 abs\t"				+	Utils.getSI(rho_abs[mx][my], "C/m^3") + "\n");
-		str += ("\u03c1\t"  				+	Utils.getSI(rho_free[mx][my], "C/m^3") + "\n");
-		str += ("J\u2099\t" 				+	Utils.getSI(Utils.bilinearinterp_length(Jx_n, Jy_n, mx, my, nx, ny), "A/m^2") + "\n");
-		str += ("J\u209A\t"  				+	Utils.getSI(Utils.bilinearinterp_length(Jx_p, Jy_p, mx, my, nx, ny), "A/m^2") + "\n");
-		str += ("J abs\t"  					+	Utils.getSI(Utils.bilinearinterp_length(Jx_abs, Jy_abs, mx, my, nx, ny), "A/m^2") + "\n");
-		str += ("J\t"  						+	Utils.getSI(Utils.bilinearinterp_length(Jx_free, Jy_free, mx, my, nx, ny), "A/m^2") + "\n");
+		str += ("\u03c1\u2099\t"  			+	units.toString(rho_n[mx][my], Quantity.CHARGE_DENSITY) + "\n");
+		str += ("\u03c1\u209A\t"  			+	units.toString(rho_p[mx][my], Quantity.CHARGE_DENSITY) + "\n");
+		str += ("\u03c1\u2080\t"			+	units.toString(rho_back[mx][my], Quantity.CHARGE_DENSITY) + "\n");
+		str += ("\u03c1 abs\t"				+	units.toString(rho_abs[mx][my], Quantity.CHARGE_DENSITY) + "\n");
+		str += ("\u03c1\t"  				+	units.toString(rho_free[mx][my], Quantity.CHARGE_DENSITY) + "\n");
+		str += ("J\u2099\t" 				+	units.toString(Utils.bilinearinterp_length(Jx_n, Jy_n, mx, my, nx, ny), Quantity.CURRENT_DENSITY) + "\n");
+		str += ("J\u209A\t"  				+	units.toString(Utils.bilinearinterp_length(Jx_p, Jy_p, mx, my, nx, ny), Quantity.CURRENT_DENSITY) + "\n");
+		str += ("J abs\t"  					+	units.toString(Utils.bilinearinterp_length(Jx_abs, Jy_abs, mx, my, nx, ny), Quantity.CURRENT_DENSITY) + "\n");
+		str += ("J\t"  						+	units.toString(Utils.bilinearinterp_length(Jx_free, Jy_free, mx, my, nx, ny), Quantity.CURRENT_DENSITY) + "\n");
 		str += "\nThermodynamic quantities\n";
-		str += ("S\t"  						+	Utils.getSI(Utils.bilinearinterp_length(Sx, Sy, mx, my, nx, ny), "W/m^2") + "\n");
-		str += ("u\t"  						+	Utils.getSI(u[mx][my], "J/m^3") + "\n");
-		str += ("\u03d5\t"  				+	Utils.getSI(phi[mx][my], "V") + "\n");
-		str += ("F\u2099\t"  				+	Utils.getSI(F_n[mx][my]/q_n + phi[mx][my] - W_semi/eVtoJ, "V") + "\n");
-		str += ("F\u209a\t"  				+	Utils.getSI(F_p[mx][my]/q_p + phi[mx][my] - W_semi/eVtoJ, "V") + "\n");
-		str += ("F\t"  						+	Utils.getSI(F[mx][my], "V") + "\n");
-		str += ("G\t"  						+	Utils.getSI(G[mx][my], "/m^3 s") + "\n");
-		str += ("R\t"  						+	Utils.getSI(R[mx][my], "/m^3 s") + "\n");
-		str += ("Electron CMF\t"  			+	Utils.getSI(Utils.bilinearinterp_length(cmfy_n, cmfy_n, mx, my, nx, ny), "J/m") + "\n");
-		str += ("Hole CMF\t"  				+	Utils.getSI(Utils.bilinearinterp_length(cmfy_p, cmfy_p, mx, my, nx, ny), "J/m") + "\n");
-		str += ("EMF\t"  					+	Utils.getSI(Utils.bilinearinterp_length(emfx, emfy, mx, my, nx, ny), "V/m") + "\n");
+		str += ("S\t"  						+	units.toString(Utils.bilinearinterp_length(Sx, Sy, mx, my, nx, ny), Quantity.INTENSITY) + "\n");
+		str += ("u\t"  						+	units.toString(u[mx][my], Quantity.ENERGY_DENSITY) + "\n");
+		str += ("\u03d5\t"  				+	units.toString(phi[mx][my], Quantity.ELECTRIC_POTENTIAL) + "\n");
+		str += ("F\u2099\t"  				+	units.toString(F_n[mx][my]/q_n + phi[mx][my] - W_semi/eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "\n");
+		str += ("F\u209a\t"  				+	units.toString(F_p[mx][my]/q_p + phi[mx][my] - W_semi/eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "\n");
+		str += ("F\t"  						+	units.toString(F[mx][my], Quantity.ELECTRIC_POTENTIAL) + "\n");
+		str += ("G\t"  						+	units.toString(G[mx][my], Quantity.RATE_DENSITY) + "\n");
+		str += ("R\t"  						+	units.toString(R[mx][my], Quantity.RATE_DENSITY) + "\n");
+		str += ("Electron CMF\t"  			+	units.toString(Utils.bilinearinterp_length(cmfy_n, cmfy_n, mx, my, nx, ny), Quantity.FORCE) + "\n");
+		str += ("Hole CMF\t"  				+	units.toString(Utils.bilinearinterp_length(cmfy_p, cmfy_p, mx, my, nx, ny), Quantity.FORCE) + "\n");
+		str += ("EMF\t"  					+	units.toString(Utils.bilinearinterp_length(emfx, emfy, mx, my, nx, ny), Quantity.ELECTRIC_FIELD) + "\n");
 		str += "\nMaterial properties\n";
 		str += ("Type\t"  					+	mat.type.name + "\n");
-		str += ("\u2130\t"  				+	Utils.getSI(mat.emf, "V/m") + "\n");
-		str += ("\u03b5/\u03b5\u2080\t" 	+	Utils.getSI(mat.eps_r, "") + "\n");
-		str += ("\u03bc/\u03bc\u2080\t"  	+	Utils.getSI(mat.mu_r, "") + "\n");
-		str += ("ni\t"  					+	Utils.getSI(mat.ni, "/m^3") + "\n");
-		str += ("W\t"  						+	Utils.getSI(mat.W, "eV") + "\n");
-		str += ("Eb\t"  					+	Utils.getSI(mat.Eb, "eV") + "\n");
-		str += ("Ea\t"  					+	Utils.getSI(mat.Ea, "J") + "\n");
-		str += ("Absorptivity\t"  			+	Utils.getSI(mat.absorptivity, "") + "\n");
+		str += ("\u2130\t"  				+	units.toString(mat.emf, Quantity.ELECTRIC_FIELD) + "\n");
+		str += ("\u03b5/\u03b5\u2080\t" 	+	units.toString(mat.eps_r, Quantity.DIMENSIONLESS) + "\n");
+		str += ("\u03bc/\u03bc\u2080\t"  	+	units.toString(mat.mu_r, Quantity.DIMENSIONLESS) + "\n");
+		str += ("ni\t"  					+	units.toString(mat.ni, Quantity.NUMBER_DENSITY) + "\n");
+		str += ("W\t"  						+	units.toString(mat.W, Quantity.ELECTRIC_POTENTIAL) + "\n");
+		str += ("Eb\t"  					+	units.toString(mat.Eb, Quantity.ELECTRIC_POTENTIAL) + "\n");
+		str += ("Ea\t"  					+	units.toString(mat.Ea, Quantity.ENERGY) + "\n");
+		str += ("Absorptivity\t"  			+	units.toString(mat.absorptivity, Quantity.DIMENSIONLESS) + "\n");
 		str += ("Conducting\t"  			+	mat.conducting + "\n");
 		str += ("Semicond.\t"  				+	mat.semiconducting + "\n");
 		
