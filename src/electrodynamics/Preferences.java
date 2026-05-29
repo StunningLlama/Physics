@@ -103,6 +103,8 @@ public class Preferences extends JFrame {
 		chkbox_logscale.setHorizontalTextPosition(SwingConstants.LEADING);
 		chkbox_logscale.setBounds(21, 96, 255, 23);
 		contentPane.add(chkbox_logscale);
+		
+		resetPrefs();
 	}
 	
 	public void initialize() {
