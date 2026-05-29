@@ -689,6 +689,29 @@ public class Renderer extends PeriodicTask {
 					}
 				}
 			}
+			
+
+			ScalarView.ColorScheme colorscheme = scalarview.colorscheme;
+			float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/scalarview.scale);
+			
+			if (e.opts.menu_colormap.isSelected())
+			{
+				int i1 = (int) (e.nx*0.85);
+				int i2 = (int) (e.nx*0.92);
+
+				int j1 = (int) (e.ny*0.82);
+				int j2 = (int) (e.ny*0.92);
+				
+
+				for (int i = i1; i <= i2; i++) {
+					for (int j = j1; j <= j2; j++) {
+						double t = (j2-j)/(double)(j2-j1);
+						if (!(colorscheme == ScalarView.ColorScheme.GREEN || colorscheme == ScalarView.ColorScheme.WHITE))
+							t = 2*(t-0.5);
+						scalarfield[i][j] = t/scalingconstant;
+					}
+				}
+			}
 		}
 
 		if (scalarmode == ScalarMode.CONTOUR_COLORS || scalarmode == ScalarMode.CONTOUR) {
@@ -1049,6 +1072,37 @@ public class Renderer extends PeriodicTask {
 
 			drawStrings(g);
 			startNewStringLayer();
+		}
+		
+		ScalarView scalarview = e.controls.scalarview.getOption();
+		ScalarMode scalarmode = e.controls.scalarmode.getOption();
+		if (scalarview != ScalarView.NONE && scalarmode != ScalarMode.NONE) {
+			ScalarView.ColorScheme colorscheme = scalarview.colorscheme;
+			float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/scalarview.scale);
+
+			if (e.opts.menu_colormap.isSelected())
+			{
+				int i1 = (int) (e.nx*0.85);
+				int i2 = (int) (e.nx*0.92);
+
+				int j1 = (int) (e.ny*0.82);
+				int j2 = (int) (e.ny*0.95);
+
+				double tmin = 0;
+				double tmax = 1;
+				
+				if (!(colorscheme == ScalarView.ColorScheme.GREEN || colorscheme == ScalarView.ColorScheme.WHITE))
+				{
+					tmin = 2*(tmin-0.5);
+					tmax = 2*(tmax-0.5);
+				}
+				
+				drawMonospacedStringSimCoords(e.units.toString(tmin/scalingconstant, scalarview.unit), (i1+i2)/2, j2, g);
+				texts.get(texts.size()-1).isHorizontalCentered = true;
+				drawMonospacedStringSimCoords(e.units.toString(tmax/scalingconstant, scalarview.unit), (i1+i2)/2, j1, g);
+				texts.get(texts.size()-1).isHorizontalCentered = true;
+				texts.get(texts.size()-1).isBottomJustified = true;
+			}
 		}
 
 		{
@@ -1619,6 +1673,10 @@ public class Renderer extends PeriodicTask {
 
 		for (Text text : texts) {
 			text.computeDimensions(g);
+			if (text.isRightJustified) text.x -= (text.width-4);
+			if (text.isBottomJustified) text.y -= (text.height-4);
+			if (text.isHorizontalCentered) text.x -= (text.width/2-2);
+			if (text.isVerticalCentered) text.y -= (text.height/2-2);
 		}
 		
 		for (Text text : texts) {
@@ -1723,6 +1781,10 @@ public class Renderer extends PeriodicTask {
 		boolean hasBackground = true;
 		boolean monospaced = false;
 		boolean isError = false;
+		boolean isRightJustified = false;
+		boolean isBottomJustified = false;
+		boolean isHorizontalCentered = false;
+		boolean isVerticalCentered = false;
 
 		public Text(String text, int x, int y) {
 			this.text = text;

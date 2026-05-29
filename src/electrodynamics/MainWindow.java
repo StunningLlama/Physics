@@ -123,6 +123,7 @@ public class MainWindow extends JFrame {
 	public CustJCheckBoxMenuItem menu_carriers;
 	public CustJCheckBoxMenuItem menu_probes;
 	public CustJCheckBoxMenuItem menu_time;
+	public CustJCheckBoxMenuItem menu_colormap;
 	public JMenuItem menu_advancedsettings;
 	public CustJCheckBoxMenuItem menu_debug;
 	public JScrollBar gui_plotinterval;
@@ -281,6 +282,10 @@ public class MainWindow extends JFrame {
 		menu_text_bg.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, 0));
 		menu_text_bg.setSelected(true);
 		mnNewMenu_1.add(menu_text_bg);
+
+		menu_colormap = new CustJCheckBoxMenuItem("Show color scale");
+		menu_colormap.setSelected(true);
+		mnNewMenu_1.add(menu_colormap);
 		
 		JSeparator separator_4 = new JSeparator();
 		mnNewMenu_1.add(separator_4);
@@ -564,6 +569,7 @@ public class MainWindow extends JFrame {
 		boolean_names.put("show_material", menu_materialname);
 		boolean_names.put("show_probes", menu_probes);
 		boolean_names.put("show_time", menu_time);
+		boolean_names.put("show_colormap", menu_colormap);
 		boolean_names.put("gui_carriers", gui_carriers);
 		boolean_names.put("gui_hide_carriers_metal", menu_hide_carriers_metal);
 		boolean_names.put("show_carrier_diffusion", menu_carrier_diffusion);
@@ -588,6 +594,7 @@ public class MainWindow extends JFrame {
 		menu_materialname.setSelected(true);
 		menu_probes.setSelected(true);
 		menu_time.setSelected(true);
+		menu_colormap.setSelected(false);
 		gui_carriers.setSelected(false);
 		menu_hide_carriers_metal.setSelected(true);
 		menu_carrier_diffusion.setSelected(false);
