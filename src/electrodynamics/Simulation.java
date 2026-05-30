@@ -980,6 +980,8 @@ public class Simulation extends PeriodicTask {
 					}
 
 					mid_barrier.await();
+					
+					double dfactor = (e_charge*ds*beta)/2;
 
 					/* Update E field and currents */
 					for (int i = 0; i < nx-1; i++)
@@ -992,18 +994,24 @@ public class Simulation extends PeriodicTask {
 								double mf = Math.min(mobility_factor[i+1][j], mobility_factor[i][j]);
 								//double mobility_factor = Math.min(1, E_sat/Math.abs(Ex[i][j]));
 
-								double sigma_n = conducting_x[i][j]*mf*mu_electron*Utils.logmean(-rho_n[i+1][j],-rho_n[i][j]);
-								double sigma_p = conducting_x[i][j]*mf*mu_hole*Utils.logmean(rho_p[i+1][j], rho_p[i][j]);
+								double rho_n_avg = 0.5*(rho_n[i+1][j] + rho_n[i][j]);
+								double rho_p_avg = 0.5*(rho_p[i+1][j] + rho_p[i][j]);
 								
 								double emf_phase = ac_x[i][j]*AC_amplitude+(1-ac_x[i][j]);
 
 								Jx_abs[i][j] = 0;
+								
+								double force_n = emf_phase*emfx[i][j]*q_n + cmfx_n[i][j] + ex_prev*q_n;
+								double force_p = emf_phase*emfx[i][j]*q_p + cmfx_p[i][j] + ex_prev*q_p;
+								
+								double sigma_n = -conducting_x[i][j]*mf*Utils.sech2(force_n*ds*beta/2)*dfactor*rho_n_avg*2*D_electron/ds;
+								double sigma_p = conducting_x[i][j]*mf*Utils.sech2(force_p*ds*beta/2)*dfactor*rho_p_avg*2*D_hole/ds;
+								
+								Jx_n[i][j] = conducting_x[i][j]*mf*(-D_electron*(rho_n[i+1][j] - rho_n[i][j])/ds
+									+ 2*D_electron*rho_n_avg*Math.tanh(force_n*ds*beta/2)/ds) - sigma_n*ex_prev;
 
-								Jx_n[i][j] = conducting_x[i][j]*(-mf*D_electron*(rho_n[i+1][j] - rho_n[i][j])/ds
-										+ sigma_n*(emf_phase*emfx[i][j] + cmfx_n[i][j]/q_n));
-
-								Jx_p[i][j] = conducting_x[i][j]*(-mf*D_hole*(rho_p[i+1][j] - rho_p[i][j])/ds
-										+ sigma_p*(emf_phase*emfx[i][j] + cmfx_p[i][j]/q_p));
+								Jx_p[i][j] = conducting_x[i][j]*mf*(-D_hole*(rho_p[i+1][j] - rho_p[i][j])/ds
+									+ 2*D_hole*rho_p_avg*Math.tanh(force_p*ds*beta/2)/ds) - sigma_p*ex_prev;
 
 								double sigma = sigma_n + sigma_p + absorptivity_x[i][j]*epsx[i][j]*absorbing_coeff;
 
@@ -1029,18 +1037,25 @@ public class Simulation extends PeriodicTask {
 								double mf = Math.min(mobility_factor[i][j+1], mobility_factor[i][j]);
 								//double mobility_factor = Math.min(1, E_sat/Math.abs(Ey[i][j]));
 
-								double sigma_n = conducting_y[i][j]*mf*mu_electron*Utils.logmean(-rho_n[i][j+1],-rho_n[i][j]);
-								double sigma_p = conducting_y[i][j]*mf*mu_hole*Utils.logmean(rho_p[i][j+1], rho_p[i][j]);
+								double rho_n_avg = 0.5*(rho_n[i][j+1] + rho_n[i][j]);
+								double rho_p_avg = 0.5*(rho_p[i][j+1] + rho_p[i][j]);
 
 								double emf_phase = ac_y[i][j]*AC_amplitude+(1-ac_y[i][j]);
 
 								Jy_abs[i][j] = 0;
+								
 
-								Jy_n[i][j] = conducting_y[i][j]*(-mf*D_electron*(rho_n[i][j+1] - rho_n[i][j])/ds
-										+ sigma_n*(emf_phase*emfy[i][j] + cmfy_n[i][j]/q_n));
+								double force_n = emf_phase*emfy[i][j]*q_n + cmfy_n[i][j] + ey_prev*q_n;
+								double force_p = emf_phase*emfy[i][j]*q_p + cmfy_p[i][j] + ey_prev*q_p;
+								
+								double sigma_n = -conducting_y[i][j]*mf*Utils.sech2(force_n*ds*beta/2)*dfactor*rho_n_avg*2*D_electron/ds;
+								double sigma_p = conducting_y[i][j]*mf*Utils.sech2(force_p*ds*beta/2)*dfactor*rho_p_avg*2*D_hole/ds;
+								
+								Jy_n[i][j] = conducting_y[i][j]*mf*(-D_electron*(rho_n[i][j+1] - rho_n[i][j])/ds
+									+ 2*D_electron*rho_n_avg*Math.tanh(force_n*ds*beta/2)/ds) - sigma_n*ey_prev;
 
-								Jy_p[i][j] = conducting_y[i][j]*(-mf*D_hole*(rho_p[i][j+1] - rho_p[i][j])/ds
-										+ sigma_p*(emf_phase*emfy[i][j] + cmfy_p[i][j]/q_p));
+								Jy_p[i][j] = conducting_y[i][j]*mf*(-D_hole*(rho_p[i][j+1] - rho_p[i][j])/ds
+									+ 2*D_hole*rho_p_avg*Math.tanh(force_p*ds*beta/2)/ds) - sigma_p*ey_prev;
 
 								double sigma = sigma_n + sigma_p + absorptivity_y[i][j]*epsy[i][j]*absorbing_coeff;
 

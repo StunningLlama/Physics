@@ -10,6 +10,12 @@ import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
 public class Utils {
+	
+	public static double sech2(double x) {
+		double y = Math.cosh(x);
+		return 1/(y*y);
+	}
+	
 	public static double length(double x, double y) {
 		return Math.sqrt(x*x+y*y);
 	}
