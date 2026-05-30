@@ -33,6 +33,7 @@ import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
 import electrodynamics.units.Quantity;
 import electrodynamics.units.Units;
+import electrodynamics.util.FastExp;
 import electrodynamics.util.PeriodicTask;
 import electrodynamics.util.Timer;
 import electrodynamics.util.Utils;
@@ -1001,17 +1002,24 @@ public class Simulation extends PeriodicTask {
 
 								Jx_abs[i][j] = 0;
 								
-								double force_n = emf_phase*emfx[i][j]*q_n + cmfx_n[i][j] + ex_prev*q_n;
-								double force_p = emf_phase*emfx[i][j]*q_p + cmfx_p[i][j] + ex_prev*q_p;
-								
-								double sigma_n = -conducting_x[i][j]*mf*Utils.sech2(force_n*ds*beta/2)*dfactor*rho_n_avg*2*D_electron/ds;
-								double sigma_p = conducting_x[i][j]*mf*Utils.sech2(force_p*ds*beta/2)*dfactor*rho_p_avg*2*D_hole/ds;
-								
-								Jx_n[i][j] = conducting_x[i][j]*mf*(-D_electron*(rho_n[i+1][j] - rho_n[i][j])/ds
-									+ 2*D_electron*rho_n_avg*Math.tanh(force_n*ds*beta/2)/ds) - sigma_n*ex_prev;
+								double betaE_n = (emf_phase*emfx[i][j]*q_n + cmfx_n[i][j] + ex_prev*q_n)*ds*beta/2;
+								double betaE_p = (emf_phase*emfx[i][j]*q_p + cmfx_p[i][j] + ex_prev*q_p)*ds*beta/2;
 
-								Jx_p[i][j] = conducting_x[i][j]*mf*(-D_hole*(rho_p[i+1][j] - rho_p[i][j])/ds
-									+ 2*D_hole*rho_p_avg*Math.tanh(force_p*ds*beta/2)/ds) - sigma_p*ex_prev;
+								double exp_2fn = FastExp.exp(2*betaE_n);
+								double exp_2fp = FastExp.exp(2*betaE_p);
+
+								double factor_n = conducting_x[i][j]*mf*D_electron/ds;
+								double factor_p = conducting_x[i][j]*mf*D_hole/ds;
+								
+								//sech^2 = 4/(exp(x)^2+2+1/exp(x)^2)
+								//tanh = (exp(2x)-1)/(exp(2x)+1)
+								
+								double sigma_n = -factor_n*(4/(exp_2fn+2+1/exp_2fn))*dfactor*rho_n_avg*2;
+								double sigma_p = factor_p*(4/(exp_2fp+2+1/exp_2fp))*dfactor*rho_p_avg*2;
+								
+								Jx_n[i][j] = factor_n*(-(rho_n[i+1][j] - rho_n[i][j]) + 2*rho_n_avg*(exp_2fn-1)/(exp_2fn+1)) - sigma_n*ex_prev;
+
+								Jx_p[i][j] = factor_p*(-(rho_p[i+1][j] - rho_p[i][j]) + 2*rho_p_avg*(exp_2fp-1)/(exp_2fp+1)) - sigma_p*ex_prev;
 
 								double sigma = sigma_n + sigma_p + absorptivity_x[i][j]*epsx[i][j]*absorbing_coeff;
 
@@ -1045,17 +1053,21 @@ public class Simulation extends PeriodicTask {
 								Jy_abs[i][j] = 0;
 								
 
-								double force_n = emf_phase*emfy[i][j]*q_n + cmfy_n[i][j] + ey_prev*q_n;
-								double force_p = emf_phase*emfy[i][j]*q_p + cmfy_p[i][j] + ey_prev*q_p;
-								
-								double sigma_n = -conducting_y[i][j]*mf*Utils.sech2(force_n*ds*beta/2)*dfactor*rho_n_avg*2*D_electron/ds;
-								double sigma_p = conducting_y[i][j]*mf*Utils.sech2(force_p*ds*beta/2)*dfactor*rho_p_avg*2*D_hole/ds;
-								
-								Jy_n[i][j] = conducting_y[i][j]*mf*(-D_electron*(rho_n[i][j+1] - rho_n[i][j])/ds
-									+ 2*D_electron*rho_n_avg*Math.tanh(force_n*ds*beta/2)/ds) - sigma_n*ey_prev;
+								double betaE_n = (emf_phase*emfy[i][j]*q_n + cmfy_n[i][j] + ey_prev*q_n)*ds*beta/2;
+								double betaE_p = (emf_phase*emfy[i][j]*q_p + cmfy_p[i][j] + ey_prev*q_p)*ds*beta/2;
 
-								Jy_p[i][j] = conducting_y[i][j]*mf*(-D_hole*(rho_p[i][j+1] - rho_p[i][j])/ds
-									+ 2*D_hole*rho_p_avg*Math.tanh(force_p*ds*beta/2)/ds) - sigma_p*ey_prev;
+								double exp_2fn = FastExp.exp(2*betaE_n);
+								double exp_2fp = FastExp.exp(2*betaE_p);
+								
+								double factor_n = conducting_y[i][j]*mf*D_electron/ds;
+								double factor_p = conducting_y[i][j]*mf*D_hole/ds;
+								
+								double sigma_n = -factor_n*(4/(exp_2fn+2+1/exp_2fn))*dfactor*rho_n_avg*2;
+								double sigma_p = factor_p*(4/(exp_2fp+2+1/exp_2fp))*dfactor*rho_p_avg*2;
+								
+								Jy_n[i][j] = factor_n*(-(rho_n[i][j+1] - rho_n[i][j]) + 2*rho_n_avg*(exp_2fn-1)/(exp_2fn+1)) - sigma_n*ey_prev;
+
+								Jy_p[i][j] = factor_p*(-(rho_p[i][j+1] - rho_p[i][j]) + 2*rho_p_avg*(exp_2fp-1)/(exp_2fp+1)) - sigma_p*ey_prev;
 
 								double sigma = sigma_n + sigma_p + absorptivity_y[i][j]*epsy[i][j]*absorbing_coeff;
 
