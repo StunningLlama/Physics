@@ -4,6 +4,8 @@
 
 package electrodynamics;
 
+import java.awt.Dimension;
+import java.awt.Toolkit;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -131,7 +133,9 @@ public class Preferences extends JFrame {
 	}
 	
 	public void resetPrefs() {
-		spinner_imgsize.setValue(768);
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		int opt_height = 256*(int)Math.floor(0.8*screenSize.getHeight()/256);
+		spinner_imgsize.setValue(opt_height);
 		chkbox_undo.setSelected(true);
 		chkbox_potential.setSelected(true);
 		chkbox_logscale.setSelected(true);
