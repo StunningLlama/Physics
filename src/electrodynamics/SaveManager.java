@@ -27,9 +27,7 @@ import javax.swing.filechooser.FileFilter;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 
 import electrodynamics.Renderer.ScalarMode;
@@ -211,7 +209,7 @@ public class SaveManager {
 
 					if (testNextObject(fstr, "advsettings")) {
 						fstr.beginObject();
-						readAdvancedSettings(gson, fstr);
+						e.adv_opts.readAdvancedSettings(gson, fstr);
 						fstr.endObject();
 						e.advsettings_tweaked = true;
 					} else {
@@ -471,7 +469,7 @@ public class SaveManager {
 				data.add("ground", gson.toJsonTree(e.getGround()));
 
 				JsonObject advsettings = new JsonObject();
-				writeAdvancedSettings(gson, advsettings);
+				e.adv_opts.writeAdvancedSettings(gson, advsettings);
 
 				// Version should always be first
 				JsonObject save = new JsonObject();
@@ -510,98 +508,6 @@ public class SaveManager {
 	
 	public void setDefaults() {
 		e.opts.setDefaults(e);
-	}
-
-	public void writeAdvancedSettings() {
-		e.adv_opts.width				.setText(formatDouble(e.width						));
-		e.adv_opts.resolution			.setText(Integer.toString(e.resolution				));
-		e.adv_opts.depth				.setText(formatDouble(e.depth						));
-		e.adv_opts.mu_electron			.setText(formatDouble(e.mu_electron					));
-		e.adv_opts.mu_hole				.setText(formatDouble(e.mu_hole						));
-		e.adv_opts.ni_semi				.setText(formatDouble(e.ni_semi						));
-		e.adv_opts.W_semi				.setText(formatDouble(e.W_semi/e.eVtoJ				));
-		e.adv_opts.E_b_semi				.setText(formatDouble(e.E_b_semi/e.eVtoJ			));
-		e.adv_opts.ni_metal				.setText(formatDouble(e.ni_metal					));
-		e.adv_opts.W_metal				.setText(formatDouble(e.W_metal_default/e.eVtoJ		));
-		e.adv_opts.E_b_metal			.setText(formatDouble(e.E_b_metal/e.eVtoJ			));
-		e.adv_opts.W_metal_high			.setText(formatDouble(e.W_metal_high/e.eVtoJ		));
-		e.adv_opts.W_metal_low			.setText(formatDouble(e.W_metal_low/e.eVtoJ			));
-		e.adv_opts.recomb_rate_semi		.setText(formatDouble(e.recomb_rate_semi			));
-		e.adv_opts.recomb_rate_metal	.setText(formatDouble(e.recomb_rate_metal			));
-		e.adv_opts.T					.setText(formatDouble(e.T							));
-	}
-	
-	public void readAdvancedSettings() {
-		
-		
-		double width_tmp			= Double.valueOf(e.adv_opts.width				.getText());	
-		int resolution_tmp			= Integer.valueOf(e.adv_opts.resolution			.getText());
-		e.depth						= Double.valueOf(e.adv_opts.depth				.getText());
-		e.mu_electron				= Double.valueOf(e.adv_opts.mu_electron			.getText());
-		e.mu_hole					= Double.valueOf(e.adv_opts.mu_hole				.getText());
-		e.ni_semi					= Double.valueOf(e.adv_opts.ni_semi				.getText());
-		e.W_semi					= Double.valueOf(e.adv_opts.W_semi				.getText())*e.eVtoJ;
-		e.E_b_semi					= Double.valueOf(e.adv_opts.E_b_semi			.getText())*e.eVtoJ;
-		e.ni_metal					= Double.valueOf(e.adv_opts.ni_metal			.getText());
-		e.W_metal_default			= Double.valueOf(e.adv_opts.W_metal				.getText())*e.eVtoJ;
-		e.E_b_metal					= Double.valueOf(e.adv_opts.E_b_metal			.getText())*e.eVtoJ;
-		e.W_metal_high				= Double.valueOf(e.adv_opts.W_metal_high		.getText())*e.eVtoJ;
-		e.W_metal_low				= Double.valueOf(e.adv_opts.W_metal_low			.getText())*e.eVtoJ;
-		e.recomb_rate_semi			= Double.valueOf(e.adv_opts.recomb_rate_semi	.getText());
-		e.recomb_rate_metal			= Double.valueOf(e.adv_opts.recomb_rate_metal	.getText());
-		e.T							= Double.valueOf(e.adv_opts.T					.getText());
-
-		e.updateConstants();
-		e.setSize(resolution_tmp, width_tmp);
-		e.lastsimspeed = -1;
-		e.advsettings_tweaked = true;
-	}
-
-	public void writeAdvancedSettings (Gson gson, JsonObject advsettings) {
-		advsettings.addProperty("depth", e.depth 						);
-		advsettings.addProperty("mu_electron", e.mu_electron			);
-		advsettings.addProperty("mu_hole", e.mu_hole					);
-		advsettings.addProperty("ni_semi", e.ni_semi					);
-		advsettings.addProperty("W_semi", e.W_semi						);
-		advsettings.addProperty("E_b_semi", e.E_b_semi					);
-		advsettings.addProperty("ni_metal", e.ni_metal					);
-		advsettings.addProperty("W_metal_default", e.W_metal_default		);
-		advsettings.addProperty("E_b_metal", e.E_b_metal					);
-		advsettings.addProperty("W_metal_high", e.W_metal_high				);
-		advsettings.addProperty("W_metal_low", e.W_metal_low				);
-		advsettings.addProperty("recomb_rate_semi", e.recomb_rate_semi		);
-		advsettings.addProperty("recomb_rate_metal", e.recomb_rate_metal	);
-		advsettings.addProperty("T", e.T									);
-	}
-	
-
-	public void readAdvancedSettings (Gson gson, JsonReader fstr) throws JsonIOException, JsonSyntaxException, IOException, RuntimeException {
-
-		while (fstr.hasNext()) {
-			String name = fstr.nextName();
-			switch (name){
-			case "depth": e.depth 						= fstr.nextDouble(); break;
-			case "mu_electron": e.mu_electron			= fstr.nextDouble(); break;
-			case "mu_hole": e.mu_hole					= fstr.nextDouble(); break;
-			case "ni_semi": e.ni_semi					= fstr.nextDouble(); break;
-			case "W_semi": e.W_semi						= fstr.nextDouble(); break;
-			case "E_b_semi": e.E_b_semi					= fstr.nextDouble(); break;
-			case "ni_metal": e.ni_metal					= fstr.nextDouble(); break;
-			case "W_metal_default": e.W_metal_default		= fstr.nextDouble(); break;
-			case "E_b_metal": e.E_b_metal					= fstr.nextDouble(); break;
-			case "W_metal_high": e.W_metal_high				= fstr.nextDouble(); break;
-			case "W_metal_low": e.W_metal_low				= fstr.nextDouble(); break;
-			case "recomb_rate_semi": e.recomb_rate_semi		= fstr.nextDouble(); break;
-			case "recomb_rate_metal": e.recomb_rate_metal	= fstr.nextDouble(); break;
-			case "T": e.T									= fstr.nextDouble(); break;
-
-			default: fstr.skipValue(); break; // skip others
-			}
-		}
-	}
-
-	public String formatDouble(double d) {
-		return Double.toString(d);
 	}
 	
 	// Old version of VectorMode for backwards file compatibility
