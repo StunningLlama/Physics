@@ -328,7 +328,7 @@ public class AdvancedOptions extends JFrame {
 		recomb_rate_semi.setBounds(216, 171, 98, 26);
 		semi.add(recomb_rate_semi);
 		
-		lblNewLabel_5_2 = new JLabel("n-type default doping conc. [C/m^3]");
+		lblNewLabel_5_2 = new JLabel("n-type default doping conc. [1/m^3]");
 		lblNewLabel_5_2.setToolTipText("Doping concentration");
 		lblNewLabel_5_2.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_2.setBounds(326, 11, 236, 16);
@@ -339,7 +339,7 @@ public class AdvancedOptions extends JFrame {
 		n_default_doping.setBounds(574, 6, 98, 26);
 		semi.add(n_default_doping);
 		
-		lblNewLabel_5_3 = new JLabel("p-type default doping conc. [C/m^3]");
+		lblNewLabel_5_3 = new JLabel("p-type default doping conc. [1/m^3]");
 		lblNewLabel_5_3.setToolTipText("Doping concentration");
 		lblNewLabel_5_3.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_3.setBounds(326, 44, 236, 16);
@@ -350,7 +350,7 @@ public class AdvancedOptions extends JFrame {
 		p_default_doping.setBounds(574, 39, 98, 26);
 		semi.add(p_default_doping);
 		
-		lblNewLabel_5_4 = new JLabel("n-type light doping conc. [C/m^3]");
+		lblNewLabel_5_4 = new JLabel("n-type light doping conc. [1/m^3]");
 		lblNewLabel_5_4.setToolTipText("Doping concentration");
 		lblNewLabel_5_4.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_4.setBounds(326, 77, 236, 16);
@@ -361,7 +361,7 @@ public class AdvancedOptions extends JFrame {
 		n_light_doping.setBounds(574, 72, 98, 26);
 		semi.add(n_light_doping);
 		
-		lblNewLabel_5_5 = new JLabel("p-type light doping conc. [C/m^3]");
+		lblNewLabel_5_5 = new JLabel("p-type light doping conc. [1/m^3]");
 		lblNewLabel_5_5.setToolTipText("Doping concentration");
 		lblNewLabel_5_5.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_5.setBounds(326, 110, 236, 16);
@@ -372,7 +372,7 @@ public class AdvancedOptions extends JFrame {
 		p_light_doping.setBounds(574, 105, 98, 26);
 		semi.add(p_light_doping);
 		
-		lblNewLabel_5_6 = new JLabel("n-type heavy doping conc. [C/m^3]");
+		lblNewLabel_5_6 = new JLabel("n-type heavy doping conc. [1/m^3]");
 		lblNewLabel_5_6.setToolTipText("Doping concentration");
 		lblNewLabel_5_6.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_6.setBounds(326, 143, 236, 16);
@@ -383,7 +383,7 @@ public class AdvancedOptions extends JFrame {
 		n_heavy_doping.setBounds(574, 138, 98, 26);
 		semi.add(n_heavy_doping);
 		
-		lblNewLabel_5_7 = new JLabel("p-type heavy doping conc. [C/m^3]");
+		lblNewLabel_5_7 = new JLabel("p-type heavy doping conc. [1/m^3]");
 		lblNewLabel_5_7.setToolTipText("Doping concentration");
 		lblNewLabel_5_7.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_7.setBounds(326, 176, 236, 16);
@@ -587,6 +587,7 @@ public class AdvancedOptions extends JFrame {
 
 			e.calculateDependentConstants();
 			e.setSize(resolution_tmp, width_tmp);
+			e.resetFields(false);
 			e.lastsimspeed = -1;
 			e.advsettings_tweaked = true;
 			return true;
