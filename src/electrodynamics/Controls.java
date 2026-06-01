@@ -1152,13 +1152,17 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		} else if (ev.getSource() == e.opts.gui_brush) {
 			e.controls.brush_changed = true;
 		} else if (ev.getSource() == e.opts.menu_advancedsettings) {
-			e.savemanager.writeAdvancedSettings();
+			e.adv_opts.storeAdvancedSettings();
 			e.adv_opts.setVisible(true);
 		} else if (ev.getSource() == e.adv_opts.btn_apply) {
-			e.savemanager.readAdvancedSettings();
-			e.adv_opts.setVisible(false);
+			boolean success = e.adv_opts.loadAdvancedSettings(true);
+			if (success)
+				e.adv_opts.setVisible(false);
 		} else if (ev.getSource() == e.adv_opts.btn_cancel) {
 			e.adv_opts.setVisible(false);
+		} else if (ev.getSource() == e.adv_opts.btn_reset) {
+			e.adv_opts.setInputsToDefault();
+			//e.adv_opts.setVisible(false);
 		} else if (ev.getSource() == e.opts.gui_carriers) {
 			e.opts.menu_carriers.setSelected(e.opts.gui_carriers.isSelected());
 		} else if (ev.getSource() == e.opts.menu_carriers) {

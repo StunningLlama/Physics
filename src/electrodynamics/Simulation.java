@@ -90,7 +90,7 @@ public class Simulation extends PeriodicTask {
 	public double width;				// Width, in SI
 	public double ds;					// Spatial discretization
 	public double dt;					// Timestep
-	public double depth = 1e-3;		// Extent of circuit in z-dimension, only used to get reasonable values for current probe
+	public double depth;				// Extent of circuit in z-dimension, only used to get reasonable values for current probe
 	
 	public int absorber_width;
 	public double absorbing_coeff;
@@ -98,10 +98,19 @@ public class Simulation extends PeriodicTask {
 	public double dt_maximum;
 	public int parity = -1;			// Negative sign resulting from flipped y-axis in graphics coordinate system
 
-	public long stepnumber = 0;
-	public long frame = 0;
+	public double time;
+	public double AC_phase;
+	public long stepnumber;
+	public long frame;
 	public int lastsimspeed = 0;
 	public int iteration_multiplier = 0;
+	
+	public void resetTime() {
+		time = 0;
+		AC_phase = 0;
+		stepnumber = 0;
+		frame = 0;
+	}
 
 	public double error_detection_threshold = 1e-3;
 	public int sign_violation_timer = 0;
@@ -116,72 +125,134 @@ public class Simulation extends PeriodicTask {
 	
 	/* Physical constants */
 
-	public double eps0 = 8.85e-12;
-	public double mu0 = 1.257e-6;
-	public double c = 1/Math.sqrt(eps0*mu0);
-	public double k = 1.381e-23;
-	public double e_charge = 1.6e-19;
-	public double e_mass = 9e-31;
-	public double eVtoJ = e_charge;			// eV to J conversion factor
-	public double q_n = -e_charge;				// Charge of single electron
-	public double q_p = e_charge;				// Charge of single hole
+	public double eps0;			// Vaccuum permittivity
+	public double mu0;			// Vaccum permeability
+	public double c;			// Speed of light
+	public double k;			// Boltzmann constant
+	public double e_charge;		// Elementary charge
+	public double e_mass;		// Electron mass
+	public double eVtoJ = 1.6e-19;		// eV to J conversion factor
+	public double q_n;			// Charge of single electron
+	public double q_p;			// Charge of single hole
 
 	
 	/* Material properties */
 
-	public double T = 297.61;									// System temperature
-	public double beta = 1/(k*T);
+	public double T;					// System temperature
+	public double beta;					// Inverse temperature
 	
-	public double mu_electron = 0.1400*1500;					// Electron mobility
-	public double D_electron = mu_electron/(beta*e_charge);	// Diffusion constant, determined by Einstein relation
+	public double mu_electron;			// Electron mobility
+	public double D_electron;			// Diffusion constant, determined by Einstein relation
 
-	public double mu_hole = 0.5*mu_electron;					// Hole mobility, slightly lower than electron
-	public double D_hole = mu_hole/(beta*e_charge);
+	public double mu_hole;				// Hole mobility, slightly lower than electron
+	public double D_hole;				// Hole diffusion constant
 
-	public double ni_semi = 1e16;					// Semiconductor equilibrium concentration
-	public double W_semi = 4.7*eVtoJ;				// Semiconductor work function
-	public double E_b_semi = 1.12*eVtoJ;			// Semiconductor band gap
-	public double recomb_rate_semi = 1e7/ni_semi;
+	public double ni_semi;				// Semiconductor equilibrium concentration
+	public double W_semi;				// Semiconductor work function
+	public double E_b_semi;				// Semiconductor band gap
+	public double recomb_rate_semi;		// Semiconductor recombination rate
 
-	public double ni_metal = 5e20;					// Metal charge carrier concentratio
-	public double ni_metal_high = 2.5*ni_metal;
-	public double ni_metal_low = 0.25*ni_metal;
-	public double W_metal_default = 4.7*eVtoJ;		// Metal work function, same as semiconductor
-	public double W_metal_high = W_semi + 0.3*eVtoJ;
-	public double W_metal_low = W_semi - 0.3*eVtoJ;
-	public double E_b_metal = 1.12*eVtoJ;			// Same as semiconductor
-	public double recomb_rate_metal = 1e8/ni_semi;
+	public double ni_metal;				// Metal charge carrier concentration
+	public double ni_metal_high;
+	public double ni_metal_low;
+	public double W_metal_default;		// Metal work function, same as semiconductor
+	public double W_metal_high;
+	public double W_metal_low;
+	public double E_b_metal;			// Same as semiconductor
+	public double recomb_rate_metal;	// Metal recombination rate
 
-	public double ni_currentsource = ni_metal;
-	public double currentsource_mobility = 0.0002;
-	public double currentsource_sigma = ni_currentsource*e_charge*(mu_electron + mu_hole)*currentsource_mobility;
+	public double ni_currentsource;			// Current source carrier concentration
+	public double currentsource_mobility;	// Current source mobility
+	public double currentsource_sigma;		// Current source conductivity
 
 	// Only reason activation energy needed is to smoothly public interpolate rate constant
-	public double recomb_cross_section = 1e-10;
-	public double arrhenius_prefactor = recomb_cross_section*Math.sqrt(8*(k*T)/(Math.PI*e_mass/2));
-	public double E_a_semi = -Math.log(recomb_rate_semi/arrhenius_prefactor);
-	public double E_a_metal = -Math.log(recomb_rate_metal/arrhenius_prefactor);
+	public double recomb_cross_section;
+	public double arrhenius_prefactor;
+	public double E_a_semi;
+	public double E_a_metal;
 
-	public double n_default_doping_concentration = 5e19;
-	public double p_default_doping_concentration = 5e19;
-	public double n_light_doping_concentration = 1e19;
-	public double p_light_doping_concentration = 1e19;
-	public double n_heavy_doping_concentration = 2.5e20;
-	public double p_heavy_doping_concentration = 2.5e20;
+	public double n_default_doping_concentration;
+	public double p_default_doping_concentration;
+	public double n_light_doping_concentration;
+	public double p_light_doping_concentration;
+	public double n_heavy_doping_concentration;
+	public double p_heavy_doping_concentration;
 
-	public double dielectric_eps_r = 25.0;
-	public double ferromagnet_mu_r = 250.0;
-	public double staticcharge_density = 10.0;
+	public double dielectric_eps_r;
+	public double ferromagnet_mu_r;
+	public double staticcharge_density;
 
-	public double E_sat = 5e5;						// Electric field at which carrier velocity saturates
+	public double E_sat;				// Electric field at which carrier velocity saturates
 
-	public int junction_size = 3;					// Free energy smoothing distance: junction_size < 3 causes instability
+	public int junction_size;			// Free energy smoothing distance: junction_size < 3 causes instability
 	
+	public void setDefaultParameters() {
+		depth = 1e-3;
+		
+		eps0 = 8.85e-12;
+		mu0 = 1.257e-6;
+		k = 1.381e-23;
+		e_charge = 1.6e-19;
+		e_mass = 9e-31;
+
+		T = 297.61;
+		
+		mu_electron = 0.1400*1500;
+		mu_hole = 0.5*mu_electron;
+
+		ni_semi = 1e16;
+		W_semi = 4.7*eVtoJ;
+		E_b_semi = 1.12*eVtoJ;
+		recomb_rate_semi = 1e7/ni_semi;
+
+		ni_metal = 5e20;
+		ni_metal_high = 2.5*ni_metal;
+		ni_metal_low = 0.25*ni_metal;
+		W_metal_default = 4.7*eVtoJ;
+		W_metal_high = W_semi + 0.3*eVtoJ;
+		W_metal_low = W_semi - 0.3*eVtoJ;
+		E_b_metal = 1.12*eVtoJ;
+		recomb_rate_metal = 1e8/ni_semi;
+
+		currentsource_mobility = 0.0002;
+
+		recomb_cross_section = 1e-10;
+		arrhenius_prefactor = recomb_cross_section*Math.sqrt(8*(k*T)/(Math.PI*e_mass/2));
+		E_a_semi = -Math.log(recomb_rate_semi/arrhenius_prefactor);
+		E_a_metal = -Math.log(recomb_rate_metal/arrhenius_prefactor);
+
+		n_default_doping_concentration = 5e19;
+		p_default_doping_concentration = 5e19;
+		n_light_doping_concentration = 1e19;
+		p_light_doping_concentration = 1e19;
+		n_heavy_doping_concentration = 2.5e20;
+		p_heavy_doping_concentration = 2.5e20;
+
+		dielectric_eps_r = 25.0;
+		ferromagnet_mu_r = 250.0;
+		staticcharge_density = 10.0;
+
+		E_sat = 5e5;
+
+		junction_size = 3;
+		
+		calculateDependentConstants();
+	}
+	
+	public void calculateDependentConstants() {
+		c = 1/Math.sqrt(eps0*mu0);
+		q_n = -e_charge;
+		q_p = e_charge;
+		
+		beta = 1/(k*T);
+		D_electron = mu_electron/(beta*e_charge);
+		D_hole = mu_hole/(beta*e_charge);
+
+		ni_currentsource = ni_metal;
+		currentsource_sigma = ni_currentsource*e_charge*(mu_electron + mu_hole)*currentsource_mobility;
+	}
 	
 	/* Dynamical simulation variables */
-	
-	public double time = 0.0;
-	public double AC_phase;
 	
 	public double[][] Ex;			// x component of E field
 	public double[][] Ey;			// y component of E field
@@ -318,6 +389,8 @@ public class Simulation extends PeriodicTask {
 	Timer simFPStimer = new Timer("Simulation FPS", 10, true);
 
 	public Simulation() {
+		setDefaultParameters();
+		
 		controls = new Controls(this);
 		renderer = new Renderer(this);
 		savemanager = new SaveManager(this);
@@ -364,7 +437,6 @@ public class Simulation extends PeriodicTask {
 
     			if (controls.clear) {
     				SwingUtilities.invokeLater(() -> {
-        				time = 0.0;
     					resetFields(false);
     				});
     				controls.clear = false;
@@ -375,7 +447,6 @@ public class Simulation extends PeriodicTask {
         				int result = JOptionPane.showConfirmDialog(opts, "Do you wish to reset the entire simulation?", "Message", JOptionPane.YES_NO_OPTION);
         				if (result == JOptionPane.OK_OPTION)
         				{
-        					time = 0.0;
         					resetFields(true);
             				opts.setDefaults(this);
             				SaveManager.currentfile = null;
@@ -487,16 +558,6 @@ public class Simulation extends PeriodicTask {
 	        SemiSim.instance.threadPool.schedule(this, nextDelay(renderer.frameduration), TimeUnit.MILLISECONDS);
 		}
 	};
-	
-	public void updateConstants() {
-		c = 1/Math.sqrt(eps0*mu0);
-		beta = 1/(k*T);
-		D_electron = mu_electron/(beta*e_charge);
-		D_hole = mu_hole/(beta*e_charge);
-		arrhenius_prefactor = recomb_cross_section*Math.sqrt(8*(k*T)/(Math.PI*e_mass/2));
-		E_a_semi = -Math.log(recomb_rate_semi/arrhenius_prefactor);
-		E_a_metal = -Math.log(recomb_rate_metal/arrhenius_prefactor);
-	}
 	
 	public void checkCFL() {
 		System.out.println("Wave equation CFL ratio = " + (Math.sqrt(2)*c)/(ds/dt_maximum));
@@ -653,6 +714,8 @@ public class Simulation extends PeriodicTask {
 
 		rwLock.writeLock().lock();
 		try {
+			resetTime();
+			
 			for (int i = 0; i < nx; i++)
 			{
 				for (int j = 0; j < ny; j++)
@@ -2020,6 +2083,10 @@ public class Simulation extends PeriodicTask {
 		str += ("Absorptivity\t"  			+	units.toString(mat.absorptivity, Quantity.DIMENSIONLESS) + "\n");
 		str += ("Conducting\t"  			+	mat.conducting + "\n");
 		str += ("Semicond.\t"  				+	mat.semiconducting + "\n");
+		str += "\nNumerical stability ratios\n";
+		str += ("Wave equation CFL ratio = " + units.toString((Math.sqrt(2)*c)/(ds/dt_maximum), Quantity.DIMENSIONLESS) + "\n");
+		str += ("Electron diffusion CFL ratio = " + units.toString(dt_maximum/(ds*ds/(4*D_electron)), Quantity.DIMENSIONLESS) + "\n");
+		str += ("Hole diffusion CFL ratio = " + units.toString(dt_maximum/(ds*ds/(4*D_hole)), Quantity.DIMENSIONLESS) + "\n");
 		
 		opts.textPane.setText(str);
 	}
