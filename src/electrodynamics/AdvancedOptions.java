@@ -78,7 +78,9 @@ public class AdvancedOptions extends JFrame {
 	private JPanel panel;
 	public JButton btn_reset;
 	private JLabel lblNewLabel_5_8;
-	private JTextField E_sat;
+	private JTextField v_sat_n;
+	private JLabel lblNewLabel_5_9;
+	private JTextField v_sat_p;
 
 	public AdvancedOptions() {
 		setTitle("Advanced settings");
@@ -394,15 +396,25 @@ public class AdvancedOptions extends JFrame {
 		p_heavy_doping.setBounds(574, 171, 98, 26);
 		semi.add(p_heavy_doping);
 		
-		lblNewLabel_5_8 = new JLabel("Saturation field [V/m]");
+		lblNewLabel_5_8 = new JLabel("Electron sat. velocity [m/s]");
 		lblNewLabel_5_8.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblNewLabel_5_8.setBounds(36, 209, 168, 16);
+		lblNewLabel_5_8.setBounds(12, 209, 192, 16);
 		semi.add(lblNewLabel_5_8);
 		
-		E_sat = new JTextField();
-		E_sat.setColumns(10);
-		E_sat.setBounds(216, 204, 98, 26);
-		semi.add(E_sat);
+		v_sat_n = new JTextField();
+		v_sat_n.setColumns(10);
+		v_sat_n.setBounds(216, 204, 98, 26);
+		semi.add(v_sat_n);
+		
+		lblNewLabel_5_9 = new JLabel("Hole sat. velocity [m/s]");
+		lblNewLabel_5_9.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblNewLabel_5_9.setBounds(12, 242, 192, 16);
+		semi.add(lblNewLabel_5_9);
+		
+		v_sat_p = new JTextField();
+		v_sat_p.setColumns(10);
+		v_sat_p.setBounds(216, 237, 98, 26);
+		semi.add(v_sat_p);
 		
 		other = new JPanel();
 		tabbedPane.addTab("Other materials", null, other, null);
@@ -516,7 +528,8 @@ public class AdvancedOptions extends JFrame {
 		e.adv_opts.W_semi				.setText(formatDouble(e.W_semi/e.eVtoJ				));
 		e.adv_opts.E_b_semi				.setText(formatDouble(e.E_b_semi/e.eVtoJ			));
 		e.adv_opts.recomb_rate_semi		.setText(formatDouble(e.recomb_rate_semi			));
-		e.adv_opts.E_sat				.setText(formatDouble(e.E_sat			));
+		e.adv_opts.v_sat_n				.setText(formatDouble(e.v_sat_n			));
+		e.adv_opts.v_sat_p				.setText(formatDouble(e.v_sat_p			));
 		e.adv_opts.n_default_doping		.setText(formatDouble(e.n_default_doping_concentration		));
 		e.adv_opts.p_default_doping		.setText(formatDouble(e.p_default_doping_concentration		));
 		e.adv_opts.n_light_doping		.setText(formatDouble(e.n_light_doping_concentration		));
@@ -565,7 +578,8 @@ public class AdvancedOptions extends JFrame {
 			e.W_semi					= Double.valueOf(e.adv_opts.W_semi				.getText())*e.eVtoJ;
 			e.E_b_semi					= Double.valueOf(e.adv_opts.E_b_semi			.getText())*e.eVtoJ;
 			e.recomb_rate_semi			= Double.valueOf(e.adv_opts.recomb_rate_semi	.getText());
-			e.E_sat						= Double.valueOf(e.adv_opts.E_sat				.getText());
+			e.v_sat_n						= Double.valueOf(e.adv_opts.v_sat_n				.getText());
+			e.v_sat_p						= Double.valueOf(e.adv_opts.v_sat_p				.getText());
 			e.n_default_doping_concentration	= Double.valueOf(e.adv_opts.n_default_doping	.getText());
 			e.p_default_doping_concentration	= Double.valueOf(e.adv_opts.p_default_doping	.getText());
 			e.n_light_doping_concentration		= Double.valueOf(e.adv_opts.n_light_doping	.getText());
@@ -613,7 +627,8 @@ public class AdvancedOptions extends JFrame {
 		advsettings.addProperty("W_semi", e.W_semi						);
 		advsettings.addProperty("E_b_semi", e.E_b_semi					);
 		advsettings.addProperty("recomb_rate_semi", e.recomb_rate_semi	);
-		advsettings.addProperty("E_sat", e.E_sat						);
+		advsettings.addProperty("v_sat_n", e.v_sat_n						);
+		advsettings.addProperty("v_sat_p", e.v_sat_p						);
 		advsettings.addProperty("n_default_doping", e.n_default_doping_concentration	);
 		advsettings.addProperty("p_default_doping", e.p_default_doping_concentration	);
 		advsettings.addProperty("n_light_doping", e.n_light_doping_concentration	);
@@ -656,7 +671,8 @@ public class AdvancedOptions extends JFrame {
 			case "W_semi": e.W_semi						= fstr.nextDouble(); break;
 			case "E_b_semi": e.E_b_semi					= fstr.nextDouble(); break;
 			case "recomb_rate_semi": e.recomb_rate_semi		= fstr.nextDouble(); break;
-			case "E_sat": e.E_sat						= fstr.nextDouble(); break;
+			case "v_sat_n": e.v_sat_n						= fstr.nextDouble(); break;
+			case "v_sat_p": e.v_sat_p						= fstr.nextDouble(); break;
 			case "n_default_doping": e.n_default_doping_concentration	= fstr.nextDouble(); break;
 			case "p_default_doping": e.p_default_doping_concentration	= fstr.nextDouble(); break;
 			case "n_light_doping": e.n_light_doping_concentration		= fstr.nextDouble(); break;

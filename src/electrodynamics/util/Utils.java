@@ -38,7 +38,19 @@ public class Utils {
 		return (x-y)/FastLog.log(x/y);
 		//return (x-y)/Math.log(x/y);
 	}
-	
+
+	public static double tanhratio(double a, double x, double exp2ax) {
+		if (Math.abs(a*x) < 0.2 && Math.abs(x) < 0.2) {
+			double a2 = a*a;
+			double x2 = x*x;
+			return 1 + 0.33333333333333333*(1-a2)*x2 - 0.022222222222222222*(1+5*a2-6*a2*a2)*x2*x2;
+		}
+		else {
+			double exp2x = FastExp.exp(2*x);
+			return (exp2ax-1)*(exp2x+1)/(a*(exp2ax+1)*(exp2x-1));
+		}
+	}
+
 	public static double bilinearinterp(double[][] array, double x, double y, int nx, int ny) {
 		int xfloor = (int)Math.floor(x);
 		int yfloor = (int)Math.floor(y);

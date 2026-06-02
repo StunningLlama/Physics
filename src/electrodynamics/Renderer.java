@@ -1596,7 +1596,7 @@ public class Renderer extends PeriodicTask {
 											}
 										} else {
 											if (d.type == DotType.ELECTRON) {
-												double mf = Utils.bilinearinterp(e.mobility_factor, d.x, d.y, e.nx, e.ny);
+												double mf = Utils.bilinearinterp(e.relative_mobility, d.x, d.y, e.nx, e.ny);
 												double s = -e.mu_electron*mf*dt_dot/e.ds;
 												double t = Math.sqrt(24*e.D_electron*mf*dt_dot)/e.ds; //Random walk PDF obeys diffusion equation. Variance of uniform dist is 12L^2 and variance of heat kernel is 2Dt
 												for (int k = 0; k < steps; k++) {
@@ -1611,7 +1611,7 @@ public class Renderer extends PeriodicTask {
 													}
 												}
 											} else if (d.type == DotType.HOLE) {
-												double mf = Utils.bilinearinterp(e.mobility_factor, d.x, d.y, e.nx, e.ny);
+												double mf = Utils.bilinearinterp(e.relative_mobility, d.x, d.y, e.nx, e.ny);
 												double s = e.mu_hole*dt_dot*mf/e.ds;
 												double t = Math.sqrt(24*e.D_hole*mf*dt_dot)/e.ds;
 												for (int k = 0; k < steps; k++) {

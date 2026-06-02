@@ -182,8 +182,10 @@ public class Simulation extends PeriodicTask {
 	public double ferromagnet_mu_r;
 	public double staticcharge_density;
 
-	public double E_sat;				// Electric field at which carrier velocity saturates
-
+	public double v_sat_n;				// Velocity at which carrier velocity saturates
+	public double v_sat_p;				// Velocity at which carrier velocity saturates
+	public double drift_coef_n;
+	public double drift_coef_p;
 	public int junction_size;			// Free energy smoothing distance: junction_size < 3 causes instability
 	
 	public void setDefaultParameters() {
@@ -217,9 +219,6 @@ public class Simulation extends PeriodicTask {
 		currentsource_mobility = 0.0002;
 
 		recomb_cross_section = 1e-10;
-		arrhenius_prefactor = recomb_cross_section*Math.sqrt(8*(k*T)/(Math.PI*e_mass/2));
-		E_a_semi = -Math.log(recomb_rate_semi/arrhenius_prefactor);
-		E_a_metal = -Math.log(recomb_rate_metal/arrhenius_prefactor);
 
 		n_default_doping_concentration = 5e19;
 		p_default_doping_concentration = 5e19;
@@ -232,7 +231,8 @@ public class Simulation extends PeriodicTask {
 		ferromagnet_mu_r = 250.0;
 		staticcharge_density = 10.0;
 
-		E_sat = 5e5;
+		v_sat_n = 1e5*1500;
+		v_sat_p = 1e5*1500;
 
 		junction_size = 3;
 		
@@ -250,6 +250,17 @@ public class Simulation extends PeriodicTask {
 
 		ni_currentsource = ni_metal;
 		currentsource_sigma = ni_currentsource*e_charge*(mu_electron + mu_hole)*currentsource_mobility;
+
+		arrhenius_prefactor = recomb_cross_section*Math.sqrt(8*(k*T)/(Math.PI*e_mass/2));
+		E_a_semi = -Math.log(recomb_rate_semi/arrhenius_prefactor);
+		E_a_metal = -Math.log(recomb_rate_metal/arrhenius_prefactor);
+
+		width = nx*ds;
+		dt_maximum = 0.9*Math.min(ds/(Math.sqrt(2)*c), Math.min(ds*ds/(4*D_electron), ds*ds/(4*D_hole)));
+		Hz_dissipation = 0.01*ds*ds/dt_maximum;
+		drift_coef_n = 2*D_electron/(v_sat_n*ds);
+		drift_coef_p = 2*D_hole/(v_sat_p*ds);
+		System.out.println(drift_coef_n);
 	}
 	
 	/* Dynamical simulation variables */
@@ -264,7 +275,7 @@ public class Simulation extends PeriodicTask {
 	public double[][] rho_back;	// Background
 	public double[][] rho_abs;		// Absorber charge
 	public double[][] rho_free;	// Total free charges
-	public double[][] mobility_factor;
+	//public double[][] mobility_factor;
 
 	public double[][] Jx_n;		// Electron current
 	public double[][] Jy_n;
@@ -569,9 +580,7 @@ public class Simulation extends PeriodicTask {
 		
 		this.width = width;
 		ds = width/resolution;
-		width = nx*ds;
-		dt_maximum = 0.9*Math.min(ds/(Math.sqrt(2)*c), Math.min(ds*ds/(4*D_electron), ds*ds/(4*D_hole)));
-		Hz_dissipation = 0.01*ds*ds/dt_maximum;
+		calculateDependentConstants();
 
 		if (resolution == this.resolution) return false;
 
@@ -602,7 +611,6 @@ public class Simulation extends PeriodicTask {
 			rho_p = new double[nx][ny];
 			rho_back = new double[nx][ny];
 			rho_free = new double[nx][ny];
-			mobility_factor = new double[nx][ny];
 
 			Jx_abs = new double[nx][ny];
 			Jy_abs = new double[nx][ny];
@@ -777,7 +785,6 @@ public class Simulation extends PeriodicTask {
 					rho_p[i][j] = 0.0;
 					rho_back[i][j] = 0.0;
 					rho_free[i][j] = 0.0;
-					mobility_factor[i][j] = 0.0;
 
 					Jx_abs[i][j] = 0.0;
 					Jy_abs[i][j] = 0.0;
@@ -1036,9 +1043,6 @@ public class Simulation extends PeriodicTask {
 								rho_abs[i][j] = rho_abs[i][j] - (Jx_abs[i][j]-Jx_abs[i-1][j] + Jy_abs[i][j]-Jy_abs[i][j-1])*dt/ds;
 
 								rho_free[i][j] = rho_abs[i][j]+rho_n[i][j]+rho_p[i][j]+rho_back[i][j];
-
-								double E_avg = Math.sqrt(0.5*(Ex[i][j]*Ex[i][j] + Ex[i-1][j]*Ex[i-1][j] + Ey[i][j]*Ey[i][j] + Ey[i][j-1]*Ey[i][j-1]));
-								mobility_factor[i][j] = Math.min(relative_mobility[i][j], E_sat/E_avg);
 							}
 						}
 					}
@@ -1055,34 +1059,43 @@ public class Simulation extends PeriodicTask {
 							{
 								double ex_prev = Ex[i][j];
 
-								double mf = Math.min(mobility_factor[i+1][j], mobility_factor[i][j]);
-								//double mobility_factor = Math.min(1, E_sat/Math.abs(Ex[i][j]));
+								double sigma_n = 0;
+								double sigma_p = 0;
 
-								double rho_n_avg = 0.5*(rho_n[i+1][j] + rho_n[i][j]);
-								double rho_p_avg = 0.5*(rho_p[i+1][j] + rho_p[i][j]);
-								
-								double emf_phase = ac_x[i][j]*AC_amplitude+(1-ac_x[i][j]);
+								if (conducting_x[i][j] == 1) {
+									double mf = Math.min(relative_mobility[i+1][j], relative_mobility[i][j]);
 
-								Jx_abs[i][j] = 0;
-								
-								double betaE_n = (emf_phase*emfx[i][j]*q_n + cmfx_n[i][j] + ex_prev*q_n)*ds*beta/2;
-								double betaE_p = (emf_phase*emfx[i][j]*q_p + cmfx_p[i][j] + ex_prev*q_p)*ds*beta/2;
+									double rho_n_avg = 0.5*(rho_n[i+1][j] + rho_n[i][j]);
+									double rho_p_avg = 0.5*(rho_p[i+1][j] + rho_p[i][j]);
 
-								double exp_2fn = FastExp.exp(2*betaE_n);
-								double exp_2fp = FastExp.exp(2*betaE_p);
+									double emf_phase = ac_x[i][j]*AC_amplitude+(1-ac_x[i][j]);
 
-								double factor_n = conducting_x[i][j]*mf*D_electron/ds;
-								double factor_p = conducting_x[i][j]*mf*D_hole/ds;
-								
-								//sech^2 = 4/(exp(x)^2+2+1/exp(x)^2)
-								//tanh = (exp(2x)-1)/(exp(2x)+1)
-								
-								double sigma_n = -factor_n*(4/(exp_2fn+2+1/exp_2fn))*dfactor*rho_n_avg*2;
-								double sigma_p = factor_p*(4/(exp_2fp+2+1/exp_2fp))*dfactor*rho_p_avg*2;
-								
-								Jx_n[i][j] = factor_n*(-(rho_n[i+1][j] - rho_n[i][j]) + 2*rho_n_avg*(exp_2fn-1)/(exp_2fn+1)) - sigma_n*ex_prev;
+									Jx_abs[i][j] = 0;
 
-								Jx_p[i][j] = factor_p*(-(rho_p[i+1][j] - rho_p[i][j]) + 2*rho_p_avg*(exp_2fp-1)/(exp_2fp+1)) - sigma_p*ex_prev;
+									double betaE_n = (emf_phase*emfx[i][j]*q_n + cmfx_n[i][j] + ex_prev*q_n)*ds*beta/2;
+									double betaE_p = (emf_phase*emfx[i][j]*q_p + cmfx_p[i][j] + ex_prev*q_p)*ds*beta/2;
+
+									double exp_2fn = FastExp.exp(2*drift_coef_n*betaE_n);
+									double exp_2fp = FastExp.exp(2*drift_coef_p*betaE_p);
+
+									double factor_n = conducting_x[i][j]*mf*D_electron/ds;
+									double factor_p = conducting_x[i][j]*mf*D_hole/ds;
+
+									//sech^2 = 4/(exp(x)^2+2+1/exp(x)^2)
+									//tanh = (exp(2x)-1)/(exp(2x)+1)
+
+									sigma_n = -factor_n*(4/(exp_2fn+2+1/exp_2fn))*dfactor*rho_n_avg*2;
+									sigma_p = factor_p*(4/(exp_2fp+2+1/exp_2fp))*dfactor*rho_p_avg*2;
+
+									Jx_n[i][j] = factor_n*(-(rho_n[i+1][j] - rho_n[i][j])*Utils.tanhratio(drift_coef_n, betaE_n, exp_2fn)
+										+ 2*rho_n_avg/drift_coef_n*(exp_2fn-1)/(exp_2fn+1)) - sigma_n*ex_prev;
+									Jx_p[i][j] = factor_p*(-(rho_p[i+1][j] - rho_p[i][j])*Utils.tanhratio(drift_coef_p, betaE_p, exp_2fp)
+										+ 2*rho_p_avg/drift_coef_p*(exp_2fp-1)/(exp_2fp+1)) - sigma_p*ex_prev;
+									
+								} else {
+									Jx_n[i][j] = 0;
+									Jx_p[i][j] = 0;
+								}
 
 								double sigma = sigma_n + sigma_p + absorptivity_x[i][j]*epsx[i][j]*absorbing_coeff;
 
@@ -1104,33 +1117,41 @@ public class Simulation extends PeriodicTask {
 							for (int j = 0; j < ny-1; j++)
 							{
 								double ey_prev = Ey[i][j];
-
-								double mf = Math.min(mobility_factor[i][j+1], mobility_factor[i][j]);
-								//double mobility_factor = Math.min(1, E_sat/Math.abs(Ey[i][j]));
-
-								double rho_n_avg = 0.5*(rho_n[i][j+1] + rho_n[i][j]);
-								double rho_p_avg = 0.5*(rho_p[i][j+1] + rho_p[i][j]);
-
-								double emf_phase = ac_y[i][j]*AC_amplitude+(1-ac_y[i][j]);
-
-								Jy_abs[i][j] = 0;
 								
+								double sigma_n = 0;
+								double sigma_p = 0;
 
-								double betaE_n = (emf_phase*emfy[i][j]*q_n + cmfy_n[i][j] + ey_prev*q_n)*ds*beta/2;
-								double betaE_p = (emf_phase*emfy[i][j]*q_p + cmfy_p[i][j] + ey_prev*q_p)*ds*beta/2;
+								if (conducting_y[i][j] == 1) {
+									double mf = Math.min(relative_mobility[i][j+1], relative_mobility[i][j]);
 
-								double exp_2fn = FastExp.exp(2*betaE_n);
-								double exp_2fp = FastExp.exp(2*betaE_p);
-								
-								double factor_n = conducting_y[i][j]*mf*D_electron/ds;
-								double factor_p = conducting_y[i][j]*mf*D_hole/ds;
-								
-								double sigma_n = -factor_n*(4/(exp_2fn+2+1/exp_2fn))*dfactor*rho_n_avg*2;
-								double sigma_p = factor_p*(4/(exp_2fp+2+1/exp_2fp))*dfactor*rho_p_avg*2;
-								
-								Jy_n[i][j] = factor_n*(-(rho_n[i][j+1] - rho_n[i][j]) + 2*rho_n_avg*(exp_2fn-1)/(exp_2fn+1)) - sigma_n*ey_prev;
+									double rho_n_avg = 0.5*(rho_n[i][j+1] + rho_n[i][j]);
+									double rho_p_avg = 0.5*(rho_p[i][j+1] + rho_p[i][j]);
 
-								Jy_p[i][j] = factor_p*(-(rho_p[i][j+1] - rho_p[i][j]) + 2*rho_p_avg*(exp_2fp-1)/(exp_2fp+1)) - sigma_p*ey_prev;
+									double emf_phase = ac_y[i][j]*AC_amplitude+(1-ac_y[i][j]);
+
+									Jy_abs[i][j] = 0;
+
+									double betaE_n = (emf_phase*emfy[i][j]*q_n + cmfy_n[i][j] + ey_prev*q_n)*ds*beta/2;
+									double betaE_p = (emf_phase*emfy[i][j]*q_p + cmfy_p[i][j] + ey_prev*q_p)*ds*beta/2;
+
+									double exp_2fn = FastExp.exp(2*drift_coef_n*betaE_n);
+									double exp_2fp = FastExp.exp(2*drift_coef_p*betaE_p);
+
+									double factor_n = conducting_y[i][j]*mf*D_electron/ds;
+									double factor_p = conducting_y[i][j]*mf*D_hole/ds;
+
+									sigma_n = -factor_n*(4/(exp_2fn+2+1/exp_2fn))*dfactor*rho_n_avg*2;
+									sigma_p = factor_p*(4/(exp_2fp+2+1/exp_2fp))*dfactor*rho_p_avg*2;
+
+									Jy_n[i][j] = factor_n*(-(rho_n[i][j+1] - rho_n[i][j])*Utils.tanhratio(drift_coef_n, betaE_n, exp_2fn)
+										+ 2*rho_n_avg/drift_coef_n*(exp_2fn-1)/(exp_2fn+1)) - sigma_n*ey_prev;
+									Jy_p[i][j] = factor_p*(-(rho_p[i][j+1] - rho_p[i][j])*Utils.tanhratio(drift_coef_p, betaE_p, exp_2fp)
+										+ 2*rho_p_avg/drift_coef_p*(exp_2fp-1)/(exp_2fp+1)) - sigma_p*ey_prev;
+
+								} else {
+									Jy_n[i][j] = 0;
+									Jy_p[i][j] = 0;
+								}
 
 								double sigma = sigma_n + sigma_p + absorptivity_y[i][j]*epsy[i][j]*absorbing_coeff;
 
