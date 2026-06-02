@@ -11,9 +11,14 @@ import java.util.function.UnaryOperator;
 
 public class Utils {
 	
-	public static double sech2(double x) {
-		double y = Math.cosh(x);
-		return 1/(y*y);
+	// Compute sech^2(x)
+	public static double sech2(double x, double exp2x, boolean useapprox) {
+		return useapprox? (1-x*x+0.66666666666666667*x*x*x*x) : 4/(exp2x+2+1/exp2x);
+	}
+
+	// Compute tanh(x)
+	public static double tanh(double x, double exp2x, boolean useapprox) {
+		return useapprox? x*(1-0.33333333333333333*x*x+0.13333333333333333*x*x*x*x) : (exp2x-1)/(exp2x+1);
 	}
 	
 	public static double length(double x, double y) {
@@ -39,13 +44,13 @@ public class Utils {
 		//return (x-y)/Math.log(x/y);
 	}
 
-	public static double tanhratio(double a, double x, double exp2ax) {
-		if (Math.abs(a*x) < 0.2 && Math.abs(x) < 0.2) {
+	// Compute (1/a) tanh(ax)/tanh(x)
+	public static double tanhratio(double a, double x, double exp2ax, boolean useapprox) {
+		if (useapprox) {
 			double a2 = a*a;
 			double x2 = x*x;
 			return 1 + 0.33333333333333333*(1-a2)*x2 - 0.022222222222222222*(1+5*a2-6*a2*a2)*x2*x2;
-		}
-		else {
+		} else {
 			double exp2x = FastExp.exp(2*x);
 			return (exp2ax-1)*(exp2x+1)/(a*(exp2ax+1)*(exp2x-1));
 		}

@@ -260,7 +260,6 @@ public class Simulation extends PeriodicTask {
 		Hz_dissipation = 0.01*ds*ds/dt_maximum;
 		drift_coef_n = 2*D_electron/(v_sat_n*ds);
 		drift_coef_p = 2*D_hole/(v_sat_p*ds);
-		System.out.println(drift_coef_n);
 	}
 	
 	/* Dynamical simulation variables */
@@ -574,6 +573,9 @@ public class Simulation extends PeriodicTask {
 		System.out.println("Wave equation CFL ratio = " + (Math.sqrt(2)*c)/(ds/dt_maximum));
 		System.out.println("Electron diffusion CFL ratio = " + dt_maximum/(ds*ds/(4*D_electron)));
 		System.out.println("Hole diffusion CFL ratio = " + dt_maximum/(ds*ds/(4*D_hole)));
+
+		System.out.println("n drift coefficient = " + drift_coef_n);
+		System.out.println("p drift coefficient = " + drift_coef_p);
 	}
 
 	public boolean setSize(int resolution, double width) {
@@ -1074,9 +1076,12 @@ public class Simulation extends PeriodicTask {
 
 									double betaE_n = (emf_phase*emfx[i][j]*q_n + cmfx_n[i][j] + ex_prev*q_n)*ds*beta/2;
 									double betaE_p = (emf_phase*emfx[i][j]*q_p + cmfx_p[i][j] + ex_prev*q_p)*ds*beta/2;
+									
+									boolean approx_n = Math.abs(drift_coef_n*betaE_n) < 0.2 && Math.abs(betaE_n) < 0.2;
+									boolean approx_p = Math.abs(drift_coef_p*betaE_p) < 0.2 && Math.abs(betaE_p) < 0.2;
 
-									double exp_2fn = FastExp.exp(2*drift_coef_n*betaE_n);
-									double exp_2fp = FastExp.exp(2*drift_coef_p*betaE_p);
+									double exp_2fn = approx_n? 1 : FastExp.exp(2*drift_coef_n*betaE_n);
+									double exp_2fp = approx_p? 1 : FastExp.exp(2*drift_coef_p*betaE_p);
 
 									double factor_n = conducting_x[i][j]*mf*D_electron/ds;
 									double factor_p = conducting_x[i][j]*mf*D_hole/ds;
@@ -1084,13 +1089,13 @@ public class Simulation extends PeriodicTask {
 									//sech^2 = 4/(exp(x)^2+2+1/exp(x)^2)
 									//tanh = (exp(2x)-1)/(exp(2x)+1)
 
-									sigma_n = -factor_n*(4/(exp_2fn+2+1/exp_2fn))*dfactor*rho_n_avg*2;
-									sigma_p = factor_p*(4/(exp_2fp+2+1/exp_2fp))*dfactor*rho_p_avg*2;
+									sigma_n = -factor_n*Utils.sech2(drift_coef_n*betaE_n, exp_2fn, approx_n)*dfactor*rho_n_avg*2;
+									sigma_p = factor_p*Utils.sech2(drift_coef_p*betaE_p, exp_2fp, approx_p)*dfactor*rho_p_avg*2;
 
-									Jx_n[i][j] = factor_n*(-(rho_n[i+1][j] - rho_n[i][j])*Utils.tanhratio(drift_coef_n, betaE_n, exp_2fn)
-										+ 2*rho_n_avg/drift_coef_n*(exp_2fn-1)/(exp_2fn+1)) - sigma_n*ex_prev;
-									Jx_p[i][j] = factor_p*(-(rho_p[i+1][j] - rho_p[i][j])*Utils.tanhratio(drift_coef_p, betaE_p, exp_2fp)
-										+ 2*rho_p_avg/drift_coef_p*(exp_2fp-1)/(exp_2fp+1)) - sigma_p*ex_prev;
+									Jx_n[i][j] = factor_n*(-(rho_n[i+1][j] - rho_n[i][j])*Utils.tanhratio(drift_coef_n, betaE_n, exp_2fn, approx_n)
+										+ 2*rho_n_avg/drift_coef_n*Utils.tanh(drift_coef_n*betaE_n, exp_2fn, approx_n)) - sigma_n*ex_prev;
+									Jx_p[i][j] = factor_p*(-(rho_p[i+1][j] - rho_p[i][j])*Utils.tanhratio(drift_coef_p, betaE_p, exp_2fp, approx_p)
+										+ 2*rho_p_avg/drift_coef_p*Utils.tanh(drift_coef_p*betaE_p, exp_2fp, approx_p)) - sigma_p*ex_prev;
 									
 								} else {
 									Jx_n[i][j] = 0;
@@ -1134,19 +1139,22 @@ public class Simulation extends PeriodicTask {
 									double betaE_n = (emf_phase*emfy[i][j]*q_n + cmfy_n[i][j] + ey_prev*q_n)*ds*beta/2;
 									double betaE_p = (emf_phase*emfy[i][j]*q_p + cmfy_p[i][j] + ey_prev*q_p)*ds*beta/2;
 
-									double exp_2fn = FastExp.exp(2*drift_coef_n*betaE_n);
-									double exp_2fp = FastExp.exp(2*drift_coef_p*betaE_p);
+									boolean approx_n = Math.abs(drift_coef_n*betaE_n) < 0.2 && Math.abs(betaE_n) < 0.2;
+									boolean approx_p = Math.abs(drift_coef_p*betaE_p) < 0.2 && Math.abs(betaE_p) < 0.2;
+
+									double exp_2fn = approx_n? 1 : FastExp.exp(2*drift_coef_n*betaE_n);
+									double exp_2fp = approx_p? 1 : FastExp.exp(2*drift_coef_p*betaE_p);
 
 									double factor_n = conducting_y[i][j]*mf*D_electron/ds;
 									double factor_p = conducting_y[i][j]*mf*D_hole/ds;
 
-									sigma_n = -factor_n*(4/(exp_2fn+2+1/exp_2fn))*dfactor*rho_n_avg*2;
-									sigma_p = factor_p*(4/(exp_2fp+2+1/exp_2fp))*dfactor*rho_p_avg*2;
+									sigma_n = -factor_n*Utils.sech2(drift_coef_n*betaE_n, exp_2fn, approx_n)*dfactor*rho_n_avg*2;
+									sigma_p = factor_p*Utils.sech2(drift_coef_p*betaE_p, exp_2fp, approx_p)*dfactor*rho_p_avg*2;
 
-									Jy_n[i][j] = factor_n*(-(rho_n[i][j+1] - rho_n[i][j])*Utils.tanhratio(drift_coef_n, betaE_n, exp_2fn)
-										+ 2*rho_n_avg/drift_coef_n*(exp_2fn-1)/(exp_2fn+1)) - sigma_n*ey_prev;
-									Jy_p[i][j] = factor_p*(-(rho_p[i][j+1] - rho_p[i][j])*Utils.tanhratio(drift_coef_p, betaE_p, exp_2fp)
-										+ 2*rho_p_avg/drift_coef_p*(exp_2fp-1)/(exp_2fp+1)) - sigma_p*ey_prev;
+									Jy_n[i][j] = factor_n*(-(rho_n[i][j+1] - rho_n[i][j])*Utils.tanhratio(drift_coef_n, betaE_n, exp_2fn, approx_n)
+										+ 2*rho_n_avg/drift_coef_n*Utils.tanh(drift_coef_n*betaE_n, exp_2fn, approx_n)) - sigma_n*ey_prev;
+									Jy_p[i][j] = factor_p*(-(rho_p[i][j+1] - rho_p[i][j])*Utils.tanhratio(drift_coef_p, betaE_p, exp_2fp, approx_p)
+										+ 2*rho_p_avg/drift_coef_p*Utils.tanh(drift_coef_p*betaE_p, exp_2fp, approx_p)) - sigma_p*ey_prev;
 
 								} else {
 									Jy_n[i][j] = 0;
