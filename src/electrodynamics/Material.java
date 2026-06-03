@@ -16,7 +16,7 @@ public class Material implements Cloneable {
 	double ni = 0;				// Equilibrium carrier density
 	double W = 0;				// Work function
 	double Eb = 0;				// Bandgap
-	double Ea = 0;				// Recombination activation energy
+	double r_rel = 1;			// Relative recombination rate
 	double absorptivity = 0.0;
 
 	public void erase() {
@@ -34,7 +34,7 @@ public class Material implements Cloneable {
 		ni = 0;
 		W = 0;
 		Eb = 0;
-		Ea = 0;
+		r_rel = 1;
 		absorptivity = 0;
 	}
 

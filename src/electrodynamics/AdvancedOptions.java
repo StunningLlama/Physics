@@ -527,7 +527,7 @@ public class AdvancedOptions extends JFrame {
 		e.adv_opts.ni_semi				.setText(formatDouble(e.ni_semi						));
 		e.adv_opts.W_semi				.setText(formatDouble(e.W_semi/e.eVtoJ				));
 		e.adv_opts.E_b_semi				.setText(formatDouble(e.E_b_semi/e.eVtoJ			));
-		e.adv_opts.recomb_rate_semi		.setText(formatDouble(e.recomb_rate_semi			));
+		//e.adv_opts.recomb_rate_semi		.setText(formatDouble(e.recomb_rate_semi			));
 		e.adv_opts.v_sat_n				.setText(formatDouble(e.v_sat_n			));
 		e.adv_opts.v_sat_p				.setText(formatDouble(e.v_sat_p			));
 		e.adv_opts.n_default_doping		.setText(formatDouble(e.n_default_doping_concentration		));
@@ -542,7 +542,7 @@ public class AdvancedOptions extends JFrame {
 		e.adv_opts.E_b_metal			.setText(formatDouble(e.E_b_metal/e.eVtoJ			));
 		e.adv_opts.W_metal_high			.setText(formatDouble(e.W_metal_high/e.eVtoJ		));
 		e.adv_opts.W_metal_low			.setText(formatDouble(e.W_metal_low/e.eVtoJ			));
-		e.adv_opts.recomb_rate_metal	.setText(formatDouble(e.recomb_rate_metal			));
+		//e.adv_opts.recomb_rate_metal	.setText(formatDouble(e.recomb_rate_metal			));
 
 		e.adv_opts.dielectric_eps_r			.setText(formatDouble(e.dielectric_eps_r			));
 		e.adv_opts.ferromagnet_mu_r			.setText(formatDouble(e.ferromagnet_mu_r			));
@@ -577,7 +577,7 @@ public class AdvancedOptions extends JFrame {
 			e.ni_semi					= Double.valueOf(e.adv_opts.ni_semi				.getText());
 			e.W_semi					= Double.valueOf(e.adv_opts.W_semi				.getText())*e.eVtoJ;
 			e.E_b_semi					= Double.valueOf(e.adv_opts.E_b_semi			.getText())*e.eVtoJ;
-			e.recomb_rate_semi			= Double.valueOf(e.adv_opts.recomb_rate_semi	.getText());
+			//e.recomb_rate_semi			= Double.valueOf(e.adv_opts.recomb_rate_semi	.getText());
 			e.v_sat_n						= Double.valueOf(e.adv_opts.v_sat_n				.getText());
 			e.v_sat_p						= Double.valueOf(e.adv_opts.v_sat_p				.getText());
 			e.n_default_doping_concentration	= Double.valueOf(e.adv_opts.n_default_doping	.getText());
@@ -592,7 +592,7 @@ public class AdvancedOptions extends JFrame {
 			e.E_b_metal					= Double.valueOf(e.adv_opts.E_b_metal			.getText())*e.eVtoJ;
 			e.W_metal_high				= Double.valueOf(e.adv_opts.W_metal_high		.getText())*e.eVtoJ;
 			e.W_metal_low				= Double.valueOf(e.adv_opts.W_metal_low			.getText())*e.eVtoJ;
-			e.recomb_rate_metal			= Double.valueOf(e.adv_opts.recomb_rate_metal	.getText());
+			//e.recomb_rate_metal			= Double.valueOf(e.adv_opts.recomb_rate_metal	.getText());
 
 			e.dielectric_eps_r			= Double.valueOf(e.adv_opts.dielectric_eps_r	.getText());
 			e.ferromagnet_mu_r			= Double.valueOf(e.adv_opts.ferromagnet_mu_r	.getText());
@@ -626,7 +626,7 @@ public class AdvancedOptions extends JFrame {
 		advsettings.addProperty("ni_semi", e.ni_semi					);
 		advsettings.addProperty("W_semi", e.W_semi						);
 		advsettings.addProperty("E_b_semi", e.E_b_semi					);
-		advsettings.addProperty("recomb_rate_semi", e.recomb_rate_semi	);
+		//advsettings.addProperty("recomb_rate_semi", e.recomb_rate_semi	);
 		advsettings.addProperty("v_sat_n", e.v_sat_n						);
 		advsettings.addProperty("v_sat_p", e.v_sat_p						);
 		advsettings.addProperty("n_default_doping", e.n_default_doping_concentration	);
@@ -641,7 +641,7 @@ public class AdvancedOptions extends JFrame {
 		advsettings.addProperty("E_b_metal", e.E_b_metal					);
 		advsettings.addProperty("W_metal_high", e.W_metal_high				);
 		advsettings.addProperty("W_metal_low", e.W_metal_low				);
-		advsettings.addProperty("recomb_rate_metal", e.recomb_rate_metal	);
+		//advsettings.addProperty("recomb_rate_metal", e.recomb_rate_metal	);
 
 		advsettings.addProperty("dielectric_eps_r", e.dielectric_eps_r	);
 		advsettings.addProperty("ferromagnet_mu_r", e.ferromagnet_mu_r	);
@@ -670,7 +670,7 @@ public class AdvancedOptions extends JFrame {
 			case "ni_semi": e.ni_semi					= fstr.nextDouble(); break;
 			case "W_semi": e.W_semi						= fstr.nextDouble(); break;
 			case "E_b_semi": e.E_b_semi					= fstr.nextDouble(); break;
-			case "recomb_rate_semi": e.recomb_rate_semi		= fstr.nextDouble(); break;
+			//case "recomb_rate_semi": e.recomb_rate_semi		= fstr.nextDouble(); break;
 			case "v_sat_n": e.v_sat_n						= fstr.nextDouble(); break;
 			case "v_sat_p": e.v_sat_p						= fstr.nextDouble(); break;
 			case "n_default_doping": e.n_default_doping_concentration	= fstr.nextDouble(); break;
@@ -685,7 +685,7 @@ public class AdvancedOptions extends JFrame {
 			case "E_b_metal": e.E_b_metal					= fstr.nextDouble(); break;
 			case "W_metal_high": e.W_metal_high				= fstr.nextDouble(); break;
 			case "W_metal_low": e.W_metal_low				= fstr.nextDouble(); break;
-			case "recomb_rate_metal": e.recomb_rate_metal	= fstr.nextDouble(); break;
+			//case "recomb_rate_metal": e.recomb_rate_metal	= fstr.nextDouble(); break;
 
 			case "dielectric_eps_r": e.dielectric_eps_r		= fstr.nextDouble(); break;
 			case "ferromagnet_mu_r": e.ferromagnet_mu_r		= fstr.nextDouble(); break;

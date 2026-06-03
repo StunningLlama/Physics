@@ -29,6 +29,7 @@ public class SIUnits extends UnitSystem {
 		case FREQUENCY: return "Hz";
 		case ENERGY: return "J";
 		case FORCE: return "N";
+		case VELOCITY: return "m/s";
 		
 		case ELECTRIC_POTENTIAL: return "V";
 		case ELECTRIC_CURRENT: return "A";

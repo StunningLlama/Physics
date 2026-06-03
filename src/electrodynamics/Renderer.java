@@ -686,6 +686,12 @@ public class Renderer extends PeriodicTask {
 					case LIGHT:
 						scalarfield[i][j] = -e.materials[i][j].semiconducting*(e.G[i][j]-e.R[i][j]);
 						break;
+					case ELECTRON_VEL:
+						scalarfield[i][j] = Utils.length(0.5*(e.Jx_n[i][j]+e.Jx_n[i][j+1]), 0.5*(e.Jy_n[i][j]+e.Jy_n[i+1][j]))/e.rho_n[i][j];
+						break;
+					case HOLE_VEL:
+						scalarfield[i][j] = Utils.length(0.5*(e.Jx_p[i][j]+e.Jx_p[i][j+1]), 0.5*(e.Jy_p[i][j]+e.Jy_p[i+1][j]))/e.rho_p[i][j];
+						break;
 					}
 				}
 			}
@@ -1839,6 +1845,8 @@ public class Renderer extends PeriodicTask {
 		GENERATION("View G: Carrier generation rate",										"G",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
 		RECOMBINATION("View R: Carrier recombination rate",									"R",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
 		LIGHT("View: Emitted light",														"Light",	Quantity.DIMENSIONLESS,				ColorScheme.WHITE,			1e30),
+		ELECTRON_VEL("View: Electron drift velocity",										"ve",	Quantity.VELOCITY,						ColorScheme.GREEN,			1e6),
+		HOLE_VEL("View: Hole drift velocity",												"vh",	Quantity.VELOCITY,						ColorScheme.GREEN,			1e6),
 		DEBUG("Debug",																		"Debug",	Quantity.DIMENSIONLESS,				ColorScheme.RED_BLUE,		1e-3);
 	
 		enum ColorScheme {

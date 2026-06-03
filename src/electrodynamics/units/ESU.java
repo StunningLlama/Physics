@@ -29,6 +29,7 @@ public class ESU extends UnitSystem {
 		case FREQUENCY: return "Hz";
 		case ENERGY: return "erg";
 		case FORCE: return "dyn";
+		case VELOCITY: return "cm/s";
 		
 		case ELECTRIC_POTENTIAL: return "statV";
 		case ELECTRIC_CURRENT: return "statA";

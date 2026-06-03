@@ -29,6 +29,7 @@ public class EMU extends UnitSystem {
 		case FREQUENCY: return "Hz";
 		case ENERGY: return "erg";
 		case FORCE: return "dyn";
+		case VELOCITY: return "cm/s";
 		
 		case ELECTRIC_POTENTIAL: return "abV";
 		case ELECTRIC_CURRENT: return "abA";

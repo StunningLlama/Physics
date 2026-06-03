@@ -17,6 +17,7 @@ public enum Quantity {
 	FREQUENCY("Frequency", 					-1, 0, 0, 0, 0),
 	ENERGY("Energy", 						-2, 2, 1, 0, 0),
 	FORCE("Force", 							-2, 1, 1, 0, 0),
+	VELOCITY("Velocity", 					-1, 1, 0, 0, 0),
 	
 	ELECTRIC_POTENTIAL("Electric potential",		-2, 2, 1, -1, 0),
 	ELECTRIC_CURRENT("Electric current", 			-1, 0, 0, 1, 0),

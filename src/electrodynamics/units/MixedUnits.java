@@ -29,6 +29,7 @@ public class MixedUnits extends UnitSystem {
 		case FREQUENCY: return "Hz";
 		case ENERGY: return "J";
 		case FORCE: return "J/cm";
+		case VELOCITY: return "cm/s";
 		
 		case ELECTRIC_POTENTIAL: return "V";
 		case ELECTRIC_CURRENT: return "A";
