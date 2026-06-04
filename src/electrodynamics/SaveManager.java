@@ -48,7 +48,7 @@ public class SaveManager {
 	public static File infile;
 	public static File outfile;
 	public static File currentfile;
-	int saveversion = 3;
+	int saveversion = 4;
 	String fileextension = ".semisim";
 	String startingpath = ".";
 
@@ -124,7 +124,7 @@ public class SaveManager {
 				dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 				dialog.setVisible(true);
 
-				if (version == 2 || version == 3) {
+				if (version == 2 || version == 3 || version == 4) {
 					setDefaults();
 					int resolution_tmp = e.default_resolution;
 					double width_tmp = e.default_width;
@@ -220,6 +220,8 @@ public class SaveManager {
 
 					e.opts.textPane.setEditable(false);
 					e.opts.textPane.setCaretPosition(0);
+					if (version < 4)
+						e.initializeAllMaterials();
 					e.updateAllMaterials(false);
 					e.calcMiscFields(true);
 					updateLabels();
@@ -291,6 +293,7 @@ public class SaveManager {
 					
 					e.opts.textPane.setEditable(false);
 					e.opts.textPane.setCaretPosition(0);
+					e.initializeAllMaterials();
 					e.updateAllMaterials(false);
 					e.calcMiscFields(true);
 					updateLabels();

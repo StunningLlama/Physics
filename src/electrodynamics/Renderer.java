@@ -656,14 +656,7 @@ public class Renderer extends PeriodicTask {
 					case COMBINED_CHARGE:
 						scalarfield[i][j] = Double.NaN;
 						break;
-					case ENERGY:
-						scalarfield[i][j] = e.u[i][j];
-						break;
-					case ENTROPY:
-						scalarfield[i][j] = e.S[i][j];
-						break;
 					case HEAT:
-						scalarfield[i][j] = e.Q[i][j];
 						break;
 					case ELECTRON_POTENTIAL:
 						scalarfield[i][j] = e.conducting[i][j]*(e.F_n[i][j]/e.q_n+e.phi[i][j]-e.W_semi/e.eVtoJ) - offset;
@@ -686,12 +679,14 @@ public class Renderer extends PeriodicTask {
 					case LIGHT:
 						scalarfield[i][j] = -e.materials[i][j].semiconducting*(e.G[i][j]-e.R[i][j]);
 						break;
-					case ELECTRON_VEL:
-						scalarfield[i][j] = Utils.length(0.5*(e.Jx_n[i][j]+e.Jx_n[i][j+1]), 0.5*(e.Jy_n[i][j]+e.Jy_n[i+1][j]))/e.rho_n[i][j];
-						break;
-					case HOLE_VEL:
-						scalarfield[i][j] = Utils.length(0.5*(e.Jx_p[i][j]+e.Jx_p[i][j+1]), 0.5*(e.Jy_p[i][j]+e.Jy_p[i+1][j]))/e.rho_p[i][j];
-						break;
+					//case ELECTRON_VEL:
+					//	scalarfield[i][j] = Utils.length(0.5*(e.Jx_n[i][j]+e.Jx_n[i][j+1]), 0.5*(e.Jy_n[i][j]+e.Jy_n[i+1][j]))/e.rho_n[i][j];
+					//	break;
+					//case HOLE_VEL:
+					//	scalarfield[i][j] = Utils.length(0.5*(e.Jx_p[i][j]+e.Jx_p[i][j+1]), 0.5*(e.Jy_p[i][j]+e.Jy_p[i+1][j]))/e.rho_p[i][j];
+					//	break;
+					default:
+						scalarfield[i][j] = e.display[i][j];
 					}
 				}
 			}
@@ -1298,13 +1293,13 @@ public class Renderer extends PeriodicTask {
 							vf_y = e.Jy_free;
 							isCurrent = true;
 							break;
-						case POYNTING:
-							vf_x = e.Sx;
-							vf_y = e.Sy;
-							break;
 						case EMF:
 							vf_x = e.emfx;
 							vf_y = e.emfy;
+							break;
+						default:
+							vf_x = e.display_x;
+							vf_y = e.display_y;
 							break;
 						}
 
@@ -1602,9 +1597,9 @@ public class Renderer extends PeriodicTask {
 											}
 										} else {
 											if (d.type == DotType.ELECTRON) {
-												double mf = Utils.bilinearinterp(e.relative_mobility, d.x, d.y, e.nx, e.ny);
-												double s = -e.mu_electron*mf*dt_dot/e.ds;
-												double t = Math.sqrt(24*e.D_electron*mf*dt_dot)/e.ds; //Random walk PDF obeys diffusion equation. Variance of uniform dist is 12L^2 and variance of heat kernel is 2Dt
+												double D_electron = Utils.bilinearinterp(e.D_n, d.x, d.y, e.nx, e.ny);
+												double s = -D_electron*e.beta*e.e_charge*dt_dot/e.ds;
+												double t = Math.sqrt(24*D_electron*dt_dot)/e.ds; //Random walk PDF obeys diffusion equation. Variance of uniform dist is 12L^2 and variance of heat kernel is 2Dt
 												for (int k = 0; k < steps; k++) {
 													d.x += s*Utils.bilinearinterp(e.drift_x_n, d.x-0.5, d.y, e.nx, e.ny);
 													d.y += s*Utils.bilinearinterp(e.drift_y_n, d.x, d.y-0.5, e.nx, e.ny);
@@ -1617,9 +1612,9 @@ public class Renderer extends PeriodicTask {
 													}
 												}
 											} else if (d.type == DotType.HOLE) {
-												double mf = Utils.bilinearinterp(e.relative_mobility, d.x, d.y, e.nx, e.ny);
-												double s = e.mu_hole*dt_dot*mf/e.ds;
-												double t = Math.sqrt(24*e.D_hole*mf*dt_dot)/e.ds;
+												double D_hole = Utils.bilinearinterp(e.D_p, d.x, d.y, e.nx, e.ny);
+												double s = D_hole*e.beta*e.e_charge*dt_dot/e.ds;
+												double t = Math.sqrt(24*D_hole*dt_dot)/e.ds;
 												for (int k = 0; k < steps; k++) {
 													d.x += s*Utils.bilinearinterp(e.drift_x_p, d.x-0.5, d.y, e.nx, e.ny);
 													d.y += s*Utils.bilinearinterp(e.drift_y_p, d.x, d.y-0.5, e.nx, e.ny);
@@ -1845,8 +1840,8 @@ public class Renderer extends PeriodicTask {
 		GENERATION("View G: Carrier generation rate",										"G",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
 		RECOMBINATION("View R: Carrier recombination rate",									"R",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
 		LIGHT("View: Emitted light",														"Light",	Quantity.DIMENSIONLESS,				ColorScheme.WHITE,			1e30),
-		ELECTRON_VEL("View: Electron drift velocity",										"ve",	Quantity.VELOCITY,						ColorScheme.GREEN,			1e6),
-		HOLE_VEL("View: Hole drift velocity",												"vh",	Quantity.VELOCITY,						ColorScheme.GREEN,			1e6),
+		//ELECTRON_VEL("View: Electron drift velocity",										"ve",	Quantity.VELOCITY,						ColorScheme.GREEN,			1e6),
+		//HOLE_VEL("View: Hole drift velocity",												"vh",	Quantity.VELOCITY,						ColorScheme.GREEN,			1e6),
 		DEBUG("Debug",																		"Debug",	Quantity.DIMENSIONLESS,				ColorScheme.RED_BLUE,		1e-3);
 	
 		enum ColorScheme {

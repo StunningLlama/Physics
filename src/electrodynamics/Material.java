@@ -1,41 +1,80 @@
 package electrodynamics;
 
 public class Material implements Cloneable {
-	MaterialType type = MaterialType.VACUUM;
+	public MaterialType type;
 
-	boolean modified = false;
-	boolean auto_placed = true;
-	int activated = 1;
-	int conducting = 0;
-	int semiconducting = 0;
-	double emf = 0.0;			// EMF strength
-	double emf_direction = 0.0;	// EMF direction
-	double eps_r = 1.0;			// Permittivity
-	double mu_r = 1.0;			// Permeability
-	double rho_back = 0.0;		// Background charge density
-	double ni = 0;				// Equilibrium carrier density
-	double W = 0;				// Work function
-	double Eb = 0;				// Bandgap
-	double r_rel = 1;			// Relative recombination rate
-	double absorptivity = 0.0;
+	public boolean modified;
+	public boolean auto_placed;
+	
+	public int activated;
+	public int conducting;
+	public int semiconducting;
+	
+	public double emf;				// EMF strength
+	public double emf_direction;	// EMF direction
+	
+	public double eps_r;			// Permittivity
+	public double mu_r;				// Permeability
+	public double rho_back;			// Background charge density
+	
+	public double ni;				// Equilibrium carrier density
+	public double W;				// Work function
+	public double Eb;				// Bandgap
 
-	public void erase() {
+	public double D_n;				// Electron diffusion
+	public double D_p;				// Hole diffusion
+	
+	public double v_sat_n;			// Velocity at which carrier velocity saturates
+	public double v_sat_p;			// Velocity at which carrier velocity saturates
+	
+	public double k_rad;			// Radiative recombination rate constant
+	public double k_SRH_n;			// Shockley-Read-Hall recombination rate
+	public double k_SRH_p;
+	public double k_aug_n;			// Auger recombination rate
+	public double k_aug_p;
+	
+	public double absorptivity;
+	
+	public Material() {
+		setDefaultConstants();
+	}
+	
+	public void setDefaultConstants() {
+
 		type = MaterialType.VACUUM;
+
 		modified = false;
 		auto_placed = true;
+		
 		activated = 1;
 		conducting = 0;
 		semiconducting = 0;
+		
 		emf = 0.0;
 		emf_direction = 0.0;
+		
 		eps_r = 1.0;
 		mu_r = 1.0;
 		rho_back = 0.0;
+		
 		ni = 0;
 		W = 0;
 		Eb = 0;
-		r_rel = 1;
-		absorptivity = 0;
+
+		D_n = 0;
+		D_p = 0;
+		
+		v_sat_n = 0;
+		v_sat_p = 0;
+		
+		k_rad = 0;
+		k_aug_n = 0;
+		k_aug_p = 0;
+		k_SRH_n = 0;
+		k_SRH_p = 0;
+
+		
+		absorptivity = 0.0;
 	}
 
     @Override

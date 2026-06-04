@@ -293,7 +293,7 @@ class ClipboardMaterial implements Cloneable {
     }
 	
 	public void erase() {
-		m.erase();
+		m.setDefaultConstants();
 		rho_n = 0;
 		rho_p = 0;
 	}
