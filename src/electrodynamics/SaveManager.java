@@ -13,6 +13,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.zip.GZIPInputStream;
@@ -28,6 +29,7 @@ import javax.swing.filechooser.FileFilter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
 import electrodynamics.Renderer.ScalarMode;
@@ -111,6 +113,8 @@ public class SaveManager {
 
 				assertNextObject(fstr, "version");
 				int version = fstr.nextInt();
+				
+				System.out.println("Loading " + infile.getName() + ", version = " + version);
 
 				if (version > saveversion) {
 					fstr.close();
@@ -126,16 +130,14 @@ public class SaveManager {
 
 				if (version == 2 || version == 3 || version == 4) {
 					setDefaults();
-					int resolution_tmp = e.default_resolution;
-					double width_tmp = e.default_width;
 					VectorMode_old vecmode_old = null;
 					assertNextObject(fstr, "header");
 					fstr.beginObject();
 					while (fstr.hasNext()) {
 						String name = fstr.nextName();
 						switch (name){
-						case "resolution": resolution_tmp = fstr.nextInt(); break;
-						case "width": width_tmp = fstr.nextDouble(); break;
+						case "resolution": e.default_resolution = fstr.nextInt(); break;
+						case "width": e.default_width = fstr.nextDouble(); break;
 						case "time": e.time = fstr.nextDouble(); break;
 						case "phase": e.AC_phase = fstr.nextDouble(); break;
 						case "description": e.opts.textPane.setText(fstr.nextString()); break;
@@ -162,9 +164,7 @@ public class SaveManager {
 						vecmode_old.applySetting(e);
 					fstr.endObject();
 					e.opts.setRedundantOptions();
-
-					e.setSize(resolution_tmp, width_tmp);
-					e.resetFields(true);
+					e.reset(true, false);
 
 					assertNextObject(fstr, "data");
 					fstr.beginObject();
@@ -189,6 +189,8 @@ public class SaveManager {
 						case "jy_p": e.Jy_p = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
 
 						case "materials": e.materials = validateArraySize((Material[][]) gson.fromJson(fstr, Material[][].class)); break;
+						case "materialmap": e.materialmanager.mat_map = (HashMap<Integer, Material>) gson.fromJson(fstr, new TypeToken<HashMap<Integer, Material>>(){}.getType()); break;
+						case "last_material_id": e.materialmanager.id_counter = fstr.nextInt(); break;
 						
 						case "voltageprobes": e.probes.addAll(Arrays.asList(
 						(VoltageProbe[]) gson.fromJson(fstr, VoltageProbe[].class))); break;
@@ -220,6 +222,7 @@ public class SaveManager {
 
 					e.opts.textPane.setEditable(false);
 					e.opts.textPane.setCaretPosition(0);
+					e.materialmanager.updateUI();
 					if (version < 4)
 						e.initializeAllMaterials();
 					e.updateAllMaterials(false);
@@ -227,10 +230,7 @@ public class SaveManager {
 					updateLabels();
 					e.controls.undoredo.captureState(e);
 				} else if (version == 1) {
-
-					e.setSize(e.default_resolution, e.default_width);
-					e.resetFields(true);
-					setDefaults();
+					e.reset(true, true);
 					
 					int view_vec_mode = -1;
 
@@ -434,8 +434,8 @@ public class SaveManager {
 				dialog.setVisible(true);
 
 				JsonObject header = new JsonObject();
-				header.addProperty("resolution", e.resolution);
-				header.addProperty("width", e.width);
+				header.addProperty("resolution", e.default_resolution);
+				header.addProperty("width", e.default_width);
 				header.addProperty("time", e.time);
 				header.addProperty("phase", e.AC_phase);
 				
@@ -470,6 +470,8 @@ public class SaveManager {
 				data.add("chargeprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof ChargeProbe)).toArray()));
 				data.add("fluxprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof FluxProbe)).toArray()));
 				data.add("ground", gson.toJsonTree(e.getGround()));
+				data.add("materialmap", gson.toJsonTree(e.materialmanager.mat_map));
+				data.addProperty("last_material_id", e.materialmanager.id_counter);
 
 				JsonObject advsettings = new JsonObject();
 				e.adv_opts.writeAdvancedSettings(gson, advsettings);
@@ -510,6 +512,7 @@ public class SaveManager {
 	}
 	
 	public void setDefaults() {
+		e.setDefaultParameters();
 		e.opts.setDefaults(e);
 	}
 	

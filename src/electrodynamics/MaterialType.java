@@ -90,6 +90,6 @@ public enum MaterialType
 	
 	@Override
 	public String toString() {
-		return "Material: " + name;
+		return name;
 	}
 }

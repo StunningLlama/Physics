@@ -6,6 +6,8 @@ package electrodynamics.gui;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -33,7 +35,7 @@ import javax.swing.DefaultComboBoxModel;
 import electrodynamics.Simulation;
 import electrodynamics.units.Units;
 
-public class Preferences extends JFrame {
+public class Preferences extends JFrame implements ActionListener {
 
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
@@ -112,9 +114,9 @@ public class Preferences extends JFrame {
 	}
 	
 	public void initialize() {
-		btn_apply.addActionListener(e.controls);
-		btn_cancel.addActionListener(e.controls);
-		gui_units.addActionListener(e.controls);
+		btn_apply.addActionListener(this);
+		btn_cancel.addActionListener(this);
+		gui_units.addActionListener(this);
 		setVisible(false);
 		
 		readfile(preferences_file);
@@ -235,5 +237,18 @@ public class Preferences extends JFrame {
 	
 	public boolean testNextObject(JsonReader fstr, String name) throws IOException {
 		return fstr.nextName().equals(name);
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent ev) {
+		if (ev.getSource() == btn_apply) {
+			applyPrefs();
+			writeFile(preferences_file);
+			setVisible(false);
+		} else if (ev.getSource() == btn_cancel) {
+			resetPrefs();
+		}  else if (ev.getSource() == gui_units) {
+			e.units = (Units) gui_units.getSelectedItem();
+		} 
 	}
 }

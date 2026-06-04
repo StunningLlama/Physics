@@ -250,7 +250,7 @@ class Snapshot {
 	    for (int i = 0; i < arr.length; i++) {
 	        result[i] = new Material[arr[i].length];
 		    for (int j = 0; j < arr[i].length; j++) {
-		    	result[i][j] = arr[i][j].clone();
+		    	result[i][j] = new Material(arr[i][j]);
 		    }
 	    }
 	    return result;

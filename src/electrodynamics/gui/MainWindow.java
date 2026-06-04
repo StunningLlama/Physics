@@ -11,33 +11,7 @@ import java.awt.Font;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
-import javax.imageio.ImageIO;
-import javax.swing.AbstractButton;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.InputMap;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JRadioButtonMenuItem;
-import javax.swing.JScrollBar;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.ListCellRenderer;
-import javax.swing.ScrollPaneConstants;
-import javax.swing.UIManager;
-import javax.swing.WindowConstants;
-import javax.swing.border.EmptyBorder;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JMenu;
-import javax.swing.JSeparator;
-import javax.swing.KeyStroke;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -45,24 +19,46 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.awt.event.InputEvent;
+
+import javax.imageio.ImageIO;
+import javax.swing.AbstractButton;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.InputMap;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
+import javax.swing.ListCellRenderer;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.UIManager;
+import javax.swing.WindowConstants;
+import javax.swing.border.EmptyBorder;
 
 import electrodynamics.Controls;
-import electrodynamics.MaterialType;
-import electrodynamics.Renderer;
-import electrodynamics.SemiSim;
-import electrodynamics.Simulation;
 import electrodynamics.Controls.Brush;
-import electrodynamics.Controls.BrushShape;
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
+import electrodynamics.SemiSim;
+import electrodynamics.Simulation;
 import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.util.CustJRadioButtonMenuItem;
 import electrodynamics.util.MenuBuilder;
-
-import javax.swing.JCheckBoxMenuItem;
 
 public class MainWindow extends JFrame {
 
@@ -244,6 +240,9 @@ public class MainWindow extends JFrame {
 		
 		menu_advancedsettings = new JMenuItem("Advanced settings");
 		menu_asdf.add(menu_advancedsettings);
+		
+		menu_cust_material = new JMenuItem("Custom materials");
+		menu_asdf.add(menu_cust_material);
 		
 		menu_tools = new JMenu("Tools");
 		menuBar.add(menu_tools);
@@ -480,8 +479,6 @@ public class MainWindow extends JFrame {
 
 		gui_material = new JComboBox();
 		gui_material.setMaximumRowCount(16);
-		gui_material.setModel(new DefaultComboBoxModel(electrodynamics.MaterialType.values()));
-		gui_material.setSelectedIndex(0);
 		gui_material.setBounds(202, 81, 171, 22);
 		panel.add(gui_material);
 		addTooltips(gui_material);
@@ -564,6 +561,7 @@ public class MainWindow extends JFrame {
 
 	public HashMap<String, AbstractButton> boolean_names = new HashMap<String, AbstractButton>();
 	public HashMap<String, Adjustable> integer_names = new HashMap<String, Adjustable>();
+	public JMenuItem menu_cust_material;
 	
 	public void listSettings() {
 		boolean_names.put("gui_paused", gui_paused);
@@ -617,7 +615,7 @@ public class MainWindow extends JFrame {
 		gui_brush.setSelectedItem(Brush.INTERACT);
 		gui_brushsize.setValue(250);
 		gui_brush_1.setSelectedIndex(1);
-		gui_material.setSelectedIndex(0);
+		//gui_material.setSelectedIndex(0);
 
 		e.controls.brushes.setOption(Controls.Brush.INTERACT);
 		e.controls.scalarview.setOption(ScalarView.CHARGE);
@@ -676,6 +674,7 @@ public class MainWindow extends JFrame {
 		menu_exit.addActionListener(e.controls);
 		menu_github.addActionListener(e.controls);
 		menu_report.addActionListener(e.controls);
+		menu_cust_material.addActionListener(e.controls);
 		
 		gui_brush.addItemListener(e.controls);
 		

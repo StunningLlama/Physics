@@ -58,7 +58,6 @@ import electrodynamics.probe.Ground;
 import electrodynamics.probe.Probe;
 import electrodynamics.probe.VoltageProbe;
 import electrodynamics.units.Quantity;
-import electrodynamics.units.Units;
 import electrodynamics.util.CustJRadioButtonMenuItem;
 import electrodynamics.util.Font7x5;
 import electrodynamics.util.MenuCheckList;
@@ -453,13 +452,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case LIGHT:
 
 			if ((mousebutton == MouseEvent.BUTTON2 || alt_down) && pressing) {
-				e.opts.gui_material.setSelectedItem(e.materials[mx][my].type);
+				e.opts.gui_material.setSelectedItem(new GeneralMaterialType(e.materials[mx][my]));
 			}
 
 			double angle = 0;
-			MaterialType mat = (MaterialType) e.opts.gui_material.getSelectedItem();
+			GeneralMaterialType mat = (GeneralMaterialType) e.opts.gui_material.getSelectedItem();
 
-			if (mat.hasEMF()) {
+			if (mat.type.hasEMF()) {
 				e.opts.gui_parameter2.setVisible(true);
 				e.opts.gui_parameter2_text.setVisible(true);
 
@@ -490,7 +489,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 
 			if (mousebutton == MouseEvent.BUTTON3 || brush == Brush.ERASE)
-				mat = MaterialType.VACUUM;
+				mat = GeneralMaterialType.EMPTY;
 
 			if (!(mousebutton == MouseEvent.BUTTON2 || alt_down)) {
 				if (brush == Brush.LINE) {
@@ -499,21 +498,21 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					}
 				} else if (brush == Brush.FILL) {
 					if (pressing) {
-						MaterialType old_mat = e.materials[mx][my].type;
-						MaterialType new_mat = mat;
+						GeneralMaterialType old_mat = new GeneralMaterialType(e.materials[mx][my]);
+						GeneralMaterialType new_mat = mat;
 						double new_angle = angle;
-						if (new_mat != old_mat) {
+						if (new_mat.equals(old_mat)) {
 							this.floodFill(mx, my, new FloodFillFunc() {
 								@Override
 								public boolean isValid(int i, int j) {
-									return e.materials[i][j].type == old_mat;
+									return e.materials[i][j].type == old_mat.type && e.materials[i][j].cust_id == old_mat.cust_id;
 								}
 
 								@Override
 								public void fill(int i, int j) {
 									e.eraseMaterial(i, j);
-									e.initializeMaterial(i, j, new_mat);
-									if (new_mat.hasEMF()) e.materials[i][j].emf_direction = new_angle;
+									e.initializeMaterial(e.materials[i][j], new_mat);
+									if (new_mat.type.hasEMF()) e.materials[i][j].emf_direction = new_angle;
 								}
 							});
 						}
@@ -1004,7 +1003,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		}
 	}
 	
-	public void drawMaterialLine(double x1, double y1, double x2, double y2, Brush brush, BrushShape brushshape, MaterialType mat, double brushsize, double EMF_angle) {
+	public void drawMaterialLine(double x1, double y1, double x2, double y2, Brush brush, BrushShape brushshape, GeneralMaterialType mat, double brushsize, double EMF_angle) {
 		Vector a = new Vector(0, 0);
 		Vector b = new Vector(0, 0);
 		Vector p = new Vector(0, 0);
@@ -1037,12 +1036,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				else if (brushshape == BrushShape.SQUARE)
 					r = Math.max(Math.abs(p.x), Math.abs(p.y));
 				if (r <= brushsize) {
-					if (mat == MaterialType.VACUUM) {
+					if (mat.type == MaterialType.VACUUM) {
 						e.eraseMaterial(i, j);
 					} else if (e.materials[i][j].type == MaterialType.VACUUM ^ brush == Brush.REPLACE) {
 						e.eraseMaterial(i, j);
 						e.initializeMaterial(i, j, mat);
-						if (mat.hasEMF()) e.materials[i][j].emf_direction = EMF_angle;
+						if (mat.type.hasEMF()) e.materials[i][j].emf_direction = EMF_angle;
 					}
 				}
 			}
@@ -1154,15 +1153,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		} else if (ev.getSource() == e.opts.menu_advancedsettings) {
 			e.adv_opts.storeAdvancedSettings();
 			e.adv_opts.setVisible(true);
-		} else if (ev.getSource() == e.adv_opts.btn_apply) {
-			boolean success = e.adv_opts.loadAdvancedSettings(true);
-			if (success)
-				e.adv_opts.setVisible(false);
-		} else if (ev.getSource() == e.adv_opts.btn_cancel) {
-			e.adv_opts.setVisible(false);
-		} else if (ev.getSource() == e.adv_opts.btn_reset) {
-			e.adv_opts.setInputsToDefault();
-			//e.adv_opts.setVisible(false);
 		} else if (ev.getSource() == e.opts.gui_carriers) {
 			e.opts.menu_carriers.setSelected(e.opts.gui_carriers.isSelected());
 		} else if (ev.getSource() == e.opts.menu_carriers) {
@@ -1194,18 +1184,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		} else if (ev.getSource() == e.opts.menu_pref) {
 			e.prefs.getPrefs();
 			e.prefs.setVisible(true);
-		} else if (ev.getSource() == e.prefs.btn_apply) {
-			e.prefs.applyPrefs();
-			e.prefs.writeFile(e.prefs.preferences_file);
-			e.prefs.setVisible(false);
-		} else if (ev.getSource() == e.prefs.btn_cancel) {
-			e.prefs.resetPrefs();
 		} else if (ev.getSource() == e.opts.menu_debug) {
 			debugging = !debugging;
 		} else if (ev.getSource() == e.opts.menu_exit) {
 			exit = true;
-		} else if (ev.getSource() == e.prefs.gui_units) {
-			e.units = (Units) e.prefs.gui_units.getSelectedItem();
+		}else if (ev.getSource() == e.opts.menu_cust_material) {
+			e.materialmanager.valueChanged(null);
+			e.materialmanager.setVisible(true);
 		} else if (ev.getSource() instanceof JRadioButtonMenuItem) {
 			if (scalarview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null || vectorview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null)
 				e.updateMiscFields = true;
@@ -1723,7 +1708,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					for (int j = 0; j < 7; j++) {
 						if (text_x+i+1 >= 0 && text_x+i+1 < e.nx && text_y+j >= 0 && text_y+j < e.ny
 								&& Font7x5.getPixel(ev.getKeyChar(), 4-i, j) == 1 && e.materials[text_x+i+1][text_y+j].type == MaterialType.VACUUM) {
-							e.initializeMaterial(text_x+i+1, text_y+j, MaterialType.DECO);
+							e.initializeMaterial(e.materials[text_x+i+1][text_y+j], MaterialType.DECO);
 						}
 					}
 				}

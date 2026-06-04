@@ -1,6 +1,6 @@
 package electrodynamics;
 
-public class Material implements Cloneable {
+public class Material {
 	public MaterialType type;
 	public String name; // For custom materials
 	public int cust_id;
@@ -38,11 +38,14 @@ public class Material implements Cloneable {
 	public double absorptivity;
 	
 	public Material() {
-		setDefaultConstants();
+		initialize();
 	}
 	
-	public void setDefaultConstants() {
-
+	public Material(Material mat) {
+		copyFrom(mat);
+	}
+	
+	public void initialize() {
 		type = MaterialType.VACUUM;
 		name = null;
 		cust_id = -1;
@@ -51,6 +54,11 @@ public class Material implements Cloneable {
 		auto_placed = true;
 		
 		activated = 1;
+		
+		setDefaultParameters();
+	}
+	
+	public void setDefaultParameters() {
 		conducting = 0;
 		semiconducting = 0;
 		
@@ -77,16 +85,58 @@ public class Material implements Cloneable {
 		k_SRH_n = 0;
 		k_SRH_p = 0;
 
-		
 		absorptivity = 0.0;
 	}
+    
+    public void copyFrom(Material mat) {
+    	type = mat.type;
+    	name = mat.name; 
+    	cust_id = mat.cust_id;
 
+    	modified = mat.modified;
+    	auto_placed = mat.auto_placed;
+    	
+    	activated = mat.activated;
+    	conducting = mat.conducting;
+    	semiconducting = mat.semiconducting;
+    	
+    	emf = mat.emf;				
+    	emf_direction = mat.emf_direction;	
+    	
+    	eps_r = mat.eps_r;			
+    	mu_r = mat.mu_r;				
+    	rho_back = mat.rho_back;			
+    	
+    	ni = mat.ni;				
+    	W = mat.W;				
+    	Eb = mat.Eb;				
+
+    	D_n = mat.D_n;				
+    	D_p = mat.D_p;				
+    	
+    	v_sat_n = mat.v_sat_n;			
+    	v_sat_p = mat.v_sat_p;			
+    	
+    	k_rad = mat.k_rad;			
+    	k_SRH_n = mat.k_SRH_n;			
+    	k_SRH_p = mat.k_SRH_p;
+    	k_aug_n = mat.k_aug_n;			
+    	k_aug_p = mat.k_aug_p;
+    	
+    	absorptivity = mat.absorptivity;
+    }
+    
+    public boolean isEmpty() {
+    	return type == MaterialType.VACUUM && cust_id == -1;
+    }
+    
     @Override
-    public Material clone() {
-        try {
-			return (Material) super.clone();
-		} catch (CloneNotSupportedException e) {
-			return null;
-		}
+    public String toString() {
+    	if (cust_id == -1)
+    		return type.name;
+    	else if (name != null)
+    		return name + " [c]";
+    	else
+    		return "?";
     }
 }

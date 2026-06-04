@@ -7,9 +7,12 @@ package electrodynamics.gui;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -18,13 +21,17 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 
+import electrodynamics.Presets;
 import electrodynamics.Simulation;
 
 import javax.swing.JTabbedPane;
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.io.StringReader;
 
-public class AdvancedOptions extends JFrame {
+public class AdvancedOptions extends JFrame implements ActionListener {
 
 	private static final long serialVersionUID = 1L;
 	Simulation e;
@@ -91,7 +98,7 @@ public class AdvancedOptions extends JFrame {
 	private JTextField k_aug_n_semi;
 	private JLabel lblNewLabel_5_13;
 	private JTextField k_aug_p_semi;
-	private JButton btn_apply_1;
+	private JButton btn_presets;
 
 	public AdvancedOptions() {
 		setTitle("Advanced settings");
@@ -528,34 +535,33 @@ public class AdvancedOptions extends JFrame {
 		btn_reset.setBounds(403, 372, 144, 29);
 		panel.add(btn_reset);
 		
-		btn_apply_1 = new JButton("Presets");
-		btn_apply_1.setBounds(10, 372, 144, 29);
-		panel.add(btn_apply_1);
+		btn_presets = new JButton("Presets");
+		btn_presets.setBounds(10, 372, 144, 29);
+		panel.add(btn_presets);
 		
 		//.add(tabbedPane);
 	}
 	
 	public void initialize(Simulation e) {
 		this.e = e;
-		btn_apply.addActionListener(e.controls);
-		btn_reset.addActionListener(e.controls);
-		btn_cancel.addActionListener(e.controls);
+		btn_apply.addActionListener(this);
+		btn_reset.addActionListener(this);
+		btn_cancel.addActionListener(this);
+		btn_presets.addActionListener(this);
 		setVisible(false);
 	}
 	
-	public void setInputsToDefault() {
+	public void applyPreset(Presets p) {
 
 		Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
 		JsonObject advsettings = new JsonObject();
 		writeAdvancedSettings(gson, advsettings);
 		String json = gson.toJson(advsettings);
 		
-		e.setDefaultParameters();
+		p.applyPreset(e);
 		
 		storeAdvancedSettings();
-		e.adv_opts.width				.setText(formatDouble(e.default_width						));
-		e.adv_opts.resolution			.setText(Integer.toString(e.default_resolution				));
-
+		
 		try {
 			JsonReader fstr = new JsonReader(new StringReader(json));
 			fstr.beginObject();
@@ -566,60 +572,84 @@ public class AdvancedOptions extends JFrame {
 		}
 	}
 
+	public void pickPresets() {
+		JList<Presets> tmplist = new JList<>(Presets.values());
+
+		tmplist.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		tmplist.setVisibleRowCount(5);
+
+		JScrollPane scrollPane = new JScrollPane(tmplist);
+
+		int result = JOptionPane.showConfirmDialog(
+		null,
+		scrollPane,
+		"Select preset",
+		JOptionPane.OK_CANCEL_OPTION,
+		JOptionPane.PLAIN_MESSAGE
+		);
+
+		if (result == JOptionPane.OK_OPTION) {
+			Presets selected = tmplist.getSelectedValue();
+
+			if (selected != null) {
+				applyPreset(selected);
+			}
+		}
+	}
 
 	public String formatDouble(double d) {
 		return Double.toString(d);
 	}
 
 	public void storeAdvancedSettings() {
-		e.adv_opts.width				.setText(formatDouble(e.width						));
-		e.adv_opts.resolution			.setText(Integer.toString(e.resolution				));
-		e.adv_opts.depth				.setText(formatDouble(e.depth						));
-		e.adv_opts.junction_size		.setText(Integer.toString(e.junction_size			));
+		width				.setText(formatDouble(e.default_width				));
+		resolution			.setText(Integer.toString(e.default_resolution		));
+		depth				.setText(formatDouble(e.depth						));
+		junction_size		.setText(Integer.toString(e.junction_size			));
 
-		e.adv_opts.eps0					.setText(formatDouble(e.eps0						));
-		e.adv_opts.mu0					.setText(formatDouble(e.mu0							));
-		e.adv_opts.e_charge				.setText(formatDouble(e.e_charge					));
-		e.adv_opts.T					.setText(formatDouble(e.T							));
+		eps0					.setText(formatDouble(e.eps0						));
+		mu0					.setText(formatDouble(e.mu0							));
+		e_charge				.setText(formatDouble(e.e_charge					));
+		T					.setText(formatDouble(e.T							));
 		
-		e.adv_opts.mu_electron			.setText(formatDouble(e.mu_electron_semi					));
-		e.adv_opts.mu_hole				.setText(formatDouble(e.mu_hole_semi						));
-		e.adv_opts.ni_semi				.setText(formatDouble(e.ni_semi						));
-		e.adv_opts.W_semi				.setText(formatDouble(e.W_semi/e.eVtoJ				));
-		e.adv_opts.E_b_semi				.setText(formatDouble(e.E_b_semi/e.eVtoJ			));
-		e.adv_opts.k_rad_semi		.setText(formatDouble(e.k_rad_semi			));
-		e.adv_opts.k_SRH_n_semi		.setText(formatDouble(e.k_SRH_n_semi			));
-		e.adv_opts.k_SRH_p_semi		.setText(formatDouble(e.k_SRH_p_semi			));
-		e.adv_opts.k_aug_n_semi		.setText(formatDouble(e.k_aug_n_semi			));
-		e.adv_opts.k_aug_p_semi		.setText(formatDouble(e.k_aug_p_semi			));
+		mu_electron			.setText(formatDouble(e.mu_electron_semi			));
+		mu_hole				.setText(formatDouble(e.mu_hole_semi				));
+		ni_semi				.setText(formatDouble(e.ni_semi						));
+		W_semi				.setText(formatDouble(e.W_semi/e.eVtoJ				));
+		E_b_semi				.setText(formatDouble(e.E_b_semi/e.eVtoJ			));
+		k_rad_semi		.setText(formatDouble(e.k_rad_semi				));
+		k_SRH_n_semi		.setText(formatDouble(e.k_SRH_n_semi			));
+		k_SRH_p_semi		.setText(formatDouble(e.k_SRH_p_semi			));
+		k_aug_n_semi		.setText(formatDouble(e.k_aug_n_semi			));
+		k_aug_p_semi		.setText(formatDouble(e.k_aug_p_semi			));
 		
-		e.adv_opts.v_sat_n				.setText(formatDouble(e.v_sat_n_semi			));
-		e.adv_opts.v_sat_p				.setText(formatDouble(e.v_sat_p_semi			));
-		e.adv_opts.n_default_doping		.setText(formatDouble(e.n_default_doping_concentration		));
-		e.adv_opts.p_default_doping		.setText(formatDouble(e.p_default_doping_concentration		));
-		e.adv_opts.n_light_doping		.setText(formatDouble(e.n_light_doping_concentration		));
-		e.adv_opts.p_light_doping		.setText(formatDouble(e.p_light_doping_concentration		));
-		e.adv_opts.n_heavy_doping		.setText(formatDouble(e.n_heavy_doping_concentration		));
-		e.adv_opts.p_heavy_doping		.setText(formatDouble(e.p_heavy_doping_concentration		));
+		v_sat_n				.setText(formatDouble(e.v_sat_n_semi						));
+		v_sat_p				.setText(formatDouble(e.v_sat_p_semi						));
+		n_default_doping		.setText(formatDouble(e.n_default_doping_concentration		));
+		p_default_doping		.setText(formatDouble(e.p_default_doping_concentration		));
+		n_light_doping		.setText(formatDouble(e.n_light_doping_concentration		));
+		p_light_doping		.setText(formatDouble(e.p_light_doping_concentration		));
+		n_heavy_doping		.setText(formatDouble(e.n_heavy_doping_concentration		));
+		p_heavy_doping		.setText(formatDouble(e.p_heavy_doping_concentration		));
 		
-		e.adv_opts.ni_metal				.setText(formatDouble(e.ni_metal					));
-		e.adv_opts.W_metal				.setText(formatDouble(e.W_metal_default/e.eVtoJ		));
-		e.adv_opts.E_b_metal			.setText(formatDouble(e.E_b_metal/e.eVtoJ			));
-		e.adv_opts.W_metal_high			.setText(formatDouble(e.W_metal_high/e.eVtoJ		));
-		e.adv_opts.W_metal_low			.setText(formatDouble(e.W_metal_low/e.eVtoJ			));
-		e.adv_opts.recomb_rate_metal	.setText(formatDouble(e.k_rad_metal			));
+		ni_metal				.setText(formatDouble(e.ni_metal					));
+		W_metal				.setText(formatDouble(e.W_metal_default/e.eVtoJ		));
+		E_b_metal			.setText(formatDouble(e.E_b_metal/e.eVtoJ			));
+		W_metal_high			.setText(formatDouble(e.W_metal_high/e.eVtoJ		));
+		W_metal_low			.setText(formatDouble(e.W_metal_low/e.eVtoJ			));
+		recomb_rate_metal	.setText(formatDouble(e.k_rad_metal					));
 
-		e.adv_opts.dielectric_eps_r			.setText(formatDouble(e.dielectric_eps_r			));
-		e.adv_opts.ferromagnet_mu_r			.setText(formatDouble(e.ferromagnet_mu_r			));
-		e.adv_opts.staticcharge_density		.setText(formatDouble(e.staticcharge_density			));
-		e.adv_opts.currentsource_mobility	.setText(formatDouble(e.currentsource_mobility			));
+		dielectric_eps_r			.setText(formatDouble(e.dielectric_eps_r		));
+		ferromagnet_mu_r			.setText(formatDouble(e.ferromagnet_mu_r		));
+		staticcharge_density		.setText(formatDouble(e.staticcharge_density	));
+		currentsource_mobility	.setText(formatDouble(e.currentsource_mobility	));
 	}
 	
 	public boolean loadAdvancedSettings(boolean show_warning) {
 
 		try {
-			double width_tmp			= Double.valueOf(e.adv_opts.width				.getText());	
-			int resolution_tmp			= Integer.valueOf(e.adv_opts.resolution			.getText());
+			e.default_width			= Double.valueOf(width				.getText());	
+			int resolution_tmp			= Integer.valueOf(resolution			.getText());
 
 			if (resolution_tmp != e.resolution) {
 				int result = JOptionPane.showConfirmDialog(this, "Changing the resolution will delete all materials. Proceed?", "Message", JOptionPane.YES_NO_OPTION);
@@ -628,49 +658,50 @@ public class AdvancedOptions extends JFrame {
 					return false;
 				}
 			}
+			
+			e.default_resolution = resolution_tmp;
 
-			e.depth						= Double.valueOf(e.adv_opts.depth				.getText());
-			e.junction_size				= Integer.valueOf(e.adv_opts.junction_size		.getText());
+			e.depth						= Double.valueOf(depth				.getText());
+			e.junction_size				= Integer.valueOf(junction_size		.getText());
 
-			e.T							= Double.valueOf(e.adv_opts.T					.getText());
-			e.eps0						= Double.valueOf(e.adv_opts.eps0				.getText());
-			e.mu0						= Double.valueOf(e.adv_opts.mu0					.getText());
-			e.e_charge					= Double.valueOf(e.adv_opts.e_charge			.getText());
+			e.T							= Double.valueOf(T					.getText());
+			e.eps0						= Double.valueOf(eps0				.getText());
+			e.mu0						= Double.valueOf(mu0					.getText());
+			e.e_charge					= Double.valueOf(e_charge			.getText());
 
-			e.mu_electron_semi				= Double.valueOf(e.adv_opts.mu_electron			.getText());
-			e.mu_hole_semi					= Double.valueOf(e.adv_opts.mu_hole				.getText());
-			e.ni_semi					= Double.valueOf(e.adv_opts.ni_semi				.getText());
-			e.W_semi					= Double.valueOf(e.adv_opts.W_semi				.getText())*e.eVtoJ;
-			e.E_b_semi					= Double.valueOf(e.adv_opts.E_b_semi			.getText())*e.eVtoJ;
-			e.k_rad_semi			= Double.valueOf(e.adv_opts.k_rad_semi	.getText());
-			e.k_SRH_n_semi			= Double.valueOf(e.adv_opts.k_SRH_n_semi	.getText());
-			e.k_SRH_p_semi			= Double.valueOf(e.adv_opts.k_SRH_p_semi	.getText());
-			e.k_aug_n_semi			= Double.valueOf(e.adv_opts.k_aug_n_semi	.getText());
-			e.k_aug_p_semi			= Double.valueOf(e.adv_opts.k_aug_p_semi	.getText());
-			e.v_sat_n_semi						= Double.valueOf(e.adv_opts.v_sat_n				.getText());
-			e.v_sat_p_semi						= Double.valueOf(e.adv_opts.v_sat_p				.getText());
-			e.n_default_doping_concentration	= Double.valueOf(e.adv_opts.n_default_doping	.getText());
-			e.p_default_doping_concentration	= Double.valueOf(e.adv_opts.p_default_doping	.getText());
-			e.n_light_doping_concentration		= Double.valueOf(e.adv_opts.n_light_doping	.getText());
-			e.p_light_doping_concentration		= Double.valueOf(e.adv_opts.p_light_doping	.getText());
-			e.n_heavy_doping_concentration		= Double.valueOf(e.adv_opts.n_heavy_doping	.getText());
-			e.p_heavy_doping_concentration		= Double.valueOf(e.adv_opts.p_heavy_doping	.getText());
+			e.mu_electron_semi				= Double.valueOf(mu_electron			.getText());
+			e.mu_hole_semi					= Double.valueOf(mu_hole				.getText());
+			e.ni_semi					= Double.valueOf(ni_semi				.getText());
+			e.W_semi					= Double.valueOf(W_semi				.getText())*e.eVtoJ;
+			e.E_b_semi					= Double.valueOf(E_b_semi			.getText())*e.eVtoJ;
+			e.k_rad_semi			= Double.valueOf(k_rad_semi	.getText());
+			e.k_SRH_n_semi			= Double.valueOf(k_SRH_n_semi	.getText());
+			e.k_SRH_p_semi			= Double.valueOf(k_SRH_p_semi	.getText());
+			e.k_aug_n_semi			= Double.valueOf(k_aug_n_semi	.getText());
+			e.k_aug_p_semi			= Double.valueOf(k_aug_p_semi	.getText());
+			e.v_sat_n_semi						= Double.valueOf(v_sat_n				.getText());
+			e.v_sat_p_semi						= Double.valueOf(v_sat_p				.getText());
+			e.n_default_doping_concentration	= Double.valueOf(n_default_doping	.getText());
+			e.p_default_doping_concentration	= Double.valueOf(p_default_doping	.getText());
+			e.n_light_doping_concentration		= Double.valueOf(n_light_doping	.getText());
+			e.p_light_doping_concentration		= Double.valueOf(p_light_doping	.getText());
+			e.n_heavy_doping_concentration		= Double.valueOf(n_heavy_doping	.getText());
+			e.p_heavy_doping_concentration		= Double.valueOf(p_heavy_doping	.getText());
 
-			e.ni_metal					= Double.valueOf(e.adv_opts.ni_metal			.getText());
-			e.W_metal_default			= Double.valueOf(e.adv_opts.W_metal				.getText())*e.eVtoJ;
-			e.E_b_metal					= Double.valueOf(e.adv_opts.E_b_metal			.getText())*e.eVtoJ;
-			e.W_metal_high				= Double.valueOf(e.adv_opts.W_metal_high		.getText())*e.eVtoJ;
-			e.W_metal_low				= Double.valueOf(e.adv_opts.W_metal_low			.getText())*e.eVtoJ;
-			e.k_rad_metal			= Double.valueOf(e.adv_opts.recomb_rate_metal	.getText());
+			e.ni_metal					= Double.valueOf(ni_metal			.getText());
+			e.W_metal_default			= Double.valueOf(W_metal				.getText())*e.eVtoJ;
+			e.E_b_metal					= Double.valueOf(E_b_metal			.getText())*e.eVtoJ;
+			e.W_metal_high				= Double.valueOf(W_metal_high		.getText())*e.eVtoJ;
+			e.W_metal_low				= Double.valueOf(W_metal_low			.getText())*e.eVtoJ;
+			e.k_rad_metal			= Double.valueOf(recomb_rate_metal	.getText());
 
-			e.dielectric_eps_r			= Double.valueOf(e.adv_opts.dielectric_eps_r	.getText());
-			e.ferromagnet_mu_r			= Double.valueOf(e.adv_opts.ferromagnet_mu_r	.getText());
-			e.staticcharge_density		= Double.valueOf(e.adv_opts.staticcharge_density	.getText());
-			e.currentsource_mobility	= Double.valueOf(e.adv_opts.currentsource_mobility	.getText());
+			e.dielectric_eps_r			= Double.valueOf(dielectric_eps_r	.getText());
+			e.ferromagnet_mu_r			= Double.valueOf(ferromagnet_mu_r	.getText());
+			e.staticcharge_density		= Double.valueOf(staticcharge_density	.getText());
+			e.currentsource_mobility	= Double.valueOf(currentsource_mobility	.getText());
 
 			e.calculateDependentConstants();
-			e.setSize(resolution_tmp, width_tmp);
-			e.resetFields(false);
+			e.reset(false, false);
 			e.lastsimspeed = -1;
 			e.advsettings_tweaked = true;
 			return true;
@@ -682,6 +713,8 @@ public class AdvancedOptions extends JFrame {
 	}
 
 	public void writeAdvancedSettings (Gson gson, JsonObject advsettings) {
+		// Width and resolution are handled in SaveManager
+		
 		advsettings.addProperty("depth", e.depth 						);
 		advsettings.addProperty("junction_size", e.junction_size		);
 
@@ -772,6 +805,21 @@ public class AdvancedOptions extends JFrame {
 
 			default: fstr.skipValue(); break; // skip others
 			}
+		}
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent ev) {
+		if (ev.getSource() == btn_apply) {
+			boolean success = loadAdvancedSettings(true);
+			if (success)
+				setVisible(false);
+		} else if (ev.getSource() == btn_cancel) {
+			setVisible(false);
+		} else if (ev.getSource() == btn_reset) {
+			applyPreset(Presets.DEFAULT);
+		} else if (ev.getSource() == btn_presets) {
+			pickPresets();
 		}
 	}
 }

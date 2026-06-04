@@ -23,6 +23,7 @@ import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorView;
 import electrodynamics.gui.AdvancedOptions;
 import electrodynamics.gui.MainWindow;
+import electrodynamics.gui.MaterialManager;
 import electrodynamics.gui.Preferences;
 import electrodynamics.plot.BandPlot;
 import electrodynamics.plot.CarrierPlot;
@@ -68,6 +69,7 @@ public class Simulation extends PeriodicTask {
 	public Controls controls;
 	public SaveManager savemanager;
 	public Preferences prefs;
+	public MaterialManager materialmanager;
 	
 	public ArrayList<Plot> plots = new ArrayList<>();
 	public BandPlot bandplot;
@@ -88,10 +90,10 @@ public class Simulation extends PeriodicTask {
 	
 	/* Domain parameters */
 
-	public int default_resolution = 256;
-	public double default_width = 2.56e-5;
+	public int default_resolution;
+	public double default_width;
 	
-	public int resolution = 0;
+	public int resolution;
 	public int nx;						// Number of grid popublic ints in x-dimension
 	public int ny;						// Number of grid popublic ints in y-dimension
 	public double width;				// Width, in SI
@@ -117,11 +119,13 @@ public class Simulation extends PeriodicTask {
 		AC_phase = 0;
 		stepnumber = 0;
 		frame = 0;
+		numerical_overflow = false;
+		sign_violation_timer = 0;
 	}
 
 	public double error_detection_threshold = 1e-3;
-	public int sign_violation_timer = 0;
-	public boolean numerical_overflow = false;
+	public int sign_violation_timer;
+	public boolean numerical_overflow;
 	
 	public boolean advsettings_tweaked = false;
 	
@@ -189,9 +193,13 @@ public class Simulation extends PeriodicTask {
 	public double ferromagnet_mu_r;
 	public double staticcharge_density;
 	
-	public int junction_size;			// Free energy smoothing distance: junction_size < 3 causes instability
+	public int junction_size;			// Free energy smoothing distance
+	public int doping_smoothing_distance;
 	
 	public void setDefaultParameters() {
+		default_resolution = 256;
+		default_width = 2.56e-5;
+		
 		depth = 1e-3;
 		
 		eps0 = 8.85e-12;
@@ -398,7 +406,7 @@ public class Simulation extends PeriodicTask {
 	Timer simFPStimer = new Timer("Simulation FPS", 10, true);
 
 	public Simulation() {
-		setDefaultParameters();
+		//setDefaultParameters();
 		
 		controls = new Controls(this);
 		renderer = new Renderer(this);
@@ -408,6 +416,7 @@ public class Simulation extends PeriodicTask {
 		canvas.setFocusable(true);
 		adv_opts = new AdvancedOptions();
 		prefs = new Preferences(this);
+		materialmanager = new MaterialManager();
 		datafile = new File(datafilename);
 
 		bandplot = new BandPlot(); plots.add(bandplot);
@@ -422,13 +431,13 @@ public class Simulation extends PeriodicTask {
 			p.initialize();
 
 		SemiSim.detect64Bit();
-
-		setSize(default_resolution, default_width);
-		resetFields(true);
+		
+		reset(true, true);
 		
 		opts.initialize(this);
 		adv_opts.initialize(this);
 		prefs.initialize();
+		materialmanager.initialize(this);
 
 		try {
 			datastream = new PrintWriter(new FileOutputStream(datafile));
@@ -446,7 +455,7 @@ public class Simulation extends PeriodicTask {
 
     			if (controls.clear) {
     				SwingUtilities.invokeLater(() -> {
-    					resetFields(false);
+    					reset(false, false);
     				});
     				controls.clear = false;
     			}
@@ -456,7 +465,7 @@ public class Simulation extends PeriodicTask {
         				int result = JOptionPane.showConfirmDialog(opts, "Do you wish to reset the entire simulation?", "Message", JOptionPane.YES_NO_OPTION);
         				if (result == JOptionPane.OK_OPTION)
         				{
-        					resetFields(true);
+        					reset(true, false);
             				opts.setDefaults(this);
             				SaveManager.currentfile = null;
         				}
@@ -574,159 +583,113 @@ public class Simulation extends PeriodicTask {
 		System.out.println("Hole diffusion CFL ratio = " + dt_maximum/(ds*ds/(4*D_hole_semi)));
 	}
 
-	public boolean setSize(int resolution, double width) {
+	public boolean reset(boolean resetall, boolean resetparameters) {
+		if (resetall || resetparameters) {
+			setDefaultParameters();
+			materialmanager.resetMaterialList();
+		}
 		
-		this.width = width;
-		ds = width/resolution;
+		this.width = default_width;
+		ds = width/default_resolution;
 
 		width = nx*ds;
 		dt_maximum = 0.9*Math.min(ds/(Math.sqrt(2)*c), Math.min(ds*ds/(4*D_electron_semi), ds*ds/(4*D_hole_semi)));
 		Hz_dissipation = 0.01*ds*ds/dt_maximum;
 
-		if (resolution == this.resolution) return false;
+		boolean size_changed = (default_resolution != this.resolution);
+		this.resolution = default_resolution;
 
 		// Simulation and graphics threads should not be active when variables are initialized
 		rwLock.writeLock().lock();
 		try {
-			if(resolution < 4) {
-				JOptionPane.showMessageDialog(opts, "Resolution too small.", "Error", JOptionPane.OK_OPTION);
-				resolution = 4;
-			}
-			
-			log2_resolution = (int) Math.round(Math.log(resolution)/Math.log(2));
-			if(1 << log2_resolution != resolution) {
-				JOptionPane.showMessageDialog(opts, "Resolution must be a power of 2.", "Error", JOptionPane.OK_OPTION);
-				resolution = 1 << log2_resolution;
-			}
-			
-			this.resolution = resolution;
-			nx = resolution;
-			ny = resolution;
-
-			Ex = new double[nx][ny];
-			Ey = new double[nx][ny];
-			Bz = new double[nx][ny];
-			Hz_laplacian = new double[nx][ny];
-			rho_abs = new double[nx][ny];
-			rho_n = new double[nx][ny];
-			rho_p = new double[nx][ny];
-			rho_back = new double[nx][ny];
-			rho_free = new double[nx][ny];
-
-			Jx_abs = new double[nx][ny];
-			Jy_abs = new double[nx][ny];
-			Jx_n = new double[nx][ny];
-			Jy_n = new double[nx][ny];
-			Jx_p = new double[nx][ny];
-			Jy_p = new double[nx][ny];
-			Jx_free = new double[nx][ny];
-			Jy_free = new double[nx][ny];
-
-			materials = new Material[nx][ny];
-			n_i = new double[nx][ny];
-			F0_n = new double[nx][ny];
-			F0_p = new double[nx][ny];
-			F_n = new double[nx][ny];
-			F_p = new double[nx][ny];
-			E0_n = new double[nx][ny];
-			E0_p = new double[nx][ny];
-			k_rad = new double[nx][ny];
-			k_SRH_n = new double[nx][ny];
-			k_SRH_p = new double[nx][ny];
-			k_aug_n = new double[nx][ny];
-			k_aug_p = new double[nx][ny];
-			L = new double[nx][ny];
-			cmfx_n = new double[nx][ny];
-			cmfy_n = new double[nx][ny];
-			cmfx_p = new double[nx][ny];
-			cmfy_p = new double[nx][ny];
-			D_n = new double[nx][ny];
-			D_p = new double[nx][ny];
-			v_sat_n = new double[nx][ny];
-			v_sat_p = new double[nx][ny];
-			conducting = new int[nx][ny];
-			semiconducting = new int[nx][ny];
-			conducting_x = new int[nx][ny];
-			conducting_y = new int[nx][ny];
-			ac_x = new int[nx][ny];
-			ac_y = new int[nx][ny];
-			absorptivity = new double[nx][ny];
-			absorptivity_x = new double[nx][ny];
-			absorptivity_y = new double[nx][ny];
-			emfx = new double[nx][ny];
-			emfy = new double[nx][ny];
-			epsx = new double[nx][ny];
-			epsy = new double[nx][ny];
-			mu_z = new double[nx][ny];
-
-			display_x = new double[nx][ny];
-			display_y = new double[nx][ny];
-			display = new double[nx][ny];
-			
-			Dx = new double[nx][ny];
-			Dy = new double[nx][ny];
-			Hz = new double[nx][ny];
-			phi = new double[nx][ny];
-
-			G = new double[nx][ny];
-			R = new double[nx][ny];
-			F_n = new double[nx][ny];
-			F_p = new double[nx][ny];
-			grad_E0x_n = new double[nx][ny];
-			grad_E0y_n = new double[nx][ny];
-			grad_E0x_p = new double[nx][ny];
-			grad_E0y_p = new double[nx][ny];
-			grad_Fx_n = new double[nx][ny];
-			grad_Fy_n = new double[nx][ny];
-			grad_Fx_p = new double[nx][ny];
-			grad_Fy_p = new double[nx][ny];
-			F = new double[nx][ny];
-			drift_x_n = new double[nx][ny];
-			drift_y_n = new double[nx][ny];
-			drift_x_p = new double[nx][ny];
-			drift_y_p = new double[nx][ny];
-			debug = new double[nx][ny];
-
-			MG_rho0 = new double[nx][ny];
-			MG_rho = new double[log2_resolution+1][nx][ny];
-			MG_epsx = new double[log2_resolution+1][nx][ny];
-			MG_epsy = new double[log2_resolution+1][nx][ny];
-			MG_eps_avg = new double[nx][ny];
-			MG_phi1 = new double[nx][ny];
-			MG_phi2 = new double[nx][ny];
-
-			distance = new int[nx][ny];
-			visited = new boolean[nx][ny];
-			abs_depth = new int[nx][ny];
-
-			opts.setVisible(true);
-
-			controls.setResolution(resolution);
-			renderer.setResolution(resolution);
-
-			for (int i = 0; i < nx; i++)
-			{
-				for (int j = 0; j < ny; j++)
-				{
-					materials[i][j] = new Material();
+			if (size_changed) {
+				if(resolution < 4) {
+					JOptionPane.showMessageDialog(opts, "Resolution too small.", "Error", JOptionPane.OK_OPTION);
+					resolution = 4;
 				}
+
+				log2_resolution = (int) Math.round(Math.log(resolution)/Math.log(2));
+				if(1 << log2_resolution != resolution) {
+					JOptionPane.showMessageDialog(opts, "Resolution must be a power of 2.", "Error", JOptionPane.OK_OPTION);
+					resolution = 1 << log2_resolution;
+				}
+
+				nx = resolution;
+				ny = resolution;
+
+				Ex = new double[nx][ny];		Ey = new double[nx][ny];
+				Bz = new double[nx][ny];
+				Hz_laplacian = new double[nx][ny];
+				rho_abs = new double[nx][ny];
+				rho_n = new double[nx][ny];		rho_p = new double[nx][ny];
+				rho_back = new double[nx][ny];
+				rho_free = new double[nx][ny];
+
+				Jx_abs = new double[nx][ny];	Jy_abs = new double[nx][ny];
+				Jx_n = new double[nx][ny];		Jy_n = new double[nx][ny];
+				Jx_p = new double[nx][ny];		Jy_p = new double[nx][ny];
+				Jx_free = new double[nx][ny];	Jy_free = new double[nx][ny];
+
+				materials = new Material[nx][ny];
+				n_i = new double[nx][ny];
+				F0_n = new double[nx][ny];		F0_p = new double[nx][ny];
+				F_n = new double[nx][ny];		F_p = new double[nx][ny];
+				E0_n = new double[nx][ny];		E0_p = new double[nx][ny];
+				k_rad = new double[nx][ny];
+				k_SRH_n = new double[nx][ny];	k_SRH_p = new double[nx][ny];
+				k_aug_n = new double[nx][ny];	k_aug_p = new double[nx][ny];
+				L = new double[nx][ny];
+				cmfx_n = new double[nx][ny];	cmfy_n = new double[nx][ny];
+				cmfx_p = new double[nx][ny];	cmfy_p = new double[nx][ny];
+				D_n = new double[nx][ny];		D_p = new double[nx][ny];
+				v_sat_n = new double[nx][ny];	v_sat_p = new double[nx][ny];
+				conducting = new int[nx][ny];
+				semiconducting = new int[nx][ny];
+				conducting_x = new int[nx][ny];	conducting_y = new int[nx][ny];
+				ac_x = new int[nx][ny];			ac_y = new int[nx][ny];
+				absorptivity = new double[nx][ny];
+				absorptivity_x = new double[nx][ny]; absorptivity_y = new double[nx][ny];
+				emfx = new double[nx][ny];		emfy = new double[nx][ny];
+				epsx = new double[nx][ny];		epsy = new double[nx][ny];
+				mu_z = new double[nx][ny];
+
+				display_x = new double[nx][ny]; display_y = new double[nx][ny];
+				display = new double[nx][ny];
+
+				Dx = new double[nx][ny];		Dy = new double[nx][ny];
+				Hz = new double[nx][ny];
+				phi = new double[nx][ny];
+
+				G = new double[nx][ny];
+				R = new double[nx][ny];
+				F_n = new double[nx][ny];			F_p = new double[nx][ny];
+				grad_E0x_n = new double[nx][ny];	grad_E0y_n = new double[nx][ny];
+				grad_E0x_p = new double[nx][ny];	grad_E0y_p = new double[nx][ny];
+				grad_Fx_n = new double[nx][ny];		grad_Fy_n = new double[nx][ny];
+				grad_Fx_p = new double[nx][ny];		grad_Fy_p = new double[nx][ny];
+				F = new double[nx][ny];
+				drift_x_n = new double[nx][ny];		drift_y_n = new double[nx][ny];
+				drift_x_p = new double[nx][ny];		drift_y_p = new double[nx][ny];
+				debug = new double[nx][ny];
+
+				MG_rho0 = new double[nx][ny];
+				MG_rho = new double[log2_resolution+1][nx][ny];
+				MG_epsx = new double[log2_resolution+1][nx][ny];
+				MG_epsy = new double[log2_resolution+1][nx][ny];
+				MG_eps_avg = new double[nx][ny];
+				MG_phi1 = new double[nx][ny];
+				MG_phi2 = new double[nx][ny];
+
+				distance = new int[nx][ny];
+				visited = new boolean[nx][ny];
+				abs_depth = new int[nx][ny];
+
+				opts.setVisible(true);
+
+				controls.setResolution(resolution);
+				renderer.setResolution(resolution);
 			}
 
-			//controls.selection.clear();
-			//controls.clipboard.clear();
-			
-			resetFields(true);
-		} finally {
-			rwLock.writeLock().unlock();
-		}
-		
-		return true;
-	}
-	
-	public void resetFields(boolean resetall) {
-
-		rwLock.writeLock().lock();
-		try {
 			resetTime();
 			
 			for (int i = 0; i < nx; i++)
@@ -734,77 +697,60 @@ public class Simulation extends PeriodicTask {
 				for (int j = 0; j < ny; j++)
 				{
 
-					if (resetall) {
+					if (resetall || size_changed) {
 
-						materials[i][j].setDefaultConstants();
+						if (materials[i][j] == null)
+							materials[i][j] = new Material();
+						else
+							materials[i][j].initialize();
 
-						F0_n[i][j] = 0;
-						F0_p[i][j] = 0;
-						F_n[i][j] = 0;
-						F_p[i][j] = 0;
-						E0_n[i][j] = 0;
-						E0_p[i][j] = 0;
+						F0_n[i][j] = 0;		F0_p[i][j] = 0;
+						F_n[i][j] = 0;		F_p[i][j] = 0;
+						E0_n[i][j] = 0;		E0_p[i][j] = 0;
 						n_i[i][j] = 0;
 						k_rad[i][j] = 0;
-						k_SRH_n[i][j] = 0;
-						k_SRH_p[i][j] = 0;
-						k_aug_n[i][j] = 0;
-						k_aug_p[i][j] = 0;
+						k_SRH_n[i][j] = 0;	k_SRH_p[i][j] = 0;
+						k_aug_n[i][j] = 0;	k_aug_p[i][j] = 0;
 						L[i][j] = 0;
 
-						cmfx_n[i][j] = 0;
-						cmfy_n[i][j] = 0;
-						cmfx_p[i][j] = 0;
-						cmfy_p[i][j] = 0;
+						cmfx_n[i][j] = 0;	cmfy_n[i][j] = 0;
+						cmfx_p[i][j] = 0;	cmfy_p[i][j] = 0;
 
-						emfx[i][j] = 0.0;
-						emfy[i][j] = 0.0;
+						emfx[i][j] = 0.0;	emfy[i][j] = 0.0;
 
-						epsx[i][j] = eps0;
-						epsy[i][j] = eps0;
+						epsx[i][j] = eps0;	epsy[i][j] = eps0;
 						mu_z[i][j] = mu0;
 
-						D_n[i][j] = 0.0;
-						D_p[i][j] = 0.0;
-						v_sat_n[i][j] = 0.0;
-						v_sat_p[i][j] = 0.0;
+						D_n[i][j] = 0.0;	D_p[i][j] = 0.0;
+						v_sat_n[i][j] = 0.0;	v_sat_p[i][j] = 0.0;
 
 						conducting[i][j] = 0;
-						conducting_x[i][j] = 0;
-						conducting_y[i][j] = 0;
+						conducting_x[i][j] = 0;	conducting_y[i][j] = 0;
 						
 						semiconducting[i][j] = 0;
 
-						ac_x[i][j] = 0;
-						ac_y[i][j] = 0;
+						ac_x[i][j] = 0; ac_y[i][j] = 0;
 
 						absorptivity[i][j] = 0;
-						absorptivity_x[i][j] = 0;
-						absorptivity_y[i][j] = 0;
+						absorptivity_x[i][j] = 0; absorptivity_y[i][j] = 0;
 
 						controls.selected[i][j] = false;
 						controls.selected_EMF[i][j] = false;
 					}
 
-					Ex [i][j] = 0.0;
-					Ey [i][j] = 0.0;
+					Ex [i][j] = 0.0;		Ey [i][j] = 0.0;
 					Bz [i][j] = 0.0;
 					Hz_laplacian [i][j] = 0.0;
 
 					rho_abs[i][j] = 0.0;
-					rho_n[i][j] = 0.0;
-					rho_p[i][j] = 0.0;
+					rho_n[i][j] = 0.0;		rho_p[i][j] = 0.0;
 					rho_back[i][j] = 0.0;
 					rho_free[i][j] = 0.0;
 
-					Jx_abs[i][j] = 0.0;
-					Jy_abs[i][j] = 0.0;
-					Jx_n[i][j] = 0.0;
-					Jy_n[i][j] = 0.0;
-					Jx_p[i][j] = 0.0;
-					Jy_p[i][j] = 0.0;
-					Jx_free[i][j] = 0.0;
-					Jy_free[i][j] = 0.0;
+					Jx_abs[i][j] = 0.0;		Jy_abs[i][j] = 0.0;
+					Jx_n[i][j] = 0.0;		Jy_n[i][j] = 0.0;
+					Jx_p[i][j] = 0.0;		Jy_p[i][j] = 0.0;
+					Jx_free[i][j] = 0.0;	Jy_free[i][j] = 0.0;
 
 					MG_rho0 [i][j] = 0.0;
 					MG_eps_avg [i][j] = 0.0;
@@ -819,12 +765,10 @@ public class Simulation extends PeriodicTask {
 					distance[i][j] = Integer.MAX_VALUE;
 					visited[i][j] = false;
 
-					display_x[i][j] = 0.0;
-					display_y[i][j] = 0.0;
+					display_x[i][j] = 0.0;	display_y[i][j] = 0.0;
 					display[i][j] = 0.0;
 					
-					Dx[i][j] = 0.0;
-					Dy[i][j] = 0.0;
+					Dx[i][j] = 0.0; Dy[i][j] = 0.0;
 					Hz[i][j] = 0.0;
 					phi[i][j] = 0.0;
 
@@ -832,24 +776,16 @@ public class Simulation extends PeriodicTask {
 					R[i][j] = 0.0;
 					F_n[i][j] = 0.0;
 					F_p[i][j] = 0.0;
-					grad_E0x_n[i][j] = 0.0;
-					grad_E0y_n[i][j] = 0.0;
-					grad_E0x_p[i][j] = 0.0;
-					grad_E0y_p[i][j] = 0.0;
-					grad_Fx_n[i][j] = 0.0;
-					grad_Fy_n[i][j] = 0.0;
-					grad_Fx_p[i][j] = 0.0;
-					grad_Fy_p[i][j] = 0.0;
+					grad_E0x_n[i][j] = 0.0;	grad_E0y_n[i][j] = 0.0;
+					grad_E0x_p[i][j] = 0.0;	grad_E0y_p[i][j] = 0.0;
+					grad_Fx_n[i][j] = 0.0;	grad_Fy_n[i][j] = 0.0;
+					grad_Fx_p[i][j] = 0.0;	grad_Fy_p[i][j] = 0.0;
 					F[i][j] = 0.0;
 
-					drift_x_n[i][j] = 0;
-					drift_y_n[i][j] = 0;
-					drift_x_p[i][j] = 0;
-					drift_y_p[i][j] = 0;
+					drift_x_n[i][j] = 0;	drift_y_n[i][j] = 0;
+					drift_x_p[i][j] = 0;	drift_y_p[i][j] = 0;
 					
 					abs_depth[i][j] = 0;
-					
-					//sqrt_mobility_factor[i][j] = 0;
 					
 					debug[i][j] = 0.0;
 				}
@@ -858,17 +794,12 @@ public class Simulation extends PeriodicTask {
 			controls.selection.clear();
 			controls.clipboard.clear();
 			
-			if (resetall) {
+			if (resetall || size_changed) {
 				controls.EMF_selected = false;
 				controls.changesmade = false;
 				opts.gui_bc.setSelectedItem(BoundaryCondition.DISSIPATIVE);
 				controls.prev_boundary = BoundaryCondition.DISSIPATIVE;
-			}
-
-			numerical_overflow = false;
-			sign_violation_timer = 0;
-			
-			if (resetall) {
+				
 				probes.clear();
 
 				for (Plot p: plots) {
@@ -891,11 +822,11 @@ public class Simulation extends PeriodicTask {
 			controls.undoredo.captureState(this);
 			checkCFL();
 			multigridSolve(true, false);
-		}
-		finally {
+		} finally {
 			rwLock.writeLock().unlock();
 		}
-
+		
+		return true;
 	}
 
 	public void constructBoundary() {
@@ -914,7 +845,7 @@ public class Simulation extends PeriodicTask {
 				if (depth > 0) {
 					if ((BoundaryCondition)opts.gui_bc.getSelectedItem() == BoundaryCondition.DISSIPATIVE) {
 						if (materials[i][j].type == MaterialType.VACUUM) {
-							initializeMaterial(i, j, MaterialType.ABSORBER);
+							initializeMaterial(materials[i][j], MaterialType.ABSORBER);
 							materials[i][j].auto_placed = true;
 						}
 					} else if (materials[i][j].type == MaterialType.ABSORBER) {
@@ -1467,10 +1398,15 @@ public class Simulation extends PeriodicTask {
 
 		// Smoothing out free energy in space makes simulation more stable (No longer required in v2.0)
 		
-		smoothArray(F0_n, false);
-		smoothArray(F0_p, false);
-		smoothArray(E0_n, false);
-		smoothArray(E0_p, false);
+		smoothArray(F0_n, junction_size, false);
+		smoothArray(F0_p, junction_size, false);
+		smoothArray(E0_n, junction_size, false);
+		smoothArray(E0_p, junction_size, false);
+		smoothArray(k_rad, junction_size, true);
+		smoothArray(k_SRH_n, junction_size, true);
+		smoothArray(k_SRH_p, junction_size, true);
+		smoothArray(k_aug_n, junction_size, true);
+		smoothArray(k_aug_p, junction_size, true);
 		
 		for (int i = 0; i < nx; i++)
 		{
@@ -1516,7 +1452,7 @@ public class Simulation extends PeriodicTask {
 		}
 	}
 	
-	public void smoothArray(double[][] arr, boolean logarithmic) {
+	public void smoothArray(double[][] arr, int smoothing_radius, boolean logarithmic) {
 
 		double[][] arr_tmp = copyArray(arr);
 
@@ -1528,10 +1464,10 @@ public class Simulation extends PeriodicTask {
 					double sum = 0;
 					double neighbors = 0;
 
-					markNeighborhood(i, j, junction_size);
+					markNeighborhood(i, j, smoothing_radius);
 
-					for (int di = -junction_size; di <= junction_size; di++) {
-						for (int dj = -junction_size; dj <= junction_size; dj++) {
+					for (int di = -smoothing_radius; di <= smoothing_radius; di++) {
+						for (int dj = -smoothing_radius; dj <= smoothing_radius; dj++) {
 							if (i+di >= 0 && j+dj >= 0 && i+di < nx && j+dj < ny && conducting[i+di][j+dj] == 1 && visited[i+di][j+dj]) {
 								sum += logarithmic? Math.log(arr_tmp[i+di][j+dj]) : arr_tmp[i+di][j+dj];
 								neighbors += 1;
@@ -1764,7 +1700,7 @@ public class Simulation extends PeriodicTask {
 	}
 	
 	public void eraseMaterial(int i, int j) {
-		materials[i][j].setDefaultConstants();
+		materials[i][j].initialize();
 		rho_p[i][j] = 0;
 		rho_n[i][j] = 0;
 	}
@@ -1780,69 +1716,105 @@ public class Simulation extends PeriodicTask {
 	}
 
 	public void initializeMaterial(int i, int j) {
-		initializeMaterial(i, j, materials[i][j].type);
+		if (i < 0 || j < 0 || i >= nx || j >= ny)
+			return;
+		
+		if (materials[i][j].cust_id == -1) {
+			initializeMaterial(materials[i][j], materials[i][j].type);
+		} else {
+			if (materialmanager.mat_map.containsKey(materials[i][j].cust_id))
+				materials[i][j].copyFrom(materialmanager.mat_map.get(materials[i][j].cust_id));
+			else
+				materials[i][j].initialize();
+		}
 	}
 
-	public void initializeMaterial(int i, int j, MaterialType material) {
-		if (i < 0 || j < 0 || i >= nx || j >= ny || materials[i][j].modified)
+	public void initializeMaterial(int i, int j, GeneralMaterialType material) {
+		if (i < 0 || j < 0 || i >= nx || j >= ny)
 			return;
 
-		materials[i][j].type = material;
+		if (material.cust_id == -1) {
+			initializeMaterial(materials[i][j], material.type);
+		} else {
+			if (materialmanager.mat_map.containsKey(material.cust_id))
+				materials[i][j].copyFrom(materialmanager.mat_map.get(material.cust_id));
+			else
+				materials[i][j].initialize();
+		}
+	}
 
-		if (material == MaterialType.DIELECTRIC) materials[i][j].eps_r = dielectric_eps_r;
-		else if (material == MaterialType.FERROMAGNET) materials[i][j].mu_r = ferromagnet_mu_r;
-		else if (material == MaterialType.POS_CHARGE) materials[i][j].rho_back = staticcharge_density;
-		else if (material == MaterialType.NEG_CHARGE) materials[i][j].rho_back = -staticcharge_density;
+
+	public void initializeMaterial(Material mat, GeneralMaterialType material) {
+		if (material.cust_id == -1) {
+			initializeMaterial(mat, material.type);
+		} else {
+			if (materialmanager.mat_map.containsKey(material.cust_id))
+				mat.copyFrom(materialmanager.mat_map.get(material.cust_id));
+			else
+				mat.initialize();
+		}
+	}
+
+	public void initializeMaterial(Material mat, MaterialType material) {
+		if (mat.modified)
+			return;
+
+		mat.type = material;
+
+		if (material == MaterialType.DIELECTRIC) mat.eps_r = dielectric_eps_r;
+		else if (material == MaterialType.FERROMAGNET) mat.mu_r = ferromagnet_mu_r;
+		else if (material == MaterialType.POS_CHARGE) mat.rho_back = staticcharge_density;
+		else if (material == MaterialType.NEG_CHARGE) mat.rho_back = -staticcharge_density;
 
 		if (material.isConducting())
 		{
-			materials[i][j].conducting = 1;
-			materials[i][j].ni = ni_metal;
-			materials[i][j].W = W_metal_default;
-			materials[i][j].Eb = E_b_metal;
-			materials[i][j].k_rad = k_rad_metal;
-			materials[i][j].k_SRH_n = k_SRH_n_semi;
-			materials[i][j].k_SRH_p = k_SRH_p_semi;
-			materials[i][j].k_aug_n = k_aug_n_semi;
-			materials[i][j].k_aug_p = k_aug_p_semi;
-			materials[i][j].D_n = D_electron_semi;
-			materials[i][j].D_p = D_hole_semi;
-			materials[i][j].v_sat_n = v_sat_n_semi;
-			materials[i][j].v_sat_p = v_sat_p_semi;
+			mat.conducting = 1;
+			mat.ni = ni_metal;
+			mat.W = W_metal_default;
+			mat.Eb = E_b_metal;
+			mat.k_rad = k_rad_metal;
+			mat.k_SRH_n = k_SRH_n_semi;
+			mat.k_SRH_p = k_SRH_p_semi;
+			mat.k_aug_n = k_aug_n_semi;
+			mat.k_aug_p = k_aug_p_semi;
+			mat.D_n = D_electron_semi;
+			mat.D_p = D_hole_semi;
+			mat.v_sat_n = v_sat_n_semi;
+			mat.v_sat_p = v_sat_p_semi;
 
-			if (material == MaterialType.METAL_HIGH_W) materials[i][j].W = W_metal_high;
-			else if (material == MaterialType.METAL_LOW_W) materials[i][j].W = W_metal_low;
-			else if (material == MaterialType.METAL_HIGH_C) materials[i][j].ni = ni_metal_high;
-			else if (material == MaterialType.METAL_LOW_C) materials[i][j].ni = ni_metal_low;
-			else if (material == MaterialType.CURRENT) materials[i][j].ni = ni_currentsource;
+			if (material == MaterialType.METAL_HIGH_W) mat.W = W_metal_high;
+			else if (material == MaterialType.METAL_LOW_W) mat.W = W_metal_low;
+			else if (material == MaterialType.METAL_HIGH_C) mat.ni = ni_metal_high;
+			else if (material == MaterialType.METAL_LOW_C) mat.ni = ni_metal_low;
+			else if (material == MaterialType.CURRENT) mat.ni = ni_currentsource;
 		}
 
 		if (material.isSemiconducting())
 		{
-			materials[i][j].conducting = 1;
-			materials[i][j].semiconducting = 1;
-			materials[i][j].ni = ni_semi;
-			materials[i][j].W = W_semi;
-			materials[i][j].Eb = E_b_semi;
-			materials[i][j].k_rad = k_rad_semi;
-			materials[i][j].k_SRH_n = k_SRH_n_semi;
-			materials[i][j].k_SRH_p = k_SRH_p_semi;
-			materials[i][j].k_aug_n = k_aug_n_semi;
-			materials[i][j].k_aug_p = k_aug_p_semi;
-			materials[i][j].D_n = D_electron_semi;
-			materials[i][j].D_p = D_hole_semi;
-			materials[i][j].v_sat_n = v_sat_n_semi;
-			materials[i][j].v_sat_p = v_sat_p_semi;
+			mat.conducting = 1;
+			mat.semiconducting = 1;
+			mat.ni = ni_semi;
+			mat.W = W_semi;
+			mat.Eb = E_b_semi;
+			mat.k_rad = k_rad_semi;
+			mat.k_SRH_n = k_SRH_n_semi;
+			mat.k_SRH_p = k_SRH_p_semi;
+			mat.k_aug_n = k_aug_n_semi;
+			mat.k_aug_p = k_aug_p_semi;
+			mat.D_n = D_electron_semi;
+			mat.D_p = D_hole_semi;
+			mat.v_sat_n = v_sat_n_semi;
+			mat.v_sat_p = v_sat_p_semi;
 
-			if (material == MaterialType.SEMI_P_TYPE) materials[i][j].rho_back = -p_default_doping_concentration*e_charge;
-			else if (material == MaterialType.SEMI_N_TYPE) materials[i][j].rho_back = n_default_doping_concentration*e_charge;
-			else if (material == MaterialType.SEMI_HEAVY_P_TYPE) materials[i][j].rho_back = -p_heavy_doping_concentration*e_charge;
-			else if (material == MaterialType.SEMI_HEAVY_N_TYPE) materials[i][j].rho_back = n_heavy_doping_concentration*e_charge;
-			else if (material == MaterialType.SEMI_LIGHT_P_TYPE) materials[i][j].rho_back = -p_light_doping_concentration*e_charge;
-			else if (material == MaterialType.SEMI_LIGHT_N_TYPE) materials[i][j].rho_back = n_light_doping_concentration*e_charge;
+			if (material == MaterialType.SEMI_P_TYPE) mat.rho_back = -p_default_doping_concentration*e_charge;
+			else if (material == MaterialType.SEMI_N_TYPE) mat.rho_back = n_default_doping_concentration*e_charge;
+			else if (material == MaterialType.SEMI_HEAVY_P_TYPE) mat.rho_back = -p_heavy_doping_concentration*e_charge;
+			else if (material == MaterialType.SEMI_HEAVY_N_TYPE) mat.rho_back = n_heavy_doping_concentration*e_charge;
+			else if (material == MaterialType.SEMI_LIGHT_P_TYPE) mat.rho_back = -p_light_doping_concentration*e_charge;
+			else if (material == MaterialType.SEMI_LIGHT_N_TYPE) mat.rho_back = n_light_doping_concentration*e_charge;
 		}
 
-		materials[i][j].auto_placed = false;
+		mat.auto_placed = false;
 	}
 
 	public void prescaleDielectric() {
@@ -1888,7 +1860,8 @@ public class Simulation extends PeriodicTask {
 					}
 				}
 				
-				System.out.println("Starting poisson residual: " + Math.sqrt(num/((denom == 0)? 1 : denom)));
+				if (controls.debugging)
+					System.out.println("Starting poisson residual: " + Math.sqrt(num/((denom == 0)? 1 : denom)));
 			}
 			if (computePhi) {
 				for (int i = 1; i < nx-1; i++) {
@@ -1976,7 +1949,8 @@ public class Simulation extends PeriodicTask {
 					}
 				}
 
-				System.out.println("Poisson residual: " + Math.sqrt(num/((denom == 0)? 1 : denom)));
+				if (controls.debugging)
+					System.out.println("Poisson residual: " + Math.sqrt(num/((denom == 0)? 1 : denom)));
 			}
 
 			if (correctEfield)

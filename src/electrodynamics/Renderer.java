@@ -1138,7 +1138,7 @@ public class Renderer extends PeriodicTask {
 				}
 
 				if (e.opts.menu_materialname.isSelected()) {
-					String name = "Material: " + mat.type.name + (mat.modified? " (Modified)" : "");
+					String name = "Material: " + mat.toString();
 					this.drawBigString(name, hoffset, voffset + 1*vspacing, g);
 				}
 				

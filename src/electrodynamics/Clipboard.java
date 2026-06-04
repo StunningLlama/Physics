@@ -277,7 +277,7 @@ class ClipboardMaterial implements Cloneable {
 	public ClipboardMaterial() {};
 
 	public ClipboardMaterial(Material m) {
-		this.m = m.clone();
+		this.m.copyFrom(m);
 	}
 	
     public ClipboardMaterial(Simulation e, int i, int j) {
@@ -287,13 +287,13 @@ class ClipboardMaterial implements Cloneable {
     }
     
     public void paste(Simulation e, int i, int j) {
-    	e.materials[i][j] = m.clone();
+    	e.materials[i][j].copyFrom(m);
     	e.rho_n[i][j] = rho_n;
     	e.rho_p[i][j] = rho_p;
     }
 	
 	public void erase() {
-		m.setDefaultConstants();
+		m.initialize();
 		rho_n = 0;
 		rho_p = 0;
 	}
