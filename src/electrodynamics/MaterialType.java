@@ -28,7 +28,8 @@ public enum MaterialType
 	NEG_CHARGE			("Negative static charge",				50, 50, 117, 80),
 	DECO				("Decoration",							255, 255, 255, 255),
 	ABSORBER			("Absorber",							 50,  50,  50),
-	VACUUM				("Vacuum",								 20,  20,  20);
+	VACUUM				("Vacuum",								 20,  20,  20),
+	CUSTOM				("Custom material",						 120,  120, 120, 120);
 
 	String name;
 	int color_r;

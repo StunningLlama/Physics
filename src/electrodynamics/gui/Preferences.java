@@ -2,7 +2,7 @@
 // This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
 // See LICENSE.txt for full license details.
 
-package electrodynamics;
+package electrodynamics.gui;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
@@ -29,6 +29,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
+
+import electrodynamics.Simulation;
 import electrodynamics.units.Units;
 
 public class Preferences extends JFrame {
@@ -43,8 +45,8 @@ public class Preferences extends JFrame {
 	public JComboBox gui_units;
 	
 	Simulation e;
-	int saveversion = 1;
-	File preferences_file = null;
+	public int saveversion = 1;
+	public File preferences_file = null;
 	public JCheckBox chkbox_logscale;
 
 	public Preferences(Simulation e) {

@@ -48,11 +48,11 @@ public class SaveManager {
 	public static File infile;
 	public static File outfile;
 	public static File currentfile;
-	int saveversion = 4;
-	String fileextension = ".semisim";
-	String startingpath = ".";
+	public int saveversion = 4;
+	public String fileextension = ".semisim";
+	public String startingpath = ".";
 
-	String defaultsettings;
+	public String defaultsettings;
 	
 	public SaveManager(Simulation e) {
 		this.e = e;

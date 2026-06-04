@@ -21,6 +21,9 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorView;
+import electrodynamics.gui.AdvancedOptions;
+import electrodynamics.gui.MainWindow;
+import electrodynamics.gui.Preferences;
 import electrodynamics.plot.BandPlot;
 import electrodynamics.plot.CarrierPlot;
 import electrodynamics.plot.Plot;
@@ -54,6 +57,7 @@ public class Simulation extends PeriodicTask {
 	 */
 	
 	//Default junctions size
+	//Fix current sources
 	
 	/* Parts */
 	
@@ -74,8 +78,8 @@ public class Simulation extends PeriodicTask {
 	
 	/* Multithreading */
 	
-	ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
-	ReentrantLock poissonLock = new ReentrantLock(true);
+	public ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+	public ReentrantLock poissonLock = new ReentrantLock(true);
 
 	CyclicBarrier start_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
 	CyclicBarrier stop_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
@@ -215,19 +219,13 @@ public class Simulation extends PeriodicTask {
 
 		currentsource_mobility = 0.002;
 
-		k_rad_semi = 1e7/ni_semi;			// Radiative recombination rate
-		k_aug_n_semi = 0;					// Auger recombination rate
+		k_rad_semi = 1e7/ni_semi;
+		k_aug_n_semi = 0;
 		k_aug_p_semi = 0;
-		k_SRH_n_semi = 0;					// Shockley-Read-Hall recombination rate
+		k_SRH_n_semi = 0;
 		k_SRH_p_semi = 0;
-		
 
-		k_aug_n_semi = 0.01*k_rad_semi/ni_semi;					// Auger recombination rate
-		k_aug_p_semi = 0.01*k_rad_semi/ni_semi;
-		k_SRH_n_semi = 1*k_rad_semi*ni_semi;					// Shockley-Read-Hall recombination rate
-		k_SRH_p_semi = 1*k_rad_semi*ni_semi;
-
-		k_rad_metal = 10*k_rad_semi;			// Radiative recombination rate
+		k_rad_metal = 10*k_rad_semi;
 
 		n_default_doping_concentration = 5e19;
 		p_default_doping_concentration = 5e19;
@@ -1467,14 +1465,13 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 
-		// Smoothing out free energy in space makes simulation more stable
+		// Smoothing out free energy in space makes simulation more stable (No longer required in v2.0)
 		
 		smoothArray(F0_n, false);
 		smoothArray(F0_p, false);
 		smoothArray(E0_n, false);
 		smoothArray(E0_p, false);
 		
-
 		for (int i = 0; i < nx; i++)
 		{
 			for (int j = 0; j < ny; j++)
@@ -1486,7 +1483,6 @@ public class Simulation extends PeriodicTask {
 				}
 			}
 		}
-
 
 		for (int i = 0; i < nx-1; i++)
 		{

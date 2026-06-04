@@ -2,6 +2,8 @@ package electrodynamics;
 
 public class Material implements Cloneable {
 	public MaterialType type;
+	public String name; // For custom materials
+	public int cust_id;
 
 	public boolean modified;
 	public boolean auto_placed;
@@ -11,7 +13,7 @@ public class Material implements Cloneable {
 	public int semiconducting;
 	
 	public double emf;				// EMF strength
-	public double emf_direction;	// EMF direction
+	public double emf_direction;	// EMF direction in radians
 	
 	public double eps_r;			// Permittivity
 	public double mu_r;				// Permeability
@@ -42,6 +44,8 @@ public class Material implements Cloneable {
 	public void setDefaultConstants() {
 
 		type = MaterialType.VACUUM;
+		name = null;
+		cust_id = -1;
 
 		modified = false;
 		auto_placed = true;

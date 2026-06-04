@@ -2,7 +2,7 @@
 // This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
 // See LICENSE.txt for full license details.
 
-package electrodynamics;
+package electrodynamics.gui;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -17,6 +17,8 @@ import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
+
+import electrodynamics.Simulation;
 
 import javax.swing.JTabbedPane;
 import java.io.IOException;

@@ -2,7 +2,7 @@
 // This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
 // See LICENSE.txt for full license details.
 
-package electrodynamics;
+package electrodynamics.gui;
 import java.awt.Adjustable;
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -47,7 +47,13 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.awt.event.InputEvent;
 
+import electrodynamics.Controls;
+import electrodynamics.MaterialType;
+import electrodynamics.Renderer;
+import electrodynamics.SemiSim;
+import electrodynamics.Simulation;
 import electrodynamics.Controls.Brush;
+import electrodynamics.Controls.BrushShape;
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
@@ -556,8 +562,8 @@ public class MainWindow extends JFrame {
 	}
 	
 
-	HashMap<String, AbstractButton> boolean_names = new HashMap<String, AbstractButton>();
-	HashMap<String, Adjustable> integer_names = new HashMap<String, Adjustable>();
+	public HashMap<String, AbstractButton> boolean_names = new HashMap<String, AbstractButton>();
+	public HashMap<String, Adjustable> integer_names = new HashMap<String, Adjustable>();
 	
 	public void listSettings() {
 		boolean_names.put("gui_paused", gui_paused);
@@ -734,7 +740,7 @@ public class MainWindow extends JFrame {
 		}
 	}
 
-	class CustJCheckBoxMenuItem extends JCheckBoxMenuItem {
+	public class CustJCheckBoxMenuItem extends JCheckBoxMenuItem {
 
 		public CustJCheckBoxMenuItem(String text) {
 			super(text);
