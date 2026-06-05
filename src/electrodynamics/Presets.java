@@ -15,13 +15,13 @@ public enum Presets {
 	public void applyPreset(Simulation e) {
 		e.setDefaultParameters();
 		switch(this) {
-		case DEFAULT:
-			break;
-		case REALISTIC_GAAS:
-			break;
 		case REALISTIC_SILICON:
 			break;
 		case REALSTIC_GERMANIUM:
+			break;
+		case REALISTIC_GAAS:
+			break;
+		case DEFAULT:
 			break;
 		}
 	}

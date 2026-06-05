@@ -223,8 +223,10 @@ public class SaveManager {
 					e.opts.textPane.setEditable(false);
 					e.opts.textPane.setCaretPosition(0);
 					e.materialmanager.updateUI();
-					if (version < 4)
+					if (version < 4) {
+						e.junction_size = 3;
 						e.initializeAllMaterials();
+					}
 					e.updateAllMaterials(false);
 					e.calcMiscFields(true);
 					updateLabels();
@@ -293,6 +295,7 @@ public class SaveManager {
 					
 					e.opts.textPane.setEditable(false);
 					e.opts.textPane.setCaretPosition(0);
+					e.junction_size = 3;
 					e.initializeAllMaterials();
 					e.updateAllMaterials(false);
 					e.calcMiscFields(true);

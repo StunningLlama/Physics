@@ -95,7 +95,6 @@ public class Preferences extends JFrame implements ActionListener {
 		contentPane.add(chkbox_potential);
 		
 		JLabel lblUnitSystem = new JLabel("Unit system");
-		lblUnitSystem.setToolTipText("Width of simulation domain");
 		lblUnitSystem.setBounds(26, 128, 91, 16);
 		contentPane.add(lblUnitSystem);
 		

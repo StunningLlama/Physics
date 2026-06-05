@@ -99,6 +99,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	private JLabel lblNewLabel_5_13;
 	private JTextField k_aug_p_semi;
 	private JButton btn_presets;
+	private JLabel lblNewLabel_8;
+	private JTextField dopant_smoothing_distance;
 
 	public AdvancedOptions() {
 		setTitle("Advanced settings");
@@ -160,6 +162,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		sim.add(depth);
 		
 		lblNewLabel_7 = new JLabel("Junction smoothing [px]");
+		lblNewLabel_7.setToolTipText("Smooths junction between materials with different chemical potential (ie. metal-semiconductor junctions)");
 		lblNewLabel_7.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_7.setBounds(45, 110, 168, 16);
 		sim.add(lblNewLabel_7);
@@ -168,6 +171,17 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		junction_size.setColumns(10);
 		junction_size.setBounds(225, 105, 98, 26);
 		sim.add(junction_size);
+		
+		lblNewLabel_8 = new JLabel("Dopant smoothing [px]");
+		lblNewLabel_8.setToolTipText("Smooths dopant density, use when modelling non abrupt PN junctions.");
+		lblNewLabel_8.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblNewLabel_8.setBounds(45, 143, 168, 16);
+		sim.add(lblNewLabel_8);
+		
+		dopant_smoothing_distance = new JTextField();
+		dopant_smoothing_distance.setColumns(10);
+		dopant_smoothing_distance.setBounds(225, 138, 98, 26);
+		sim.add(dopant_smoothing_distance);
 		
 		JLabel lblNimetal = new JLabel("Intrinsic carrier conc. [1/m^3]");
 		lblNimetal.setToolTipText("Metal equilibrium carrier concentration");
@@ -181,7 +195,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		metal.add(ni_metal);
 		
 		JLabel lblNewLabel_1_1 = new JLabel("Workfunction (default) [eV]");
-		lblNewLabel_1_1.setToolTipText("Metal work function");
+		lblNewLabel_1_1.setToolTipText("");
 		lblNewLabel_1_1.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_1_1.setBounds(62, 77, 176, 16);
 		metal.add(lblNewLabel_1_1);
@@ -192,7 +206,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		metal.add(W_metal);
 		
 		JLabel lblNewLabel_2_1 = new JLabel("Metal \"bandgap\" [eV]");
-		lblNewLabel_2_1.setToolTipText("Metal \"band gap\"");
+		lblNewLabel_2_1.setToolTipText("");
 		lblNewLabel_2_1.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_2_1.setBounds(62, 44, 176, 16);
 		metal.add(lblNewLabel_2_1);
@@ -203,7 +217,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		metal.add(E_b_metal);
 		
 		JLabel lblNewLabel_3_1 = new JLabel("Workfunction (High WF metal) [eV]");
-		lblNewLabel_3_1.setToolTipText("Workfunction of low-workfunction metal");
+		lblNewLabel_3_1.setToolTipText("");
 		lblNewLabel_3_1.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_3_1.setBounds(6, 110, 232, 16);
 		metal.add(lblNewLabel_3_1);
@@ -214,7 +228,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		metal.add(W_metal_high);
 		
 		JLabel lblNewLabel_4_1 = new JLabel("Workfunction (Low WF metal) [eV]");
-		lblNewLabel_4_1.setToolTipText("Workfunction of high-workfunction metal");
+		lblNewLabel_4_1.setToolTipText("");
 		lblNewLabel_4_1.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_4_1.setBounds(16, 143, 222, 16);
 		metal.add(lblNewLabel_4_1);
@@ -225,7 +239,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		metal.add(W_metal_low);
 		
 		JLabel lblNewLabel_6_1 = new JLabel("Recomb. rate [m^3/s]");
-		lblNewLabel_6_1.setToolTipText("Metal carrier recombination rate (in number density units)");
+		lblNewLabel_6_1.setToolTipText("Radiative recombination rate constant in metal");
 		lblNewLabel_6_1.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_6_1.setBounds(68, 176, 170, 16);
 		metal.add(lblNewLabel_6_1);
@@ -338,7 +352,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		semi.add(E_b_semi);
 		
 		JLabel lblNewLabel_5_1 = new JLabel("Radiative recomb. rate [m^3/s]");
-		lblNewLabel_5_1.setToolTipText("Semiconductor carrier recombination rate (in number density units)");
+		lblNewLabel_5_1.setToolTipText("");
 		lblNewLabel_5_1.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_1.setBounds(338, 11, 211, 16);
 		semi.add(lblNewLabel_5_1);
@@ -354,7 +368,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		other.setLayout(null);
 		
 		lblNewLabel_5_2 = new JLabel("n-type default doping conc. [1/m^3]");
-		lblNewLabel_5_2.setToolTipText("Doping concentration");
+		lblNewLabel_5_2.setToolTipText("");
 		lblNewLabel_5_2.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_2.setBounds(326, 11, 236, 16);
 		other.add(lblNewLabel_5_2);
@@ -365,7 +379,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		other.add(n_default_doping);
 		
 		lblNewLabel_5_3 = new JLabel("p-type default doping conc. [1/m^3]");
-		lblNewLabel_5_3.setToolTipText("Doping concentration");
+		lblNewLabel_5_3.setToolTipText("");
 		lblNewLabel_5_3.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_3.setBounds(326, 44, 236, 16);
 		other.add(lblNewLabel_5_3);
@@ -376,7 +390,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		other.add(p_default_doping);
 		
 		lblNewLabel_5_4 = new JLabel("n-type light doping conc. [1/m^3]");
-		lblNewLabel_5_4.setToolTipText("Doping concentration");
+		lblNewLabel_5_4.setToolTipText("");
 		lblNewLabel_5_4.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_4.setBounds(326, 77, 236, 16);
 		other.add(lblNewLabel_5_4);
@@ -387,7 +401,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		other.add(n_light_doping);
 		
 		lblNewLabel_5_5 = new JLabel("p-type light doping conc. [1/m^3]");
-		lblNewLabel_5_5.setToolTipText("Doping concentration");
+		lblNewLabel_5_5.setToolTipText("");
 		lblNewLabel_5_5.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_5.setBounds(326, 110, 236, 16);
 		other.add(lblNewLabel_5_5);
@@ -398,7 +412,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		other.add(p_light_doping);
 		
 		lblNewLabel_5_6 = new JLabel("n-type heavy doping conc. [1/m^3]");
-		lblNewLabel_5_6.setToolTipText("Doping concentration");
+		lblNewLabel_5_6.setToolTipText("");
 		lblNewLabel_5_6.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_6.setBounds(326, 143, 236, 16);
 		other.add(lblNewLabel_5_6);
@@ -409,7 +423,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		other.add(n_heavy_doping);
 		
 		lblNewLabel_5_7 = new JLabel("p-type heavy doping conc. [1/m^3]");
-		lblNewLabel_5_7.setToolTipText("Doping concentration");
+		lblNewLabel_5_7.setToolTipText("");
 		lblNewLabel_5_7.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_7.setBounds(326, 176, 236, 16);
 		other.add(lblNewLabel_5_7);
@@ -440,7 +454,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		semi.add(v_sat_p);
 		
 		lblNewLabel_5_10 = new JLabel("SRH recomb. rate n [1/s]");
-		lblNewLabel_5_10.setToolTipText("Semiconductor carrier recombination rate (in number density units)");
+		lblNewLabel_5_10.setToolTipText("");
 		lblNewLabel_5_10.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_10.setBounds(357, 44, 192, 16);
 		semi.add(lblNewLabel_5_10);
@@ -451,7 +465,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		semi.add(k_SRH_n_semi);
 		
 		lblNewLabel_5_11 = new JLabel("SRH recomb. rate p [1/s]");
-		lblNewLabel_5_11.setToolTipText("Semiconductor carrier recombination rate (in number density units)");
+		lblNewLabel_5_11.setToolTipText("");
 		lblNewLabel_5_11.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_11.setBounds(367, 77, 182, 16);
 		semi.add(lblNewLabel_5_11);
@@ -462,7 +476,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		semi.add(k_SRH_p_semi);
 		
 		lblNewLabel_5_12 = new JLabel("Auger recomb. rate n [m^6/s]");
-		lblNewLabel_5_12.setToolTipText("Semiconductor carrier recombination rate (in number density units)");
+		lblNewLabel_5_12.setToolTipText("");
 		lblNewLabel_5_12.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_12.setBounds(357, 110, 192, 16);
 		semi.add(lblNewLabel_5_12);
@@ -473,7 +487,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		semi.add(k_aug_n_semi);
 		
 		lblNewLabel_5_13 = new JLabel("Auger recomb. rate p [m^6/s]");
-		lblNewLabel_5_13.setToolTipText("Semiconductor carrier recombination rate (in number density units)");
+		lblNewLabel_5_13.setToolTipText("");
 		lblNewLabel_5_13.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_13.setBounds(357, 143, 192, 16);
 		semi.add(lblNewLabel_5_13);
@@ -606,6 +620,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		resolution			.setText(Integer.toString(e.default_resolution		));
 		depth				.setText(formatDouble(e.depth						));
 		junction_size		.setText(Integer.toString(e.junction_size			));
+		dopant_smoothing_distance		.setText(Integer.toString(e.dopant_smoothing_distance			));
 
 		eps0					.setText(formatDouble(e.eps0						));
 		mu0					.setText(formatDouble(e.mu0							));
@@ -663,6 +678,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 
 			e.depth						= Double.valueOf(depth				.getText());
 			e.junction_size				= Integer.valueOf(junction_size		.getText());
+			e.dopant_smoothing_distance				= Integer.valueOf(dopant_smoothing_distance		.getText());
 
 			e.T							= Double.valueOf(T					.getText());
 			e.eps0						= Double.valueOf(eps0				.getText());
@@ -717,6 +733,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		
 		advsettings.addProperty("depth", e.depth 						);
 		advsettings.addProperty("junction_size", e.junction_size		);
+		advsettings.addProperty("dopant_smoothing_distance", e.dopant_smoothing_distance		);
 
 		advsettings.addProperty("T", e.T								);
 		advsettings.addProperty("eps0", e.eps0							);
@@ -766,6 +783,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			switch (name){
 			case "depth": e.depth 						= fstr.nextDouble(); break;
 			case "junction_size": e.junction_size 		= fstr.nextInt(); break;
+			case "dopant_smoothing_distance": e.dopant_smoothing_distance 		= fstr.nextInt(); break;
 
 			case "T": e.T								= fstr.nextDouble(); break;
 			case "eps0": e.eps0							= fstr.nextDouble(); break;

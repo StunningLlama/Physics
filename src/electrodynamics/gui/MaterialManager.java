@@ -128,13 +128,11 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(mu_electron);
 		
 		lbl_mu_electron = new JLabel("Electron mobility [m^2/(V s)]");
-		lbl_mu_electron.setToolTipText("Electron mobility");
 		lbl_mu_electron.setHorizontalAlignment(SwingConstants.TRAILING);
 		lbl_mu_electron.setBounds(273, 71, 192, 16);
 		contentPane.add(lbl_mu_electron);
 		
 		lbl_mu_hole = new JLabel("Hole mobility [m^2/(V s)]");
-		lbl_mu_hole.setToolTipText("Hole mobility");
 		lbl_mu_hole.setHorizontalAlignment(SwingConstants.TRAILING);
 		lbl_mu_hole.setBounds(297, 104, 168, 16);
 		contentPane.add(lbl_mu_hole);
@@ -145,7 +143,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(mu_hole);
 		
 		lbl_ni = new JLabel("Intrinsic carrier conc. [1/m^3]");
-		lbl_ni.setToolTipText("Semiconductor equilibrium carrier concentration");
 		lbl_ni.setHorizontalAlignment(SwingConstants.TRAILING);
 		lbl_ni.setBounds(267, 137, 198, 16);
 		contentPane.add(lbl_ni);
@@ -156,7 +153,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(ni);
 		
 		lbl_W = new JLabel("Workfunction [eV]");
-		lbl_W.setToolTipText("Semiconductor work function");
 		lbl_W.setHorizontalAlignment(SwingConstants.TRAILING);
 		lbl_W.setBounds(297, 170, 168, 16);
 		contentPane.add(lbl_W);
@@ -167,7 +163,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(W);
 		
 		lbl_Eb = new JLabel("Bandgap [eV]");
-		lbl_Eb.setToolTipText("Semiconductor band gap");
 		lbl_Eb.setHorizontalAlignment(SwingConstants.TRAILING);
 		lbl_Eb.setBounds(297, 203, 168, 16);
 		contentPane.add(lbl_Eb);
@@ -178,7 +173,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(Eb);
 		
 		lbl_k_rad = new JLabel("Radiative recomb. rate [m^3/s]");
-		lbl_k_rad.setToolTipText("Semiconductor carrier recombination rate (in number density units)");
 		lbl_k_rad.setHorizontalAlignment(SwingConstants.TRAILING);
 		lbl_k_rad.setBounds(578, 5, 211, 16);
 		contentPane.add(lbl_k_rad);
@@ -209,7 +203,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(v_sat_p);
 		
 		lbl_k_SRH_n = new JLabel("SRH recomb. rate n [1/s]");
-		lbl_k_SRH_n.setToolTipText("Semiconductor carrier recombination rate (in number density units)");
 		lbl_k_SRH_n.setHorizontalAlignment(SwingConstants.TRAILING);
 		lbl_k_SRH_n.setBounds(597, 38, 192, 16);
 		contentPane.add(lbl_k_SRH_n);
@@ -220,7 +213,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(k_SRH_n);
 		
 		lbl_k_SRH_p = new JLabel("SRH recomb. rate p [1/s]");
-		lbl_k_SRH_p.setToolTipText("Semiconductor carrier recombination rate (in number density units)");
 		lbl_k_SRH_p.setHorizontalAlignment(SwingConstants.TRAILING);
 		lbl_k_SRH_p.setBounds(607, 71, 182, 16);
 		contentPane.add(lbl_k_SRH_p);
@@ -231,7 +223,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(k_SRH_p);
 		
 		lbl_k_aug_n = new JLabel("Auger recomb. rate n [m^6/s]");
-		lbl_k_aug_n.setToolTipText("Semiconductor carrier recombination rate (in number density units)");
 		lbl_k_aug_n.setHorizontalAlignment(SwingConstants.TRAILING);
 		lbl_k_aug_n.setBounds(597, 104, 192, 16);
 		contentPane.add(lbl_k_aug_n);
@@ -242,7 +233,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(k_aug_n);
 		
 		lbl_k_aug_p = new JLabel("Auger recomb. rate p [m^6/s]");
-		lbl_k_aug_p.setToolTipText("Semiconductor carrier recombination rate (in number density units)");
 		lbl_k_aug_p.setHorizontalAlignment(SwingConstants.TRAILING);
 		lbl_k_aug_p.setBounds(597, 137, 192, 16);
 		contentPane.add(lbl_k_aug_p);
@@ -253,7 +243,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(k_aug_p);
 		
 		lbl_eps_r = new JLabel("Dielectric constant");
-		lbl_eps_r.setToolTipText("Semiconductor band gap");
 		lbl_eps_r.setHorizontalAlignment(SwingConstants.TRAILING);
 		lbl_eps_r.setBounds(297, 235, 168, 16);
 		contentPane.add(lbl_eps_r);
@@ -264,7 +253,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(eps_r);
 		
 		lbl_mu_r = new JLabel("Rel. permeability");
-		lbl_mu_r.setToolTipText("Semiconductor band gap");
 		lbl_mu_r.setHorizontalAlignment(SwingConstants.TRAILING);
 		lbl_mu_r.setBounds(297, 268, 168, 16);
 		contentPane.add(lbl_mu_r);
@@ -285,7 +273,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(rho_back);
 		
 		lblNewLabel = new JLabel("Name");
-		lblNewLabel.setToolTipText("Electron mobility");
 		lblNewLabel.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel.setBounds(273, 6, 88, 16);
 		contentPane.add(lblNewLabel);
@@ -301,7 +288,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(type);
 		
 		lblType = new JLabel("Type");
-		lblType.setToolTipText("Electron mobility");
 		lblType.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblType.setBounds(273, 38, 88, 16);
 		contentPane.add(lblType);
@@ -371,6 +357,8 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
             	else
                     mat.copyFrom(mat_map.get(selected.cust_id));
             }
+        } else {
+        	return;
         }
 		
         mat.type = MaterialType.CUSTOM;

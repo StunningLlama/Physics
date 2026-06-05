@@ -194,7 +194,7 @@ public class Simulation extends PeriodicTask {
 	public double staticcharge_density;
 	
 	public int junction_size;			// Free energy smoothing distance
-	public int doping_smoothing_distance;
+	public int dopant_smoothing_distance;
 	
 	public void setDefaultParameters() {
 		default_resolution = 256;
@@ -249,7 +249,8 @@ public class Simulation extends PeriodicTask {
 		v_sat_n_semi = 1e5*1500;
 		v_sat_p_semi = 1e5*1500;
 
-		junction_size = 3;
+		junction_size = 0;
+		dopant_smoothing_distance = 0;
 		
 		calculateDependentConstants();
 	}
@@ -384,9 +385,11 @@ public class Simulation extends PeriodicTask {
 	
 	/* Pathfinding */
 
+	public int[][] abs_depth;
 	public int[][] distance;
 	public boolean[][] visited;
-	public int[][] abs_depth;
+	public boolean[][] needs_smoothing;
+	public double[][] smooth_arr;
 	
 	
 	/* Probes */
@@ -682,7 +685,9 @@ public class Simulation extends PeriodicTask {
 
 				distance = new int[nx][ny];
 				visited = new boolean[nx][ny];
+				needs_smoothing = new boolean[nx][ny];
 				abs_depth = new int[nx][ny];
+				smooth_arr = new double[nx][ny];
 
 				opts.setVisible(true);
 
@@ -764,6 +769,7 @@ public class Simulation extends PeriodicTask {
 
 					distance[i][j] = Integer.MAX_VALUE;
 					visited[i][j] = false;
+					needs_smoothing[i][j] = false;
 
 					display_x[i][j] = 0.0;	display_y[i][j] = 0.0;
 					display[i][j] = 0.0;
@@ -1397,17 +1403,24 @@ public class Simulation extends PeriodicTask {
 		}
 
 		// Smoothing out free energy in space makes simulation more stable (No longer required in v2.0)
+		if (junction_size > 0) {
+			markJunctions(junction_size);
+			smoothArray(F0_n, junction_size, false);
+			smoothArray(F0_p, junction_size, false);
+			smoothArray(E0_n, junction_size, false);
+			smoothArray(E0_p, junction_size, false);
+			smoothArray(k_rad, junction_size, true);
+			smoothArray(k_SRH_n, junction_size, true);
+			smoothArray(k_SRH_p, junction_size, true);
+			smoothArray(k_aug_n, junction_size, true);
+			smoothArray(k_aug_p, junction_size, true);
+		}
 		
-		smoothArray(F0_n, junction_size, false);
-		smoothArray(F0_p, junction_size, false);
-		smoothArray(E0_n, junction_size, false);
-		smoothArray(E0_p, junction_size, false);
-		smoothArray(k_rad, junction_size, true);
-		smoothArray(k_SRH_n, junction_size, true);
-		smoothArray(k_SRH_p, junction_size, true);
-		smoothArray(k_aug_n, junction_size, true);
-		smoothArray(k_aug_p, junction_size, true);
-		
+		if (dopant_smoothing_distance > 0) {
+			markJunctions(dopant_smoothing_distance);
+			smoothArray(rho_back, dopant_smoothing_distance, false);
+		}
+
 		for (int i = 0; i < nx; i++)
 		{
 			for (int j = 0; j < ny; j++)
@@ -1454,13 +1467,19 @@ public class Simulation extends PeriodicTask {
 	
 	public void smoothArray(double[][] arr, int smoothing_radius, boolean logarithmic) {
 
-		double[][] arr_tmp = copyArray(arr);
+		for (int i = 0; i < nx; i++)
+		{
+			for (int j = 0; j < ny; j++)
+			{
+				smooth_arr[i][j] = logarithmic? Math.log(arr[i][j]) : arr[i][j];
+			}
+		}
 
 		for (int i = 0; i < nx; i++)
 		{
 			for (int j = 0; j < ny; j++)
 			{
-				if (conducting[i][j] == 1) {
+				if (needs_smoothing[i][j]) {
 					double sum = 0;
 					double neighbors = 0;
 
@@ -1469,20 +1488,19 @@ public class Simulation extends PeriodicTask {
 					for (int di = -smoothing_radius; di <= smoothing_radius; di++) {
 						for (int dj = -smoothing_radius; dj <= smoothing_radius; dj++) {
 							if (i+di >= 0 && j+dj >= 0 && i+di < nx && j+dj < ny && conducting[i+di][j+dj] == 1 && visited[i+di][j+dj]) {
-								sum += logarithmic? Math.log(arr_tmp[i+di][j+dj]) : arr_tmp[i+di][j+dj];
+								sum += smooth_arr[i+di][j+dj];
 								neighbors += 1;
 								distance[i+di][j+dj] = Integer.MAX_VALUE;
 								visited[i+di][j+dj] = false;
 							}
 						}
 					}
-					
-					if (sum == Double.NaN)
-						sum = -500;
-					
-					arr[i][j] = logarithmic? Math.exp(sum/neighbors) : sum/neighbors;
-				} else {
-					arr[i][j] = 0;
+
+					if (logarithmic) {
+						arr[i][j] = (sum == Double.NaN)? 0 : Math.exp(sum/neighbors);
+					} else {
+						arr[i][j] = sum/neighbors;
+					}
 				}
 			}
 		}
@@ -1643,6 +1661,41 @@ public class Simulation extends PeriodicTask {
 	public double calcEquilibriumHoleCharge(double rho_back, double K) {
 		double B = -rho_back/e_charge;
 		return e_charge*0.5*(B+Math.sqrt(B*B+4*K));
+	}
+	
+	
+
+	public void markJunctions(int smoothing_radius) {
+
+		for (int i = 0; i < nx; i++)
+		{
+			for (int j = 0; j < ny; j++)
+			{
+				needs_smoothing[i][j] = false;
+				Material mat = materials[i][j];
+				if (conducting[i][j] == 1) {
+					
+					markNeighborhood(i, j, smoothing_radius);
+
+					for (int di = -smoothing_radius; di <= smoothing_radius; di++) {
+						for (int dj = -smoothing_radius; dj <= smoothing_radius; dj++) {
+							if (i+di >= 0 && j+dj >= 0 && i+di < nx && j+dj < ny && conducting[i+di][j+dj] == 1) {
+								if (!visited[i+di][j+dj]) {
+									needs_smoothing[i][j] = true;
+								}
+								
+								if (mat.type != materials[i+di][j+di].type || mat.cust_id != materials[i+di][j+di].cust_id) {
+									needs_smoothing[i][j] = true;
+								}
+								
+								distance[i+di][j+dj] = Integer.MAX_VALUE;
+								visited[i+di][j+dj] = false;
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// Mark all points on grid that are connected to given point and within a specified distance using Dijkstra's algorithm
