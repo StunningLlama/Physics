@@ -49,7 +49,7 @@ public class MixedUnits extends UnitSystem {
 		case INTENSITY: return "W/cm^2";
 		}
 		
-		return "";
+		return q.name;
 	}
 	
 

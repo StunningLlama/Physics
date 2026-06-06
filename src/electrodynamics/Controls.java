@@ -135,8 +135,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public boolean zoomed = false;
 
 	public boolean EMF_selected = false;
-	public double max_EMF = 5e5;
-	public double max_current = 5e7;
 
 	Brush prev_brush;
 	public double brushsize = 0;
@@ -158,7 +156,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public int text_y = 0;
 	public boolean texting = false;
 
-	public double flashlight_strength = 1e31;
+	public double flashlight_strength;
 	
 	public int plotinterval = 10;
 
@@ -436,6 +434,14 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.opts.gui_plotinterval.setVisible(false);
 			e.opts.gui_plotinterval_text.setVisible(false);
 		}
+
+		if (brush == Brush.LIGHT) {
+			e.opts.gui_light.setVisible(true);
+			e.opts.gui_light_text.setVisible(true);
+		} else {
+			e.opts.gui_light.setVisible(false);
+			e.opts.gui_light_text.setVisible(false);
+		}
 	}
 	
 	public void applyTool() {
@@ -458,7 +464,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			double angle = 0;
 			GeneralMaterialType mat = (GeneralMaterialType) e.opts.gui_material.getSelectedItem();
 
-			if (mat.type.hasEMF()) {
+			if (mat.type.hasEMF() && brush != Brush.LIGHT) {
 				e.opts.gui_parameter2.setVisible(true);
 				e.opts.gui_parameter2_text.setVisible(true);
 
@@ -486,6 +492,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				e.opts.gui_parameter2_text.setVisible(false);
 				e.opts.gui_parameter2_text.setText("");
 			}
+			
+			if (brush == Brush.LIGHT) {
+				flashlight_strength = e.default_flashlight_strength*Math.pow(10, e.opts.gui_light.getValue()/10.0);
+				e.opts.gui_light_text.setText("Light: " + e.units.toString(flashlight_strength*e.E_b_semi*e.depth, Quantity.INTENSITY));
+			}
 
 
 			if (mousebutton == MouseEvent.BUTTON3 || brush == Brush.ERASE)
@@ -501,7 +512,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						GeneralMaterialType old_mat = new GeneralMaterialType(e.materials[mx][my]);
 						GeneralMaterialType new_mat = mat;
 						double new_angle = angle;
-						if (new_mat.equals(old_mat)) {
+						if (!new_mat.equals(old_mat)) {
 							this.floodFill(mx, my, new FloodFillFunc() {
 								@Override
 								public boolean isValid(int i, int j) {
@@ -616,9 +627,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					
 					int setting = 0;
 					if (!iscurrentselected)
-						setting = (int)(Math.round(50*e.materials[mx][my].emf/max_EMF));
+						setting = (int)(Math.round(50*e.materials[mx][my].emf/e.max_EMF));
 					else {
-						setting = (int)(Math.round(50*e.materials[mx][my].emf/(max_current/e.currentsource_sigma)));
+						setting = (int)(Math.round(50*e.materials[mx][my].emf/(e.max_current/e.currentsource_sigma)));
 					}
 					
 					e.opts.gui_parameter3.setValue(setting);
@@ -1053,9 +1064,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		
 		double new_EMF = 0;
 		if (!iscurrentselected) {
-			new_EMF = max_EMF*EMF_setting/50.0;
+			new_EMF = e.max_EMF*EMF_setting/50.0;
 		} else {
-			new_EMF = (max_current/e.currentsource_sigma)*EMF_setting/50.0;
+			new_EMF = (e.max_current/e.currentsource_sigma)*EMF_setting/50.0;
 		}
 
 		if (e.opts.gui_brush.getSelectedItem() == Brush.INTERACT && EMF_selected) {
@@ -1088,7 +1099,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		prev_EMF_setting = EMF_setting;
 		
 
-		e.AC_freq = 1e13*Math.pow(10, e.opts.gui_parameter1.getValue()/10.0);
+		e.AC_freq = e.default_AC_freq*Math.pow(10, e.opts.gui_parameter1.getValue()/10.0);
 		if (e.AC_source_exists) {
 			e.opts.gui_parameter1.setEnabled(true);
 			e.opts.gui_parameter1.setVisible(true);

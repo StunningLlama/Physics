@@ -49,7 +49,7 @@ public class EMU extends UnitSystem {
 		case INTENSITY: return "erg/(cm^2 s)";
 		}
 		
-		return "";
+		return q.name;
 	}
 	
 

@@ -22,10 +22,9 @@ public class GeneralMaterialType {
 		this.cust_id = mat.cust_id;
 	}
 
-	@Override
 	public String toString() {
 		if (cust_id == -1)
-			return type.toString();
+			return type.getName();
 		else
 			return name + " [c]";
 	}

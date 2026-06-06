@@ -91,6 +91,8 @@ public class ProbePlot extends Plot {
 					index++;
 				}
 			}
+			if (yrange == 0)
+				yrange = 1;
 
 			for (Object dat : fig.dataset.getSeries()) {
 				((XYSeries)dat).setNotify(true);

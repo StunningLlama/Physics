@@ -88,8 +88,7 @@ public enum MaterialType
 				|| this == MaterialType.CURRENT);
 	}
 	
-	@Override
-	public String toString() {
+	public String getName() {
 		return name;
 	}
 }

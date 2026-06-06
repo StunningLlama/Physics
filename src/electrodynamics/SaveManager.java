@@ -94,6 +94,7 @@ public class SaveManager {
 		});
 	}
 
+	@SuppressWarnings("unchecked")
 	public void readfile(File infile) {
 		e.rwLock.writeLock().lock();
 		try {
@@ -190,6 +191,7 @@ public class SaveManager {
 
 						case "materials": e.materials = validateArraySize((Material[][]) gson.fromJson(fstr, Material[][].class)); break;
 						case "materialmap": e.materialmanager.mat_map = (HashMap<Integer, Material>) gson.fromJson(fstr, new TypeToken<HashMap<Integer, Material>>(){}.getType()); break;
+						case "modified_names": e.modified_names = (HashMap<MaterialType, String>) gson.fromJson(fstr, new TypeToken<HashMap<MaterialType, String>>(){}.getType()); break;
 						case "last_material_id": e.materialmanager.id_counter = fstr.nextInt(); break;
 						
 						case "voltageprobes": e.probes.addAll(Arrays.asList(
@@ -474,6 +476,7 @@ public class SaveManager {
 				data.add("fluxprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof FluxProbe)).toArray()));
 				data.add("ground", gson.toJsonTree(e.getGround()));
 				data.add("materialmap", gson.toJsonTree(e.materialmanager.mat_map));
+				data.add("modified_names", gson.toJsonTree(e.modified_names));
 				data.addProperty("last_material_id", e.materialmanager.id_counter);
 
 				JsonObject advsettings = new JsonObject();

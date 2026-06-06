@@ -49,7 +49,7 @@ public class SIUnits extends UnitSystem {
 		case INTENSITY: return "W/m^2";
 		}
 		
-		return "";
+		return q.name;
 	}
 	
 

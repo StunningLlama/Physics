@@ -87,7 +87,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	private JLabel lbl_eps_r;
 	private JLabel lbl_k_rad;
 	private JButton btn_cancel;
-	private JButton btn_save;
 
 	public MaterialManager() {
 		setTitle("Material editor");
@@ -299,10 +298,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		btn_cancel = new JButton("Cancel");
 		btn_cancel.setBounds(775, 301, 124, 29);
 		contentPane.add(btn_cancel);
-		
-		btn_save = new JButton("Save and exit");
-		btn_save.setBounds(526, 301, 124, 29);
-		contentPane.add(btn_save);
 	}
 	
 	public void initialize(Simulation e) {
@@ -310,7 +305,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		this.btn_add.addActionListener(this);
 		this.btn_delete.addActionListener(this);
 		this.btn_apply.addActionListener(this);
-		this.btn_save.addActionListener(this);
+		//this.btn_save.addActionListener(this);
 		this.btn_cancel.addActionListener(this);
 		this.list.addListSelectionListener(this);
 		this.type.addItemListener(this);
@@ -406,10 +401,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 			addmat();
 		} else if (e.getSource() == btn_delete) {
 			delete();
-		}else if (e.getSource() == btn_save) {
-			save();
-			this.setVisible(false);
-		}else if (e.getSource() == btn_cancel) {
+		} else if (e.getSource() == btn_cancel) {
 			this.setVisible(false);
 		}
 	}

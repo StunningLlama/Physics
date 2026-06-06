@@ -67,6 +67,9 @@ public class MainWindow extends JFrame {
 	 */
 	private static final long serialVersionUID = -5756219569007074449L;
 
+	public HashMap<String, AbstractButton> boolean_names = new HashMap<String, AbstractButton>();
+	public HashMap<String, Adjustable> integer_names = new HashMap<String, Adjustable>();
+
 	public JPanel contentPane;
 	public JButton gui_reset;
 	public JScrollBar gui_simspeed;
@@ -143,6 +146,9 @@ public class MainWindow extends JFrame {
 	public CustJCheckBoxMenuItem menu_hide_carriers_metal;
 	public CustJCheckBoxMenuItem menu_carrier_diffusion;
 	public CustJCheckBoxMenuItem menu_gen_recomb;
+	public JMenuItem menu_cust_material;
+	public JLabel gui_light_text;
+	public JScrollBar gui_light;
 
 	/**
 	 * Create the frame.
@@ -388,7 +394,7 @@ public class MainWindow extends JFrame {
 		gui_parameter1.setMaximum(25);
 		gui_parameter1.setMinimum(-15);
 		gui_parameter1.setOrientation(Adjustable.HORIZONTAL);
-		gui_parameter1.setBounds(202, 260, 171, 17);
+		gui_parameter1.setBounds(202, 312, 171, 17);
 		panel.add(gui_parameter1);
 
 		gui_brush = new JComboBox();
@@ -413,17 +419,17 @@ public class MainWindow extends JFrame {
 
 		gui_parameter1_text = new JLabel("");
 		gui_parameter1_text.setEnabled(false);
-		gui_parameter1_text.setBounds(212, 239, 154, 14);
+		gui_parameter1_text.setBounds(212, 291, 154, 14);
 		panel.add(gui_parameter1_text);
 
 		gui_parameter2_text = new JLabel("Direction");
-		gui_parameter2_text.setBounds(212, 291, 161, 14);
+		gui_parameter2_text.setBounds(212, 242, 161, 14);
 		panel.add(gui_parameter2_text);
 
 		gui_parameter2 = new JScrollBar();
 		gui_parameter2.setOrientation(Adjustable.HORIZONTAL);
 		gui_parameter2.setMaximum(34);
-		gui_parameter2.setBounds(202, 310, 171, 17);
+		gui_parameter2.setBounds(202, 261, 171, 17);
 		panel.add(gui_parameter2);
 
 		lblVectorBrightness = new JLabel("Vector field brightness");
@@ -465,11 +471,11 @@ public class MainWindow extends JFrame {
 		gui_parameter3.setOrientation(Adjustable.HORIZONTAL);
 		gui_parameter3.setMaximum(60);
 		gui_parameter3.setBlockIncrement(1);
-		gui_parameter3.setBounds(202, 361, 171, 17);
+		gui_parameter3.setBounds(202, 261, 171, 17);
 		panel.add(gui_parameter3);
 
 		gui_parameter3_text = new JLabel("EMF");
-		gui_parameter3_text.setBounds(212, 340, 150, 14);
+		gui_parameter3_text.setBounds(212, 242, 150, 14);
 		panel.add(gui_parameter3_text);
 
 		gui_brush_highlight = new JCheckBox("Brush highlight");
@@ -528,7 +534,7 @@ public class MainWindow extends JFrame {
 						textPane.setEditable(false);
 						
 						gui_plotinterval_text = new JLabel("Probe plot interval");
-						gui_plotinterval_text.setBounds(206, 291, 167, 14);
+						gui_plotinterval_text.setBounds(206, 242, 167, 14);
 						panel.add(gui_plotinterval_text);
 						
 						gui_plotinterval = new JScrollBar();
@@ -536,8 +542,19 @@ public class MainWindow extends JFrame {
 						gui_plotinterval.setMinimum(1);
 						gui_plotinterval.setOrientation(JScrollBar.HORIZONTAL);
 						gui_plotinterval.setMaximum(60);
-						gui_plotinterval.setBounds(202, 312, 171, 17);
+						gui_plotinterval.setBounds(202, 263, 171, 17);
 						panel.add(gui_plotinterval);
+						
+						gui_light_text = new JLabel("Light");
+						gui_light_text.setBounds(202, 242, 172, 14);
+						panel.add(gui_light_text);
+						
+						gui_light = new JScrollBar();
+						gui_light.setMinimum(-15);
+						gui_light.setOrientation(JScrollBar.HORIZONTAL);
+						gui_light.setMaximum(25);
+						gui_light.setBounds(202, 261, 171, 17);
+						panel.add(gui_light);
 	}
 
 	public void addTooltips(JComboBox box) {
@@ -557,11 +574,6 @@ public class MainWindow extends JFrame {
 		    }
 		});
 	}
-	
-
-	public HashMap<String, AbstractButton> boolean_names = new HashMap<String, AbstractButton>();
-	public HashMap<String, Adjustable> integer_names = new HashMap<String, Adjustable>();
-	public JMenuItem menu_cust_material;
 	
 	public void listSettings() {
 		boolean_names.put("gui_paused", gui_paused);

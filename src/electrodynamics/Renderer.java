@@ -100,10 +100,10 @@ public class Renderer extends PeriodicTask {
 	DistributionSampler rho_n_dist = new DistributionSampler();
 	DistributionSampler rho_G_dist = new DistributionSampler();
 	FastRandom frand = new FastRandom();
-	double cc_default_dot_density = 5e11;		// How many electron/hole dots to draw
-	double tau = 1e-12;		// How long a dot stays on the screen
-	double tau_events = tau*0.2;
-
+	double cc_default_dot_density;	// How many electron/hole dots to draw, in (C/m)^-1
+	double tau;						// How long a dot stays on the screen
+	double tau_events;				// How long a flash stays
+	
 	public int new_canvas_size;
 	
 	/* Performance profiling */
@@ -148,6 +148,13 @@ public class Renderer extends PeriodicTask {
 		depth_buf = new int[imgData.length];
 	}
 	
+	public void calculateConstants() {
+		//cc_default_dot_density = 5e11;
+		cc_default_dot_density = 1/(25*e.e_charge*e.n_default_doping_concentration*e.ds*e.ds);
+		tau = 5000*e.dt_maximum;
+		tau_events = tau*0.2;
+	}
+	
 	public void resetChargeDots() {
 		t_prev = e.time;
 		
@@ -186,6 +193,27 @@ public class Renderer extends PeriodicTask {
 		col_r = Math.max(r*scale, 0);
 		col_g = Math.max(g*scale, 0);
 		col_b = Math.max(b*scale, 0);
+	}
+	
+	// Wavelength to RGB
+	double[] lambda_r = {0.23822, 0.24973, 0.26128, 0.26553, 0.26476, 0.2536, 0.23768, 0.22023, 0.20389, 0.18888, 0.169, 0.12949, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.19944, 0.4376, 0.58059, 0.68286, 0.76516, 0.82701, 0.88226, 0.95151, 1.0112, 1.0442, 1.0729, 1.1021, 1.1058, 1.086, 1.0531, 1.0138, 0.95956, 0.89531, 0.83074, 0.76591, 0.69323};
+	double[] lambda_g = {0.19971, 0.17932, 0.14919, 0.12037, 0.093617, 0.09458, 0.10426, 0.11275, 0.11462, 0.11727, 0.12455, 0.14908, 0.1933, 0.25787, 0.32737, 0.38708, 0.44274, 0.49603, 0.54306, 0.59225, 0.64252, 0.69595, 0.74892, 0.79799, 0.84018, 0.86705, 0.88432, 0.89322, 0.89768, 0.89173, 0.87677, 0.86048, 0.83734, 0.81313, 0.78437, 0.75141, 0.70945, 0.65984, 0.60119, 0.54323, 0.47406, 0.38514, 0.29591, 0.21448, 0.12878, 0, 0, 0, 0, 0, 0.064417};
+	double[] lambda_b = {0.36184, 0.45077, 0.54787, 0.62678, 0.69213, 0.72851, 0.7625, 0.8006, 0.84243, 0.87363, 0.90106, 0.91545, 0.92739, 0.92995, 0.90334, 0.85833, 0.79228, 0.6955, 0.58576, 0.4834, 0.39609, 0.31148, 0.22847, 0.14139, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.062112, 0.10835, 0.13623, 0.15637, 0.17185, 0.18456, 0.19388, 0.20082, 0.20595, 0.20985};
+
+	public void setColorWavelength(double lambda, double intensity) {
+		col_r = (float)(interp(lambda_r, (lambda-400)/5)*intensity);
+		col_g = (float)(interp(lambda_g, (lambda-400)/5)*intensity);
+		col_b = (float)(interp(lambda_b, (lambda-400)/5)*intensity);
+	}
+	
+	public double interp(double[] y, double x) {
+		int i = (int) x;
+		double f = x - i;
+		if (i < 0 || x < 0)
+			return y[0];
+		if (i >= y.length-1)
+			return y[y.length-1];
+		return (1-f)*y[i] + f*y[i+1];
 	}
 
 	public void setPixel(int i, int j) {
@@ -676,9 +704,6 @@ public class Renderer extends PeriodicTask {
 					case AVERAGE_POTENTIAL:
 						scalarfield[i][j] = e.F[i][j] - offset;
 						break;
-					case LIGHT:
-						scalarfield[i][j] = -e.materials[i][j].semiconducting*(e.G[i][j]-e.R[i][j]);
-						break;
 					//case ELECTRON_VEL:
 					//	scalarfield[i][j] = Utils.length(0.5*(e.Jx_n[i][j]+e.Jx_n[i][j+1]), 0.5*(e.Jy_n[i][j]+e.Jy_n[i+1][j]))/e.rho_n[i][j];
 					//	break;
@@ -781,6 +806,16 @@ public class Renderer extends PeriodicTask {
 
 							setalphaBG(1-0.5*gc);
 							setColorFloat(rc, gc, bc);
+							setPixel(i, j);
+						}
+					}
+				} else if (scalarview == ScalarView.LIGHT) {
+					for (int i = 1; i < e.nx-1; i++) {
+						for (int j = 1; j < e.ny-1; j++) {
+							double hc = 1.986e-25;
+							double Emax = e.materials[i][j].Eb + 0.5/e.beta; // Peak emission energy
+							double lambda_nm = 1e9*hc/Emax;
+							setColorWavelength(lambda_nm, scalarfield[i][j]*scalingconstant);
 							setPixel(i, j);
 						}
 					}
@@ -1230,7 +1265,7 @@ public class Renderer extends PeriodicTask {
 		public GraphicsThread(int n, int n_threads) {
 			n_thread = n;
 			this.n_threads = n_threads;
-			System.out.println("Graphics thread " + n_thread);
+			System.out.println("Graphics thread " + n_thread + " initialized.");
 		}
 
 		int lower(int n_max) {
@@ -1839,7 +1874,7 @@ public class Renderer extends PeriodicTask {
 		AVERAGE_POTENTIAL("View F: Average electrochemical potential",						"F",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
 		GENERATION("View G: Carrier generation rate",										"G",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
 		RECOMBINATION("View R: Carrier recombination rate",									"R",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
-		LIGHT("View: Emitted light",														"Light",	Quantity.DIMENSIONLESS,				ColorScheme.WHITE,			1e30),
+		LIGHT("View: Emitted light",														"Light",	Quantity.DIMENSIONLESS,				ColorScheme.OTHER,			1e30),
 		//ELECTRON_VEL("View: Electron drift velocity",										"ve",	Quantity.VELOCITY,						ColorScheme.GREEN,			1e6),
 		//HOLE_VEL("View: Hole drift velocity",												"vh",	Quantity.VELOCITY,						ColorScheme.GREEN,			1e6),
 		DEBUG("Debug",																		"Debug",	Quantity.DIMENSIONLESS,				ColorScheme.RED_BLUE,		1e-3);

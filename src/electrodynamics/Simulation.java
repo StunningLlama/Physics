@@ -8,6 +8,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.BrokenBarrierException;
@@ -57,7 +58,6 @@ public class Simulation extends PeriodicTask {
 	 *  - Darlington pair [done]
 	 */
 	
-	//Default junctions size
 	//Fix current sources
 	
 	/* Parts */
@@ -192,14 +192,25 @@ public class Simulation extends PeriodicTask {
 	public double dielectric_eps_r;
 	public double ferromagnet_mu_r;
 	public double staticcharge_density;
+	public double max_EMF;
+	public double max_current;
+	public double default_AC_freq;
+
+	public double default_flashlight_strength;
 	
 	public int junction_size;			// Free energy smoothing distance
 	public int dopant_smoothing_distance;
 	
+	public double a_factor_n;
+	public double a_factor_p;
+	public double eps_r_semi;
+
+	HashMap<MaterialType, String> default_names;
+	HashMap<MaterialType, String> modified_names;
+	
 	public void setDefaultParameters() {
 		default_resolution = 256;
 		default_width = 2.56e-5;
-		
 		depth = 1e-3;
 		
 		eps0 = 8.85e-12;
@@ -207,15 +218,25 @@ public class Simulation extends PeriodicTask {
 		k = 1.381e-23;
 		e_charge = 1.6e-19;
 		e_mass = 9e-31;
-
 		T = 297.61;
+		
 		
 		mu_electron_semi = 0.1400*1500;
 		mu_hole_semi = 0.5*mu_electron_semi;
 
+		v_sat_n_semi = 1e5*1500;
+		v_sat_p_semi = 1e5*1500;
+
 		ni_semi = 1e16;
 		W_semi = 4.7*eVtoJ;
 		E_b_semi = 1.12*eVtoJ;
+
+		k_rad_semi = 1e7/ni_semi;
+		k_aug_n_semi = 0;
+		k_aug_p_semi = 0;
+		k_SRH_n_semi = 0;
+		k_SRH_p_semi = 0;
+		
 
 		ni_metal = 5e20;
 		ni_metal_high = 2.5*ni_metal;
@@ -224,17 +245,9 @@ public class Simulation extends PeriodicTask {
 		W_metal_high = W_semi + 0.3*eVtoJ;
 		W_metal_low = W_semi - 0.3*eVtoJ;
 		E_b_metal = 1.12*eVtoJ;
-
-		currentsource_mobility = 0.002;
-
-		k_rad_semi = 1e7/ni_semi;
-		k_aug_n_semi = 0;
-		k_aug_p_semi = 0;
-		k_SRH_n_semi = 0;
-		k_SRH_p_semi = 0;
-
 		k_rad_metal = 10*k_rad_semi;
 
+		
 		n_default_doping_concentration = 5e19;
 		p_default_doping_concentration = 5e19;
 		n_light_doping_concentration = 1e19;
@@ -245,12 +258,19 @@ public class Simulation extends PeriodicTask {
 		dielectric_eps_r = 25.0;
 		ferromagnet_mu_r = 250.0;
 		staticcharge_density = 10.0;
-
-		v_sat_n_semi = 1e5*1500;
-		v_sat_p_semi = 1e5*1500;
+		currentsource_mobility = 0.002;
+		max_EMF = 5e5;
+		max_current = 5e7;
+		default_AC_freq = 1e13;
+		
+		default_flashlight_strength = 1e31;
 
 		junction_size = 0;
 		dopant_smoothing_distance = 0;
+		
+		a_factor_n = 0;
+		a_factor_p = 0;
+		eps_r_semi = 1;
 		
 		calculateDependentConstants();
 	}
@@ -266,6 +286,11 @@ public class Simulation extends PeriodicTask {
 
 		ni_currentsource = ni_metal;
 		currentsource_sigma = ni_currentsource*e_charge*(mu_electron_semi + mu_hole_semi)*currentsource_mobility;
+		
+		for (MaterialType type : MaterialType.values()) {
+			String name = modified_names.get(type);
+			if (name != null) type.name = name;
+		}
 	}
 	
 	/* Dynamical simulation variables */
@@ -409,7 +434,10 @@ public class Simulation extends PeriodicTask {
 	Timer simFPStimer = new Timer("Simulation FPS", 10, true);
 
 	public Simulation() {
-		//setDefaultParameters();
+		default_names = new HashMap<MaterialType, String>();
+		for (MaterialType type : MaterialType.values()) {
+			default_names.put(type, type.name);
+		}
 		
 		controls = new Controls(this);
 		renderer = new Renderer(this);
@@ -580,14 +608,52 @@ public class Simulation extends PeriodicTask {
 		}
 	};
 	
-	public void checkCFL() {
-		System.out.println("Wave equation CFL ratio = " + (Math.sqrt(2)*c)/(ds/dt_maximum));
-		System.out.println("Electron diffusion CFL ratio = " + dt_maximum/(ds*ds/(4*D_electron_semi)));
-		System.out.println("Hole diffusion CFL ratio = " + dt_maximum/(ds*ds/(4*D_hole_semi)));
+	public void calculateMaxTimestep() {
+		GeneralMaterialType[] types = materialmanager.makelist();
+		
+		double D_electron_max = 0;
+		double D_hole_max = 0;
+		double sigma_epsr_max = 0;
+		
+		String D_electron_name = "";
+		String D_hole_name = "";
+		String sigma_epsr_name = "";
+		
+		for (GeneralMaterialType type : types) {
+			Material mat = new Material();
+			initializeMaterial(mat, type);
+			
+			if (mat.D_n > D_electron_max) {
+				D_electron_max = mat.D_n;
+				D_electron_name = mat.toString();
+			}
+			
+			if (mat.D_p > D_hole_max) {
+				D_hole_max = mat.D_p;
+				D_hole_name = mat.toString();
+			}
+			
+
+			double rho_n = calcEquilibriumElectronCharge(mat.rho_back, mat.ni*mat.ni);
+			double rho_p = calcEquilibriumHoleCharge(mat.rho_back, mat.ni*mat.ni);
+			double sigma_epsr = e_charge*(-mat.D_n*beta*rho_n + mat.D_p*beta*rho_p)/mat.eps_r;
+			if (sigma_epsr > sigma_epsr_max) {
+				sigma_epsr_max = sigma_epsr;
+				sigma_epsr_name = mat.toString();
+			}
+		}
+		
+		dt_maximum = 0.9*Math.min(Math.min(ds/(Math.sqrt(2)*c), 4*eps0/sigma_epsr_max), Math.min(ds*ds/(4*D_electron_semi), ds*ds/(4*D_hole_semi)));
+		
+		System.out.println("Wave equation stability ratio = " + (Math.sqrt(2)*c)/(ds/dt_maximum));
+		System.out.println("Electron diffusion stability ratio (" + D_electron_name + ") = " + dt_maximum/(ds*ds/(4*D_electron_max)));
+		System.out.println("Hole diffusion stability ratio (" + D_hole_name + ") = " + dt_maximum/(ds*ds/(4*D_hole_max)));
+		System.out.println("Conduction stability ratio (" + sigma_epsr_name + ") = " + dt_maximum*sigma_epsr_max/(4*eps0));
 	}
 
 	public boolean reset(boolean resetall, boolean resetparameters) {
 		if (resetall || resetparameters) {
+			modified_names = default_names;
 			setDefaultParameters();
 			materialmanager.resetMaterialList();
 		}
@@ -595,8 +661,8 @@ public class Simulation extends PeriodicTask {
 		this.width = default_width;
 		ds = width/default_resolution;
 
+		calculateMaxTimestep();
 		width = nx*ds;
-		dt_maximum = 0.9*Math.min(ds/(Math.sqrt(2)*c), Math.min(ds*ds/(4*D_electron_semi), ds*ds/(4*D_hole_semi)));
 		Hz_dissipation = 0.01*ds*ds/dt_maximum;
 
 		boolean size_changed = (default_resolution != this.resolution);
@@ -821,12 +887,12 @@ public class Simulation extends PeriodicTask {
 				p.data.resetData();
 			}
 
+			renderer.calculateConstants();
 			renderer.resetChargeDots();
 
 			initializeAllMaterials();
 			updateAllMaterials(true);
 			controls.undoredo.captureState(this);
-			checkCFL();
 			multigridSolve(true, false);
 		} finally {
 			rwLock.writeLock().unlock();
@@ -929,7 +995,7 @@ public class Simulation extends PeriodicTask {
 
 		public SimulationThread(int n, int n_threads, int nx) {
 			n_thread = n;
-			System.out.println("Thread " + n_thread + ": " + i_min + " < i <= " + i_max);
+			System.out.println("Simulation thread " + n_thread + ": " + i_min + " < i <= " + i_max + " initialized.");
 		}
 
 		@Override
@@ -1224,9 +1290,15 @@ public class Simulation extends PeriodicTask {
 					
 					G[i][j] = rate_const*ni*ni + L[i][j];
 					R[i][j] = rate_const*n*p;
+					
+					if (view_scalar == ScalarView.LIGHT)
+						display[i][j] = semiconducting[i][j]*n*p*k_rad[i][j]; // Radiative recombination only
 				} else {
 					G[i][j] = 0;
 					R[i][j] = 0;
+
+					if (view_scalar == ScalarView.LIGHT)
+						display[i][j] = 0;
 				}
 
 				if (rho_n[i][j] > error_detection_threshold || rho_p[i][j] < -error_detection_threshold)
@@ -1509,9 +1581,9 @@ public class Simulation extends PeriodicTask {
 	public void updateAllMaterials(boolean updateRho) {
 		constructBoundary();
 		
-		for (int i = 1; i < nx-1; i++)
+		for (int i = 0; i < nx-1; i++)
 		{
-			for (int j = 1; j < ny-1; j++)
+			for (int j = 0; j < ny-1; j++)
 			{
 				mu_z[i][j] = 0.25*mu0*(materials[i][j].mu_r+materials[i+1][j].mu_r+materials[i][j+1].mu_r+materials[i+1][j+1].mu_r);
 				absorptivity[i][j] = 0.25*(materials[i][j].absorptivity+materials[i+1][j].absorptivity+materials[i][j+1].absorptivity+materials[i+1][j+1].absorptivity);
@@ -1534,11 +1606,6 @@ public class Simulation extends PeriodicTask {
 				D_p[i][j] = materials[i][j].D_p;
 				v_sat_n[i][j] = materials[i][j].v_sat_n;
 				v_sat_p[i][j] = materials[i][j].v_sat_p;
-				
-				if (materials[i][j].type == MaterialType.CURRENT) {
-					D_n[i][j] *= currentsource_mobility;
-					D_p[i][j] *= currentsource_mobility;
-				}
 			}
 		}
 		for (int i = 0; i < nx-1; i++)
@@ -1834,12 +1901,18 @@ public class Simulation extends PeriodicTask {
 			mat.D_p = D_hole_semi;
 			mat.v_sat_n = v_sat_n_semi;
 			mat.v_sat_p = v_sat_p_semi;
+			mat.eps_r = eps_r_semi;
+			//mat.mu_r = 1/mat.eps_r;
 
 			if (material == MaterialType.METAL_HIGH_W) mat.W = W_metal_high;
 			else if (material == MaterialType.METAL_LOW_W) mat.W = W_metal_low;
 			else if (material == MaterialType.METAL_HIGH_C) mat.ni = ni_metal_high;
 			else if (material == MaterialType.METAL_LOW_C) mat.ni = ni_metal_low;
-			else if (material == MaterialType.CURRENT) mat.ni = ni_currentsource;
+			else if (material == MaterialType.CURRENT) {
+				mat.ni = ni_currentsource;
+				mat.D_n *= currentsource_mobility;
+				mat.D_p *= currentsource_mobility;
+			}
 		}
 
 		if (material.isSemiconducting())
@@ -1858,6 +1931,8 @@ public class Simulation extends PeriodicTask {
 			mat.D_p = D_hole_semi;
 			mat.v_sat_n = v_sat_n_semi;
 			mat.v_sat_p = v_sat_p_semi;
+			mat.eps_r = eps_r_semi;
+			//mat.mu_r = 1/mat.eps_r;
 
 			if (material == MaterialType.SEMI_P_TYPE) mat.rho_back = -p_default_doping_concentration*e_charge;
 			else if (material == MaterialType.SEMI_N_TYPE) mat.rho_back = n_default_doping_concentration*e_charge;
@@ -1865,9 +1940,18 @@ public class Simulation extends PeriodicTask {
 			else if (material == MaterialType.SEMI_HEAVY_N_TYPE) mat.rho_back = n_heavy_doping_concentration*e_charge;
 			else if (material == MaterialType.SEMI_LIGHT_P_TYPE) mat.rho_back = -p_light_doping_concentration*e_charge;
 			else if (material == MaterialType.SEMI_LIGHT_N_TYPE) mat.rho_back = n_light_doping_concentration*e_charge;
+			
+			mat.D_n *= calculateMobilityFactor(a_factor_n, mat.rho_back);
+			mat.D_p *= calculateMobilityFactor(a_factor_p, mat.rho_back);
 		}
 
 		mat.auto_placed = false;
+	}
+	
+	public double calculateMobilityFactor(double a, double donorDensity) {
+		double density_eng = Math.abs(donorDensity/e_charge)*1e-6;
+		return 1/(Math.sqrt(density_eng*a)+1);
+		
 	}
 
 	public void prescaleDielectric() {

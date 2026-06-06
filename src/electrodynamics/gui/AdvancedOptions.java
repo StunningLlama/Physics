@@ -21,8 +21,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 
-import electrodynamics.Presets;
+import electrodynamics.Preset;
 import electrodynamics.Simulation;
+import electrodynamics.units.Quantity;
+import electrodynamics.units.Units;
 
 import javax.swing.JTabbedPane;
 
@@ -186,68 +188,90 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		JLabel lblNimetal = new JLabel("Intrinsic carrier conc. [1/m^3]");
 		lblNimetal.setToolTipText("Metal equilibrium carrier concentration");
 		lblNimetal.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblNimetal.setBounds(35, 11, 203, 16);
+		lblNimetal.setBounds(6, 11, 203, 16);
 		metal.add(lblNimetal);
 		
 		ni_metal = new JTextField();
 		ni_metal.setColumns(10);
-		ni_metal.setBounds(250, 6, 98, 26);
+		ni_metal.setBounds(221, 6, 98, 26);
 		metal.add(ni_metal);
 		
 		JLabel lblNewLabel_1_1 = new JLabel("Workfunction (default) [eV]");
 		lblNewLabel_1_1.setToolTipText("");
 		lblNewLabel_1_1.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblNewLabel_1_1.setBounds(62, 77, 176, 16);
+		lblNewLabel_1_1.setBounds(33, 77, 176, 16);
 		metal.add(lblNewLabel_1_1);
 		
 		W_metal = new JTextField();
 		W_metal.setColumns(10);
-		W_metal.setBounds(250, 72, 98, 26);
+		W_metal.setBounds(221, 72, 98, 26);
 		metal.add(W_metal);
 		
 		JLabel lblNewLabel_2_1 = new JLabel("Metal \"bandgap\" [eV]");
 		lblNewLabel_2_1.setToolTipText("");
 		lblNewLabel_2_1.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblNewLabel_2_1.setBounds(62, 44, 176, 16);
+		lblNewLabel_2_1.setBounds(33, 44, 176, 16);
 		metal.add(lblNewLabel_2_1);
 		
 		E_b_metal = new JTextField();
 		E_b_metal.setColumns(10);
-		E_b_metal.setBounds(250, 39, 98, 26);
+		E_b_metal.setBounds(221, 39, 98, 26);
 		metal.add(E_b_metal);
 		
 		JLabel lblNewLabel_3_1 = new JLabel("Workfunction (High WF metal) [eV]");
 		lblNewLabel_3_1.setToolTipText("");
 		lblNewLabel_3_1.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblNewLabel_3_1.setBounds(6, 110, 232, 16);
+		lblNewLabel_3_1.setBounds(330, 11, 232, 16);
 		metal.add(lblNewLabel_3_1);
 		
 		W_metal_high = new JTextField();
 		W_metal_high.setColumns(10);
-		W_metal_high.setBounds(250, 105, 98, 26);
+		W_metal_high.setBounds(574, 6, 98, 26);
 		metal.add(W_metal_high);
 		
 		JLabel lblNewLabel_4_1 = new JLabel("Workfunction (Low WF metal) [eV]");
 		lblNewLabel_4_1.setToolTipText("");
 		lblNewLabel_4_1.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblNewLabel_4_1.setBounds(16, 143, 222, 16);
+		lblNewLabel_4_1.setBounds(340, 44, 222, 16);
 		metal.add(lblNewLabel_4_1);
 		
 		W_metal_low = new JTextField();
 		W_metal_low.setColumns(10);
-		W_metal_low.setBounds(250, 138, 98, 26);
+		W_metal_low.setBounds(574, 39, 98, 26);
 		metal.add(W_metal_low);
 		
 		JLabel lblNewLabel_6_1 = new JLabel("Recomb. rate [m^3/s]");
 		lblNewLabel_6_1.setToolTipText("Radiative recombination rate constant in metal");
 		lblNewLabel_6_1.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblNewLabel_6_1.setBounds(68, 176, 170, 16);
+		lblNewLabel_6_1.setBounds(39, 110, 170, 16);
 		metal.add(lblNewLabel_6_1);
 		
 		recomb_rate_metal = new JTextField();
 		recomb_rate_metal.setColumns(10);
-		recomb_rate_metal.setBounds(250, 171, 98, 26);
+		recomb_rate_metal.setBounds(221, 105, 98, 26);
 		metal.add(recomb_rate_metal);
+		
+		JLabel lblCarrierConchigh = new JLabel("Carrier conc. (High cond.) [1/m^3]");
+		lblCarrierConchigh.setToolTipText("Metal equilibrium carrier concentration");
+		lblCarrierConchigh.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblCarrierConchigh.setBounds(331, 77, 231, 16);
+		metal.add(lblCarrierConchigh);
+		
+		ni_metal_high = new JTextField();
+		ni_metal_high.setColumns(10);
+		ni_metal_high.setBounds(574, 72, 98, 26);
+		metal.add(ni_metal_high);
+		
+		JLabel lblCarrierConclow = new JLabel("Carrier conc. (Low cond.) [1/m^3]");
+		lblCarrierConclow.setToolTipText("Metal equilibrium carrier concentration");
+		lblCarrierConclow.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblCarrierConclow.setBounds(330, 110, 231, 16);
+		metal.add(lblCarrierConclow);
+		
+		ni_metal_low = new JTextField();
+		ni_metal_low.setColumns(10);
+		ni_metal_low.setBounds(573, 105, 98, 26);
+		metal.add(ni_metal_low);
 		
 		
 		JLabel lblT = new JLabel("Temperature [K]");
@@ -497,6 +521,38 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		k_aug_p_semi.setBounds(561, 138, 98, 26);
 		semi.add(k_aug_p_semi);
 		
+		JLabel lblNewLabel_5_9_1 = new JLabel("Dielectric constant");
+		lblNewLabel_5_9_1.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblNewLabel_5_9_1.setBounds(12, 243, 192, 16);
+		semi.add(lblNewLabel_5_9_1);
+		
+		eps_r_semi = new JTextField();
+		eps_r_semi.setColumns(10);
+		eps_r_semi.setBounds(216, 238, 98, 26);
+		semi.add(eps_r_semi);
+		
+		JLabel lblNewLabel_5_12_1 = new JLabel("Doping dep. mobility factor n");
+		lblNewLabel_5_12_1.setToolTipText("");
+		lblNewLabel_5_12_1.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblNewLabel_5_12_1.setBounds(357, 176, 192, 16);
+		semi.add(lblNewLabel_5_12_1);
+		
+		a_factor_n = new JTextField();
+		a_factor_n.setColumns(10);
+		a_factor_n.setBounds(561, 171, 98, 26);
+		semi.add(a_factor_n);
+		
+		JLabel lblNewLabel_5_12_2 = new JLabel("Doping dep. mobility factor p");
+		lblNewLabel_5_12_2.setToolTipText("");
+		lblNewLabel_5_12_2.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblNewLabel_5_12_2.setBounds(357, 209, 192, 16);
+		semi.add(lblNewLabel_5_12_2);
+		
+		a_factor_p = new JTextField();
+		a_factor_p.setColumns(10);
+		a_factor_p.setBounds(561, 204, 98, 26);
+		semi.add(a_factor_p);
+		
 		lblDielectricRelPermittivity = new JLabel("Dielectric rel. permittivity");
 		lblDielectricRelPermittivity.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblDielectricRelPermittivity.setBounds(6, 11, 208, 16);
@@ -537,6 +593,36 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		currentsource_mobility.setBounds(226, 105, 98, 26);
 		other.add(currentsource_mobility);
 		
+		JLabel lblVoltageSourceMax = new JLabel("Voltage source max EMF (V/m)");
+		lblVoltageSourceMax.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblVoltageSourceMax.setBounds(6, 143, 208, 16);
+		other.add(lblVoltageSourceMax);
+		
+		max_EMF = new JTextField();
+		max_EMF.setColumns(10);
+		max_EMF.setBounds(226, 138, 98, 26);
+		other.add(max_EMF);
+		
+		JLabel lblCurrentSourceMax = new JLabel("Current source max (A/m^2)");
+		lblCurrentSourceMax.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblCurrentSourceMax.setBounds(6, 176, 208, 16);
+		other.add(lblCurrentSourceMax);
+		
+		max_current = new JTextField();
+		max_current.setColumns(10);
+		max_current.setBounds(226, 171, 98, 26);
+		other.add(max_current);
+		
+		lblDefaultAcFrequency = new JLabel("Default AC frequency (Hz)");
+		lblDefaultAcFrequency.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblDefaultAcFrequency.setBounds(6, 209, 208, 16);
+		other.add(lblDefaultAcFrequency);
+		
+		default_AC_freq = new JTextField();
+		default_AC_freq.setColumns(10);
+		default_AC_freq.setBounds(226, 204, 98, 26);
+		other.add(default_AC_freq);
+		
 		btn_apply = new JButton("Apply changes");
 		btn_apply.setBounds(255, 372, 144, 29);
 		panel.add(btn_apply);
@@ -565,7 +651,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		setVisible(false);
 	}
 	
-	public void applyPreset(Presets p) {
+	public void applyPreset(Preset p) {
 
 		Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
 		JsonObject advsettings = new JsonObject();
@@ -587,10 +673,11 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	}
 
 	public void pickPresets() {
-		JList<Presets> tmplist = new JList<>(Presets.values());
+		JList<Preset> tmplist = new JList<>(Preset.values());
 
 		tmplist.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		tmplist.setVisibleRowCount(5);
+		tmplist.setSelectedValue(Preset.DEFAULT, true);
 
 		JScrollPane scrollPane = new JScrollPane(tmplist);
 
@@ -603,7 +690,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		);
 
 		if (result == JOptionPane.OK_OPTION) {
-			Presets selected = tmplist.getSelectedValue();
+			Preset selected = tmplist.getSelectedValue();
 
 			if (selected != null) {
 				applyPreset(selected);
@@ -614,6 +701,16 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	public String formatDouble(double d) {
 		return Double.toString(d);
 	}
+
+	private JTextField ni_metal_high;
+	private JTextField ni_metal_low;
+	private JTextField max_EMF;
+	private JTextField max_current;
+	private JTextField eps_r_semi;
+	private JTextField a_factor_n;
+	private JTextField a_factor_p;
+	private JLabel lblDefaultAcFrequency;
+	private JTextField default_AC_freq;
 
 	public void storeAdvancedSettings() {
 		width				.setText(formatDouble(e.default_width				));
@@ -648,6 +745,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		p_heavy_doping		.setText(formatDouble(e.p_heavy_doping_concentration		));
 		
 		ni_metal				.setText(formatDouble(e.ni_metal					));
+		ni_metal_high				.setText(formatDouble(e.ni_metal_high					));
+		ni_metal_low				.setText(formatDouble(e.ni_metal_low					));
 		W_metal				.setText(formatDouble(e.W_metal_default/e.eVtoJ		));
 		E_b_metal			.setText(formatDouble(e.E_b_metal/e.eVtoJ			));
 		W_metal_high			.setText(formatDouble(e.W_metal_high/e.eVtoJ		));
@@ -658,12 +757,18 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		ferromagnet_mu_r			.setText(formatDouble(e.ferromagnet_mu_r		));
 		staticcharge_density		.setText(formatDouble(e.staticcharge_density	));
 		currentsource_mobility	.setText(formatDouble(e.currentsource_mobility	));
+		max_EMF	.setText(formatDouble(e.max_EMF	));
+		max_current	.setText(formatDouble(e.max_current	));
+		default_AC_freq	.setText(formatDouble(e.default_AC_freq	));
+
+		a_factor_n		.setText(formatDouble(e.a_factor_n));
+		a_factor_p		.setText(formatDouble(e.a_factor_p));
+		eps_r_semi		.setText(formatDouble(e.eps_r_semi));
 	}
 	
 	public boolean loadAdvancedSettings(boolean show_warning) {
 
 		try {
-			e.default_width			= Double.valueOf(width				.getText());	
 			int resolution_tmp			= Integer.valueOf(resolution			.getText());
 
 			if (resolution_tmp != e.resolution) {
@@ -672,8 +777,18 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 				{
 					return false;
 				}
+				
+				double memory_estimate = 400.0*8.0*(double)resolution_tmp*(double)resolution_tmp;
+				if (memory_estimate > 1e9) {
+					int result2 = JOptionPane.showConfirmDialog(this, "Warning: This resolution will use approximately " + Units.SI.toString(memory_estimate, Quantity.INFORMATION) + " of memory. Proceed?", "Message", JOptionPane.YES_NO_OPTION);
+					if (result2 != JOptionPane.OK_OPTION)
+					{
+						return false;
+					}
+				}
 			}
-			
+
+			e.default_width				= Double.valueOf(width				.getText());	
 			e.default_resolution = resolution_tmp;
 
 			e.depth						= Double.valueOf(depth				.getText());
@@ -705,6 +820,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			e.p_heavy_doping_concentration		= Double.valueOf(p_heavy_doping	.getText());
 
 			e.ni_metal					= Double.valueOf(ni_metal			.getText());
+			e.ni_metal_high					= Double.valueOf(ni_metal_high			.getText());
+			e.ni_metal_low					= Double.valueOf(ni_metal_low			.getText());
 			e.W_metal_default			= Double.valueOf(W_metal				.getText())*e.eVtoJ;
 			e.E_b_metal					= Double.valueOf(E_b_metal			.getText())*e.eVtoJ;
 			e.W_metal_high				= Double.valueOf(W_metal_high		.getText())*e.eVtoJ;
@@ -715,6 +832,14 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			e.ferromagnet_mu_r			= Double.valueOf(ferromagnet_mu_r	.getText());
 			e.staticcharge_density		= Double.valueOf(staticcharge_density	.getText());
 			e.currentsource_mobility	= Double.valueOf(currentsource_mobility	.getText());
+			e.max_EMF	= Double.valueOf(max_EMF	.getText());
+			e.max_current	= Double.valueOf(max_current	.getText());
+			e.default_AC_freq	= Double.valueOf(default_AC_freq	.getText());
+
+			
+			e.a_factor_n = Double.valueOf(a_factor_n	.getText());
+			e.a_factor_p = Double.valueOf(a_factor_p	.getText());
+			e.eps_r_semi = Double.valueOf(eps_r_semi	.getText());
 
 			e.calculateDependentConstants();
 			e.reset(false, false);
@@ -761,6 +886,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		advsettings.addProperty("p_heavy_doping", e.p_heavy_doping_concentration	);
 		
 		advsettings.addProperty("ni_metal", e.ni_metal						);
+		advsettings.addProperty("ni_metal_high", e.ni_metal_high						);
+		advsettings.addProperty("ni_metal_low", e.ni_metal_low						);
 		advsettings.addProperty("W_metal_default", e.W_metal_default		);
 		advsettings.addProperty("E_b_metal", e.E_b_metal					);
 		advsettings.addProperty("W_metal_high", e.W_metal_high				);
@@ -771,6 +898,13 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		advsettings.addProperty("ferromagnet_mu_r", e.ferromagnet_mu_r	);
 		advsettings.addProperty("staticcharge_density", e.staticcharge_density	);
 		advsettings.addProperty("currentsource_mobility", e.currentsource_mobility	);
+		advsettings.addProperty("max_EMF", e.max_EMF	);
+		advsettings.addProperty("max_current", e.max_current	);
+		advsettings.addProperty("default_AC_freq", e.default_AC_freq	);
+
+		advsettings.addProperty("a_factor_n", e.a_factor_n	);
+		advsettings.addProperty("a_factor_p", e.a_factor_p	);
+		advsettings.addProperty("eps_r_semi", e.eps_r_semi	);
 	}
 	
 
@@ -810,6 +944,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			case "p_heavy_doping": e.p_heavy_doping_concentration		= fstr.nextDouble(); break;
 			
 			case "ni_metal": e.ni_metal						= fstr.nextDouble(); break;
+			case "ni_metal_high": e.ni_metal_high						= fstr.nextDouble(); break;
+			case "ni_metal_low": e.ni_metal_low						= fstr.nextDouble(); break;
 			case "W_metal_default": e.W_metal_default		= fstr.nextDouble(); break;
 			case "E_b_metal": e.E_b_metal					= fstr.nextDouble(); break;
 			case "W_metal_high": e.W_metal_high				= fstr.nextDouble(); break;
@@ -820,6 +956,13 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			case "ferromagnet_mu_r": e.ferromagnet_mu_r		= fstr.nextDouble(); break;
 			case "staticcharge_density": e.staticcharge_density	= fstr.nextDouble(); break;
 			case "currentsource_mobility": e.currentsource_mobility	= fstr.nextDouble(); break;
+			case "max_EMF": e.max_EMF	= fstr.nextDouble(); break;
+			case "max_current": e.max_current	= fstr.nextDouble(); break;
+			case "default_AC_freq": e.default_AC_freq	= fstr.nextDouble(); break;
+
+			case "a_factor_n": e.a_factor_n	= fstr.nextDouble(); break;
+			case "a_factor_p": e.a_factor_p	= fstr.nextDouble(); break;
+			case "eps_r_semi": e.eps_r_semi	= fstr.nextDouble(); break;
 
 			default: fstr.skipValue(); break; // skip others
 			}
@@ -829,13 +972,14 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent ev) {
 		if (ev.getSource() == btn_apply) {
-			boolean success = loadAdvancedSettings(true);
-			if (success)
-				setVisible(false);
+			loadAdvancedSettings(true);
+			//boolean success = loadAdvancedSettings(true);
+			//if (success)
+			//	setVisible(false);
 		} else if (ev.getSource() == btn_cancel) {
 			setVisible(false);
 		} else if (ev.getSource() == btn_reset) {
-			applyPreset(Presets.DEFAULT);
+			applyPreset(Preset.DEFAULT);
 		} else if (ev.getSource() == btn_presets) {
 			pickPresets();
 		}
