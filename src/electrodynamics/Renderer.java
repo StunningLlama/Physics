@@ -731,10 +731,17 @@ public class Renderer extends PeriodicTask {
 
 				for (int i = i1; i <= i2; i++) {
 					for (int j = j1; j <= j2; j++) {
-						double t = (j2-j)/(double)(j2-j1);
-						if (!(colorscheme == ScalarView.ColorScheme.GREEN || colorscheme == ScalarView.ColorScheme.WHITE))
-							t = 2*(t-0.5);
-						scalarfield[i][j] = t/scalingconstant;
+						double t = 0;
+						if (colorscheme == ScalarView.ColorScheme.RED_BLUE || colorscheme == ScalarView.ColorScheme.CYAN_YELLOW || scalarview == ScalarView.CHARGE) {
+							t = 2*((j2-j)/(double)(j2-j1)-0.5);
+							scalarfield[i][j] = t/scalingconstant;
+						} else if (colorscheme == ScalarView.ColorScheme.WHITE || colorscheme == ScalarView.ColorScheme.GREEN) {
+							t = (j2-j)/(double)(j2-j1);
+							scalarfield[i][j] = t/scalingconstant;
+						} else if (scalarview == ScalarView.LIGHT) {
+							t = (j2-j)/(double)(j2-j1);
+							scalarfield[i][j] = -(400+(650-400)*t);
+						}
 					}
 				}
 			}
@@ -812,10 +819,14 @@ public class Renderer extends PeriodicTask {
 				} else if (scalarview == ScalarView.LIGHT) {
 					for (int i = 1; i < e.nx-1; i++) {
 						for (int j = 1; j < e.ny-1; j++) {
-							double hc = 1.986e-25;
-							double Emax = e.materials[i][j].Eb + 0.5/e.beta; // Peak emission energy
-							double lambda_nm = 1e9*hc/Emax;
-							setColorWavelength(lambda_nm, scalarfield[i][j]*scalingconstant);
+							if (scalarfield[i][j] < 0) {
+								setColorWavelength(-scalarfield[i][j], 1);
+							} else {
+								double hc = 1.986e-25;
+								double Emax = e.materials[i][j].Eb + 0.5/e.beta; // Peak emission energy
+								double lambda_nm = 1e9*hc/Emax;
+								setColorWavelength(lambda_nm, scalarfield[i][j]*scalingconstant);
+							}
 							setPixel(i, j);
 						}
 					}
@@ -1132,11 +1143,17 @@ public class Renderer extends PeriodicTask {
 					tmin = 2*(tmin-0.5);
 					tmax = 2*(tmax-0.5);
 				}
-				
-				drawMonospacedStringSimCoords(e.units.toString(tmin/scalingconstant, scalarview.unit), (i1+i2)/2, j2, g);
-				texts.get(texts.size()-1).isHorizontalCentered = true;
-				drawMonospacedStringSimCoords(e.units.toString(tmax/scalingconstant, scalarview.unit), (i1+i2)/2, j1, g);
-				texts.get(texts.size()-1).isHorizontalCentered = true;
+				if (scalarview == ScalarView.LIGHT) {
+					drawMonospacedStringSimCoords(e.units.toString(400e-9, Quantity.LENGTH), (i1+i2)/2, j2, g);
+					texts.get(texts.size()-1).isHorizontalCentered = true;
+					drawMonospacedStringSimCoords(e.units.toString(650e-9, Quantity.LENGTH), (i1+i2)/2, j1, g);
+					texts.get(texts.size()-1).isHorizontalCentered = true;
+				} else {
+					drawMonospacedStringSimCoords(e.units.toString(tmin/scalingconstant, scalarview.unit), (i1+i2)/2, j2, g);
+					texts.get(texts.size()-1).isHorizontalCentered = true;
+					drawMonospacedStringSimCoords(e.units.toString(tmax/scalingconstant, scalarview.unit), (i1+i2)/2, j1, g);
+					texts.get(texts.size()-1).isHorizontalCentered = true;
+				}
 				texts.get(texts.size()-1).isBottomJustified = true;
 			}
 		}

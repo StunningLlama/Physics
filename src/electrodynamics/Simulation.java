@@ -58,8 +58,6 @@ public class Simulation extends PeriodicTask {
 	 *  - Darlington pair [done]
 	 */
 	
-	//Fix current sources
-	
 	/* Parts */
 	
 	public Renderer.RenderCanvas canvas;
@@ -166,8 +164,8 @@ public class Simulation extends PeriodicTask {
 	public double k_rad_semi;			// Radiative recombination rate constant
 	public double k_aug_n_semi;			// Auger recombination rate
 	public double k_aug_p_semi;
-	public double k_SRH_n_semi;			// Shockley-Read-Hall recombination rate
-	public double k_SRH_p_semi;
+	public double k_SRH_n_semi;			// Shockley-Read-Hall recombination rate, inverse electron lifetime
+	public double k_SRH_p_semi;			// Inverse hole lifetime
 
 	public double ni_metal;				// Metal charge carrier concentration
 	public double ni_metal_high;
@@ -258,7 +256,7 @@ public class Simulation extends PeriodicTask {
 		dielectric_eps_r = 25.0;
 		ferromagnet_mu_r = 250.0;
 		staticcharge_density = 10.0;
-		currentsource_mobility = 0.002;
+		currentsource_mobility = 0.0002;
 		max_EMF = 5e5;
 		max_current = 5e7;
 		default_AC_freq = 1e13;

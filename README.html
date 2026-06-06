@@ -178,25 +178,29 @@ This results in a simulation that demonstrates many of the important properties 
 <ul>
 <li>PN junctions</li>
 <li>Metal-semiconductor junctions</li>
-<li>Field effect transistors</li>
-<li>Galvani potential</li>
 <li>Thermoelectricity</li>
+<li>Contact potentials</li>
+<li>Heterojunctions</li>
+<li>Simulation of common semiconductor devices, eg. BJTs, MOSFETs, JFETs, diodes, etc.
 </ul>
 Since version 2.0, the simulation supports the following:
+<ul>
 <li>Velocity saturation</li>
-<li>SRH and auger recombination</li>
+<li>Radiative, trap-assisted, and auger recombination</li>
+<li>User-defined materials</li>
+</ul>
 
 <h2>Limitations</h2>
 Because the simulation uses a very simplified model of how semiconductors work, it is not able capture some phenomena that show up in real systems. Things that the simulation cannot handle include:
 <ul>
-<li>Metallic band structures</li>
-<li>Electrical breakdown</li>
-<li>Ballistic transport</li>
 <li>Quantum tunnelling</li>
 <li>Surface states</li>
+<li>Ballistic conduction</li>
+<li>Electrical breakdown</li>
+<li>Metallic band structures</li>
+<li>Hall effect</li>
 </ul>
-Finally, certain properties of materials differ from their real life counterparts (for example, the charge carrier mobility of the semiconductor material is about 1500x greater than that of Silicon).
-
+The default semiconductor material is designed to showcase the general behavior of semiconductors but does not, however, correspond to an existing substance. In version 2.0, the simulation comes with models of real materials that can be accessed via the advanced settings menu. These predefined materials are Si, Ge, GaAs and GaN.
 <h1>Simulation features</h1>
 The interface consists of the simulation area which the user can interact with, simulation controls that allow various parameters to be adjusted, and a menu bar containing different settings and tools. <figure><img src="images/app.png" alt="Application" style="max-width:60%"><figcaption>Simulation area (purple), controls (blue), and menu bar (green).</figcaption></figure>
 The main way to interact with circuits is through voltage sources and switches. A good way to get started with this software is to load one of the many examples.
@@ -323,16 +327,12 @@ The brightness and density of lines indicates the magnitude of the field. <figur
 </table>
 <figure><img src="images/palette.png" alt="Palette"><figcaption>Colors of all the materials.</figcaption></figure>
 
-<!--
-<h1>Technical details</h1>
-The simulation runs on a staggered grid with B and rho...
-- equations
-- discretization scheme
-- numerical stability & CFL condition
-- logarithmic mean
-- parallelism
-[TODO]
--->
+
+<h1>Advanced topics</h1>
+<h2>Numerical stability</h2>
+In 
+<h2>Anisotropy</h2>
+The specific numerical method I used makes the saturation velocity is slightly anisotropic. The saturation velocity is $\sqrt{2} \approx 1.4$ times greater along the diagonal directions compared to the x and y axes.
 
 <h1>Miscellaneous questions and answers</h1>
 <h2>Why does this simulation exist?</h2>
