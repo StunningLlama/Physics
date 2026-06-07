@@ -457,7 +457,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case FILL:
 		case LIGHT:
 
-			if ((mousebutton == MouseEvent.BUTTON2 || alt_down) && pressing) {
+			boolean pick_material = alt_down && mx-mx_start == 0 && my-my_start == 0;
+			
+			if ((mousebutton == MouseEvent.BUTTON2 || pick_material) && pressing) {
 				e.opts.gui_material.setSelectedItem(new GeneralMaterialType(e.materials[mx][my]));
 			}
 
@@ -502,7 +504,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (mousebutton == MouseEvent.BUTTON3 || brush == Brush.ERASE)
 				mat = GeneralMaterialType.EMPTY;
 
-			if (!(mousebutton == MouseEvent.BUTTON2 || alt_down)) {
+			if (!(mousebutton == MouseEvent.BUTTON2 || pick_material)) {
 				if (brush == Brush.LINE) {
 					if (releasing) {
 						drawMaterialLine(mx_start, my_start, mx, my, brush, brushshape, mat, brushsize, angle);
@@ -1234,6 +1236,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		my_screen = ev.getY();
 		mx_start_screen = ev.getX();
 		my_start_screen = ev.getY();
+		
+		if (alt_down)
+			constrain();
 	}
 	@Override
 	public void mouseReleased(MouseEvent e) {
@@ -1244,12 +1249,38 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public void mouseDragged(MouseEvent e) {
 		mx_screen = e.getX();
 		my_screen = e.getY();
+
+		if (alt_down)
+			constrain();
 	}
 
 	@Override
 	public void mouseMoved(MouseEvent arg0) {
 		mx_screen = arg0.getX();
 		my_screen = arg0.getY();
+	}
+	
+	public void constrain() {
+		int dx = mx_screen - mx_start_screen;
+		int dy = my_screen - my_start_screen;
+		int min = Math.abs(dx) > Math.abs(dy)? dx : dy;
+		int[] xc = {min, 0, min, min, -min, -min};
+		int[] yc = {0, min, min, -min, min, -min};
+		int dmin = Integer.MAX_VALUE;
+		int imin = -1;
+		
+		for (int i = 0; i < 6; i++) {
+			int d = (xc[i]-dx)*(xc[i]-dx) + (yc[i]-dy)*(yc[i]-dy);
+			if (d < dmin) {
+				dmin = d;
+				imin = i;
+			}
+		}
+		
+		if (imin != -1) {
+			mx_screen = mx_start_screen + xc[imin];
+			my_screen = my_start_screen + yc[imin];
+		}
 	}
 
 	private Action key_pause = new AbstractAction(null) {
@@ -1578,6 +1609,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, 0, true), key_shift_up);
     	contentPane.getActionMap().put(key_shift_up, key_shift_up);
 
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, InputEvent.SHIFT_DOWN_MASK | InputEvent.ALT_DOWN_MASK), key_shift);
+    	contentPane.getActionMap().put(key_shift, key_shift);
+
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, InputEvent.ALT_DOWN_MASK, true), key_shift_up);
+    	contentPane.getActionMap().put(key_shift_up, key_shift_up);
+
     	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, InputEvent.CTRL_DOWN_MASK), key_ctrl);
     	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_META, InputEvent.META_DOWN_MASK), key_ctrl);
     	contentPane.getActionMap().put(key_ctrl, key_ctrl);
@@ -1665,6 +1702,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	contentPane.getActionMap().put(key_alt, key_alt);
 
     	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, 0, true), key_alt_up);
+    	contentPane.getActionMap().put(key_alt_up, key_alt_up);
+
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_alt);
+    	contentPane.getActionMap().put(key_alt, key_alt);
+
+    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT,  InputEvent.SHIFT_DOWN_MASK, true), key_alt_up);
     	contentPane.getActionMap().put(key_alt_up, key_alt_up);
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, 0), key_logdata);

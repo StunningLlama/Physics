@@ -58,6 +58,8 @@ public class Simulation extends PeriodicTask {
 	 *  - Darlington pair [done]
 	 */
 	
+	//fix carrier view at high fields
+	
 	/* Parts */
 	
 	public Renderer.RenderCanvas canvas;
@@ -1201,6 +1203,8 @@ public class Simulation extends PeriodicTask {
 						}
 					}
 
+					mid_barrier.await();
+
 					if (n_thread == 0) {
 						/* Apply boundary condition */
 						for (int j = 0; j < ny-1; j++)
@@ -2280,6 +2284,8 @@ public class Simulation extends PeriodicTask {
 		str += ("Electron CMF\t"  			+	units.toString(Utils.bilinearinterp_length(cmfy_n, cmfy_n, mx, my, nx, ny), Quantity.FORCE) + "\n");
 		str += ("Hole CMF\t"  				+	units.toString(Utils.bilinearinterp_length(cmfy_p, cmfy_p, mx, my, nx, ny), Quantity.FORCE) + "\n");
 		str += ("EMF\t"  					+	units.toString(Utils.bilinearinterp_length(emfx, emfy, mx, my, nx, ny), Quantity.ELECTRIC_FIELD) + "\n");
+		str += ("Electron vel.\t"  			+	units.toString(Utils.bilinearinterp_length(Jx_n, Jy_n, mx, my, nx, ny)/rho_n[mx][my], Quantity.VELOCITY) + "\n");
+		str += ("Hole vel.\t"  				+	units.toString(Utils.bilinearinterp_length(Jx_p, Jy_p, mx, my, nx, ny)/rho_p[mx][my], Quantity.VELOCITY) + "\n");
 		str += "\nMaterial properties\n";
 		str += ("Type\t"  					+	mat.type.name + "\n");
 		str += ("\u2130\t"  				+	units.toString(mat.emf, Quantity.ELECTRIC_FIELD) + "\n");
