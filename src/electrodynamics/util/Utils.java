@@ -55,6 +55,17 @@ public class Utils {
 			return (exp2ax-1)*(exp2x+1)/(a*(exp2ax+1)*(exp2x-1));
 		}
 	}
+	
+	// Compute x/tanh(x)
+	public static double xtanhxm1(double x, double exp2x, boolean useapprox)
+	{
+		if (useapprox) {
+			double x2 = x*x;
+			return 1 + 0.33333333333333333*x2-0.022222222222222222*x2*x2;
+		} else {
+			return x*(exp2x+1)/(exp2x-1);
+		}
+	}
 
 	public static double bilinearinterp(double[][] array, double x, double y, int nx, int ny) {
 		int xfloor = (int)Math.floor(x);

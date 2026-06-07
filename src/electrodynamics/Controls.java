@@ -93,6 +93,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     public boolean flip_v_selection = false;
     public boolean exit = false;
     public boolean updateimagesize = false;
+    public boolean test = false;
 
 
 	/* Mouse controls */
@@ -1565,7 +1566,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     private Action key_5 = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-    		e.opts.gui_brush.setSelectedItem(Brush.SELECT);
+    		//e.opts.gui_brush.setSelectedItem(Brush.SELECT);
+			test = !test;
         }
     };
     
