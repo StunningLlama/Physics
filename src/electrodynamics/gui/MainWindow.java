@@ -244,7 +244,7 @@ public class MainWindow extends JFrame {
 		menu_pref = new JMenuItem("Preferences");
 		menu_asdf.add(menu_pref);
 		
-		menu_advancedsettings = new JMenuItem("Advanced settings");
+		menu_advancedsettings = new JMenuItem("Simulation settings");
 		menu_asdf.add(menu_advancedsettings);
 		
 		menu_cust_material = new JMenuItem("Custom materials");

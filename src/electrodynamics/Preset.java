@@ -7,7 +7,8 @@ public enum Preset {
 	SILICON_300K("Silicon @ 300K, clean"),
 	GERMANIUM_300K("Germanium @ 300K, clean"),
 	GAAS_300K("GaAs @ 300K, clean"),
-	GAN_300K("GaN @ 300K, clean");
+	GAN_300K("GaN @ 300K, clean"),
+	VERSION_1("SemiSim v1.x");
 	
 	String name;
 
@@ -196,6 +197,12 @@ public enum Preset {
 			break;
 		case DEFAULT:
 			semi_name = "semiconductor";
+			break;
+		case VERSION_1:
+			e.junction_size = 3;
+			semi_name = "semiconductor";
+			break;
+		default:
 			break;
 		}
 

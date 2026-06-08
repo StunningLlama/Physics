@@ -50,7 +50,7 @@ public class SaveManager {
 	public static File infile;
 	public static File outfile;
 	public static File currentfile;
-	public int saveversion = 4;
+	public int current_saveversion = 4;
 	public String fileextension = ".semisim";
 	public String startingpath = ".";
 
@@ -117,7 +117,7 @@ public class SaveManager {
 				
 				System.out.println("Loading " + infile.getName() + ", version = " + version);
 
-				if (version > saveversion) {
+				if (version > current_saveversion) {
 					fstr.close();
 					throw new IllegalArgumentException("The file was created in a newer version of SemiSim.");
 				}
@@ -165,7 +165,7 @@ public class SaveManager {
 						vecmode_old.applySetting(e);
 					fstr.endObject();
 					e.opts.setRedundantOptions();
-					e.reset(true, false);
+					e.reset(true, null);
 
 					assertNextObject(fstr, "data");
 					fstr.beginObject();
@@ -213,7 +213,7 @@ public class SaveManager {
 
 					if (testNextObject(fstr, "advsettings")) {
 						fstr.beginObject();
-						e.adv_opts.readAdvancedSettings(gson, fstr);
+						e.adv_opts.readAdvancedSettings(gson, fstr, version < 4? Preset.VERSION_1 : Preset.DEFAULT);
 						fstr.endObject();
 						e.advsettings_tweaked = true;
 					} else {
@@ -227,7 +227,6 @@ public class SaveManager {
 					e.opts.textPane.setCaretPosition(0);
 					e.materialmanager.updateUI();
 					if (version < 4) {
-						e.junction_size = 3;
 						e.initializeAllMaterials();
 					}
 					e.updateAllMaterials(false);
@@ -235,7 +234,7 @@ public class SaveManager {
 					updateLabels();
 					e.controls.undoredo.captureState(e);
 				} else if (version == 1) {
-					e.reset(true, true);
+					e.reset(true, Preset.VERSION_1);
 					
 					int view_vec_mode = -1;
 
@@ -299,7 +298,6 @@ public class SaveManager {
 					e.opts.textPane.setText(e.description);
 					e.opts.textPane.setEditable(false);
 					e.opts.textPane.setCaretPosition(0);
-					e.junction_size = 3;
 					e.initializeAllMaterials();
 					e.updateAllMaterials(false);
 					e.calcMiscFields(true);
@@ -486,7 +484,7 @@ public class SaveManager {
 
 				// Version should always be first
 				JsonObject save = new JsonObject();
-				save.addProperty("version", saveversion);
+				save.addProperty("version", current_saveversion);
 				save.add("header", header);
 				save.add("data", data);
 				save.add("advsettings", advsettings);

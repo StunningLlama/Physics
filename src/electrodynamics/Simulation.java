@@ -77,7 +77,7 @@ public class Simulation extends PeriodicTask {
 	public CarrierPlot carrierplot;
 	
 	public Units units = Units.SI;
-	public String description = "";
+	public String description = "Description of simulation";
 	
 	/* Multithreading */
 	
@@ -224,9 +224,9 @@ public class Simulation extends PeriodicTask {
 		
 		mu_electron_semi = 0.1400*1500;
 		mu_hole_semi = 0.5*mu_electron_semi;
-
-		v_sat_n_semi = 1e5*1500;
-		v_sat_p_semi = 1e5*1500;
+		
+		v_sat_n_semi = 1.05e8;
+		v_sat_p_semi = 0.525e8;
 
 		ni_semi = 1e16;
 		W_semi = 4.7*eVtoJ;
@@ -266,7 +266,7 @@ public class Simulation extends PeriodicTask {
 		
 		default_flashlight_strength = 1e31;
 
-		junction_size = 0;
+		junction_size = 1;
 		dopant_smoothing_distance = 0;
 		
 		a_factor_n = 0;
@@ -463,7 +463,7 @@ public class Simulation extends PeriodicTask {
 
 		SemiSim.detect64Bit();
 		
-		reset(true, true);
+		reset(true, Preset.DEFAULT);
 		
 		opts.initialize(this);
 		adv_opts.initialize(this);
@@ -487,7 +487,7 @@ public class Simulation extends PeriodicTask {
 
     			if (controls.clear) {
     				SwingUtilities.invokeLater(() -> {
-    					reset(false, false);
+    					reset(false, null);
     				});
     				controls.clear = false;
     			}
@@ -497,8 +497,9 @@ public class Simulation extends PeriodicTask {
         				int result = JOptionPane.showConfirmDialog(opts, "Do you wish to reset the entire simulation?", "Message", JOptionPane.YES_NO_OPTION);
         				if (result == JOptionPane.OK_OPTION)
         				{
-        					reset(true, false);
+        					reset(true, null);
             				opts.setDefaults(this);
+            				description = "Description of simulation";
             				SaveManager.currentfile = null;
         				}
     				});
@@ -652,11 +653,14 @@ public class Simulation extends PeriodicTask {
 		System.out.println("Conduction stability ratio (" + sigma_epsr_name + ") = " + dt_maximum*sigma_epsr_max/(4*eps0));
 	}
 
-	public boolean reset(boolean resetall, boolean resetparameters) {
-		if (resetall || resetparameters) {
+	public boolean reset(boolean resetall, Preset preset) {
+		if (resetall || preset != null) {
 			modified_names = default_names;
-			description = "Description of simulation";
-			setDefaultParameters();
+			if (preset == null)
+				Preset.DEFAULT.applyPreset(this);
+			else
+				preset.applyPreset(this);
+			
 			materialmanager.resetMaterialList();
 		}
 		
@@ -1013,64 +1017,7 @@ public class Simulation extends PeriodicTask {
 
 						stepnumber++;
 					}
-
-					/* Interior B field & charge */
-					for (int i = 1; i < nx-2; i++)
-					{
-						if (i >= i_min && i <= i_max) {
-							for (int j = 1; j < ny-2; j++)
-							{
-								Hz_laplacian[i][j] = (Hz[i+1][j]+Hz[i][j+1]+Hz[i-1][j]+Hz[i][j-1]-4*Hz[i][j])/(ds*ds);
-							}
-						}
-					}
-
-					mid_barrier.await();
-
-					for (int i = 0; i < nx-1; i++)
-					{
-						if (i >= i_min && i <= i_max) {
-							for (int j = 0; j < ny-1; j++)
-							{
-								double sigma = absorptivity[i][j]*mu_z[i][j]*absorbing_coeff;
-
-								Hz[i][j] = (Hz[i][j]*(1-0.5*dt*sigma/mu_z[i][j])
-										+ (-(Ey[i+1][j] - Ey[i][j]) + (Ex[i][j+1] - Ex[i][j]))*dt/(ds*mu_z[i][j])
-										+ Hz_dissipation*dt*Hz_laplacian[i][j])
-										/(1+0.5*dt*sigma/mu_z[i][j]);
-
-								// Includes unphysical magnetic monopole current term to make absorption very effective
-							}
-						}
-					}
-
-					/* Update charge carriers */
-					for (int i = 1; i < nx-1; i++)
-					{
-						if (i >= i_min && i <= i_max) {
-							for (int j = 1; j < ny-1; j++)
-							{
-								double recomb_rate = 0;
-								if (conducting[i][j] == 1) {
-									double n = rho_n[i][j]/q_n;
-									double p = rho_p[i][j]/q_p;
-									double ni = n_i[i][j];
-									double rate_const = (k_aug_n[i][j]*n+k_aug_p[i][j]*p)
-										+ (k_SRH_n[i][j]*k_SRH_p[i][j])/(k_SRH_n[i][j]*(n+ni) + k_SRH_p[i][j]*(p+ni) + Double.MIN_VALUE) // Avoid divide by zero
-										+ k_rad[i][j];
-									recomb_rate = rate_const*(n*p - ni*ni) - L[i][j];
-								}
-
-								rho_n[i][j] = rho_n[i][j] - (Jx_n[i][j]-Jx_n[i-1][j] + Jy_n[i][j]-Jy_n[i][j-1])*dt/ds - dt*q_n*recomb_rate;
-								rho_p[i][j] = rho_p[i][j] - (Jx_p[i][j]-Jx_p[i-1][j] + Jy_p[i][j]-Jy_p[i][j-1])*dt/ds - dt*q_p*recomb_rate;
-								rho_abs[i][j] = rho_abs[i][j] - (Jx_abs[i][j]-Jx_abs[i-1][j] + Jy_abs[i][j]-Jy_abs[i][j-1])*dt/ds;
-
-								rho_free[i][j] = rho_abs[i][j]+rho_n[i][j]+rho_p[i][j]+rho_back[i][j];
-							}
-						}
-					}
 					
-
 					for (int i = 0; i < nx-1; i++)
 					{
 						if (i >= i_min && i <= i_max) {
@@ -1093,8 +1040,6 @@ public class Simulation extends PeriodicTask {
 					}
 
 					mid_barrier.await();
-					
-					//double dfactor = (e_charge*ds*beta)/2;
 
 					/* Update E field and currents */
 					for (int i = 0; i < nx-1; i++)
@@ -1225,27 +1170,68 @@ public class Simulation extends PeriodicTask {
 							}
 						}
 					}
+					
+					/* Interior B field & charge */
+					for (int i = 1; i < nx-2; i++)
+					{
+						if (i >= i_min && i <= i_max) {
+							for (int j = 1; j < ny-2; j++)
+							{
+								Hz_laplacian[i][j] = (Hz[i+1][j]+Hz[i][j+1]+Hz[i-1][j]+Hz[i][j-1]-4*Hz[i][j])/(ds*ds);
+							}
+						}
+					}
 
 					mid_barrier.await();
 
-					if (n_thread == 0) {
-						/* Apply boundary condition */
-						for (int j = 0; j < ny-1; j++)
-						{
-							Ey[0][j] = 0;
-							Ey[nx-1][j] = 0;
-						}
+					for (int i = 0; i < nx-1; i++)
+					{
+						if (i >= i_min && i <= i_max) {
+							for (int j = 0; j < ny-1; j++)
+							{
+								double sigma = absorptivity[i][j]*mu_z[i][j]*absorbing_coeff;
 
-						for (int i = 0; i < nx-1; i++)
-						{
-							Ex[i][0] = 0;
-							Ex[i][ny-1] = 0;
-						}
+								Hz[i][j] = (Hz[i][j]*(1-0.5*dt*sigma/mu_z[i][j])
+										+ (-(Ey[i+1][j] - Ey[i][j]) + (Ex[i][j+1] - Ex[i][j]))*dt/(ds*mu_z[i][j])
+										+ Hz_dissipation*dt*Hz_laplacian[i][j])
+										/(1+0.5*dt*sigma/mu_z[i][j]);
 
-						t6.stop();
+								// Includes unphysical magnetic monopole current term to make absorption very effective
+							}
+						}
 					}
+
+					/* Update charge carriers */
+					for (int i = 1; i < nx-1; i++)
+					{
+						if (i >= i_min && i <= i_max) {
+							for (int j = 1; j < ny-1; j++)
+							{
+								double recomb_rate = 0;
+								if (conducting[i][j] == 1) {
+									double n = rho_n[i][j]/q_n;
+									double p = rho_p[i][j]/q_p;
+									double ni = n_i[i][j];
+									double rate_const = (k_aug_n[i][j]*n+k_aug_p[i][j]*p)
+										+ (k_SRH_n[i][j]*k_SRH_p[i][j])/(k_SRH_n[i][j]*(n+ni) + k_SRH_p[i][j]*(p+ni) + Double.MIN_VALUE) // Avoid divide by zero
+										+ k_rad[i][j];
+									recomb_rate = rate_const*(n*p - ni*ni) - L[i][j];
+								}
+
+								rho_n[i][j] = rho_n[i][j] - (Jx_n[i][j]-Jx_n[i-1][j] + Jy_n[i][j]-Jy_n[i][j-1])*dt/ds - dt*q_n*recomb_rate;
+								rho_p[i][j] = rho_p[i][j] - (Jx_p[i][j]-Jx_p[i-1][j] + Jy_p[i][j]-Jy_p[i][j-1])*dt/ds - dt*q_p*recomb_rate;
+								rho_abs[i][j] = rho_abs[i][j] - (Jx_abs[i][j]-Jx_abs[i-1][j] + Jy_abs[i][j]-Jy_abs[i][j-1])*dt/ds;
+
+								rho_free[i][j] = rho_abs[i][j]+rho_n[i][j]+rho_p[i][j]+rho_back[i][j];
+							}
+						}
+					}
+
+					mid_barrier.await();
 					
 					if (n_thread == 0) {
+						t6.stop();
+						
 						/* Enforce Gauss law constraint */
 						if (stepnumber%500 == 0 && controls.test == false) {
 							multigridSolve(true, false);

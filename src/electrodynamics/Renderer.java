@@ -1254,7 +1254,7 @@ public class Renderer extends PeriodicTask {
 			}
 			if (e.sign_violation_timer > 0) {
 				e.sign_violation_timer--;
-				drawString("Warning: Numerical instability detected. Please decrease timestep.", hoffset, voffset + line*vspacing, g); line++;
+				drawString("Warning: Numerical instability detected. Please decrease timestep or increase junction smoothing.", hoffset, voffset + line*vspacing, g); line++;
 			}
 		}
 		

@@ -666,7 +666,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		try {
 			JsonReader fstr = new JsonReader(new StringReader(json));
 			fstr.beginObject();
-			this.readAdvancedSettings(gson, fstr);
+			this.readAdvancedSettings(gson, fstr, Preset.DEFAULT);
 			fstr.endObject();
 		} catch (IOException | RuntimeException e1) {
 			e1.printStackTrace();
@@ -839,7 +839,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			e.eps_r_semi = Double.valueOf(eps_r_semi	.getText());
 
 			e.calculateDependentConstants();
-			e.reset(false, false);
+			e.reset(false, null);
 			e.lastsimspeed = -1;
 			e.advsettings_tweaked = true;
 			return true;
@@ -905,9 +905,12 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	}
 	
 
-	public void readAdvancedSettings (Gson gson, JsonReader fstr) throws JsonIOException, JsonSyntaxException, IOException, RuntimeException {
+	public void readAdvancedSettings (Gson gson, JsonReader fstr, Preset p) throws JsonIOException, JsonSyntaxException, IOException, RuntimeException {
 		
-		e.setDefaultParameters();
+		if (p == null)
+			e.setDefaultParameters();
+		else
+			p.applyPreset(e);
 
 		while (fstr.hasNext()) {
 			String name = fstr.nextName();
