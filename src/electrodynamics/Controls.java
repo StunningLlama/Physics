@@ -1200,11 +1200,15 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.prefs.setVisible(true);
 		} else if (ev.getSource() == e.opts.menu_debug) {
 			debugging = !debugging;
+			if (!debugging) e.opts.textPane.setText(e.description);
 		} else if (ev.getSource() == e.opts.menu_exit) {
 			exit = true;
 		}else if (ev.getSource() == e.opts.menu_cust_material) {
 			e.materialmanager.valueChanged(null);
 			e.materialmanager.setVisible(true);
+		} else if (ev.getSource() == e.opts.menu_view_materials) {
+			e.materialviewer.updateUI();
+			e.materialviewer.setVisible(true);
 		} else if (ev.getSource() instanceof JRadioButtonMenuItem) {
 			if (scalarview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null || vectorview.containsButton((JRadioButtonMenuItem) ev.getSource()) != null)
 				e.updateMiscFields = true;
@@ -1302,6 +1306,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		@Override
         public void actionPerformed(ActionEvent ev) {
 			debugging = !debugging;
+			if (!debugging) e.opts.textPane.setText(e.description);
 			e.opts.menu_debug.setSelected(debugging);
         }
     };
@@ -1890,7 +1895,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		public JButton cancelButton = new JButton("Cancel");
 		
 		public DescDialog() {
-			String text = e.opts.textPane.getText();
+			String text = e.description;
 			
 			getContentPane().setLayout(new BorderLayout());
 			JTextArea area = new JTextArea();
@@ -1914,7 +1919,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			okButton.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent ev) {
-					e.opts.textPane.setText(area.getText());
+					e.description = area.getText();
+					e.opts.textPane.setText(e.description);
 					e.opts.textPane.setEditable(false);
 					flagChanges(false);
 					dispose();

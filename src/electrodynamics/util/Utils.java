@@ -4,6 +4,7 @@
 
 package electrodynamics.util;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -29,6 +30,22 @@ public class Utils {
 		if ((val != val) || (val < min)) return min;
 		if (val > max) return max;
 		return val;
+	}
+	
+	public static double max(double x1, double x2, double x3) {
+		return Math.max(Math.max(x1, x2), x3);
+	}
+
+	public static double max(double x1, double x2, double x3, double x4) {
+		return Math.max(Math.max(x1, x2), Math.max(x3, x4));
+	}
+	
+	public static double min(double x1, double x2, double x3) {
+		return Math.min(Math.min(x1, x2), x3);
+	}
+
+	public static double min(double x1, double x2, double x3, double x4) {
+		return Math.min(Math.min(x1, x2), Math.min(x3, x4));
 	}
 	
 	public static double logmean(double x, double y)
@@ -263,5 +280,15 @@ public class Utils {
 	    		newList.add(cloner.apply(element));
 	    }
 	    return newList;
+	}
+	
+	private static DecimalFormat df_e = new DecimalFormat("#.########E0");
+	private static DecimalFormat df = new DecimalFormat("#.########");
+	public static String formatDouble(double d) {
+		if ((d != 0 && Math.abs(d) < 1e-3) || Math.abs(d) >= 1e6)  {
+			return df_e.format(d);
+		} else {
+			return df.format(d);
+		}
 	}
 }

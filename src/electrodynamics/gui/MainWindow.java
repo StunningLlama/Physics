@@ -28,10 +28,8 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -42,7 +40,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
-import javax.swing.ListCellRenderer;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
@@ -50,6 +47,8 @@ import javax.swing.border.EmptyBorder;
 
 import electrodynamics.Controls;
 import electrodynamics.Controls.Brush;
+import electrodynamics.Controls.BrushShape;
+import electrodynamics.GeneralMaterialType;
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
@@ -83,7 +82,7 @@ public class MainWindow extends JFrame {
 	public JLabel lblVectorBrightness;
 	public JScrollBar gui_brightness_vec;
 	public JScrollBar gui_simspeed_2;
-	public JComboBox gui_brush_1;
+	public JComboBox<BrushShape> gui_brush_1;
 	public JScrollBar gui_parameter3;
 	public JTextArea textPane;
 	public JScrollPane scrollPane;
@@ -92,9 +91,9 @@ public class MainWindow extends JFrame {
 	public JLabel gui_stepslbl;
 	public JLabel gui_stepsizelbl;
 	public JCheckBox gui_brush_highlight;
-	public JComboBox gui_material;
-	public JComboBox gui_brush;
-	public JComboBox gui_bc;
+	public JComboBox<GeneralMaterialType> gui_material;
+	public JComboBox<Brush> gui_brush;
+	public JComboBox<BoundaryCondition> gui_bc;
 	public JLabel lblBrushSize;
 	public JMenuItem menu_open;
 	public JMenuItem menu_saveas;
@@ -149,6 +148,7 @@ public class MainWindow extends JFrame {
 	public JMenuItem menu_cust_material;
 	public JLabel gui_light_text;
 	public JScrollBar gui_light;
+	public JMenuItem menu_view_materials;
 
 	/**
 	 * Create the frame.
@@ -249,6 +249,9 @@ public class MainWindow extends JFrame {
 		
 		menu_cust_material = new JMenuItem("Custom materials");
 		menu_asdf.add(menu_cust_material);
+		
+		menu_view_materials = new JMenuItem("Material viewer");
+		menu_asdf.add(menu_view_materials);
 		
 		menu_tools = new JMenu("Tools");
 		menuBar.add(menu_tools);
@@ -397,13 +400,13 @@ public class MainWindow extends JFrame {
 		gui_parameter1.setBounds(202, 312, 171, 17);
 		panel.add(gui_parameter1);
 
-		gui_brush = new JComboBox();
+		gui_brush = new JComboBox<>();
 		gui_brush.setMaximumRowCount(16);
-		gui_brush.setModel(new DefaultComboBoxModel(Controls.Brush.values()));
+		gui_brush.setModel(new DefaultComboBoxModel<>(Controls.Brush.values()));
 		gui_brush.setSelectedIndex(0);
 		gui_brush.setBounds(202, 49, 171, 22);
 		panel.add(gui_brush);
-		addTooltips(gui_brush);
+		//addTooltips(gui_brush);
 
 		gui_stepsizelbl = new JLabel("Timestep");
 		gui_stepsizelbl.setBounds(21, 90, 161, 14);
@@ -445,13 +448,13 @@ public class MainWindow extends JFrame {
 		gui_brightness_vec.setBounds(11, 261, 171, 17);
 		panel.add(gui_brightness_vec);
 
-		gui_brush_1 = new JComboBox();
+		gui_brush_1 = new JComboBox<>();
 		gui_brush_1.setMaximumRowCount(16);
-		gui_brush_1.setModel(new DefaultComboBoxModel(Controls.BrushShape.values()));
+		gui_brush_1.setModel(new DefaultComboBoxModel<>(Controls.BrushShape.values()));
 		gui_brush_1.setSelectedIndex(1);
 		gui_brush_1.setBounds(202, 114, 171, 22);
 		panel.add(gui_brush_1);
-		addTooltips(gui_brush_1);
+		//addTooltips(gui_brush_1);
 
 		gui_stepslbl = new JLabel("Sim steps/frame");
 		gui_stepslbl.setBounds(21, 141, 144, 14);
@@ -483,18 +486,18 @@ public class MainWindow extends JFrame {
 		gui_brush_highlight.setBounds(201, 154, 160, 23);
 		panel.add(gui_brush_highlight);
 
-		gui_material = new JComboBox();
+		gui_material = new JComboBox<>();
 		gui_material.setMaximumRowCount(16);
 		gui_material.setBounds(202, 81, 171, 22);
 		panel.add(gui_material);
-		addTooltips(gui_material);
+		//addTooltips(gui_material);
 
-		gui_bc = new JComboBox();
-		gui_bc.setModel(new DefaultComboBoxModel(BoundaryCondition.values()));
+		gui_bc = new JComboBox<>();
+		gui_bc.setModel(new DefaultComboBoxModel<>(BoundaryCondition.values()));
 		gui_bc.setSelectedIndex(0);
 		gui_bc.setBounds(202, 17, 171, 22);
 		panel.add(gui_bc);
-		addTooltips(gui_bc);
+		//addTooltips(gui_bc);
 		
 		gui_carrierlbl = new JLabel("Charge carrier density");
 		gui_carrierlbl.setBounds(21, 340, 150, 14);
@@ -555,24 +558,6 @@ public class MainWindow extends JFrame {
 						gui_light.setMaximum(25);
 						gui_light.setBounds(202, 261, 171, 17);
 						panel.add(gui_light);
-	}
-
-	public void addTooltips(JComboBox box) {
-		ListCellRenderer<? super Object> originalRenderer = box.getRenderer();
-
-		box.setRenderer(new ListCellRenderer<Object>() {
-		    @Override
-		    public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-		                                                  boolean isSelected, boolean cellHasFocus) {
-		        Component c = originalRenderer.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-
-		        if (c instanceof JComponent && value != null) {
-		            ((JComponent) c).setToolTipText(value.toString());
-		        }
-
-		        return c;
-		    }
-		});
 	}
 	
 	public void listSettings() {
@@ -687,6 +672,7 @@ public class MainWindow extends JFrame {
 		menu_github.addActionListener(e.controls);
 		menu_report.addActionListener(e.controls);
 		menu_cust_material.addActionListener(e.controls);
+		menu_view_materials.addActionListener(e.controls);
 		
 		gui_brush.addItemListener(e.controls);
 		
@@ -752,6 +738,8 @@ public class MainWindow extends JFrame {
 	}
 
 	public class CustJCheckBoxMenuItem extends JCheckBoxMenuItem {
+
+		private static final long serialVersionUID = 760172179099467782L;
 
 		public CustJCheckBoxMenuItem(String text) {
 			super(text);

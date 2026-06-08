@@ -25,6 +25,7 @@ import electrodynamics.Preset;
 import electrodynamics.Simulation;
 import electrodynamics.units.Quantity;
 import electrodynamics.units.Units;
+import electrodynamics.util.Utils;
 
 import javax.swing.JTabbedPane;
 
@@ -698,10 +699,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		}
 	}
 
-	public String formatDouble(double d) {
-		return Double.toString(d);
-	}
-
 	private JTextField ni_metal_high;
 	private JTextField ni_metal_low;
 	private JTextField max_EMF;
@@ -713,57 +710,57 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	private JTextField default_AC_freq;
 
 	public void storeAdvancedSettings() {
-		width				.setText(formatDouble(e.default_width				));
+		width				.setText(Utils.formatDouble(e.default_width				));
 		resolution			.setText(Integer.toString(e.default_resolution		));
-		depth				.setText(formatDouble(e.depth						));
+		depth				.setText(Utils.formatDouble(e.depth						));
 		junction_size		.setText(Integer.toString(e.junction_size			));
 		dopant_smoothing_distance		.setText(Integer.toString(e.dopant_smoothing_distance			));
 
-		eps0					.setText(formatDouble(e.eps0						));
-		mu0					.setText(formatDouble(e.mu0							));
-		e_charge				.setText(formatDouble(e.e_charge					));
-		T					.setText(formatDouble(e.T							));
+		eps0					.setText(Utils.formatDouble(e.eps0						));
+		mu0					.setText(Utils.formatDouble(e.mu0							));
+		e_charge				.setText(Utils.formatDouble(e.e_charge					));
+		T					.setText(Utils.formatDouble(e.T							));
 		
-		mu_electron			.setText(formatDouble(e.mu_electron_semi			));
-		mu_hole				.setText(formatDouble(e.mu_hole_semi				));
-		ni_semi				.setText(formatDouble(e.ni_semi						));
-		W_semi				.setText(formatDouble(e.W_semi/e.eVtoJ				));
-		E_b_semi				.setText(formatDouble(e.E_b_semi/e.eVtoJ			));
-		k_rad_semi		.setText(formatDouble(e.k_rad_semi				));
-		k_SRH_n_semi		.setText(formatDouble(e.k_SRH_n_semi			));
-		k_SRH_p_semi		.setText(formatDouble(e.k_SRH_p_semi			));
-		k_aug_n_semi		.setText(formatDouble(e.k_aug_n_semi			));
-		k_aug_p_semi		.setText(formatDouble(e.k_aug_p_semi			));
+		mu_electron			.setText(Utils.formatDouble(e.mu_electron_semi			));
+		mu_hole				.setText(Utils.formatDouble(e.mu_hole_semi				));
+		ni_semi				.setText(Utils.formatDouble(e.ni_semi						));
+		W_semi				.setText(Utils.formatDouble(e.W_semi/e.eVtoJ				));
+		E_b_semi				.setText(Utils.formatDouble(e.E_b_semi/e.eVtoJ			));
+		k_rad_semi		.setText(Utils.formatDouble(e.k_rad_semi				));
+		k_SRH_n_semi		.setText(Utils.formatDouble(e.k_SRH_n_semi			));
+		k_SRH_p_semi		.setText(Utils.formatDouble(e.k_SRH_p_semi			));
+		k_aug_n_semi		.setText(Utils.formatDouble(e.k_aug_n_semi			));
+		k_aug_p_semi		.setText(Utils.formatDouble(e.k_aug_p_semi			));
 		
-		v_sat_n				.setText(formatDouble(e.v_sat_n_semi						));
-		v_sat_p				.setText(formatDouble(e.v_sat_p_semi						));
-		n_default_doping		.setText(formatDouble(e.n_default_doping_concentration		));
-		p_default_doping		.setText(formatDouble(e.p_default_doping_concentration		));
-		n_light_doping		.setText(formatDouble(e.n_light_doping_concentration		));
-		p_light_doping		.setText(formatDouble(e.p_light_doping_concentration		));
-		n_heavy_doping		.setText(formatDouble(e.n_heavy_doping_concentration		));
-		p_heavy_doping		.setText(formatDouble(e.p_heavy_doping_concentration		));
+		v_sat_n				.setText(Utils.formatDouble(e.v_sat_n_semi						));
+		v_sat_p				.setText(Utils.formatDouble(e.v_sat_p_semi						));
+		n_default_doping		.setText(Utils.formatDouble(e.n_default_doping_concentration		));
+		p_default_doping		.setText(Utils.formatDouble(e.p_default_doping_concentration		));
+		n_light_doping		.setText(Utils.formatDouble(e.n_light_doping_concentration		));
+		p_light_doping		.setText(Utils.formatDouble(e.p_light_doping_concentration		));
+		n_heavy_doping		.setText(Utils.formatDouble(e.n_heavy_doping_concentration		));
+		p_heavy_doping		.setText(Utils.formatDouble(e.p_heavy_doping_concentration		));
 		
-		ni_metal				.setText(formatDouble(e.ni_metal					));
-		ni_metal_high				.setText(formatDouble(e.ni_metal_high					));
-		ni_metal_low				.setText(formatDouble(e.ni_metal_low					));
-		W_metal				.setText(formatDouble(e.W_metal_default/e.eVtoJ		));
-		E_b_metal			.setText(formatDouble(e.E_b_metal/e.eVtoJ			));
-		W_metal_high			.setText(formatDouble(e.W_metal_high/e.eVtoJ		));
-		W_metal_low			.setText(formatDouble(e.W_metal_low/e.eVtoJ			));
-		recomb_rate_metal	.setText(formatDouble(e.k_rad_metal					));
+		ni_metal				.setText(Utils.formatDouble(e.ni_metal					));
+		ni_metal_high				.setText(Utils.formatDouble(e.ni_metal_high					));
+		ni_metal_low				.setText(Utils.formatDouble(e.ni_metal_low					));
+		W_metal				.setText(Utils.formatDouble(e.W_metal_default/e.eVtoJ		));
+		E_b_metal			.setText(Utils.formatDouble(e.E_b_metal/e.eVtoJ			));
+		W_metal_high			.setText(Utils.formatDouble(e.W_metal_high/e.eVtoJ		));
+		W_metal_low			.setText(Utils.formatDouble(e.W_metal_low/e.eVtoJ			));
+		recomb_rate_metal	.setText(Utils.formatDouble(e.k_rad_metal					));
 
-		dielectric_eps_r			.setText(formatDouble(e.dielectric_eps_r		));
-		ferromagnet_mu_r			.setText(formatDouble(e.ferromagnet_mu_r		));
-		staticcharge_density		.setText(formatDouble(e.staticcharge_density	));
-		currentsource_mobility	.setText(formatDouble(e.currentsource_mobility	));
-		max_EMF	.setText(formatDouble(e.max_EMF	));
-		max_current	.setText(formatDouble(e.max_current	));
-		default_AC_freq	.setText(formatDouble(e.default_AC_freq	));
+		dielectric_eps_r			.setText(Utils.formatDouble(e.dielectric_eps_r		));
+		ferromagnet_mu_r			.setText(Utils.formatDouble(e.ferromagnet_mu_r		));
+		staticcharge_density		.setText(Utils.formatDouble(e.staticcharge_density	));
+		currentsource_mobility	.setText(Utils.formatDouble(e.currentsource_mobility	));
+		max_EMF	.setText(Utils.formatDouble(e.max_EMF	));
+		max_current	.setText(Utils.formatDouble(e.max_current	));
+		default_AC_freq	.setText(Utils.formatDouble(e.default_AC_freq	));
 
-		a_factor_n		.setText(formatDouble(e.a_factor_n));
-		a_factor_p		.setText(formatDouble(e.a_factor_p));
-		eps_r_semi		.setText(formatDouble(e.eps_r_semi));
+		a_factor_n		.setText(Utils.formatDouble(e.a_factor_n));
+		a_factor_p		.setText(Utils.formatDouble(e.a_factor_p));
+		eps_r_semi		.setText(Utils.formatDouble(e.eps_r_semi));
 	}
 	
 	public boolean loadAdvancedSettings(boolean show_warning) {

@@ -25,6 +25,7 @@ import electrodynamics.Renderer.VectorView;
 import electrodynamics.gui.AdvancedOptions;
 import electrodynamics.gui.MainWindow;
 import electrodynamics.gui.MaterialManager;
+import electrodynamics.gui.MaterialViewer;
 import electrodynamics.gui.Preferences;
 import electrodynamics.plot.BandPlot;
 import electrodynamics.plot.CarrierPlot;
@@ -58,8 +59,6 @@ public class Simulation extends PeriodicTask {
 	 *  - Darlington pair [done]
 	 */
 	
-	//fix carrier view at high fields
-	
 	/* Parts */
 	
 	public Renderer.RenderCanvas canvas;
@@ -70,6 +69,7 @@ public class Simulation extends PeriodicTask {
 	public SaveManager savemanager;
 	public Preferences prefs;
 	public MaterialManager materialmanager;
+	public MaterialViewer materialviewer;
 	
 	public ArrayList<Plot> plots = new ArrayList<>();
 	public BandPlot bandplot;
@@ -77,6 +77,7 @@ public class Simulation extends PeriodicTask {
 	public CarrierPlot carrierplot;
 	
 	public Units units = Units.SI;
+	public String description = "";
 	
 	/* Multithreading */
 	
@@ -343,14 +344,6 @@ public class Simulation extends PeriodicTask {
 	public double[][] grad_Fy_p;
 	public double[][] F;				// Average total electrochemical potential
 
-	public double[][] drift_x_n;		// Total drift force for electrons
-	public double[][] drift_y_n;
-
-	public double[][] drift_x_p;		// Total drift force for holes
-	public double[][] drift_y_p;
-
-	public double[][] D_eff_n;				// Relative mobility.
-	public double[][] D_eff_p;				// Relative mobility.
 
 	public boolean updateMiscFields = false;
 	public double[][] debug;
@@ -454,6 +447,7 @@ public class Simulation extends PeriodicTask {
 		adv_opts = new AdvancedOptions();
 		prefs = new Preferences(this);
 		materialmanager = new MaterialManager();
+		materialviewer = new MaterialViewer();
 		datafile = new File(datafilename);
 
 		bandplot = new BandPlot(); plots.add(bandplot);
@@ -475,6 +469,7 @@ public class Simulation extends PeriodicTask {
 		adv_opts.initialize(this);
 		prefs.initialize();
 		materialmanager.initialize(this);
+		materialviewer.initialize(this);
 
 		try {
 			datastream = new PrintWriter(new FileOutputStream(datafile));
@@ -660,6 +655,7 @@ public class Simulation extends PeriodicTask {
 	public boolean reset(boolean resetall, boolean resetparameters) {
 		if (resetall || resetparameters) {
 			modified_names = default_names;
+			description = "Description of simulation";
 			setDefaultParameters();
 			materialmanager.resetMaterialList();
 		}
@@ -745,9 +741,6 @@ public class Simulation extends PeriodicTask {
 				grad_Fx_n = new double[nx][ny];		grad_Fy_n = new double[nx][ny];
 				grad_Fx_p = new double[nx][ny];		grad_Fy_p = new double[nx][ny];
 				F = new double[nx][ny];
-				drift_x_n = new double[nx][ny];		drift_y_n = new double[nx][ny];
-				drift_x_p = new double[nx][ny];		drift_y_p = new double[nx][ny];
-				D_eff_n = new double[nx][ny];		D_eff_p = new double[nx][ny];
 				debug = new double[nx][ny];
 
 				MG_rho0 = new double[nx][ny];
@@ -864,11 +857,6 @@ public class Simulation extends PeriodicTask {
 					grad_Fx_n[i][j] = 0.0;	grad_Fy_n[i][j] = 0.0;
 					grad_Fx_p[i][j] = 0.0;	grad_Fy_p[i][j] = 0.0;
 					F[i][j] = 0.0;
-
-					drift_x_n[i][j] = 0;	drift_y_n[i][j] = 0;
-					drift_x_p[i][j] = 0;	drift_y_p[i][j] = 0;
-
-					D_eff_n[i][j] = 0.0;		D_eff_p[i][j] = 0.0;
 					
 					abs_depth[i][j] = 0;
 					
@@ -1281,7 +1269,6 @@ public class Simulation extends PeriodicTask {
 	public void calcMiscFields(boolean updatePhi) {
 		ScalarView view_scalar = controls.scalarview.getOption();
 		VectorView view_vector = controls.vectorview.getOption();
-		boolean show_diffusion = opts.menu_carrier_diffusion.isSelected();
 
 		if (updatePhi)
 			multigridSolve(false, true);
@@ -1354,21 +1341,6 @@ public class Simulation extends PeriodicTask {
 		}
 		renderer.rho_n_max = rho_n_max_tmp;
 		renderer.rho_p_max = rho_p_max_tmp;
-		
-		if (show_diffusion) {
-
-			for (int i = 1; i < nx-1; i++)
-			{
-				for (int j = 1; j < ny-1; j++)
-				{
-					double E2 = 0.25*(Ex[i][j]+Ex[i][j+1])*(Ex[i][j]+Ex[i][j+1]) + 0.25*(Ey[i][j]+Ey[i+1][j])*(Ey[i][j]+Ey[i+1][j]);
-					double Esat_n = v_sat_n[i][j]/(D_n[i][j]*e_charge*beta);
-					double Esat_p = v_sat_p[i][j]/(D_p[i][j]*e_charge*beta);
-					D_eff_n[i][j] = D_n[i][j]/Math.sqrt(E2/(Esat_n*Esat_n) + 1);
-					D_eff_p[i][j] = D_p[i][j]/Math.sqrt(E2/(Esat_p*Esat_p) + 1);
-				}
-			}
-		}
 
 		for (int i = 0; i < nx-1; i++)
 		{
@@ -1379,12 +1351,6 @@ public class Simulation extends PeriodicTask {
 				
 				if (view_vector == VectorView.POYNTING)
 					display_x[i][j] = -Ex[i][j]*0.5*(Hz[i][j] + Hz[i][j-1]);
-
-				if (show_diffusion) {
-					double emf_phase = ac_y[i][j]*AC_amplitude+(1-ac_y[i][j]);
-					drift_y_n[i][j] = conducting_y[i][j]*(emf_phase*emfy[i][j] + cmfy_n[i][j]/q_n + Ey[i][j]);
-					drift_y_p[i][j] = conducting_y[i][j]*(emf_phase*emfy[i][j] + cmfy_p[i][j]/q_p + Ey[i][j]);
-				}
 			}
 		}
 
@@ -1397,12 +1363,6 @@ public class Simulation extends PeriodicTask {
 				
 				if (view_vector == VectorView.POYNTING)
 					display_y[i][j] = Ey[i][j]*0.5*(Hz[i][j] + Hz[i-1][j]);
-
-				if (show_diffusion) {
-					double emf_phase = ac_x[i][j]*AC_amplitude+(1-ac_x[i][j]);
-					drift_x_n[i][j] = conducting_x[i][j]*(emf_phase*emfx[i][j] + cmfx_n[i][j]/q_n + Ex[i][j]);
-					drift_x_p[i][j] = conducting_x[i][j]*(emf_phase*emfx[i][j] + cmfx_p[i][j]/q_p + Ex[i][j]);
-				}
 			}
 		}
 
@@ -2289,20 +2249,10 @@ public class Simulation extends PeriodicTask {
 		renderer.probetexttimer = 30;
 	}
 	
-	public String prevDesc = "";
-	
 	public void setDebugInfo() {
 		if (!controls.debugging) {
-			if (prevDesc != "") {
-				opts.textPane.setText(prevDesc);
-				prevDesc = "";
-			}
-
 			return;
 		}
-		
-		if (prevDesc == "")
-			prevDesc = opts.textPane.getText();
 		
 		int mx = controls.mx;
 		int my = controls.my;

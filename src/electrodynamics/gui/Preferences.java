@@ -44,7 +44,7 @@ public class Preferences extends JFrame implements ActionListener {
 	public JCheckBox chkbox_undo;
 	public JSpinner spinner_imgsize;
 	public JCheckBox chkbox_potential;
-	public JComboBox gui_units;
+	public JComboBox<Units> gui_units;
 	
 	Simulation e;
 	public int saveversion = 1;
@@ -98,8 +98,8 @@ public class Preferences extends JFrame implements ActionListener {
 		lblUnitSystem.setBounds(26, 128, 91, 16);
 		contentPane.add(lblUnitSystem);
 		
-		gui_units = new JComboBox();
-		gui_units.setModel(new DefaultComboBoxModel(Units.values()));
+		gui_units = new JComboBox<>();
+		gui_units.setModel(new DefaultComboBoxModel<>(Units.values()));
 		gui_units.setBounds(130, 124, 146, 27);
 		contentPane.add(gui_units);
 		

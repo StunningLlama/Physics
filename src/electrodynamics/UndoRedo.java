@@ -142,7 +142,7 @@ class Snapshot {
 		gui_scalar_mode = e.controls.scalarmode.getOption();
 		gui_view_vec_mode = e.controls.vectormode.getOption();
 		gui_bc = (BoundaryCondition) e.opts.gui_bc.getSelectedItem();
-		description = e.opts.textPane.getText();
+		description = e.description;
 
 		boolean_values = new HashMap<AbstractButton, Boolean>();
 		integer_values = new HashMap<Adjustable, Integer>();
@@ -181,7 +181,7 @@ class Snapshot {
 			e.time = time;
 
 			if (e.prefs.chkbox_undo.isSelected()) {
-				e.opts.textPane.setText(description);
+				e.description = description;
 				e.controls.scalarview.setOption(gui_view);
 				e.controls.vectorview.setOption(gui_view_vec);
 				e.controls.scalarmode.setOption(gui_scalar_mode);
@@ -219,6 +219,7 @@ class Snapshot {
 			e.materials = copy(materials);
 			e.probes = Utils.cloneList(probes, Probe::clone);
 
+			e.opts.textPane.setText(e.description);
 			e.opts.textPane.setEditable(false);
 			e.opts.textPane.setCaretPosition(0);
 			e.updateAllMaterials(false);

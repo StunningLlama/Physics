@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import javax.swing.AbstractListModel;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -29,6 +28,7 @@ import electrodynamics.GeneralMaterialType;
 import electrodynamics.Material;
 import electrodynamics.MaterialType;
 import electrodynamics.Simulation;
+import electrodynamics.util.Utils;
 
 public class MaterialManager extends JFrame implements ActionListener, ListSelectionListener, ItemListener {
 
@@ -70,7 +70,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	private JTextField rho_back;
 	private JLabel lblNewLabel;
 	private JTextField name;
-	private JComboBox type;
+	private JComboBox<MaterialClass> type;
 	private JLabel lblType;
 	private JButton btn_delete;
 	private JButton btn_add;
@@ -78,7 +78,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	public HashMap<Integer, Material> mat_map = new HashMap<Integer, Material>();
 	public int id_counter = 0;
 	private JButton btn_apply;
-	private JList list;
+	private JList<Material> list;
 	private JLabel lbl_mu_electron;
 	private JLabel lbl_mu_hole;
 	private JLabel lbl_ni;
@@ -101,16 +101,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		scrollPane.setBounds(6, 6, 235, 283);
 		contentPane.add(scrollPane);
 		
-		list = new JList();
-		list.setModel(new AbstractListModel() {
-			String[] values = new String[] {};
-			public int getSize() {
-				return values.length;
-			}
-			public Object getElementAt(int index) {
-				return values[index];
-			}
-		});
+		list = new JList<>();
 		scrollPane.setViewportView(list);
 		
 		btn_add = new JButton("New material");
@@ -281,8 +272,8 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		name.setBounds(373, 0, 202, 26);
 		contentPane.add(name);
 		
-		type = new JComboBox();
-		type.setModel(new DefaultComboBoxModel(MaterialClass.values()));
+		type = new JComboBox<>();
+		type.setModel(new DefaultComboBoxModel<>(MaterialClass.values()));
 		type.setBounds(373, 34, 202, 27);
 		contentPane.add(type);
 		
@@ -309,7 +300,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		this.btn_cancel.addActionListener(this);
 		this.list.addListSelectionListener(this);
 		this.type.addItemListener(this);
-		e.opts.gui_material.setModel(new DefaultComboBoxModel(makelist()));
+		e.opts.gui_material.setModel(new DefaultComboBoxModel<GeneralMaterialType>(makelist()));
 		setInputVisibility();
 	}
 	
@@ -368,7 +359,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	}
 	
 	public void delete() {
-		Material mat = (Material) list.getSelectedValue();
+		Material mat = list.getSelectedValue();
 		if (mat != null) {
 			mat_map.remove(mat.cust_id);
 			updateUI();
@@ -378,7 +369,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	}
 
 	public void save() {
-		Material mat = (Material) list.getSelectedValue();
+		Material mat = list.getSelectedValue();
 		if (mat != null) {
 			loadMaterial(mat);
 			updateUI();
@@ -389,8 +380,8 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	}
 	
 	public void updateUI() {
-		list.setModel(new DefaultComboBoxModel(mat_map.values().toArray()));
-		e.opts.gui_material.setModel(new DefaultComboBoxModel(makelist()));
+		list.setModel(new DefaultComboBoxModel<Material>(mat_map.values().toArray(new Material[0])));
+		e.opts.gui_material.setModel(new DefaultComboBoxModel<GeneralMaterialType>(makelist()));
 	}
 	
 	@Override
@@ -408,7 +399,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 
 	@Override
 	public void valueChanged(ListSelectionEvent e) {
-		Material mat = (Material) list.getSelectedValue();
+		Material mat = list.getSelectedValue();
 		if (mat != null) {
 			storeMaterial(mat);
 		}
@@ -423,21 +414,21 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 			type.setSelectedItem(MaterialClass.INSULATING);
 		
 		name.setText(mat.name);
-		eps_r.setText(formatDouble(mat.eps_r));
-		mu_r.setText(formatDouble(mat.mu_r));
-		rho_back.setText(formatDouble(mat.rho_back));
-		ni.setText(formatDouble(mat.ni));
-		W.setText(formatDouble(mat.W/e.eVtoJ));
-		Eb.setText(formatDouble(mat.Eb/e.eVtoJ));
-		mu_electron.setText(formatDouble(mat.D_n*e.beta*e.e_charge));
-		mu_hole.setText(formatDouble(mat.D_p*e.beta*e.e_charge));
-		v_sat_n.setText(formatDouble(mat.v_sat_n));
-		v_sat_p.setText(formatDouble(mat.v_sat_p));
-		k_rad.setText(formatDouble(mat.k_rad));
-		k_aug_n.setText(formatDouble(mat.k_aug_n));
-		k_aug_p.setText(formatDouble(mat.k_aug_p));
-		k_SRH_n.setText(formatDouble(mat.k_SRH_n));
-		k_SRH_p.setText(formatDouble(mat.k_SRH_p));
+		eps_r.setText(Utils.formatDouble(mat.eps_r));
+		mu_r.setText(Utils.formatDouble(mat.mu_r));
+		rho_back.setText(Utils.formatDouble(mat.rho_back));
+		ni.setText(Utils.formatDouble(mat.ni));
+		W.setText(Utils.formatDouble(mat.W/e.eVtoJ));
+		Eb.setText(Utils.formatDouble(mat.Eb/e.eVtoJ));
+		mu_electron.setText(Utils.formatDouble(mat.D_n*e.beta*e.e_charge));
+		mu_hole.setText(Utils.formatDouble(mat.D_p*e.beta*e.e_charge));
+		v_sat_n.setText(Utils.formatDouble(mat.v_sat_n));
+		v_sat_p.setText(Utils.formatDouble(mat.v_sat_p));
+		k_rad.setText(Utils.formatDouble(mat.k_rad));
+		k_aug_n.setText(Utils.formatDouble(mat.k_aug_n));
+		k_aug_p.setText(Utils.formatDouble(mat.k_aug_p));
+		k_SRH_n.setText(Utils.formatDouble(mat.k_SRH_n));
+		k_SRH_p.setText(Utils.formatDouble(mat.k_SRH_p));
 	}
 	
 	public void loadMaterial(Material mat) {
@@ -511,10 +502,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		lbl_k_aug_p.setEnabled(semiconducting);
 		lbl_k_SRH_n.setEnabled(semiconducting);
 		lbl_k_SRH_p.setEnabled(semiconducting);
-	}
-
-	public String formatDouble(double d) {
-		return Double.toString(d);
 	}
 	
 	public enum MaterialClass {

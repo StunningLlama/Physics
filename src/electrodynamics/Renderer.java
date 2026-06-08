@@ -103,6 +103,15 @@ public class Renderer extends PeriodicTask {
 	double cc_default_dot_density;	// How many electron/hole dots to draw, in (C/m)^-1
 	double tau;						// How long a dot stays on the screen
 	double tau_events;				// How long a flash stays
+
+	public double[][] drift_x_n;		// Total drift force for electrons
+	public double[][] drift_y_n;
+
+	public double[][] drift_x_p;		// Total drift force for holes
+	public double[][] drift_y_p;
+
+	public double[][] sqrt_D_eff_n;				// Relative mobility.
+	public double[][] sqrt_D_eff_p;				// Relative mobility.
 	
 	public int new_canvas_size;
 	
@@ -127,6 +136,10 @@ public class Renderer extends PeriodicTask {
 		rho_G_dist.init(e.nx, e.ny);
 		
 		setCanvasSize(canvas_size);
+
+		drift_x_n = new double[e.nx][e.ny];		drift_y_n = new double[e.nx][e.ny];
+		drift_x_p = new double[e.nx][e.ny];		drift_y_p = new double[e.nx][e.ny];
+		sqrt_D_eff_n = new double[e.nx][e.ny];		sqrt_D_eff_p = new double[e.nx][e.ny];
 		
 		resetChargeDots();
 	}
@@ -1521,6 +1534,8 @@ public class Renderer extends PeriodicTask {
 					if (show_carriers) {
 
 						if ((!e.opts.gui_paused.isSelected() || delta_t > 0)) {
+							boolean show_diffusion = e.opts.menu_carrier_diffusion.isSelected();
+							
 							if (n_thread == 0 && carrier_diffusion_warning_timer > 0) {
 								carrier_diffusion_warning_timer--;
 							}
@@ -1531,6 +1546,56 @@ public class Renderer extends PeriodicTask {
 								rho_n_dist.prepare(e.rho_n);
 								rho_p_dist.prepare(e.rho_p);
 								rho_G_dist.prepare(e.G);
+							}
+							if (show_diffusion && n_thread == Math.min(1, n_threads-1)) {
+								for (int i = 1; i < e.nx-1; i++)
+								{
+									for (int j = 1; j < e.ny-1; j++)
+									{
+										if (e.conducting[i][j] == 1) {
+											double E2 = 0.25*(e.Ex[i][j]+e.Ex[i][j+1])*(e.Ex[i][j]+e.Ex[i][j+1]) + 0.25*(e.Ey[i][j]+e.Ey[i+1][j])*(e.Ey[i][j]+e.Ey[i+1][j]);
+											double Esat_n = e.v_sat_n[i][j]/(e.D_n[i][j]*e.e_charge*e.beta);
+											double Esat_p = e.v_sat_p[i][j]/(e.D_p[i][j]*e.e_charge*e.beta);
+											sqrt_D_eff_n[i][j] = Math.sqrt(e.D_n[i][j]/Math.sqrt(E2/(Esat_n*Esat_n) + 1));
+											sqrt_D_eff_p[i][j] = Math.sqrt(e.D_p[i][j]/Math.sqrt(E2/(Esat_p*Esat_p) + 1));
+										} else {
+											sqrt_D_eff_n[i][j] = 0;
+											sqrt_D_eff_p[i][j] = 0;
+										}
+									}
+								}
+							}
+							/*for (int i = 1; i < e.nx-1; i++)
+							{
+								for (int j = 1; j < e.ny-1; j++)
+								{
+									if (e.conducting[i][j] == 0) {
+										sqrt_D_eff_n[i][j] = 0.0*Utils.max(sqrt_D_eff_n[i+1][j], sqrt_D_eff_n[i-1][j], sqrt_D_eff_n[i][j+1], sqrt_D_eff_n[i][j-1]);
+										sqrt_D_eff_p[i][j] = 0.0*Utils.max(sqrt_D_eff_p[i+1][j], sqrt_D_eff_p[i-1][j], sqrt_D_eff_p[i][j+1], sqrt_D_eff_p[i][j-1]);
+									}
+								}
+							}*/
+							if (show_diffusion && n_thread == Math.min(2, n_threads-1)) {
+								for (int i = 0; i < e.nx-1; i++)
+								{
+									for (int j = 1; j < e.ny-1; j++)
+									{
+										double emf_phase = e.ac_y[i][j]*e.AC_amplitude+(1-e.ac_y[i][j]);
+										drift_y_n[i][j] = e.conducting_y[i][j]*(emf_phase*e.emfy[i][j] + e.cmfy_n[i][j]/e.q_n + e.Ey[i][j]);
+										drift_y_p[i][j] = e.conducting_y[i][j]*(emf_phase*e.emfy[i][j] + e.cmfy_p[i][j]/e.q_p + e.Ey[i][j]);
+									}
+								}
+							}
+							if (show_diffusion && n_thread == Math.min(3, n_threads-1)) {
+								for (int i = 1; i < e.nx-1; i++)
+								{
+									for (int j = 0; j < e.ny-1; j++)
+									{
+										double emf_phase = e.ac_x[i][j]*e.AC_amplitude+(1-e.ac_x[i][j]);
+										drift_x_n[i][j] = e.conducting_x[i][j]*(emf_phase*e.emfx[i][j] + e.cmfx_n[i][j]/e.q_n + e.Ex[i][j]);
+										drift_x_p[i][j] = e.conducting_x[i][j]*(emf_phase*e.emfx[i][j] + e.cmfx_p[i][j]/e.q_p + e.Ex[i][j]);
+									}
+								}
 							}
 							
 							int i_low = lower(ccdots.size());
@@ -1621,10 +1686,12 @@ public class Renderer extends PeriodicTask {
 						int lower = lower(ccdots.size());
 						int upper = upper(ccdots.size());
 
-						int steps = fast? 5 : 10;
+						int steps = fast? 2 : 10;
 						double dt_dot = delta_t/steps;
 
 						try {
+							double factor = Math.sqrt(24*dt_dot);
+							
 							for (int i = lower; i < upper; i++) {
 								ChargeCarrierDot d = ccdots.get(i);
 
@@ -1649,30 +1716,26 @@ public class Renderer extends PeriodicTask {
 											}
 										} else {
 											if (d.type == DotType.ELECTRON) {
-												double D_electron = Utils.bilinearinterp(e.D_eff_n, d.x, d.y, e.nx, e.ny);
-												double s = -D_electron*e.beta*e.e_charge*dt_dot/e.ds;
-												double t = Math.sqrt(24*D_electron*dt_dot)/e.ds; //Random walk PDF obeys diffusion equation. Variance of uniform dist is 12L^2 and variance of heat kernel is 2Dt
+												double sqrt_D_n = Utils.bilinearinterp(sqrt_D_eff_n, d.x, d.y, e.nx, e.ny);
+												double s = -sqrt_D_n*sqrt_D_n*e.beta*e.e_charge*dt_dot/e.ds;
+												double t = factor*sqrt_D_n/e.ds; //Random walk PDF obeys diffusion equation. Variance of uniform dist is 12L^2 and variance of heat kernel is 2Dt
+												
 												for (int k = 0; k < steps; k++) {
-													d.x += s*Utils.bilinearinterp(e.drift_x_n, d.x-0.5, d.y, e.nx, e.ny);
-													d.y += s*Utils.bilinearinterp(e.drift_y_n, d.x, d.y-0.5, e.nx, e.ny);
-
-													double dx_diff = t*(frand.next()-0.5);
-													double dy_diff = t*(frand.next()-0.5);
+													double dx_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(drift_x_n, d.x-0.5, d.y, e.nx, e.ny);
+													double dy_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(drift_y_n, d.x, d.y-0.5, e.nx, e.ny);
 													if (e.conducting[(int)(d.x+dx_diff+0.5)][(int)(d.y+dy_diff+0.5)] == 1) {
 														d.x += dx_diff;
 														d.y += dy_diff;
 													}
 												}
 											} else if (d.type == DotType.HOLE) {
-												double D_hole = Utils.bilinearinterp(e.D_eff_p, d.x, d.y, e.nx, e.ny);
-												double s = D_hole*e.beta*e.e_charge*dt_dot/e.ds;
-												double t = Math.sqrt(24*D_hole*dt_dot)/e.ds;
+												double sqrt_D_p = Utils.bilinearinterp(sqrt_D_eff_p, d.x, d.y, e.nx, e.ny);
+												double s = sqrt_D_p*sqrt_D_p*e.beta*e.e_charge*dt_dot/e.ds;
+												double t = factor*sqrt_D_p/e.ds;
+												
 												for (int k = 0; k < steps; k++) {
-													d.x += s*Utils.bilinearinterp(e.drift_x_p, d.x-0.5, d.y, e.nx, e.ny);
-													d.y += s*Utils.bilinearinterp(e.drift_y_p, d.x, d.y-0.5, e.nx, e.ny);
-
-													double dx_diff = t*(frand.next()-0.5);
-													double dy_diff = t*(frand.next()-0.5);
+													double dx_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(drift_x_p, d.x-0.5, d.y, e.nx, e.ny);
+													double dy_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(drift_y_p, d.x, d.y-0.5, e.nx, e.ny);
 													if (e.conducting[(int)(d.x+dx_diff+0.5)][(int)(d.y+dy_diff+0.5)] == 1) {
 														d.x += dx_diff;
 														d.y += dy_diff;

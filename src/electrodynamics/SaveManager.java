@@ -141,7 +141,7 @@ public class SaveManager {
 						case "width": e.default_width = fstr.nextDouble(); break;
 						case "time": e.time = fstr.nextDouble(); break;
 						case "phase": e.AC_phase = fstr.nextDouble(); break;
-						case "description": e.opts.textPane.setText(fstr.nextString()); break;
+						case "description": e.description = fstr.nextString(); break;
 						
 						// Version 2
 						case "gui_view": e.controls.scalarview.setOption(gson.fromJson(fstr, Renderer.ScalarView.class)); break;
@@ -222,6 +222,7 @@ public class SaveManager {
 
 					fstr.close();
 
+					e.opts.textPane.setText(e.description);
 					e.opts.textPane.setEditable(false);
 					e.opts.textPane.setCaretPosition(0);
 					e.materialmanager.updateUI();
@@ -254,7 +255,7 @@ public class SaveManager {
 						case "gui_brightness_vec": e.opts.gui_brightness_vec.setValue(fstr.nextInt()); break;
 						case "gui_elem_colors": e.opts.menu_elem_colors.setSelected(fstr.nextBoolean()); break;
 						case "gui_bc": e.opts.gui_bc.setSelectedIndex(fstr.nextInt()); break;
-						case "description": e.opts.textPane.setText(fstr.nextString()); break;
+						case "description": e.description = fstr.nextString(); break;
 
 						case "ex": e.Ex = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
 						case "ey": e.Ey = validateArraySize((double[][]) gson.fromJson(fstr, double[][].class)); break;
@@ -294,7 +295,8 @@ public class SaveManager {
 					e.opts.menu_interface.setSelected(true);
 					fstr.endObject();
 					fstr.close();
-					
+
+					e.opts.textPane.setText(e.description);
 					e.opts.textPane.setEditable(false);
 					e.opts.textPane.setCaretPosition(0);
 					e.junction_size = 3;
@@ -447,7 +449,7 @@ public class SaveManager {
 				for (String s : e.opts.boolean_names.keySet()) header.addProperty(s, e.opts.boolean_names.get(s).isSelected());
 				for (String s : e.opts.integer_names.keySet()) header.addProperty(s, e.opts.integer_names.get(s).getValue());
 				
-				header.addProperty("description", e.opts.textPane.getText());
+				header.addProperty("description", e.description);
 				header.add("scalarview", gson.toJsonTree(e.controls.scalarview.getOption()));
 				header.add("vectorview", gson.toJsonTree(e.controls.vectorview.getOption()));
 				header.add("scalarmode", gson.toJsonTree(e.controls.scalarmode.getOption()));
