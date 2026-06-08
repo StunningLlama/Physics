@@ -302,6 +302,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		this.type.addItemListener(this);
 		e.opts.gui_material.setModel(new DefaultComboBoxModel<GeneralMaterialType>(makelist()));
 		setInputVisibility();
+		setLocationRelativeTo(null);
 	}
 	
 	public void resetMaterialList() {

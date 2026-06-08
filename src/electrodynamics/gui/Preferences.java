@@ -116,6 +116,7 @@ public class Preferences extends JFrame implements ActionListener {
 		btn_apply.addActionListener(this);
 		btn_cancel.addActionListener(this);
 		gui_units.addActionListener(this);
+		setLocationRelativeTo(null);
 		setVisible(false);
 		
 		readfile(preferences_file);

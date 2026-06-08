@@ -80,6 +80,7 @@ public class MaterialViewer extends JFrame implements ActionListener, ListSelect
 		this.btn_cancel.addActionListener(this);
 		this.btn_refresh.addActionListener(this);
 		this.list.addListSelectionListener(this);
+		setLocationRelativeTo(null);
 
 		textPane.setContentType("text/html");
 		updateUI();

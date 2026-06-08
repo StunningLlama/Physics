@@ -1199,8 +1199,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.prefs.getPrefs();
 			e.prefs.setVisible(true);
 		} else if (ev.getSource() == e.opts.menu_debug) {
-			debugging = !debugging;
-			if (!debugging) e.opts.textPane.setText(e.description);
+			key_dbg.actionPerformed(null);
 		} else if (ev.getSource() == e.opts.menu_exit) {
 			exit = true;
 		}else if (ev.getSource() == e.opts.menu_cust_material) {
@@ -1306,8 +1305,15 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		@Override
         public void actionPerformed(ActionEvent ev) {
 			debugging = !debugging;
-			if (!debugging) e.opts.textPane.setText(e.description);
-			e.opts.menu_debug.setSelected(debugging);
+			
+			if (debugging) {
+				e.controls.scalarview.addOption(ScalarView.DEBUG);
+			} else {
+				e.opts.textPane.setText(e.description);
+				e.controls.scalarview.removeOption(ScalarView.DEBUG);
+			}
+			if (ev != null)
+				e.opts.menu_debug.setSelected(debugging);
         }
     };
 

@@ -46,6 +46,10 @@ public class MenuCheckList<T extends Enum<?>, U extends JRadioButtonMenuItem> im
 		menu.remove(buttonmap.get(t));
 	}
 
+	public void addOption(T t) {
+		menu.add(buttonmap.get(t));
+	}
+
 	public T getOption() {
 		for (T t : buttonmap.keySet()) {
 			if (buttonmap.get(t).getModel() == buttongroup.getSelection())

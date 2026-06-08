@@ -59,6 +59,14 @@ public class Simulation extends PeriodicTask {
 	 *  - Darlington pair [done]
 	 */
 	
+	//Small transistors
+	//Optimize presets
+	//Write manual
+	//Think about free energy
+	//Cite sources
+	//Add more view options
+	//Make better MESFET
+	
 	/* Parts */
 	
 	public Renderer.RenderCanvas canvas;
@@ -127,6 +135,7 @@ public class Simulation extends PeriodicTask {
 	public double error_detection_threshold = 1e-3;
 	public int sign_violation_timer;
 	public boolean numerical_overflow;
+	public String CFL_text = "";
 	
 	public boolean advsettings_tweaked = false;
 	
@@ -647,10 +656,12 @@ public class Simulation extends PeriodicTask {
 		
 		dt_maximum = 0.9*Math.min(Math.min(ds/(Math.sqrt(2)*c), 4*eps0/sigma_epsr_max), Math.min(ds*ds/(4*D_electron_semi), ds*ds/(4*D_hole_semi)));
 		
-		System.out.println("Wave equation stability ratio = " + (Math.sqrt(2)*c)/(ds/dt_maximum));
-		System.out.println("Electron diffusion stability ratio (" + D_electron_name + ") = " + dt_maximum/(ds*ds/(4*D_electron_max)));
-		System.out.println("Hole diffusion stability ratio (" + D_hole_name + ") = " + dt_maximum/(ds*ds/(4*D_hole_max)));
-		System.out.println("Conduction stability ratio (" + sigma_epsr_name + ") = " + dt_maximum*sigma_epsr_max/(4*eps0));
+		CFL_text = "";
+		CFL_text += "Wave equation stability ratio = " + units.toString((Math.sqrt(2)*c)/(ds/dt_maximum), Quantity.DIMENSIONLESS) + "\n";
+		CFL_text += "Electron diffusion stability ratio (" + D_electron_name + ") = " + units.toString(dt_maximum/(ds*ds/(4*D_electron_max)), Quantity.DIMENSIONLESS) + "\n";
+		CFL_text += "Hole diffusion stability ratio (" + D_hole_name + ") = " + units.toString(dt_maximum/(ds*ds/(4*D_hole_max)), Quantity.DIMENSIONLESS) + "\n";
+		CFL_text += "Conduction stability ratio (" + sigma_epsr_name + ") = " + units.toString(dt_maximum*sigma_epsr_max/(4*eps0), Quantity.DIMENSIONLESS) + "\n";
+		System.out.print(CFL_text);
 	}
 
 	public boolean reset(boolean resetall, Preset preset) {
@@ -679,13 +690,11 @@ public class Simulation extends PeriodicTask {
 		try {
 			if (size_changed) {
 				if(resolution < 4) {
-					JOptionPane.showMessageDialog(opts, "Resolution too small.", "Error", JOptionPane.OK_OPTION);
 					resolution = 4;
 				}
 
 				log2_resolution = (int) Math.round(Math.log(resolution)/Math.log(2));
 				if(1 << log2_resolution != resolution) {
-					JOptionPane.showMessageDialog(opts, "Resolution must be a power of 2.", "Error", JOptionPane.OK_OPTION);
 					resolution = 1 << log2_resolution;
 				}
 
@@ -2287,9 +2296,7 @@ public class Simulation extends PeriodicTask {
 		str += ("Conducting\t"  			+	mat.conducting + "\n");
 		str += ("Semicond.\t"  				+	mat.semiconducting + "\n");
 		str += "\nNumerical stability ratios\n";
-		str += ("Wave equation CFL ratio = " + units.toString((Math.sqrt(2)*c)/(ds/dt_maximum), Quantity.DIMENSIONLESS) + "\n");
-		str += ("Electron diffusion CFL ratio = " + units.toString(dt_maximum/(ds*ds/(4*D_electron_semi)), Quantity.DIMENSIONLESS) + "\n");
-		str += ("Hole diffusion CFL ratio = " + units.toString(dt_maximum/(ds*ds/(4*D_hole_semi)), Quantity.DIMENSIONLESS) + "\n");
+		str += CFL_text;
 		
 		opts.textPane.setText(str);
 	}

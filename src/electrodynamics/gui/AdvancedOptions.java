@@ -198,7 +198,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		metal.add(ni_metal);
 		
 		JLabel lblNewLabel_1_1 = new JLabel("Workfunction (default) [eV]");
-		lblNewLabel_1_1.setToolTipText("");
 		lblNewLabel_1_1.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_1_1.setBounds(33, 77, 176, 16);
 		metal.add(lblNewLabel_1_1);
@@ -209,7 +208,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		metal.add(W_metal);
 		
 		JLabel lblNewLabel_2_1 = new JLabel("Metal \"bandgap\" [eV]");
-		lblNewLabel_2_1.setToolTipText("");
 		lblNewLabel_2_1.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_2_1.setBounds(33, 44, 176, 16);
 		metal.add(lblNewLabel_2_1);
@@ -220,7 +218,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		metal.add(E_b_metal);
 		
 		JLabel lblNewLabel_3_1 = new JLabel("Workfunction (High WF metal) [eV]");
-		lblNewLabel_3_1.setToolTipText("");
 		lblNewLabel_3_1.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_3_1.setBounds(330, 11, 232, 16);
 		metal.add(lblNewLabel_3_1);
@@ -231,7 +228,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		metal.add(W_metal_high);
 		
 		JLabel lblNewLabel_4_1 = new JLabel("Workfunction (Low WF metal) [eV]");
-		lblNewLabel_4_1.setToolTipText("");
 		lblNewLabel_4_1.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_4_1.setBounds(340, 44, 222, 16);
 		metal.add(lblNewLabel_4_1);
@@ -377,7 +373,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		semi.add(E_b_semi);
 		
 		JLabel lblNewLabel_5_1 = new JLabel("Radiative recomb. rate [m^3/s]");
-		lblNewLabel_5_1.setToolTipText("");
 		lblNewLabel_5_1.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_1.setBounds(338, 11, 211, 16);
 		semi.add(lblNewLabel_5_1);
@@ -393,7 +388,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		other.setLayout(null);
 		
 		lblNewLabel_5_2 = new JLabel("n-type default doping conc. [1/m^3]");
-		lblNewLabel_5_2.setToolTipText("");
 		lblNewLabel_5_2.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_2.setBounds(326, 11, 236, 16);
 		other.add(lblNewLabel_5_2);
@@ -404,7 +398,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		other.add(n_default_doping);
 		
 		lblNewLabel_5_3 = new JLabel("p-type default doping conc. [1/m^3]");
-		lblNewLabel_5_3.setToolTipText("");
 		lblNewLabel_5_3.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_3.setBounds(326, 44, 236, 16);
 		other.add(lblNewLabel_5_3);
@@ -415,7 +408,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		other.add(p_default_doping);
 		
 		lblNewLabel_5_4 = new JLabel("n-type light doping conc. [1/m^3]");
-		lblNewLabel_5_4.setToolTipText("");
 		lblNewLabel_5_4.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_4.setBounds(326, 77, 236, 16);
 		other.add(lblNewLabel_5_4);
@@ -426,7 +418,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		other.add(n_light_doping);
 		
 		lblNewLabel_5_5 = new JLabel("p-type light doping conc. [1/m^3]");
-		lblNewLabel_5_5.setToolTipText("");
 		lblNewLabel_5_5.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_5.setBounds(326, 110, 236, 16);
 		other.add(lblNewLabel_5_5);
@@ -437,7 +428,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		other.add(p_light_doping);
 		
 		lblNewLabel_5_6 = new JLabel("n-type heavy doping conc. [1/m^3]");
-		lblNewLabel_5_6.setToolTipText("");
 		lblNewLabel_5_6.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_6.setBounds(326, 143, 236, 16);
 		other.add(lblNewLabel_5_6);
@@ -448,7 +438,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		other.add(n_heavy_doping);
 		
 		lblNewLabel_5_7 = new JLabel("p-type heavy doping conc. [1/m^3]");
-		lblNewLabel_5_7.setToolTipText("");
 		lblNewLabel_5_7.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_7.setBounds(326, 176, 236, 16);
 		other.add(lblNewLabel_5_7);
@@ -479,7 +468,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		semi.add(v_sat_p);
 		
 		lblNewLabel_5_10 = new JLabel("SRH recomb. rate n [1/s]");
-		lblNewLabel_5_10.setToolTipText("");
 		lblNewLabel_5_10.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_10.setBounds(357, 44, 192, 16);
 		semi.add(lblNewLabel_5_10);
@@ -490,7 +478,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		semi.add(k_SRH_n_semi);
 		
 		lblNewLabel_5_11 = new JLabel("SRH recomb. rate p [1/s]");
-		lblNewLabel_5_11.setToolTipText("");
 		lblNewLabel_5_11.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_11.setBounds(367, 77, 182, 16);
 		semi.add(lblNewLabel_5_11);
@@ -501,7 +488,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		semi.add(k_SRH_p_semi);
 		
 		lblNewLabel_5_12 = new JLabel("Auger recomb. rate n [m^6/s]");
-		lblNewLabel_5_12.setToolTipText("");
 		lblNewLabel_5_12.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_12.setBounds(357, 110, 192, 16);
 		semi.add(lblNewLabel_5_12);
@@ -512,7 +498,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		semi.add(k_aug_n_semi);
 		
 		lblNewLabel_5_13 = new JLabel("Auger recomb. rate p [m^6/s]");
-		lblNewLabel_5_13.setToolTipText("");
 		lblNewLabel_5_13.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_13.setBounds(357, 143, 192, 16);
 		semi.add(lblNewLabel_5_13);
@@ -533,7 +518,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		semi.add(eps_r_semi);
 		
 		JLabel lblNewLabel_5_12_1 = new JLabel("Doping dep. mobility factor n");
-		lblNewLabel_5_12_1.setToolTipText("");
 		lblNewLabel_5_12_1.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_12_1.setBounds(357, 176, 192, 16);
 		semi.add(lblNewLabel_5_12_1);
@@ -544,7 +528,6 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		semi.add(a_factor_n);
 		
 		JLabel lblNewLabel_5_12_2 = new JLabel("Doping dep. mobility factor p");
-		lblNewLabel_5_12_2.setToolTipText("");
 		lblNewLabel_5_12_2.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_12_2.setBounds(357, 209, 192, 16);
 		semi.add(lblNewLabel_5_12_2);
@@ -649,6 +632,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		btn_reset.addActionListener(this);
 		btn_cancel.addActionListener(this);
 		btn_presets.addActionListener(this);
+		setLocationRelativeTo(null);
 		setVisible(false);
 	}
 	
@@ -775,6 +759,19 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 					return false;
 				}
 				
+				if(resolution_tmp < 4) {
+					JOptionPane.showMessageDialog(this, "Resolution will be set to the minimum of 4.", "Message", JOptionPane.OK_OPTION);
+					resolution_tmp = 4;
+					resolution.setText(Integer.toString(resolution_tmp));
+				}
+
+				int log2_resolution = (int) Math.round(Math.log(resolution_tmp)/Math.log(2));
+				if(1 << log2_resolution != resolution_tmp) {
+					JOptionPane.showMessageDialog(this, "Resolution will be rounded to the nearest power of 2.", "Message", JOptionPane.OK_OPTION);
+					resolution_tmp = 1 << log2_resolution;
+					resolution.setText(Integer.toString(resolution_tmp));
+				}
+				
 				double memory_estimate = 400.0*8.0*(double)resolution_tmp*(double)resolution_tmp;
 				if (memory_estimate > 1e9) {
 					int result2 = JOptionPane.showConfirmDialog(this, "Warning: This resolution will use approximately " + Units.SI.toString(memory_estimate, Quantity.INFORMATION) + " of memory. Proceed?", "Message", JOptionPane.YES_NO_OPTION);
@@ -790,7 +787,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 
 			e.depth						= Double.valueOf(depth				.getText());
 			e.junction_size				= Integer.valueOf(junction_size		.getText());
-			e.dopant_smoothing_distance				= Integer.valueOf(dopant_smoothing_distance		.getText());
+			e.dopant_smoothing_distance	= Integer.valueOf(dopant_smoothing_distance		.getText());
 
 			e.T							= Double.valueOf(T					.getText());
 			e.eps0						= Double.valueOf(eps0				.getText());

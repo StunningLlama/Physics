@@ -74,7 +74,7 @@ public class MixedUnits extends UnitSystem {
 
 	@Override
 	public String getName() {
-		return "Electrical engineering";
+		return "Engineering";
 	}
 
 }
