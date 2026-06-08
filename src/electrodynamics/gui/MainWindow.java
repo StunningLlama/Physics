@@ -713,7 +713,7 @@ public class MainWindow extends JFrame {
 		MenuBuilder.addDirectoryToMenu(menu_examples, new File("examples"), e.savemanager.fileextension, (File f) -> e.savemanager.readfile(f));
 
 		//gui_material.removeItem(MaterialType.ABSORBER);
-		e.controls.scalarview.removeOption(ScalarView.DEBUG);
+		//e.controls.scalarview.removeOption(ScalarView.DEBUG);
 		e.controls.scalarview.removeOption(ScalarView.NONE);
 		e.controls.vectorview.removeOption(VectorView.NONE);
 
