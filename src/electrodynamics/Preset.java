@@ -36,8 +36,8 @@ public enum Preset {
 			e.v_sat_n_semi = 1e7*1e-2;
 			e.v_sat_p_semi = 1e7*1e-2;
 			e.eps_r_semi = 11.7;
-			e.a_factor_n = Math.pow(10, -16.9);
-			e.a_factor_p = Math.pow(10, -17.9);
+			e.d_crit_n = 1e17*1e6;
+			e.d_crit_p = 1e18*1e6;
 			
 			e.k_rad_semi = 1.1e-14 * 1e-6;
 			e.k_SRH_n_semi = 1e3;
@@ -79,8 +79,8 @@ public enum Preset {
 			e.v_sat_n_semi = 7e6*1e-2;
 			e.v_sat_p_semi = 7e6*1e-2;
 			e.eps_r_semi = 16.2;
-			e.a_factor_n = 0;
-			e.a_factor_p = 0;
+			e.d_crit_n = 1e17*1e6;
+			e.d_crit_p = 1e17*1e6;
 			
 			e.k_rad_semi = 6.41e-14 * 1e-6;
 			e.k_SRH_n_semi = 1e3;
@@ -122,8 +122,8 @@ public enum Preset {
 			e.v_sat_n_semi = 1e7*1e-2;
 			e.v_sat_p_semi = 1e7*1e-2;
 			e.eps_r_semi = 12.9;
-			e.a_factor_n = 0;
-			e.a_factor_p = 0;
+			e.d_crit_n = 1e17*1e6;
+			e.d_crit_p = 3e17*1e6;
 			
 			e.k_rad_semi = 7.2e-10 * 1e-6;
 			e.k_SRH_n_semi = 1/(5e-9);
@@ -165,8 +165,8 @@ public enum Preset {
 			e.v_sat_n_semi = 2.5e7*1e-2;
 			e.v_sat_p_semi = 2.5e7*1e-2;
 			e.eps_r_semi = 8.9;
-			e.a_factor_n = 0;
-			e.a_factor_p = 0;
+			e.d_crit_n = 1e18*1e6;
+			e.d_crit_p = 2e17*1e6;
 			
 			e.k_rad_semi = 1.1e-8 * 1e-6;
 			e.k_SRH_n_semi = 1/(1e-3); // guess

@@ -11,6 +11,8 @@ import java.awt.Font;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -59,7 +61,7 @@ import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.util.CustJRadioButtonMenuItem;
 import electrodynamics.util.MenuBuilder;
 
-public class MainWindow extends JFrame {
+public class MainWindow extends JFrame implements ComponentListener {
 
 	/**
 	 *
@@ -68,6 +70,7 @@ public class MainWindow extends JFrame {
 
 	public HashMap<String, AbstractButton> boolean_names = new HashMap<String, AbstractButton>();
 	public HashMap<String, Adjustable> integer_names = new HashMap<String, Adjustable>();
+	Simulation e;
 
 	public JPanel contentPane;
 	public JButton gui_reset;
@@ -153,145 +156,146 @@ public class MainWindow extends JFrame {
 	/**
 	 * Create the frame.
 	 */
-	public MainWindow() {
+	public MainWindow(Simulation e) {
+		this.e = e;
 		setTitle(SemiSim.name);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 590, 832);
-		
+
 		menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
-		
+
 		JMenu mnNewMenu = new JMenu("File");
 		menuBar.add(mnNewMenu);
-		
+
 		menu_new = new JMenuItem("New simulation...");
 		menu_new.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
 		mnNewMenu.add(menu_new);
-		
+
 		menu_open = new JMenuItem("Open file...");
 		menu_open.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
 		mnNewMenu.add(menu_open);
-		
+
 		menu_save = new JMenuItem("Save");
 		menu_save.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
 		mnNewMenu.add(menu_save);
-		
+
 		menu_saveas = new JMenuItem("Save as...");
 		menu_saveas.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
 		mnNewMenu.add(menu_saveas);
-		
+
 		menu_editdesc = new JMenuItem("Edit description...");
 		mnNewMenu.add(menu_editdesc);
-		
+
 		separator_1 = new JSeparator();
 		mnNewMenu.add(separator_1);
-		
+
 		menu_exit = new JMenuItem("Exit");
 		mnNewMenu.add(menu_exit);
-		
+
 		JMenu menu_asdf = new JMenu("Edit");
 		menuBar.add(menu_asdf);
-		
+
 		menu_undo = new JMenuItem("Undo");
 		menu_undo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_undo);
-		
+
 		menu_redo = new JMenuItem("Redo");
 		menu_redo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
 		menu_asdf.add(menu_redo);
-		
+
 		JSeparator separator = new JSeparator();
 		menu_asdf.add(separator);
-		
+
 		menu_cut = new JMenuItem("Cut");
 		menu_cut.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_cut);
-		
+
 		menu_copy = new JMenuItem("Copy");
 		menu_copy.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_copy);
-		
+
 		menu_paste = new JMenuItem("Paste");
 		menu_paste.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_paste);
-		
+
 		menu_rotate = new JMenuItem("Rotate");
 		menu_rotate.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_rotate);
-		
+
 		menu_flip_h = new JMenuItem("Flip horizontally");
 		menu_flip_h.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_flip_h);
-		
+
 		menu_flip_v = new JMenuItem("Flip vertically");
 		menu_flip_v.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_flip_v);
-		
+
 		separator_3 = new JSeparator();
 		menu_asdf.add(separator_3);
-		
+
 		menu_selectall = new JMenuItem("Select all");
 		menu_selectall.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_selectall);
-		
+
 		menu_deselectall = new JMenuItem("Deselect all");
 		menu_deselectall.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK));
 		menu_asdf.add(menu_deselectall);
-		
+
 		separator_2 = new JSeparator();
 		menu_asdf.add(separator_2);
-		
+
 		menu_pref = new JMenuItem("Preferences");
 		menu_asdf.add(menu_pref);
-		
+
 		menu_advancedsettings = new JMenuItem("Simulation settings");
 		menu_asdf.add(menu_advancedsettings);
-		
+
 		menu_cust_material = new JMenuItem("Custom materials");
 		menu_asdf.add(menu_cust_material);
-		
+
 		menu_view_materials = new JMenuItem("Material viewer");
 		menu_asdf.add(menu_view_materials);
-		
+
 		menu_tools = new JMenu("Tools");
 		menuBar.add(menu_tools);
-		
+
 		menu_view = new JMenu("View");
 		menuBar.add(menu_view);
-		
+
 		mnNewMenu_1 = new JMenu("Graphics");
 		menuBar.add(mnNewMenu_1);
-		
+
 		menu_interface = new CustJCheckBoxMenuItem("Display interface");
 		menu_interface.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H, 0));
 		menu_interface.setSelected(true);
 		mnNewMenu_1.add(menu_interface);
-		
+
 		menu_time = new CustJCheckBoxMenuItem("Show time");
 		menu_time.setSelected(true);
 		mnNewMenu_1.add(menu_time);
-		
+
 		menu_materialname = new CustJCheckBoxMenuItem("Show material name");
 		menu_materialname.setSelected(true);
 		mnNewMenu_1.add(menu_materialname);
-		
+
 		menu_tooltip = new CustJCheckBoxMenuItem("Show simulation variables");
 		menu_tooltip.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_T, 0));
 		mnNewMenu_1.add(menu_tooltip);
-		
+
 		menu_probes = new CustJCheckBoxMenuItem("Show probes");
 		menu_probes.setSelected(true);
 		mnNewMenu_1.add(menu_probes);
-		
+
 		menu_elem_colors = new CustJCheckBoxMenuItem("Show material colors");
 		menu_elem_colors.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, 0));
 		menu_elem_colors.setSelected(true);
 		mnNewMenu_1.add(menu_elem_colors);
-		
+
 		menu_borders = new CustJCheckBoxMenuItem("Show material borders");
 		menu_borders.setSelected(true);
 		mnNewMenu_1.add(menu_borders);
-		
+
 		menu_text_bg = new CustJCheckBoxMenuItem("Show text background");
 		menu_text_bg.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, 0));
 		menu_text_bg.setSelected(true);
@@ -300,46 +304,46 @@ public class MainWindow extends JFrame {
 		menu_colormap = new CustJCheckBoxMenuItem("Show color scale");
 		menu_colormap.setSelected(true);
 		mnNewMenu_1.add(menu_colormap);
-		
+
 		JSeparator separator_4 = new JSeparator();
 		mnNewMenu_1.add(separator_4);
-		
+
 		menu_carriers = new CustJCheckBoxMenuItem("Show charge carriers");
 		mnNewMenu_1.add(menu_carriers);
-		
+
 		menu_hide_carriers_metal = new CustJCheckBoxMenuItem("Hide carriers in metal");
 		menu_hide_carriers_metal.setSelected(true);
 		mnNewMenu_1.add(menu_hide_carriers_metal);
-		
+
 		menu_gen_recomb = new CustJCheckBoxMenuItem("Show generation and recombination");
 		menu_gen_recomb.setSelected(true);
 		mnNewMenu_1.add(menu_gen_recomb);
-		
+
 		menu_carrier_diffusion = new CustJCheckBoxMenuItem("Show carrier diffusion");
 		mnNewMenu_1.add(menu_carrier_diffusion);
-		
+
 		JSeparator separator_5 = new JSeparator();
 		mnNewMenu_1.add(separator_5);
-		
+
 		menu_debug = new CustJCheckBoxMenuItem("Debug mode");
 		menu_debug.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0));
 		mnNewMenu_1.add(menu_debug);
-		
+
 		menu_examples = new JMenu("Examples");
 		menuBar.add(menu_examples);
-		
+
 		menu_view_1 = new JMenu("Help");
 		menuBar.add(menu_view_1);
-		
+
 		menu_help = new JMenuItem("Open manual");
 		menu_view_1.add(menu_help);
-		
+
 		menu_github = new JMenuItem("Github");
 		menu_view_1.add(menu_github);
-		
+
 		menu_report = new JMenuItem("Report a bug...");
 		menu_view_1.add(menu_report);
-		
+
 		menu_about = new JMenuItem("About...");
 		menu_view_1.add(menu_about);
 		contentPane = new JPanel();
@@ -347,10 +351,14 @@ public class MainWindow extends JFrame {
 		contentPane.setLayout(new BorderLayout(0, 0));
 		setContentPane(contentPane);
 
+		JPanel panel_2 = new JPanel();
+		contentPane.add(panel_2, BorderLayout.EAST);
+		panel_2.setLayout(new BorderLayout(0, 0));
+
 		panel = new JPanel();
-		panel.setPreferredSize(new Dimension(380, 200));
-		panel.setMinimumSize(new Dimension(200, 200));
-		contentPane.add(panel, BorderLayout.EAST);
+		panel_2.add(panel, BorderLayout.NORTH);
+		panel.setPreferredSize(new Dimension(380, 395));
+		panel.setMinimumSize(new Dimension(380, 395));
 		panel.setLayout(null);
 
 		gui_reset = new JButton("Reset fields");
@@ -498,11 +506,11 @@ public class MainWindow extends JFrame {
 		gui_bc.setBounds(202, 17, 171, 22);
 		panel.add(gui_bc);
 		//addTooltips(gui_bc);
-		
+
 		gui_carrierlbl = new JLabel("Charge carrier density");
 		gui_carrierlbl.setBounds(21, 340, 150, 14);
 		panel.add(gui_carrierlbl);
-		
+
 		gui_carrier_density = new JScrollBar();
 		gui_carrier_density.setValue(-45);
 		gui_carrier_density.setOrientation(JScrollBar.HORIZONTAL);
@@ -511,53 +519,57 @@ public class MainWindow extends JFrame {
 		gui_carrier_density.setBlockIncrement(1);
 		gui_carrier_density.setBounds(11, 361, 171, 17);
 		panel.add(gui_carrier_density);
-		
+
 		gui_carriers = new JCheckBox("Show charge carriers");
 		gui_carriers.setSelected(false);
 		gui_carriers.setBounds(11, 300, 171, 23);
 		panel.add(gui_carriers);
-		
+
 		JPanel panel_1 = new JPanel();
+		panel_1.setBorder(new EmptyBorder(10, 10, 10, 10));
 		panel_1.setBounds(27, 407, 327, 343);
-		panel.add(panel_1);
+		panel_2.add(panel_1, BorderLayout.CENTER);
 		panel_1.setLayout(new BorderLayout(0, 0));
 
-				textPane = new JTextArea();
-				scrollPane = new JScrollPane(textPane);
-				scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-				panel_1.add(scrollPane, BorderLayout.CENTER);
-				
-						textPane.setColumns(1);
-						textPane.setWrapStyleWord(true);
-						textPane.setRows(16);
-						textPane.setText("Description of simulation");
-						textPane.setFont(new Font("SansSerif", Font.PLAIN, 13));
-						textPane.setMargin(new Insets(4, 4, 4, 4));
-						textPane.setLineWrap(true);
-						textPane.setEditable(false);
-						
-						gui_plotinterval_text = new JLabel("Probe plot interval");
-						gui_plotinterval_text.setBounds(206, 242, 167, 14);
-						panel.add(gui_plotinterval_text);
-						
-						gui_plotinterval = new JScrollBar();
-						gui_plotinterval.setValue(10);
-						gui_plotinterval.setMinimum(1);
-						gui_plotinterval.setOrientation(JScrollBar.HORIZONTAL);
-						gui_plotinterval.setMaximum(60);
-						gui_plotinterval.setBounds(202, 263, 171, 17);
-						panel.add(gui_plotinterval);
-						
-						gui_light_text = new JLabel("Light");
-						gui_light_text.setBounds(202, 242, 172, 14);
-						panel.add(gui_light_text);
-						
-						gui_light = new JScrollBar();
-						gui_light.setMinimum(-15);
-						gui_light.setOrientation(JScrollBar.HORIZONTAL);
-						gui_light.setMaximum(25);
-						gui_light.setBounds(202, 261, 171, 17);
-						panel.add(gui_light);
+		textPane = new JTextArea();
+		scrollPane = new JScrollPane(textPane);
+		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		panel_1.add(scrollPane, BorderLayout.CENTER);
+
+		textPane.setColumns(1);
+		textPane.setWrapStyleWord(true);
+		textPane.setRows(1);
+		textPane.setText("Description of simulation");
+		textPane.setFont(new Font("SansSerif", Font.PLAIN, 13));
+		textPane.setMargin(new Insets(4, 4, 4, 4));
+		textPane.setLineWrap(true);
+		textPane.setEditable(false);
+
+		gui_plotinterval_text = new JLabel("Probe plot interval");
+		gui_plotinterval_text.setBounds(206, 242, 167, 14);
+		panel.add(gui_plotinterval_text);
+
+		gui_plotinterval = new JScrollBar();
+		gui_plotinterval.setValue(10);
+		gui_plotinterval.setMinimum(1);
+		gui_plotinterval.setOrientation(JScrollBar.HORIZONTAL);
+		gui_plotinterval.setMaximum(60);
+		gui_plotinterval.setBounds(202, 263, 171, 17);
+		panel.add(gui_plotinterval);
+
+		gui_light_text = new JLabel("Light");
+		gui_light_text.setBounds(202, 242, 172, 14);
+		panel.add(gui_light_text);
+
+		gui_light = new JScrollBar();
+		gui_light.setMinimum(-15);
+		gui_light.setOrientation(JScrollBar.HORIZONTAL);
+		gui_light.setMaximum(25);
+		gui_light.setBounds(202, 261, 171, 17);
+		panel.add(gui_light);
+
+		getContentPane().add(e.canvas, BorderLayout.CENTER);
+		pack();
 	}
 	
 	public void listSettings() {
@@ -627,14 +639,14 @@ public class MainWindow extends JFrame {
 		menu_carriers.setSelected(gui_carriers.isSelected());
 	}
 	
-	public void initialize(Simulation e) {
+	public void initialize() {
 		listSettings();
 		
-		getContentPane().add(e.canvas, BorderLayout.CENTER);
 		e.canvas.addMouseListener(e.controls);
 		e.canvas.addMouseMotionListener(e.controls);
 		e.canvas.addMouseWheelListener(e.controls);
 		e.canvas.addKeyListener(e.controls);
+		this.getRootPane(). addComponentListener(this);
 		gui_reset.addActionListener(e.controls);
 		gui_brush.addActionListener(e.controls);
 		
@@ -708,8 +720,6 @@ public class MainWindow extends JFrame {
 		gui_parameter1_text.setEnabled(true);
 		gui_parameter1_text.setVisible(true);
 
-		pack();
-
 		e.controls.addKeyBinds(e.canvas);
 		e.controls.addKeyBinds(panel);
 		
@@ -756,4 +766,18 @@ public class MainWindow extends JFrame {
 		}
 
 	}
+
+	@Override
+	public void componentResized(ComponentEvent ev) {
+		e.controls.updateimagesize = true;
+	}
+
+	@Override
+	public void componentMoved(ComponentEvent e) {}
+
+	@Override
+	public void componentShown(ComponentEvent e) {}
+
+	@Override
+	public void componentHidden(ComponentEvent e) {}
 }

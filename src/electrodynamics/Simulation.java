@@ -59,6 +59,7 @@ public class Simulation extends PeriodicTask {
 	 *  - Darlington pair [done]
 	 */
 	
+	//TODO
 	//Small transistors
 	//Optimize presets
 	//Write manual
@@ -103,8 +104,8 @@ public class Simulation extends PeriodicTask {
 	public double default_width;
 	
 	public int resolution;
-	public int nx;						// Number of grid popublic ints in x-dimension
-	public int ny;						// Number of grid popublic ints in y-dimension
+	public int nx;						// Number of grid points in x-dimension
+	public int ny;						// Number of grid points in y-dimension
 	public double width;				// Width, in SI
 	public double ds;					// Spatial discretization
 	public double dt;					// Timestep
@@ -161,17 +162,21 @@ public class Simulation extends PeriodicTask {
 
 	public double T;					// System temperature
 	public double beta;					// Inverse temperature
-	
+
+	public double ni_semi;				// Semiconductor equilibrium concentration
+	public double W_semi;				// Semiconductor work function
+	public double E_b_semi;				// Semiconductor band gap
+
 	public double mu_electron_semi;			// Electron mobility
 	public double mu_hole_semi;				// Hole mobility, slightly lower than electron
 	public double D_electron_semi;			// Diffusion constant, determined by Einstein relation
 	public double D_hole_semi;				// Hole diffusion constant
 	public double v_sat_n_semi;				// Velocity at which carrier velocity saturates
 	public double v_sat_p_semi;				// Velocity at which carrier velocity saturates
-
-	public double ni_semi;				// Semiconductor equilibrium concentration
-	public double W_semi;				// Semiconductor work function
-	public double E_b_semi;				// Semiconductor band gap
+	
+	public double d_crit_n;				// Dopant density at which mobility drops by 1/2
+	public double d_crit_p;
+	public double eps_r_semi;			// Semiconductor dielectric constant
 
 	public double k_rad_semi;			// Radiative recombination rate constant
 	public double k_aug_n_semi;			// Auger recombination rate
@@ -210,10 +215,6 @@ public class Simulation extends PeriodicTask {
 	
 	public int junction_size;			// Free energy smoothing distance
 	public int dopant_smoothing_distance;
-	
-	public double a_factor_n;
-	public double a_factor_p;
-	public double eps_r_semi;
 
 	HashMap<MaterialType, String> default_names;
 	HashMap<MaterialType, String> modified_names;
@@ -278,8 +279,8 @@ public class Simulation extends PeriodicTask {
 		junction_size = 1;
 		dopant_smoothing_distance = 0;
 		
-		a_factor_n = 0;
-		a_factor_p = 0;
+		d_crit_n = 1e100;
+		d_crit_p = 1e100;
 		eps_r_semi = 1;
 		
 		calculateDependentConstants();
@@ -448,15 +449,15 @@ public class Simulation extends PeriodicTask {
 		}
 		
 		controls = new Controls(this);
+		prefs = new Preferences(this);
 		renderer = new Renderer(this);
 		savemanager = new SaveManager(this);
-		opts = new MainWindow();
 		canvas = renderer.new RenderCanvas(this);
+		opts = new MainWindow(this);
 		canvas.setFocusable(true);
-		adv_opts = new AdvancedOptions();
-		prefs = new Preferences(this);
-		materialmanager = new MaterialManager();
-		materialviewer = new MaterialViewer();
+		adv_opts = new AdvancedOptions(this);
+		materialmanager = new MaterialManager(this);
+		materialviewer = new MaterialViewer(this);
 		datafile = new File(datafilename);
 
 		bandplot = new BandPlot(); plots.add(bandplot);
@@ -473,12 +474,12 @@ public class Simulation extends PeriodicTask {
 		SemiSim.detect64Bit();
 		
 		reset(true, Preset.DEFAULT);
-		
-		opts.initialize(this);
-		adv_opts.initialize(this);
+
+		opts.initialize();
+		adv_opts.initialize();
 		prefs.initialize();
-		materialmanager.initialize(this);
-		materialviewer.initialize(this);
+		materialmanager.initialize();
+		materialviewer.initialize();
 
 		try {
 			datastream = new PrintWriter(new FileOutputStream(datafile));
@@ -520,8 +521,8 @@ public class Simulation extends PeriodicTask {
     				SwingUtilities.invokeLater(() -> {
     					rwLock.writeLock().lock();
     					try {
-    						renderer.setCanvasSize(renderer.new_canvas_size);
-    						opts.pack();
+    						renderer.setCanvasSize();
+    						//opts.pack();
     					}
     					finally {
     						rwLock.writeLock().unlock();
@@ -589,7 +590,8 @@ public class Simulation extends PeriodicTask {
     			}
 
     			simFPStimer.stop();
-    			simFPStimer.start();
+    			if (!opts.gui_paused.isSelected())
+    				simFPStimer.start();
 
     		} catch (Exception e) {
     			SemiSim.displayErrorMessage(e);
@@ -665,6 +667,7 @@ public class Simulation extends PeriodicTask {
 	}
 
 	public boolean reset(boolean resetall, Preset preset) {
+		
 		if (resetall || preset != null) {
 			modified_names = default_names;
 			if (preset == null)
@@ -674,21 +677,15 @@ public class Simulation extends PeriodicTask {
 			
 			materialmanager.resetMaterialList();
 		}
-		
-		this.width = default_width;
-		ds = width/default_resolution;
-
-		calculateMaxTimestep();
-		width = nx*ds;
-		Hz_dissipation = 0.01*ds*ds/dt_maximum;
 
 		boolean size_changed = (default_resolution != this.resolution);
 		this.resolution = default_resolution;
-
+		
 		// Simulation and graphics threads should not be active when variables are initialized
 		rwLock.writeLock().lock();
 		try {
 			if (size_changed) {
+				System.out.println("Initializing simulation grid with resolution " + resolution);
 				if(resolution < 4) {
 					resolution = 4;
 				}
@@ -700,7 +697,15 @@ public class Simulation extends PeriodicTask {
 
 				nx = resolution;
 				ny = resolution;
+			}
+			
+			this.width = default_width;
+			ds = width/default_resolution;
+			
+			calculateMaxTimestep();
+			Hz_dissipation = 0.01*ds*ds/dt_maximum;
 
+			if (size_changed) {
 				Ex = new double[nx][ny];		Ey = new double[nx][ny];
 				Bz = new double[nx][ny];
 				Hz_laplacian = new double[nx][ny];
@@ -1952,16 +1957,16 @@ public class Simulation extends PeriodicTask {
 			else if (material == MaterialType.SEMI_LIGHT_P_TYPE) mat.rho_back = -p_light_doping_concentration*e_charge;
 			else if (material == MaterialType.SEMI_LIGHT_N_TYPE) mat.rho_back = n_light_doping_concentration*e_charge;
 			
-			mat.D_n *= calculateMobilityFactor(a_factor_n, mat.rho_back);
-			mat.D_p *= calculateMobilityFactor(a_factor_p, mat.rho_back);
+			mat.D_n *= calculateMobilityFactor(d_crit_n, mat.rho_back);
+			mat.D_p *= calculateMobilityFactor(d_crit_p, mat.rho_back);
 		}
 
 		mat.auto_placed = false;
 	}
 	
-	public double calculateMobilityFactor(double a, double donorDensity) {
-		double density_eng = Math.abs(donorDensity/e_charge)*1e-6;
-		return 1/(Math.sqrt(density_eng*a)+1);
+	public double calculateMobilityFactor(double d_crit, double donorDensity) {
+		double density = Math.abs(donorDensity/e_charge);
+		return 1/(Math.sqrt(density/d_crit)+1);
 		
 	}
 

@@ -194,13 +194,16 @@ Since version 2.0, the simulation supports the following:
 Because the simulation uses a very simplified model of how semiconductors work, it is not able capture some phenomena that show up in real systems. Things that the simulation cannot handle include:
 <ul>
 <li>Quantum tunnelling</li>
-<li>Surface states</li>
+<li>Surface states *</li>
 <li>Ballistic conduction</li>
-<li>Electrical breakdown</li>
+<li>Electrical breakdown *</li>
 <li>Metallic band structures</li>
-<li>Hall effect</li>
+<li>Hall effect *</li>
 </ul>
 The default semiconductor material is designed to showcase the general behavior of semiconductors but does not, however, correspond to an existing substance. In version 2.0, the simulation comes with models of real materials that can be accessed via the advanced settings menu. These predefined materials are Si, Ge, GaAs and GaN.
+
+<br><br>
+* These could be implemented straightforwardly if there is interest.
 <h1>Simulation features</h1>
 The interface consists of the simulation area which the user can interact with, simulation controls that allow various parameters to be adjusted, and a menu bar containing different settings and tools. <figure><img src="images/app.png" alt="Application" style="max-width:60%"><figcaption>Simulation area (purple), controls (blue), and menu bar (green).</figcaption></figure>
 The main way to interact with circuits is through voltage sources and switches. A good way to get started with this software is to load one of the many examples.
@@ -246,9 +249,11 @@ The brightness and density of lines indicates the magnitude of the field. <figur
   <tr><td>Timestep</td><td>Sets the simulation timestep. The maximum timestep is determined by the CFL condition for the wave equation and diffusion equations for each charge carrier.</td></tr>
   <tr><td>Sim steps/frame</td><td>Sets the number of iterations performed during each frame. Most of the examples require at least 10 steps/frame to run responsively.
     The maximum number depends on how good the user's computer is.</td></tr>
-  <tr><td>Set fields to zero</td><td>Sets all fields to their default values, leaving the materials unchanged.</td></tr>
-  <tr><td>Set image size </td><td>Sets the size of the simulation display area.</td></tr>
-  <tr><td>Advanced settings </td><td>Opens advanced simulation settings window, contains settings to modify physics and material constants.</td></tr>
+  <tr><td>Reset fields</td><td>Sets all fields to their default values, leaving the materials unchanged.</td></tr>
+  <tr><td>Preferences</td><td>Contains options for display size, units, and other software settings.</td></tr>
+  <tr><td>Simulation settings</td><td>Contains settings for simulation domain size, physical constants, and material properties.</td></tr>
+  <tr><td>Custom materials</td><td>Allows user to add their own materials.</td></tr>
+  <tr><td>Material viewer</td><td>Displays data for every material such as dielectric constant, conductivity, etc.</td></tr>
   </table>
 
 <h2>Tools</h2>
@@ -267,7 +272,7 @@ The brightness and density of lines indicates the magnitude of the field. <figur
     <tr><td>Voltage probe</td><td>Adds a voltage probe that measures electrochemical potential at a certain point (See "What do voltmeters actually measure").</td></tr>
     <tr><td>Current probe</td><td>Click and drag to add a current probe that measures current across a wire.</td></tr>
     <tr><td>Charge probe</td><td>Click and drag to add a charge probe that measures electrical charge within a given region.</td></tr>
-	<tr><td>Magnetic flux probe</td><td>Click and drag to add a probe that measures magnetic flux.</td></tr>
+    <tr><td>Magnetic flux probe</td><td>Click and drag to add a probe that measures magnetic flux.</td></tr>
     <tr><td>Ground</td><td>Specifies the point relative to which probes measure voltage (optional).</td></tr>
     <tr><td>Delete probe</td><td>Click to delete a probe.</td></tr>
     <tr><td>Move label</td><td>Moves labels attached to probes.</td></tr>
@@ -279,14 +284,17 @@ The brightness and density of lines indicates the magnitude of the field. <figur
 </table>
 
 <h2>Keyboard/Mouse Controls</h2>
+This table includes keyboard commands that are not explicitly stated.
 <table>
     <tr><td>P or Space</td><td>Pause &amp; unpause</td></tr>
     <tr><td>F</td><td>Advance frame</td></tr>
     <tr><td>Q</td><td>Change brush shape</td></tr>
     <tr><td>Mouse wheel</td><td>Change brush size</td></tr>
-    <tr><td>Alt or Option</td><td>Pick material</td></tr>
+    <tr><td>Shift</td><td>Draw line</td></tr>
+    <tr><td>Shift + Alt or Option</td><td>Draw straight or diagonal lines</td></tr>
     <tr><td>Left mouse</td><td>Draw material</td></tr>
     <tr><td>Right mouse</td><td>Erase material</td></tr>
+    <tr><td>Alt or Option</td><td>Pick material</td></tr>
     <tr><td>Middle mouse</td><td>Pick material</td></tr>
     <tr><td>R</td><td>Record probe data (saves to probedata.txt)</td></tr>
     <tr><td>[</td><td>Previous tool</td></tr>

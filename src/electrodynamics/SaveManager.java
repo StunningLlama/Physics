@@ -101,7 +101,8 @@ public class SaveManager {
 			if (infile == null || !infile.exists()) return;
 			
 			if (e.controls.changesmade) {
-				int result = JOptionPane.showConfirmDialog(e.opts, "There are unsaved changes. Do you still wish to open this file?", "Message", JOptionPane.YES_NO_OPTION);
+				String[] options = {"Yes", "No"};
+				int result = JOptionPane.showOptionDialog(e.opts, "There are unsaved changes. Do you still wish to open this file?", "Message", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[1]);
 				if (result != JOptionPane.OK_OPTION)
 					return;
 			}
@@ -413,7 +414,9 @@ public class SaveManager {
 				outfile = new File(outfile.getAbsolutePath() + fileextension);
 
 			if (outfile.exists()) {
-				result = JOptionPane.showConfirmDialog(e.opts, "A file named " + outfile.getName() + " already exists. Do you wish to overwrite it?", "Message", JOptionPane.YES_NO_OPTION);
+				String[] options = {"Yes", "No"};
+
+				result = JOptionPane.showOptionDialog(e.opts, "A file named " + outfile.getName() + " already exists. Do you wish to overwrite it?", "Message", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[1]);
 				if (result != JOptionPane.OK_OPTION)
 					return;
 			}

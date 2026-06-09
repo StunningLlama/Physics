@@ -105,7 +105,9 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	private JLabel lblNewLabel_8;
 	private JTextField dopant_smoothing_distance;
 
-	public AdvancedOptions() {
+	public AdvancedOptions(Simulation e) {
+		this.e = e;
+		setResizable(false);
 		setTitle("Advanced settings");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		setBounds(100, 100, 699, 447);
@@ -517,25 +519,27 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		eps_r_semi.setBounds(216, 238, 98, 26);
 		semi.add(eps_r_semi);
 		
-		JLabel lblNewLabel_5_12_1 = new JLabel("Doping dep. mobility factor n");
+		JLabel lblNewLabel_5_12_1 = new JLabel("Doping dep. mob. factor n [1/m^3]");
+		lblNewLabel_5_12_1.setToolTipText("Density at which n mobility drops to 1/2 of original value");
 		lblNewLabel_5_12_1.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblNewLabel_5_12_1.setBounds(357, 176, 192, 16);
+		lblNewLabel_5_12_1.setBounds(317, 176, 232, 16);
 		semi.add(lblNewLabel_5_12_1);
 		
-		a_factor_n = new JTextField();
-		a_factor_n.setColumns(10);
-		a_factor_n.setBounds(561, 171, 98, 26);
-		semi.add(a_factor_n);
+		d_crit_n = new JTextField();
+		d_crit_n.setColumns(10);
+		d_crit_n.setBounds(561, 171, 98, 26);
+		semi.add(d_crit_n);
 		
-		JLabel lblNewLabel_5_12_2 = new JLabel("Doping dep. mobility factor p");
+		JLabel lblNewLabel_5_12_2 = new JLabel("Doping dep. mob. factor p [1/m^3]");
+		lblNewLabel_5_12_2.setToolTipText("Density at which p mobility drops to 1/2 of original value");
 		lblNewLabel_5_12_2.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblNewLabel_5_12_2.setBounds(357, 209, 192, 16);
+		lblNewLabel_5_12_2.setBounds(317, 209, 232, 16);
 		semi.add(lblNewLabel_5_12_2);
 		
-		a_factor_p = new JTextField();
-		a_factor_p.setColumns(10);
-		a_factor_p.setBounds(561, 204, 98, 26);
-		semi.add(a_factor_p);
+		d_crit_p = new JTextField();
+		d_crit_p.setColumns(10);
+		d_crit_p.setBounds(561, 204, 98, 26);
+		semi.add(d_crit_p);
 		
 		lblDielectricRelPermittivity = new JLabel("Dielectric rel. permittivity");
 		lblDielectricRelPermittivity.setHorizontalAlignment(SwingConstants.TRAILING);
@@ -577,7 +581,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		currentsource_mobility.setBounds(226, 105, 98, 26);
 		other.add(currentsource_mobility);
 		
-		JLabel lblVoltageSourceMax = new JLabel("Voltage source max EMF (V/m)");
+		JLabel lblVoltageSourceMax = new JLabel("Voltage source max EMF [V/m]");
 		lblVoltageSourceMax.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblVoltageSourceMax.setBounds(6, 143, 208, 16);
 		other.add(lblVoltageSourceMax);
@@ -587,7 +591,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		max_EMF.setBounds(226, 138, 98, 26);
 		other.add(max_EMF);
 		
-		JLabel lblCurrentSourceMax = new JLabel("Current source max (A/m^2)");
+		JLabel lblCurrentSourceMax = new JLabel("Current source max [A/m^2]");
 		lblCurrentSourceMax.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblCurrentSourceMax.setBounds(6, 176, 208, 16);
 		other.add(lblCurrentSourceMax);
@@ -597,7 +601,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		max_current.setBounds(226, 171, 98, 26);
 		other.add(max_current);
 		
-		lblDefaultAcFrequency = new JLabel("Default AC frequency (Hz)");
+		lblDefaultAcFrequency = new JLabel("Default AC frequency [Hz]");
 		lblDefaultAcFrequency.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblDefaultAcFrequency.setBounds(6, 209, 208, 16);
 		other.add(lblDefaultAcFrequency);
@@ -626,8 +630,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		//.add(tabbedPane);
 	}
 	
-	public void initialize(Simulation e) {
-		this.e = e;
+	public void initialize() {
 		btn_apply.addActionListener(this);
 		btn_reset.addActionListener(this);
 		btn_cancel.addActionListener(this);
@@ -688,8 +691,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	private JTextField max_EMF;
 	private JTextField max_current;
 	private JTextField eps_r_semi;
-	private JTextField a_factor_n;
-	private JTextField a_factor_p;
+	private JTextField d_crit_n;
+	private JTextField d_crit_p;
 	private JLabel lblDefaultAcFrequency;
 	private JTextField default_AC_freq;
 
@@ -742,8 +745,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		max_current	.setText(Utils.formatDouble(e.max_current	));
 		default_AC_freq	.setText(Utils.formatDouble(e.default_AC_freq	));
 
-		a_factor_n		.setText(Utils.formatDouble(e.a_factor_n));
-		a_factor_p		.setText(Utils.formatDouble(e.a_factor_p));
+		d_crit_n		.setText(Utils.formatDouble(e.d_crit_n));
+		d_crit_p		.setText(Utils.formatDouble(e.d_crit_p));
 		eps_r_semi		.setText(Utils.formatDouble(e.eps_r_semi));
 	}
 	
@@ -831,8 +834,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			e.default_AC_freq	= Double.valueOf(default_AC_freq	.getText());
 
 			
-			e.a_factor_n = Double.valueOf(a_factor_n	.getText());
-			e.a_factor_p = Double.valueOf(a_factor_p	.getText());
+			e.d_crit_n = Double.valueOf(d_crit_n	.getText());
+			e.d_crit_p = Double.valueOf(d_crit_p	.getText());
 			e.eps_r_semi = Double.valueOf(eps_r_semi	.getText());
 
 			e.calculateDependentConstants();
@@ -896,8 +899,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		advsettings.addProperty("max_current", e.max_current	);
 		advsettings.addProperty("default_AC_freq", e.default_AC_freq	);
 
-		advsettings.addProperty("a_factor_n", e.a_factor_n	);
-		advsettings.addProperty("a_factor_p", e.a_factor_p	);
+		advsettings.addProperty("a_factor_n", e.d_crit_n	);
+		advsettings.addProperty("a_factor_p", e.d_crit_p	);
 		advsettings.addProperty("eps_r_semi", e.eps_r_semi	);
 	}
 	
@@ -957,8 +960,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			case "max_current": e.max_current	= fstr.nextDouble(); break;
 			case "default_AC_freq": e.default_AC_freq	= fstr.nextDouble(); break;
 
-			case "a_factor_n": e.a_factor_n	= fstr.nextDouble(); break;
-			case "a_factor_p": e.a_factor_p	= fstr.nextDouble(); break;
+			case "a_factor_n": e.d_crit_n	= fstr.nextDouble(); break;
+			case "a_factor_p": e.d_crit_p	= fstr.nextDouble(); break;
 			case "eps_r_semi": e.eps_r_semi	= fstr.nextDouble(); break;
 
 			default: fstr.skipValue(); break; // skip others

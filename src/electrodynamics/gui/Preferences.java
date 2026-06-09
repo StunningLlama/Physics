@@ -42,7 +42,7 @@ public class Preferences extends JFrame implements ActionListener {
 	public JButton btn_apply;
 	public JButton btn_cancel;
 	public JCheckBox chkbox_undo;
-	public JSpinner spinner_imgsize;
+	public JSpinner spinner_imgx;
 	public JCheckBox chkbox_potential;
 	public JComboBox<Units> gui_units;
 	
@@ -50,64 +50,80 @@ public class Preferences extends JFrame implements ActionListener {
 	public int saveversion = 1;
 	public File preferences_file = null;
 	public JCheckBox chkbox_logscale;
+	private JSpinner spinner_imgy;
 
 	public Preferences(Simulation e) {
+		setResizable(false);
 		this.e = e;
 		preferences_file = new File("preferences.json");
 		
 		setTitle("Preferences");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		setBounds(100, 100, 313, 237);
+		setBounds(100, 100, 315, 281);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 
 		setContentPane(contentPane);
 		contentPane.setLayout(null);
 		
-		JLabel lblNewLabel = new JLabel("Display size [px]");
-		lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		JLabel lblNewLabel = new JLabel("Display width [px]");
+		lblNewLabel.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel.setToolTipText("Width of simulation domain");
-		lblNewLabel.setBounds(17, 18, 125, 16);
+		lblNewLabel.setBounds(17, 18, 138, 16);
 		contentPane.add(lblNewLabel);
 		
 		btn_apply = new JButton("Save");
-		btn_apply.setBounds(72, 174, 100, 29);
+		btn_apply.setBounds(46, 218, 128, 29);
 		contentPane.add(btn_apply);
 		
 		btn_cancel = new JButton("Reset to defaults");
-		btn_cancel.setBounds(171, 174, 136, 29);
+		btn_cancel.setBounds(173, 218, 136, 29);
 		contentPane.add(btn_cancel);
 		
-		spinner_imgsize = new JSpinner();
-		spinner_imgsize.setBounds(167, 13, 109, 26);
-		contentPane.add(spinner_imgsize);
+		spinner_imgx = new JSpinner();
+		spinner_imgx.setBounds(167, 13, 109, 26);
+		contentPane.add(spinner_imgx);
 		
 		chkbox_undo = new JCheckBox("Undo tracks settings");
+		chkbox_undo.setHorizontalAlignment(SwingConstants.TRAILING);
 		chkbox_undo.setSelected(true);
 		chkbox_undo.setHorizontalTextPosition(SwingConstants.LEADING);
-		chkbox_undo.setBounds(21, 42, 224, 23);
+		chkbox_undo.setBounds(52, 74, 224, 23);
 		contentPane.add(chkbox_undo);
 		
 		chkbox_potential = new JCheckBox("Display potential relative to ground");
+		chkbox_potential.setHorizontalAlignment(SwingConstants.TRAILING);
 		chkbox_potential.setSelected(true);
 		chkbox_potential.setHorizontalTextPosition(SwingConstants.LEADING);
-		chkbox_potential.setBounds(21, 69, 255, 23);
+		chkbox_potential.setBounds(21, 100, 255, 23);
 		contentPane.add(chkbox_potential);
 		
 		JLabel lblUnitSystem = new JLabel("Unit system");
-		lblUnitSystem.setBounds(26, 128, 91, 16);
+		lblUnitSystem.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblUnitSystem.setBounds(6, 165, 116, 16);
 		contentPane.add(lblUnitSystem);
 		
 		gui_units = new JComboBox<>();
 		gui_units.setModel(new DefaultComboBoxModel<>(Units.values()));
-		gui_units.setBounds(130, 124, 146, 27);
+		gui_units.setBounds(134, 161, 146, 27);
 		contentPane.add(gui_units);
 		
 		chkbox_logscale = new JCheckBox("Use log scale for density plots");
+		chkbox_logscale.setHorizontalAlignment(SwingConstants.TRAILING);
 		chkbox_logscale.setSelected(true);
 		chkbox_logscale.setHorizontalTextPosition(SwingConstants.LEADING);
-		chkbox_logscale.setBounds(21, 96, 255, 23);
+		chkbox_logscale.setBounds(21, 126, 255, 23);
 		contentPane.add(chkbox_logscale);
+		
+		JLabel lblDisplayHeightpx = new JLabel("Display height [px]");
+		lblDisplayHeightpx.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblDisplayHeightpx.setToolTipText("Width of simulation domain");
+		lblDisplayHeightpx.setBounds(17, 46, 138, 16);
+		contentPane.add(lblDisplayHeightpx);
+		
+		spinner_imgy = new JSpinner();
+		spinner_imgy.setBounds(167, 41, 109, 26);
+		contentPane.add(spinner_imgy);
 		
 		resetPrefs();
 	}
@@ -124,22 +140,23 @@ public class Preferences extends JFrame implements ActionListener {
 	}
 	
 	public void getPrefs() {
-		spinner_imgsize.setValue(e.renderer.canvas_size);
+		spinner_imgx.setValue(e.canvas.getWidth());
+		spinner_imgy.setValue(e.canvas.getHeight());
 	}
 
 	public void applyPrefs() {
-		int x = (int)(spinner_imgsize.getValue());
+		int x = (int)(spinner_imgx.getValue());
+		int y = (int)(spinner_imgy.getValue());
 
-		if (e.renderer.canvas_size != x) {
-			e.renderer.new_canvas_size = x;
-			e.controls.updateimagesize = true;
-		}
+		e.canvas.setPreferredSize(new Dimension(x, y));
+		e.opts.pack();
 	}
 	
 	public void resetPrefs() {
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		int opt_height = 256*(int)Math.floor(0.8*screenSize.getHeight()/256);
-		spinner_imgsize.setValue(opt_height);
+		spinner_imgx.setValue(opt_height);
+		spinner_imgy.setValue(opt_height);
 		chkbox_undo.setSelected(true);
 		chkbox_potential.setSelected(true);
 		chkbox_logscale.setSelected(true);
@@ -171,7 +188,13 @@ public class Preferences extends JFrame implements ActionListener {
 					while (fstr.hasNext()) {
 						String name = fstr.nextName();
 						switch (name){
-						case "imgsize": spinner_imgsize.setValue(fstr.nextInt()); break;
+						case "imgsize":
+							int size = fstr.nextInt();
+							spinner_imgx.setValue(size);
+							spinner_imgy.setValue(size);
+							break;
+						case "imgsize_x": spinner_imgx.setValue(fstr.nextInt()); break;
+						case "imgsize_y": spinner_imgy.setValue(fstr.nextInt()); break;
 						case "undotrackssettings": chkbox_undo.setSelected(fstr.nextBoolean()); break;
 						case "potential": chkbox_potential.setSelected(fstr.nextBoolean()); break;
 						case "logscale": chkbox_logscale.setSelected(fstr.nextBoolean()); break;
@@ -202,7 +225,8 @@ public class Preferences extends JFrame implements ActionListener {
 				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
 
 				JsonObject header = new JsonObject();
-				header.addProperty("imgsize", (int)spinner_imgsize.getValue());
+				header.addProperty("imgsize_x", (int)spinner_imgx.getValue());
+				header.addProperty("imgsize_y", (int)spinner_imgy.getValue());
 				header.addProperty("undotrackssettings", chkbox_undo.isSelected());
 				header.addProperty("potential", chkbox_potential.isSelected());
 				header.addProperty("logscale", chkbox_logscale.isSelected());

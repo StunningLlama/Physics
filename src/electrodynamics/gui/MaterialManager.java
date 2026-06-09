@@ -88,7 +88,9 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	private JLabel lbl_k_rad;
 	private JButton btn_cancel;
 
-	public MaterialManager() {
+	public MaterialManager(Simulation e) {
+		this.e = e;
+		setResizable(false);
 		setTitle("Material editor");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		setBounds(100, 100, 905, 363);
@@ -291,8 +293,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(btn_cancel);
 	}
 	
-	public void initialize(Simulation e) {
-		this.e = e;
+	public void initialize() {
 		this.btn_add.addActionListener(this);
 		this.btn_delete.addActionListener(this);
 		this.btn_apply.addActionListener(this);

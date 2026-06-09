@@ -21,6 +21,8 @@ import electrodynamics.Material;
 import electrodynamics.MaterialType;
 import electrodynamics.Simulation;
 import electrodynamics.units.Quantity;
+import java.awt.BorderLayout;
+import javax.swing.BoxLayout;
 
 public class MaterialViewer extends JFrame implements ActionListener, ListSelectionListener {
 
@@ -42,41 +44,59 @@ public class MaterialViewer extends JFrame implements ActionListener, ListSelect
 	private JButton btn_cancel;
 	private JButton btn_refresh;
 	private JTextPane textPane;
+	private JPanel panel;
+	private JPanel panel_1;
+	private JPanel panel_2;
+	private JPanel panel_3;
 
-	public MaterialViewer() {
+	public MaterialViewer(Simulation e) {
+		this.e = e;
 		setTitle("Material property viewer");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		setBounds(100, 100, 705, 562);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
-		contentPane.setLayout(null);
+		contentPane.setLayout(new BorderLayout(0, 0));
+		
+		panel = new JPanel();
+		panel.setBorder(new EmptyBorder(5, 5, 5, 5));
+		contentPane.add(panel, BorderLayout.WEST);
+		panel.setLayout(new BorderLayout(0, 0));
 		
 		JScrollPane scrollPane = new JScrollPane();
-		scrollPane.setBounds(6, 6, 235, 522);
-		contentPane.add(scrollPane);
+		panel.add(scrollPane);
 		
 		list = new JList<>();
 		scrollPane.setViewportView(list);
 		
-		btn_cancel = new JButton("Close");
-		btn_cancel.setBounds(575, 499, 124, 29);
-		contentPane.add(btn_cancel);
-		
-		btn_refresh = new JButton("Refresh");
-		btn_refresh.setBounds(452, 499, 124, 29);
-		contentPane.add(btn_refresh);
+		panel_1 = new JPanel();
+		panel_1.setBorder(new EmptyBorder(5, 5, 5, 5));
+		contentPane.add(panel_1, BorderLayout.CENTER);
+		panel_1.setLayout(new BorderLayout(0, 0));
 		
 		JScrollPane scrollPane_1 = new JScrollPane();
-		scrollPane_1.setBounds(253, 6, 435, 480);
-		contentPane.add(scrollPane_1);
+		panel_1.add(scrollPane_1);
 		
 		textPane = new JTextPane();
 		scrollPane_1.setViewportView(textPane);
+		
+		panel_3 = new JPanel();
+		contentPane.add(panel_3, BorderLayout.SOUTH);
+		panel_3.setLayout(new BorderLayout(0, 0));
+		
+		panel_2 = new JPanel();
+		panel_3.add(panel_2, BorderLayout.EAST);
+		panel_2.setLayout(new BoxLayout(panel_2, BoxLayout.X_AXIS));
+		
+		btn_refresh = new JButton("Refresh");
+		panel_2.add(btn_refresh);
+		
+		btn_cancel = new JButton("Close");
+		panel_2.add(btn_cancel);
 	}
 	
-	public void initialize(Simulation e) {
-		this.e = e;
+	public void initialize() {
 		this.btn_cancel.addActionListener(this);
 		this.btn_refresh.addActionListener(this);
 		this.list.addListSelectionListener(this);

@@ -8,13 +8,12 @@ package electrodynamics.util;
 public class Timer {
 
 	private long tstart = 0;
+	private boolean started = false;
 	private String name;
 	private boolean enabled = true;
 	private double avgtime = 0;
 	private double time = 0;
 	private double coeff = 1;
-
-	//private long tmp = System.nanoTime();
 
 	public Timer(String name, int smoothing, boolean enabled) {
 		this.name = name;
@@ -25,8 +24,8 @@ public class Timer {
 	public void start() {
 		if (enabled) {
 			tstart = System.nanoTime();
+			started = true;
 		}
-		//System.out.println(name + " start " + (tstart-tmp)/1000000.0);
 	}
 
 	public void disableOutput() {
@@ -46,22 +45,22 @@ public class Timer {
 	}
 
 	public void stop() {
-		if (enabled) {
+		if (enabled && started) {
 			long tend = System.nanoTime();
 			long diff = tend - tstart;
 			time = diff/1e9;
 			avgtime = avgtime*(1-coeff)+time*coeff;
-			//System.out.println(name + " end " + (tend-tmp)/1000000.0);
+			started = false;
 		}
 	}
 
 	public void stop(String msg) {
-		if (enabled) {
+		if (enabled && started) {
 			long tend = System.nanoTime();
 			long diff = tend - tstart;
 			time = diff/1e9;
 			avgtime = avgtime*(1-coeff)+time*coeff;
-			//System.out.println(name + " end " + (tend-tmp)/1000000.0);
+			started = false;
 		}
 	}
 }

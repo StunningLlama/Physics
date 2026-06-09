@@ -214,22 +214,18 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		}
 		mouse_pressed_prev = mouse_pressed;
 
-		if (!zoomed) {
-			mx = (int)Math.round((mx_screen-0.5)/e.renderer.scalefactor_real - 0.5);
-			my = (int)Math.round((my_screen-1.5)/e.renderer.scalefactor_real - 0.5);
 
-			mx_start = (int)Math.round((mx_start_screen-0.5)/e.renderer.scalefactor_real - 0.5);
-			my_start = (int)Math.round((my_start_screen-1.5)/e.renderer.scalefactor_real - 0.5);
-		} else {
-			double sf_x = (zoom_i2-zoom_i1+1)/(double)e.canvas.zoom_bound_x;
-			double sf_y = (zoom_j2-zoom_j1+1)/(double)e.canvas.zoom_bound_y;
+		double sf_x = (zoom_i2-zoom_i1+1)/(double)e.canvas.zoom_bound_x;
+		double sf_y = (zoom_j2-zoom_j1+1)/(double)e.canvas.zoom_bound_y;
 
-			mx = (int)Math.round(zoom_i1 + (mx_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
-			my = (int)Math.round(zoom_j1 + (my_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
+		mx = (int)Math.round(zoom_i1 + (mx_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
+		my = (int)Math.round(zoom_j1 + (my_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
 
-			mx_start = (int)Math.round(zoom_i1 + (mx_start_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
-			my_start = (int)Math.round(zoom_j1 + (my_start_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
-		}
+		mx_start = (int)Math.round(zoom_i1 + (mx_start_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
+		my_start = (int)Math.round(zoom_j1 + (my_start_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
+		
+		if (alt_down && (mouse_pressed || releasing))
+			snapToCardinals(mx, my);
 
 		if (mx < 0) mx = 0;
 		if (my < 0) my = 0;
@@ -460,7 +456,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 			boolean pick_material = alt_down && mx-mx_start == 0 && my-my_start == 0;
 			
-			if ((mousebutton == MouseEvent.BUTTON2 || pick_material) && pressing) {
+			if ((mousebutton == MouseEvent.BUTTON2 || pick_material) && releasing) {
 				e.opts.gui_material.setSelectedItem(new GeneralMaterialType(e.materials[mx][my]));
 			}
 
@@ -680,7 +676,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				zoom_j2 = zoom_j2_pan - (my_tmp - my_start_tmp);
 			} else if (releasing && !shift_down) {
 				if (mx == mx_start && my == my_start) {
-					zoomed = false;
+					resetZoom();
 				} else {
 					zoom_i1 = Math.min(mx_start, mx);
 					zoom_j1 = Math.min(my_start, my);
@@ -994,8 +990,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public void resetZoom() {
 		zoom_i1 = 0;
 		zoom_j1 = 0;
-		zoom_i2 = 0;
-		zoom_j2 = 0;
+		zoom_i2 = e.nx-1;
+		zoom_j2 = e.ny-1;
 		zoomed = false;
 	}
 	
@@ -1240,22 +1236,17 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		my_screen = ev.getY();
 		mx_start_screen = ev.getX();
 		my_start_screen = ev.getY();
-		
-		if (alt_down)
-			constrain();
+
 	}
 	@Override
-	public void mouseReleased(MouseEvent e) {
+	public void mouseReleased(MouseEvent ev) {
 		mouse_pressed = false;
 	}
 
 	@Override
-	public void mouseDragged(MouseEvent e) {
-		mx_screen = e.getX();
-		my_screen = e.getY();
-
-		if (alt_down)
-			constrain();
+	public void mouseDragged(MouseEvent ev) {
+		mx_screen = ev.getX();
+		my_screen = ev.getY();
 	}
 
 	@Override
@@ -1264,9 +1255,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		my_screen = arg0.getY();
 	}
 	
-	public void constrain() {
-		int dx = mx_screen - mx_start_screen;
-		int dy = my_screen - my_start_screen;
+	public void snapToCardinals(int mx, int my) {
+		int dx = mx - mx_start;
+		int dy = my - my_start;
 		int min = Math.abs(dx) > Math.abs(dy)? dx : dy;
 		int[] xc = {min, 0, min, min, -min, -min};
 		int[] yc = {0, min, min, -min, min, -min};
@@ -1282,8 +1273,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		}
 		
 		if (imin != -1) {
-			mx_screen = mx_start_screen + xc[imin];
-			my_screen = my_start_screen + yc[imin];
+			this.mx = mx_start + xc[imin];
+			this.my = my_start + yc[imin];
 		}
 	}
 
@@ -1763,7 +1754,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	@Override
 	public void mouseWheelMoved(MouseWheelEvent ev) {
-		e.opts.gui_brushsize.setValue(e.opts.gui_brushsize.getValue() - (int)(10*ev.getPreciseWheelRotation()));
+		e.opts.gui_brushsize.setValue(e.opts.gui_brushsize.getValue() - (int)(5*ev.getPreciseWheelRotation()));
 	}
 	
 
@@ -1954,7 +1945,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	@Override
 	public void windowClosing(WindowEvent ev) {
 		if (e.controls.changesmade) {
-			int result = JOptionPane.showConfirmDialog(e.opts, "There are unsaved changes. Do you still wish to quit?", "Message", JOptionPane.YES_NO_OPTION);
+			String[] options = {"Yes", "No"};
+			int result = JOptionPane.showOptionDialog(e.opts, "There are unsaved changes. Do you still wish to quit?", "Message", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[1]);
 			if (result == JOptionPane.OK_OPTION)
 			{
 				e.opts.dispose();
