@@ -19,8 +19,10 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
+import electrodynamics.MaterialType;
 import electrodynamics.Preset;
 import electrodynamics.Simulation;
 import electrodynamics.units.Quantity;
@@ -33,11 +35,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.HashMap;
 
 public class AdvancedOptions extends JFrame implements ActionListener {
 
 	private static final long serialVersionUID = 1L;
 	Simulation e;
+	HashMap<MaterialType, String> modified_names_tmp;
 	private JPanel sim;
 	public JTextField width;
 	public JTextField resolution;
@@ -763,6 +767,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		d_crit_n		.setText(Utils.formatDouble(e.d_crit_n));
 		d_crit_p		.setText(Utils.formatDouble(e.d_crit_p));
 		eps_r_semi		.setText(Utils.formatDouble(e.eps_r_semi));
+
+		modified_names_tmp = new HashMap<>(e.modified_names);
 	}
 	
 	public boolean loadAdvancedSettings(boolean show_warning) {
@@ -853,6 +859,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			e.d_crit_n = Double.valueOf(d_crit_n	.getText());
 			e.d_crit_p = Double.valueOf(d_crit_p	.getText());
 			e.eps_r_semi = Double.valueOf(eps_r_semi	.getText());
+			
+			e.modified_names = new HashMap<>(modified_names_tmp);
 
 			e.calculateDependentConstants();
 			e.reset(false, null);
@@ -882,7 +890,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		advsettings.addProperty("mu_hole", e.mu_hole_semi					);
 		advsettings.addProperty("gc_semi", e.gc_semi					);
 		advsettings.addProperty("gv_semi", e.gv_semi					);
-		advsettings.addProperty("W_semi", e.chi_semi						);
+		advsettings.addProperty("chi_semi", e.chi_semi						);
 		advsettings.addProperty("Eg_semi", e.Eg_semi					);
 		advsettings.addProperty("k_rad_semi", e.k_rad_semi	);
 		advsettings.addProperty("k_SRH_n_semi", e.k_SRH_n_semi	);
@@ -919,9 +927,12 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		advsettings.addProperty("a_factor_n", e.d_crit_n	);
 		advsettings.addProperty("a_factor_p", e.d_crit_p	);
 		advsettings.addProperty("eps_r_semi", e.eps_r_semi	);
+
+		advsettings.add("modified_names", gson.toJsonTree(e.modified_names));
 	}
 	
 
+	@SuppressWarnings("unchecked")
 	public void readAdvancedSettings (Gson gson, JsonReader fstr, Preset p) throws JsonIOException, JsonSyntaxException, IOException, RuntimeException {
 		
 		if (p == null)
@@ -945,7 +956,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			case "mu_hole": e.mu_hole_semi					= fstr.nextDouble(); break;
 			case "gc_semi": e.gc_semi					= fstr.nextDouble(); break;
 			case "gv_semi": e.gv_semi					= fstr.nextDouble(); break;
-			case "W_semi": e.chi_semi						= fstr.nextDouble(); break;
+			case "chi_semi": e.chi_semi						= fstr.nextDouble(); break;
 			case "Eg_semi": e.Eg_semi					= fstr.nextDouble(); break;
 			case "k_rad_semi": e.k_rad_semi		= fstr.nextDouble(); break;
 			case "k_SRH_n_semi": e.k_SRH_n_semi		= fstr.nextDouble(); break;
@@ -981,6 +992,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			case "a_factor_n": e.d_crit_n	= fstr.nextDouble(); break;
 			case "a_factor_p": e.d_crit_p	= fstr.nextDouble(); break;
 			case "eps_r_semi": e.eps_r_semi	= fstr.nextDouble(); break;
+
+			case "modified_names": e.modified_names = (HashMap<MaterialType, String>) gson.fromJson(fstr, new TypeToken<HashMap<MaterialType, String>>(){}.getType()); break;
 
 			default: fstr.skipValue(); break; // skip others
 			}

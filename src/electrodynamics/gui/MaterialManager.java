@@ -135,22 +135,22 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 
 		mu_electron = new JTextField();
 		mu_electron.setColumns(10);
-		mu_electron.setBounds(477, 66, 98, 26);
+		mu_electron.setBounds(477, 264, 98, 26);
 		contentPane.add(mu_electron);
 		
 		lbl_mu_electron = new JLabel("Electron mobility [m^2/(V s)]");
 		lbl_mu_electron.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_mu_electron.setBounds(273, 71, 192, 16);
+		lbl_mu_electron.setBounds(273, 269, 192, 16);
 		contentPane.add(lbl_mu_electron);
 		
 		lbl_mu_hole = new JLabel("Hole mobility [m^2/(V s)]");
 		lbl_mu_hole.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_mu_hole.setBounds(297, 104, 168, 16);
+		lbl_mu_hole.setBounds(297, 302, 168, 16);
 		contentPane.add(lbl_mu_hole);
 		
 		mu_hole = new JTextField();
 		mu_hole.setColumns(10);
-		mu_hole.setBounds(477, 99, 98, 26);
+		mu_hole.setBounds(477, 297, 98, 26);
 		contentPane.add(mu_hole);
 		
 		lbl_ni = new JLabel("Cond. band eff. DOS [1/m^3]");
@@ -185,102 +185,102 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		lbl_k_rad = new JLabel("Radiative recomb. rate [m^3/s]");
 		lbl_k_rad.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_k_rad.setBounds(578, 71, 211, 16);
+		lbl_k_rad.setBounds(578, 170, 211, 16);
 		contentPane.add(lbl_k_rad);
 		
 		k_rad = new JTextField();
 		k_rad.setColumns(10);
-		k_rad.setBounds(801, 66, 98, 26);
+		k_rad.setBounds(801, 165, 98, 26);
 		contentPane.add(k_rad);
 		
 		lbl_v_sat_n = new JLabel("Electron sat. velocity [m/s]");
 		lbl_v_sat_n.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_v_sat_n.setBounds(597, 236, 192, 16);
+		lbl_v_sat_n.setBounds(597, 104, 192, 16);
 		contentPane.add(lbl_v_sat_n);
 		
 		v_sat_n = new JTextField();
 		v_sat_n.setColumns(10);
-		v_sat_n.setBounds(801, 231, 98, 26);
+		v_sat_n.setBounds(801, 99, 98, 26);
 		contentPane.add(v_sat_n);
 		
 		lbl_v_sat_p = new JLabel("Hole sat. velocity [m/s]");
 		lbl_v_sat_p.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_v_sat_p.setBounds(597, 269, 192, 16);
+		lbl_v_sat_p.setBounds(597, 137, 192, 16);
 		contentPane.add(lbl_v_sat_p);
 		
 		v_sat_p = new JTextField();
 		v_sat_p.setColumns(10);
-		v_sat_p.setBounds(801, 264, 98, 26);
+		v_sat_p.setBounds(801, 132, 98, 26);
 		contentPane.add(v_sat_p);
 		
 		lbl_k_SRH_n = new JLabel("SRH recomb. rate n [1/s]");
 		lbl_k_SRH_n.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_k_SRH_n.setBounds(597, 104, 192, 16);
+		lbl_k_SRH_n.setBounds(597, 203, 192, 16);
 		contentPane.add(lbl_k_SRH_n);
 		
 		k_SRH_n = new JTextField();
 		k_SRH_n.setColumns(10);
-		k_SRH_n.setBounds(801, 99, 98, 26);
+		k_SRH_n.setBounds(801, 198, 98, 26);
 		contentPane.add(k_SRH_n);
 		
 		lbl_k_SRH_p = new JLabel("SRH recomb. rate p [1/s]");
 		lbl_k_SRH_p.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_k_SRH_p.setBounds(607, 137, 182, 16);
+		lbl_k_SRH_p.setBounds(607, 236, 182, 16);
 		contentPane.add(lbl_k_SRH_p);
 		
 		k_SRH_p = new JTextField();
 		k_SRH_p.setColumns(10);
-		k_SRH_p.setBounds(801, 132, 98, 26);
+		k_SRH_p.setBounds(801, 231, 98, 26);
 		contentPane.add(k_SRH_p);
 		
 		lbl_k_aug_n = new JLabel("Auger recomb. rate n [m^6/s]");
 		lbl_k_aug_n.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_k_aug_n.setBounds(597, 170, 192, 16);
+		lbl_k_aug_n.setBounds(597, 269, 192, 16);
 		contentPane.add(lbl_k_aug_n);
 		
 		k_aug_n = new JTextField();
 		k_aug_n.setColumns(10);
-		k_aug_n.setBounds(801, 165, 98, 26);
+		k_aug_n.setBounds(801, 264, 98, 26);
 		contentPane.add(k_aug_n);
 		
 		lbl_k_aug_p = new JLabel("Auger recomb. rate p [m^6/s]");
 		lbl_k_aug_p.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_k_aug_p.setBounds(597, 203, 192, 16);
+		lbl_k_aug_p.setBounds(597, 302, 192, 16);
 		contentPane.add(lbl_k_aug_p);
 		
 		k_aug_p = new JTextField();
 		k_aug_p.setColumns(10);
-		k_aug_p.setBounds(801, 198, 98, 26);
+		k_aug_p.setBounds(801, 297, 98, 26);
 		contentPane.add(k_aug_p);
 		
 		lbl_eps_r = new JLabel("Dielectric constant");
 		lbl_eps_r.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_eps_r.setBounds(297, 269, 168, 16);
+		lbl_eps_r.setBounds(297, 71, 168, 16);
 		contentPane.add(lbl_eps_r);
 		
 		eps_r = new JTextField();
 		eps_r.setColumns(10);
-		eps_r.setBounds(477, 264, 98, 26);
+		eps_r.setBounds(477, 66, 98, 26);
 		contentPane.add(eps_r);
 		
-		lbl_mu_r = new JLabel("Rel. permeability");
+		lbl_mu_r = new JLabel("Relative permeability");
 		lbl_mu_r.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_mu_r.setBounds(297, 302, 168, 16);
+		lbl_mu_r.setBounds(297, 104, 168, 16);
 		contentPane.add(lbl_mu_r);
 		
 		mu_r = new JTextField();
 		mu_r.setColumns(10);
-		mu_r.setBounds(477, 297, 98, 26);
+		mu_r.setBounds(477, 99, 98, 26);
 		contentPane.add(mu_r);
 		
 		lbl_rho_back = new JLabel("Dopant charge density [C/m^3]");
 		lbl_rho_back.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_rho_back.setBounds(578, 302, 211, 16);
+		lbl_rho_back.setBounds(578, 71, 211, 16);
 		contentPane.add(lbl_rho_back);
 		
 		rho_back = new JTextField();
 		rho_back.setColumns(10);
-		rho_back.setBounds(801, 297, 98, 26);
+		rho_back.setBounds(801, 66, 98, 26);
 		contentPane.add(rho_back);
 		
 		lblNewLabel = new JLabel("Name");
@@ -329,9 +329,9 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		gv.setBounds(477, 231, 98, 26);
 		contentPane.add(gv);
 		
-		JButton btn_apply_1 = new JButton("Band and DOS calculator");
-		btn_apply_1.setBounds(649, 3, 212, 29);
-		contentPane.add(btn_apply_1);
+		btn_calc = new JButton("Band and DOS calculator");
+		btn_calc.setBounds(649, 3, 212, 29);
+		contentPane.add(btn_calc);
 	}
 	
 	public void initialize() {
@@ -341,6 +341,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		this.btn_cancel.addActionListener(this);
 		this.btn_import.addActionListener(this);
 		this.btn_export.addActionListener(this);
+		this.btn_calc.addActionListener(this);
 		this.list.addListSelectionListener(this);
 		this.type.addItemListener(this);
 		e.opts.gui_material.setModel(new DefaultComboBoxModel<GeneralMaterialType>(makelist()));
@@ -444,8 +445,11 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 			this.setVisible(false);
 		}else if (e.getSource() == btn_import) {
 			this.readFile();
-		}else if (e.getSource() == btn_export) {
+		} else if (e.getSource() == btn_export) {
 			this.writeFile();
+		} else if (e.getSource() == btn_calc) {
+			Calculator calc = new Calculator(this);
+			calc.setVisible(true);
 		}
 	}
 
@@ -597,8 +601,9 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	public int current_saveversion = 1;
 	public String fileextension = ".material";
 	public String startingpath = ".";
-	private JTextField gv;
+	JTextField gv;
 	private JLabel lbl_gv;
+	private JButton btn_calc;
 	
 	public void readFile()
 	{

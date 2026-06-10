@@ -295,12 +295,24 @@ public class Utils {
 	
 	private static DecimalFormat df_e = new DecimalFormat("#.########E0");
 	private static DecimalFormat df = new DecimalFormat("#.########");
+
+	private static DecimalFormat df_e_reduced = new DecimalFormat("#.#####E0");
+	private static DecimalFormat df_reduced = new DecimalFormat("#.#####");
 	
 	public static String formatDouble(double d) {
 		if ((d != 0 && Math.abs(d) < 1e-3) || Math.abs(d) >= 1e6)  {
 			return df_e.format(d);
 		} else {
 			return df.format(d);
+		}
+	}
+	
+	// Reduced precision
+	public static String formatDoubleReduced(double d) {
+		if ((d != 0 && Math.abs(d) < 1e-3) || Math.abs(d) >= 1e6)  {
+			return df_e_reduced.format(d);
+		} else {
+			return df_reduced.format(d);
 		}
 	}
 }

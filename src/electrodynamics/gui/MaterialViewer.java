@@ -130,7 +130,7 @@ public class MaterialViewer extends JFrame implements ActionListener, ListSelect
 			
 			double rho_n = mat.calcEquilibriumElectronCharge(e.e_charge, e.k*e.T);
 			double rho_p = mat.calcEquilibriumHoleCharge(e.e_charge, e.k*e.T);
-			double sigma = e.e_charge*(-mat.D_n*e.beta*rho_n + mat.D_p*e.beta*rho_p);
+			double sigma = mat.calcConductivity(e.e_charge, e.k*e.T);
 			
 			String str = "<html>";
 			str += "Name: " + mat.getDisplayName() + "<br>";

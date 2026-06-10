@@ -129,7 +129,7 @@ public class Material {
     	absorptivity = mat.absorptivity;
     }
     
-	public void computeBandstructurePhi(double ni, double Phi, double Eg, double kT)
+	public void computeBandstructurePhi(double Phi, double Eg, double ni, double kT)
 	{
 		double K = ni*ni;
 
@@ -143,7 +143,7 @@ public class Material {
 		this.gv = Math.exp(TS_p/kT);
 	}
 	
-	public void computeBandstructureChi(double ni, double chi, double Eg, double kT)
+	public void computeBandstructureChi(double chi, double Eg, double ni, double kT)
 	{
 		double W = chi + 0.5*Eg;
 		double K = ni*ni;
@@ -203,6 +203,12 @@ public class Material {
 		double K = calc_ni2(kT);
 		double B = -rho_back/e_charge;
 		return e_charge*0.5*(B+Math.sqrt(B*B+4*K));
+	}
+	
+	public double calcConductivity(double e_charge, double kT) {
+		double rho_n = calcEquilibriumElectronCharge(e_charge, kT);
+		double rho_p = calcEquilibriumHoleCharge(e_charge, kT);
+		return e_charge*(-D_n*rho_n/kT + D_p*rho_p/kT);
 	}
     
     public boolean isEmpty() {

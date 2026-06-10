@@ -62,8 +62,6 @@ public class Simulation extends PeriodicTask {
 	
 	//TODO
 	//Optimize presets
-	//Think about free energy
-	//Calculator
 	//Add more view options
 	//Write manual
 	//Small transistors
@@ -202,7 +200,7 @@ public class Simulation extends PeriodicTask {
 
 	public double g_currentsource;			// Current source carrier concentration
 	public double currentsource_mobility;	// Current source mobility
-	public double currentsource_sigma;		// Current source conductivity
+	public double currentsource_sigma;	// Current source mobility
 	
 	public double n_default_doping_concentration;
 	public double p_default_doping_concentration;
@@ -225,8 +223,8 @@ public class Simulation extends PeriodicTask {
 	
 	public double global_voltage_offset;
 
-	HashMap<MaterialType, String> default_names;
-	HashMap<MaterialType, String> modified_names;
+	public HashMap<MaterialType, String> default_names;
+	public HashMap<MaterialType, String> modified_names;
 	
 	public void setDefaultParameters() {
 		default_resolution = 256;
@@ -259,7 +257,7 @@ public class Simulation extends PeriodicTask {
 		k_SRH_p_semi = 0;
 		
 
-		g_metal = 1.468e30;
+		g_metal = 1.469e30;
 		g_metal_high = 2.5*g_metal;
 		g_metal_low = 0.25*g_metal;
 		W_metal_default = 4.7*eVtoJ;
@@ -306,8 +304,10 @@ public class Simulation extends PeriodicTask {
 		D_hole_semi = mu_hole_semi/(beta*e_charge);
 
 		g_currentsource = g_metal;
-		//TODO
-		//currentsource_sigma = ni_currentsource*e_charge*(mu_electron_semi + mu_hole_semi)*currentsource_mobility;
+
+		Material cur_source = new Material();
+		initializeMaterial(cur_source, MaterialType.CURRENT);
+		currentsource_sigma = cur_source.calcConductivity(e_charge, k*T);
 		
 		for (MaterialType type : MaterialType.values()) {
 			String name = modified_names.get(type);
