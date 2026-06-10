@@ -48,6 +48,7 @@ public class MixedUnits extends UnitSystem {
 		case ENTROPY_DENSITY_RATE: return "J/(K s cm^3)";
 		case INTENSITY: return "W/cm^2";
 		case CONDUCTIVITY: return "A/(cm V)";
+		case RESISTIVITY: return "(cm V)/A";
 		case DIFFUSIVITY: return "(cm^2/s)";
 		case ELECTRIC_MOBILITY: return "(cm^2/(V s))";
 		}

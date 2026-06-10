@@ -4,13 +4,23 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -20,9 +30,16 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.filechooser.FileFilter;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.stream.JsonReader;
 
 import electrodynamics.GeneralMaterialType;
 import electrodynamics.Material;
@@ -40,9 +57,9 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	public JTextField depth;
 	public JTextField mu_electron;
 	public JTextField mu_hole;
-	public JTextField ni;
-	public JTextField W;
-	public JTextField Eb;
+	public JTextField gc;
+	public JTextField Ec;
+	public JTextField Ev;
 	public JTextField ni_metal;
 	public JTextField W_metal;
 	public JTextField E_b_metal;
@@ -87,31 +104,33 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	private JLabel lbl_eps_r;
 	private JLabel lbl_k_rad;
 	private JButton btn_cancel;
+	private JButton btn_import;
+	private JButton btn_export;
 
 	public MaterialManager(Simulation e) {
 		this.e = e;
 		setResizable(false);
 		setTitle("Material editor");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		setBounds(100, 100, 905, 363);
+		setBounds(100, 100, 905, 422);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
 		contentPane.setLayout(null);
 		
 		JScrollPane scrollPane = new JScrollPane();
-		scrollPane.setBounds(6, 6, 235, 283);
+		scrollPane.setBounds(6, 6, 235, 341);
 		contentPane.add(scrollPane);
 		
 		list = new JList<>();
 		scrollPane.setViewportView(list);
 		
 		btn_add = new JButton("New material");
-		btn_add.setBounds(6, 301, 117, 29);
+		btn_add.setBounds(6, 359, 117, 29);
 		contentPane.add(btn_add);
 		
 		btn_delete = new JButton("Delete");
-		btn_delete.setBounds(124, 301, 117, 29);
+		btn_delete.setBounds(124, 359, 117, 29);
 		contentPane.add(btn_delete);
 
 		mu_electron = new JTextField();
@@ -134,134 +153,134 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		mu_hole.setBounds(477, 99, 98, 26);
 		contentPane.add(mu_hole);
 		
-		lbl_ni = new JLabel("Intrinsic carrier conc. [1/m^3]");
+		lbl_ni = new JLabel("Cond. band eff. DOS [1/m^3]");
 		lbl_ni.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_ni.setBounds(267, 137, 198, 16);
+		lbl_ni.setBounds(267, 203, 198, 16);
 		contentPane.add(lbl_ni);
 		
-		ni = new JTextField();
-		ni.setColumns(10);
-		ni.setBounds(477, 132, 98, 26);
-		contentPane.add(ni);
+		gc = new JTextField();
+		gc.setColumns(10);
+		gc.setBounds(477, 198, 98, 26);
+		contentPane.add(gc);
 		
-		lbl_W = new JLabel("Workfunction [eV]");
+		lbl_W = new JLabel("Conduction band energy [eV]");
 		lbl_W.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_W.setBounds(297, 170, 168, 16);
+		lbl_W.setBounds(253, 137, 212, 16);
 		contentPane.add(lbl_W);
 		
-		W = new JTextField();
-		W.setColumns(10);
-		W.setBounds(477, 165, 98, 26);
-		contentPane.add(W);
+		Ec = new JTextField();
+		Ec.setColumns(10);
+		Ec.setBounds(477, 132, 98, 26);
+		contentPane.add(Ec);
 		
-		lbl_Eb = new JLabel("Bandgap [eV]");
+		lbl_Eb = new JLabel("Valence band energy [eV]");
 		lbl_Eb.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_Eb.setBounds(297, 203, 168, 16);
+		lbl_Eb.setBounds(283, 170, 182, 16);
 		contentPane.add(lbl_Eb);
 		
-		Eb = new JTextField();
-		Eb.setColumns(10);
-		Eb.setBounds(477, 198, 98, 26);
-		contentPane.add(Eb);
+		Ev = new JTextField();
+		Ev.setColumns(10);
+		Ev.setBounds(477, 165, 98, 26);
+		contentPane.add(Ev);
 		
 		lbl_k_rad = new JLabel("Radiative recomb. rate [m^3/s]");
 		lbl_k_rad.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_k_rad.setBounds(578, 5, 211, 16);
+		lbl_k_rad.setBounds(578, 71, 211, 16);
 		contentPane.add(lbl_k_rad);
 		
 		k_rad = new JTextField();
 		k_rad.setColumns(10);
-		k_rad.setBounds(801, 0, 98, 26);
+		k_rad.setBounds(801, 66, 98, 26);
 		contentPane.add(k_rad);
 		
 		lbl_v_sat_n = new JLabel("Electron sat. velocity [m/s]");
 		lbl_v_sat_n.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_v_sat_n.setBounds(597, 170, 192, 16);
+		lbl_v_sat_n.setBounds(597, 236, 192, 16);
 		contentPane.add(lbl_v_sat_n);
 		
 		v_sat_n = new JTextField();
 		v_sat_n.setColumns(10);
-		v_sat_n.setBounds(801, 165, 98, 26);
+		v_sat_n.setBounds(801, 231, 98, 26);
 		contentPane.add(v_sat_n);
 		
 		lbl_v_sat_p = new JLabel("Hole sat. velocity [m/s]");
 		lbl_v_sat_p.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_v_sat_p.setBounds(597, 203, 192, 16);
+		lbl_v_sat_p.setBounds(597, 269, 192, 16);
 		contentPane.add(lbl_v_sat_p);
 		
 		v_sat_p = new JTextField();
 		v_sat_p.setColumns(10);
-		v_sat_p.setBounds(801, 198, 98, 26);
+		v_sat_p.setBounds(801, 264, 98, 26);
 		contentPane.add(v_sat_p);
 		
 		lbl_k_SRH_n = new JLabel("SRH recomb. rate n [1/s]");
 		lbl_k_SRH_n.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_k_SRH_n.setBounds(597, 38, 192, 16);
+		lbl_k_SRH_n.setBounds(597, 104, 192, 16);
 		contentPane.add(lbl_k_SRH_n);
 		
 		k_SRH_n = new JTextField();
 		k_SRH_n.setColumns(10);
-		k_SRH_n.setBounds(801, 33, 98, 26);
+		k_SRH_n.setBounds(801, 99, 98, 26);
 		contentPane.add(k_SRH_n);
 		
 		lbl_k_SRH_p = new JLabel("SRH recomb. rate p [1/s]");
 		lbl_k_SRH_p.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_k_SRH_p.setBounds(607, 71, 182, 16);
+		lbl_k_SRH_p.setBounds(607, 137, 182, 16);
 		contentPane.add(lbl_k_SRH_p);
 		
 		k_SRH_p = new JTextField();
 		k_SRH_p.setColumns(10);
-		k_SRH_p.setBounds(801, 66, 98, 26);
+		k_SRH_p.setBounds(801, 132, 98, 26);
 		contentPane.add(k_SRH_p);
 		
 		lbl_k_aug_n = new JLabel("Auger recomb. rate n [m^6/s]");
 		lbl_k_aug_n.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_k_aug_n.setBounds(597, 104, 192, 16);
+		lbl_k_aug_n.setBounds(597, 170, 192, 16);
 		contentPane.add(lbl_k_aug_n);
 		
 		k_aug_n = new JTextField();
 		k_aug_n.setColumns(10);
-		k_aug_n.setBounds(801, 99, 98, 26);
+		k_aug_n.setBounds(801, 165, 98, 26);
 		contentPane.add(k_aug_n);
 		
 		lbl_k_aug_p = new JLabel("Auger recomb. rate p [m^6/s]");
 		lbl_k_aug_p.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_k_aug_p.setBounds(597, 137, 192, 16);
+		lbl_k_aug_p.setBounds(597, 203, 192, 16);
 		contentPane.add(lbl_k_aug_p);
 		
 		k_aug_p = new JTextField();
 		k_aug_p.setColumns(10);
-		k_aug_p.setBounds(801, 132, 98, 26);
+		k_aug_p.setBounds(801, 198, 98, 26);
 		contentPane.add(k_aug_p);
 		
 		lbl_eps_r = new JLabel("Dielectric constant");
 		lbl_eps_r.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_eps_r.setBounds(297, 235, 168, 16);
+		lbl_eps_r.setBounds(297, 269, 168, 16);
 		contentPane.add(lbl_eps_r);
 		
 		eps_r = new JTextField();
 		eps_r.setColumns(10);
-		eps_r.setBounds(477, 230, 98, 26);
+		eps_r.setBounds(477, 264, 98, 26);
 		contentPane.add(eps_r);
 		
 		lbl_mu_r = new JLabel("Rel. permeability");
 		lbl_mu_r.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_mu_r.setBounds(297, 268, 168, 16);
+		lbl_mu_r.setBounds(297, 302, 168, 16);
 		contentPane.add(lbl_mu_r);
 		
 		mu_r = new JTextField();
 		mu_r.setColumns(10);
-		mu_r.setBounds(477, 263, 98, 26);
+		mu_r.setBounds(477, 297, 98, 26);
 		contentPane.add(mu_r);
 		
 		lbl_rho_back = new JLabel("Dopant charge density [C/m^3]");
 		lbl_rho_back.setHorizontalAlignment(SwingConstants.TRAILING);
-		lbl_rho_back.setBounds(578, 236, 211, 16);
+		lbl_rho_back.setBounds(578, 302, 211, 16);
 		contentPane.add(lbl_rho_back);
 		
 		rho_back = new JTextField();
 		rho_back.setColumns(10);
-		rho_back.setBounds(801, 231, 98, 26);
+		rho_back.setBounds(801, 297, 98, 26);
 		contentPane.add(rho_back);
 		
 		lblNewLabel = new JLabel("Name");
@@ -285,20 +304,43 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(lblType);
 		
 		btn_apply = new JButton("Apply");
-		btn_apply.setBounds(651, 301, 124, 29);
+		btn_apply.setBounds(651, 359, 124, 29);
 		contentPane.add(btn_apply);
 		
 		btn_cancel = new JButton("Cancel");
-		btn_cancel.setBounds(775, 301, 124, 29);
+		btn_cancel.setBounds(775, 359, 124, 29);
 		contentPane.add(btn_cancel);
+		
+		btn_import = new JButton("Import");
+		btn_import.setBounds(244, 359, 117, 29);
+		contentPane.add(btn_import);
+		
+		btn_export = new JButton("Export");
+		btn_export.setBounds(363, 359, 124, 29);
+		contentPane.add(btn_export);
+		
+		lbl_gv = new JLabel("Valence band eff. DOS [1/m^3]");
+		lbl_gv.setHorizontalAlignment(SwingConstants.TRAILING);
+		lbl_gv.setBounds(267, 236, 198, 16);
+		contentPane.add(lbl_gv);
+		
+		gv = new JTextField();
+		gv.setColumns(10);
+		gv.setBounds(477, 231, 98, 26);
+		contentPane.add(gv);
+		
+		JButton btn_apply_1 = new JButton("Band and DOS calculator");
+		btn_apply_1.setBounds(649, 3, 212, 29);
+		contentPane.add(btn_apply_1);
 	}
 	
 	public void initialize() {
 		this.btn_add.addActionListener(this);
 		this.btn_delete.addActionListener(this);
 		this.btn_apply.addActionListener(this);
-		//this.btn_save.addActionListener(this);
 		this.btn_cancel.addActionListener(this);
+		this.btn_import.addActionListener(this);
+		this.btn_export.addActionListener(this);
 		this.list.addListSelectionListener(this);
 		this.type.addItemListener(this);
 		e.opts.gui_material.setModel(new DefaultComboBoxModel<GeneralMaterialType>(makelist()));
@@ -335,6 +377,8 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
                 JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE
         );
+        
+        String new_name = "New material";
 
         if (result == JOptionPane.OK_OPTION) {
         	GeneralMaterialType selected = tmplist.getSelectedValue();
@@ -344,13 +388,15 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
             		e.initializeMaterial(mat, selected.type);
             	else
                     mat.copyFrom(mat_map.get(selected.cust_id));
+            	
+            	new_name = selected.toString() + " copy";
             }
         } else {
         	return;
         }
 		
         mat.type = MaterialType.CUSTOM;
-		mat.name = ("New material " + id_counter);
+		mat.name = new_name;
 		mat.cust_id = id_counter;
 		mat_map.put(mat.cust_id, mat);
 		id_counter++;
@@ -396,6 +442,10 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 			delete();
 		} else if (e.getSource() == btn_cancel) {
 			this.setVisible(false);
+		}else if (e.getSource() == btn_import) {
+			this.readFile();
+		}else if (e.getSource() == btn_export) {
+			this.writeFile();
 		}
 	}
 
@@ -419,9 +469,10 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		eps_r.setText(Utils.formatDouble(mat.eps_r));
 		mu_r.setText(Utils.formatDouble(mat.mu_r));
 		rho_back.setText(Utils.formatDouble(mat.rho_back));
-		ni.setText(Utils.formatDouble(mat.ni));
-		W.setText(Utils.formatDouble(mat.W/e.eVtoJ));
-		Eb.setText(Utils.formatDouble(mat.Eb/e.eVtoJ));
+		gc.setText(Utils.formatDouble(mat.gc));
+		gv.setText(Utils.formatDouble(mat.gv));
+		Ec.setText(Utils.formatDouble(mat.Ec/e.eVtoJ));
+		Ev.setText(Utils.formatDouble(mat.Ev/e.eVtoJ));
 		mu_electron.setText(Utils.formatDouble(mat.D_n*e.beta*e.e_charge));
 		mu_hole.setText(Utils.formatDouble(mat.D_p*e.beta*e.e_charge));
 		v_sat_n.setText(Utils.formatDouble(mat.v_sat_n));
@@ -451,9 +502,10 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		mat.rho_back = Double.valueOf(rho_back.getText());
 
 		if (mat.conducting == 1) {
-			mat.ni = Double.valueOf(ni.getText());
-			mat.W = Double.valueOf(W.getText())*e.eVtoJ;
-			mat.Eb = Double.valueOf(Eb.getText())*e.eVtoJ;
+			mat.gc = Double.valueOf(gc.getText());
+			mat.gv = Double.valueOf(gv.getText());
+			mat.Ec = Double.valueOf(Ec.getText())*e.eVtoJ;
+			mat.Ev = Double.valueOf(Ev.getText())*e.eVtoJ;
 			mat.D_n = Double.valueOf(mu_electron.getText())/(e.beta*e.e_charge);
 			mat.D_p = Double.valueOf(mu_hole.getText())/(e.beta*e.e_charge);
 			mat.v_sat_n = Double.valueOf(v_sat_n.getText());
@@ -475,10 +527,10 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		boolean conducting = (matclass == MaterialClass.CONDUCTING || matclass == MaterialClass.SEMICONDUCTING);
 		boolean semiconducting = (matclass == MaterialClass.SEMICONDUCTING);
 		
-		ni.setVisible(conducting);
-		W.setVisible(conducting);
-		ni.setVisible(conducting);
-		Eb.setVisible(conducting);
+		gc.setVisible(conducting);
+		Ec.setVisible(conducting);
+		gv.setVisible(conducting);
+		Ev.setVisible(conducting);
 		mu_electron.setVisible(conducting);
 		mu_hole.setVisible(conducting);
 		k_rad.setVisible(conducting);
@@ -492,7 +544,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		lbl_ni.setEnabled(conducting);
 		lbl_W.setEnabled(conducting);
-		lbl_ni.setEnabled(conducting);
+		lbl_gv.setEnabled(conducting);
 		lbl_Eb.setEnabled(conducting);
 		lbl_mu_electron.setEnabled(conducting);
 		lbl_mu_hole.setEnabled(conducting);
@@ -540,5 +592,194 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	@Override
 	public void itemStateChanged(ItemEvent e) {
 		setInputVisibility();
+	}
+
+	public int current_saveversion = 1;
+	public String fileextension = ".material";
+	public String startingpath = ".";
+	private JTextField gv;
+	private JLabel lbl_gv;
+	
+	public void readFile()
+	{
+		SwingUtilities.invokeLater(() -> {
+			File testfile = new File(startingpath);
+			if (!testfile.canRead()) {
+				JOptionPane.showMessageDialog(this,
+				"Error: Java does not have access to this folder. Please see instructions to fix this issue.");
+			}
+
+			JFileChooser fd = new JFileChooser(startingpath);
+			fd.setDialogTitle("Import material(s)");
+			fd.setMultiSelectionEnabled(true);
+			fd.setFileFilter(new FileFilter(){
+				@Override
+				public boolean accept(File f) {
+					if (f.isDirectory() || f.getName().endsWith(fileextension)) return true;
+					return false;
+				}
+				@Override
+				public String getDescription() {
+					return fileextension;
+				}
+			});
+			fd.setVisible(true);
+			int result = fd.showOpenDialog(this);
+			startingpath = fd.getCurrentDirectory().getPath();
+
+			if (result == JFileChooser.APPROVE_OPTION) {
+				File[] files = fd.getSelectedFiles();
+				for (File infile : files)
+					readfile(infile);
+			}
+		});
+	}
+
+	public void readfile(File infile) {
+		e.rwLock.writeLock().lock();
+		try {
+			if (infile == null || !infile.exists()) return;
+			
+			try {
+				JsonReader fstr = new JsonReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(infile))));
+				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+
+				fstr.beginObject();
+
+				assertNextObject(fstr, "version");
+				int version = fstr.nextInt();
+				
+				System.out.println("Loading " + infile.getName() + ", version = " + version);
+
+				if (version > current_saveversion) {
+					fstr.close();
+					throw new IllegalArgumentException("The file was created in a newer version of SemiSim.");
+				}
+
+				if (version == current_saveversion) {
+					assertNextObject(fstr, "materials");
+					Material[] mats = (Material[]) gson.fromJson(fstr, Material[].class);
+
+					for (Material mat : mats) {
+						mat.cust_id = id_counter;
+						mat_map.put(mat.cust_id, mat);
+						id_counter++;
+						updateUI();
+						list.setSelectedValue(mat, true);
+					}
+
+					fstr.close();
+
+				}
+			} catch (FileNotFoundException ex) {
+				return;
+			} catch (IOException | IllegalArgumentException ex) {
+				JOptionPane.showMessageDialog(this,
+				"Unable to load file.\n" + ex.getMessage());
+				ex.printStackTrace();
+				return;
+			}
+			return;
+		} finally {
+			e.rwLock.writeLock().unlock();
+		}
+	}
+	
+	public void writeFile()
+	{
+		SwingUtilities.invokeLater(() -> {
+			if (list.getSelectedValue() == null) {
+				JOptionPane.showMessageDialog(this,
+				"Please select a material to save.");
+				return;
+			}
+			
+			File testfile = new File(startingpath);
+			if (!testfile.canWrite()) {
+				JOptionPane.showMessageDialog(this,
+				"Error: Java does not have access to this folder. Please see instructions to fix this issue.");
+				return;
+			}
+			
+			JFileChooser fd = new JFileChooser(startingpath);
+			fd.setSelectedFile(new File(list.getSelectedValue().toString() + ".material"));
+			fd.setDialogTitle("Export material(s)");
+			fd.setFileFilter(new FileFilter(){
+				@Override
+				public boolean accept(File f) {
+					if (f.isDirectory() || f.getName().endsWith(fileextension)) return true;
+					return false;
+				}
+				@Override
+				public String getDescription() {
+					return fileextension;
+				}
+			});
+			int result = fd.showSaveDialog(this);
+			startingpath = fd.getCurrentDirectory().getPath();
+
+			File outfile = null;
+			
+			if (result == JFileChooser.APPROVE_OPTION)
+				outfile = fd.getSelectedFile();
+
+			if (outfile == null) return;
+			if (!outfile.getName().endsWith(fileextension))
+				outfile = new File(outfile.getAbsolutePath() + fileextension);
+
+			if (outfile.exists()) {
+				String[] options = {"Yes", "No"};
+
+				result = JOptionPane.showOptionDialog(this, "A file named " + outfile.getName() + " already exists. Do you wish to overwrite it?", "Message", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[1]);
+				if (result != JOptionPane.OK_OPTION)
+					return;
+			}
+			
+			writeFile(outfile);
+		});
+	}
+
+	public void writeFile(File outfile)
+	{
+		e.rwLock.writeLock().lock();
+		try {
+			try {
+				PrintWriter fstr = new PrintWriter(new GZIPOutputStream(new FileOutputStream(outfile)));
+
+				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+
+				JsonObject save = new JsonObject();
+				save.addProperty("version", current_saveversion);
+				Material[] mats = list.getSelectedValuesList().toArray(new Material[0]);
+				save.add("materials", gson.toJsonTree(mats));
+				String json = gson.toJson(save);
+
+				fstr.print(json);
+				fstr.flush();
+				fstr.close();
+
+				JOptionPane.showMessageDialog(this, "Material(s) saved successfully.");
+			} catch (FileNotFoundException e) {
+				return;
+			} catch (IOException e) {
+				e.printStackTrace();
+				return;
+			}
+			return;
+		} finally {
+			e.rwLock.writeLock().unlock();
+		}
+	}
+	
+
+	public void assertNextObject(JsonReader fstr, String name) throws IOException {
+		if (!fstr.nextName().equals(name)) {
+			fstr.close();
+			throw new IllegalArgumentException(name + " not found in file.");
+		}
+	}
+	
+	public boolean testNextObject(JsonReader fstr, String name) throws IOException {
+		return fstr.nextName().equals(name);
 	}
 }

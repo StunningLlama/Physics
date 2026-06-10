@@ -26,7 +26,7 @@ public class GeneralMaterialType {
 		if (cust_id == -1)
 			return type.getName();
 		else
-			return name + " [c]";
+			return name + " *";
 	}
 	
 	@Override

@@ -35,9 +35,14 @@ public abstract class UnitSystem {
 	}
 	
 	String attachPrefix(double value, Quantity q, String format) {
+		String unit = getSymbol(q);
+		
+		if (q.no_prefixes) {
+			return String.format("%.4g", value) + " " + unit;
+		}
+		
 		double default_magnitude = getDefaultMagnitude(q);
 		value = value*default_magnitude;
-		String unit = getSymbol(q);
 		
 		if (!Double.isFinite(value))
 			return Double.toString(value) + " " + unit;

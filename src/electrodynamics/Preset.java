@@ -28,9 +28,10 @@ public enum Preset {
 			e.mu0 = 5*1.257e-2;
 			e.T = 300;
 			
-			e.E_b_semi = 1.12*eVtoJ;
-			e.W_semi = 4.61*eVtoJ;
-			e.ni_semi = 9.65e9*1e6;
+			e.Eg_semi = 1.12*eVtoJ;
+			e.chi_semi = 4.05*eVtoJ;
+			e.gc_semi = 3.2e19*1e6;
+			e.gv_semi = 1.8e19*1e6;
 			e.mu_electron_semi = 1450/1e4;
 			e.mu_hole_semi = 500/1e4;
 			e.v_sat_n_semi = 1e7*1e-2;
@@ -52,13 +53,13 @@ public enum Preset {
 			e.n_heavy_doping_concentration = 4e17*1e6;
 			e.p_heavy_doping_concentration = 4e17*1e6;
 			
-			e.ni_metal = 2.5e17*1e6;
-			e.ni_metal_high = 2*e.ni_metal;
-			e.ni_metal_low = 0.25*e.ni_metal;
-			e.W_metal_default = e.W_semi;
-			e.W_metal_high = e.W_semi + 0.3*eVtoJ;
-			e.W_metal_low = e.W_semi - 0.3*eVtoJ;
-			e.E_b_metal = e.E_b_semi-0.2*eVtoJ;
+			e.g_metal = 1e20*1e6;
+			e.g_metal_high = 2*e.g_metal;
+			e.g_metal_low = 0.25*e.g_metal;
+			e.W_metal_default = 4.6*eVtoJ;
+			e.W_metal_high = 5.1*eVtoJ;
+			e.W_metal_low = 4.1*eVtoJ;
+			e.Eg_metal = e.Eg_semi-0.2*eVtoJ;
 			e.k_rad_metal = 1.1e-10 * 1e-6;
 
 			e.max_EMF = 5e6;
@@ -70,10 +71,11 @@ public enum Preset {
 			e.default_width = 2*2.56e-6;
 			e.mu0 = 5*1.257e-2;
 			e.T = 300;
-			
-			e.E_b_semi = 0.661*eVtoJ;
-			e.W_semi = (4.0 + 0.661/2)*eVtoJ;
-			e.ni_semi = 2e13*1e6;
+
+			e.Eg_semi = 0.661*eVtoJ;
+			e.chi_semi = 4.0*eVtoJ;
+			e.gc_semi = 1.0e19*1e6;
+			e.gv_semi = 5.0e18*1e6;
 			e.mu_electron_semi = 3900/1e4;
 			e.mu_hole_semi = 1900/1e4;
 			e.v_sat_n_semi = 7e6*1e-2;
@@ -94,14 +96,14 @@ public enum Preset {
 			e.p_default_doping_concentration = 2e16*1e6;
 			e.n_heavy_doping_concentration = 4e17*1e6;
 			e.p_heavy_doping_concentration = 4e17*1e6;
-			
-			e.ni_metal = 2.5e17*1e6;
-			e.ni_metal_high = 2*e.ni_metal;
-			e.ni_metal_low = 0.25*e.ni_metal;
-			e.W_metal_default = e.W_semi;
-			e.W_metal_high = e.W_semi + 0.3*eVtoJ;
-			e.W_metal_low = e.W_semi - 0.3*eVtoJ;
-			e.E_b_metal = e.E_b_semi-0.2*eVtoJ;
+
+			e.g_metal = 1e20*1e6;
+			e.g_metal_high = 2*e.g_metal;
+			e.g_metal_low = 0.25*e.g_metal;
+			e.W_metal_default = 4.6*eVtoJ;
+			e.W_metal_high = 5.1*eVtoJ;
+			e.W_metal_low = 4.1*eVtoJ;
+			e.Eg_metal = e.Eg_semi-0.2*eVtoJ;
 			e.k_rad_metal = 1.1e-10 * 1e-6;
 
 			e.max_EMF = 5e6;
@@ -114,9 +116,10 @@ public enum Preset {
 			e.mu0 = 5*1.257e-2;
 			e.T = 300;
 			
-			e.E_b_semi = 1.424*eVtoJ;
-			e.W_semi = (4.07 + 1.424/2)*eVtoJ;
-			e.ni_semi = 2.1e6*1e6;
+			e.Eg_semi = 1.424*eVtoJ;
+			e.chi_semi = 4.07*eVtoJ;
+			e.gc_semi = 4.7e17*1e6;
+			e.gv_semi = 9.0e18*1e6;
 			e.mu_electron_semi = 8500/1e4;
 			e.mu_hole_semi = 400/1e4;
 			e.v_sat_n_semi = 1e7*1e-2;
@@ -137,14 +140,14 @@ public enum Preset {
 			e.p_default_doping_concentration = 2e16*1e6;
 			e.n_heavy_doping_concentration = 4e17*1e6;
 			e.p_heavy_doping_concentration = 4e17*1e6;
-			
-			e.ni_metal = 2.5e17*1e6;
-			e.ni_metal_high = 2*e.ni_metal;
-			e.ni_metal_low = 0.25*e.ni_metal;
-			e.W_metal_default = e.W_semi;
-			e.W_metal_high = e.W_semi + 0.3*eVtoJ;
-			e.W_metal_low = e.W_semi - 0.3*eVtoJ;
-			e.E_b_metal = e.E_b_semi-0.2*eVtoJ;
+
+			e.g_metal = 1e20*1e6;
+			e.g_metal_high = 2*e.g_metal;
+			e.g_metal_low = 0.25*e.g_metal;
+			e.W_metal_default = 4.6*eVtoJ;
+			e.W_metal_high = 5.1*eVtoJ;
+			e.W_metal_low = 4.1*eVtoJ;
+			e.Eg_metal = e.Eg_semi-0.2*eVtoJ;
 			e.k_rad_metal = 1.1e-10 * 1e-6;
 
 			e.max_EMF = 5e6;
@@ -156,10 +159,11 @@ public enum Preset {
 			e.default_width = 2*2.56e-6;
 			e.mu0 = 5*1.257e-2;
 			e.T = 300;
-			
-			e.E_b_semi = 3.47*eVtoJ;
-			e.W_semi = (4.1 + 3.47/2)*eVtoJ;
-			e.ni_semi = 3.3897e-10*1e6;
+
+			e.Eg_semi = 3.47*eVtoJ;
+			e.chi_semi = 4.1*eVtoJ;
+			e.gc_semi = 1.2e18*1e6;
+			e.gv_semi = 4.1e19*1e6;
 			e.mu_electron_semi = 1000/1e4;
 			e.mu_hole_semi = 200/1e4;
 			e.v_sat_n_semi = 2.5e7*1e-2;
@@ -180,14 +184,14 @@ public enum Preset {
 			e.p_default_doping_concentration = 2e16*1e6;
 			e.n_heavy_doping_concentration = 4e17*1e6;
 			e.p_heavy_doping_concentration = 4e17*1e6;
-			
-			e.ni_metal = 2.5e17*1e6;
-			e.ni_metal_high = 2*e.ni_metal;
-			e.ni_metal_low = 0.25*e.ni_metal;
-			e.W_metal_default = e.W_semi;
-			e.W_metal_high = e.W_semi + 0.3*eVtoJ;
-			e.W_metal_low = e.W_semi - 0.3*eVtoJ;
-			e.E_b_metal = e.E_b_semi-0.2*eVtoJ;
+
+			e.g_metal = 1e20*1e6;
+			e.g_metal_high = 2*e.g_metal;
+			e.g_metal_low = 0.25*e.g_metal;
+			e.W_metal_default = 4.6*eVtoJ;
+			e.W_metal_high = 5.1*eVtoJ;
+			e.W_metal_low = 4.1*eVtoJ;
+			e.Eg_metal = e.Eg_semi-0.2*eVtoJ;
 			e.k_rad_metal = 1.1e-10 * 1e-6;
 
 			e.max_EMF = 5e6;

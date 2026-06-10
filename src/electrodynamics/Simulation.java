@@ -37,6 +37,7 @@ import electrodynamics.probe.CurrentProbe;
 import electrodynamics.probe.FluxProbe;
 import electrodynamics.probe.Ground;
 import electrodynamics.probe.Probe;
+import electrodynamics.probe.Ruler;
 import electrodynamics.probe.VoltageProbe;
 import electrodynamics.units.Quantity;
 import electrodynamics.units.Units;
@@ -60,13 +61,18 @@ public class Simulation extends PeriodicTask {
 	 */
 	
 	//TODO
-	//Small transistors
 	//Optimize presets
-	//Write manual
 	//Think about free energy
-	//Cite sources
+	//Calculator
 	//Add more view options
+	//Write manual
+	//Small transistors
 	//Make better MESFET
+	//Cite sources
+	
+	//Drift velocity
+	//Recombination mechanisms
+	//Thermo
 	
 	/* Parts */
 	
@@ -163,9 +169,10 @@ public class Simulation extends PeriodicTask {
 	public double T;					// System temperature
 	public double beta;					// Inverse temperature
 
-	public double ni_semi;				// Semiconductor equilibrium concentration
-	public double W_semi;				// Semiconductor work function
-	public double E_b_semi;				// Semiconductor band gap
+	public double gv_semi;				// Semiconductor effective valence band DOS
+	public double gc_semi;				// Semiconductor effective conduction DOS
+	public double Eg_semi;				// Semiconductor band gap
+	public double chi_semi;				// Semiconductor electron affinity
 
 	public double mu_electron_semi;			// Electron mobility
 	public double mu_hole_semi;				// Hole mobility, slightly lower than electron
@@ -184,16 +191,16 @@ public class Simulation extends PeriodicTask {
 	public double k_SRH_n_semi;			// Shockley-Read-Hall recombination rate, inverse electron lifetime
 	public double k_SRH_p_semi;			// Inverse hole lifetime
 
-	public double ni_metal;				// Metal charge carrier concentration
-	public double ni_metal_high;
-	public double ni_metal_low;
+	public double g_metal;				// Metal density of states
+	public double g_metal_high;
+	public double g_metal_low;
 	public double W_metal_default;		// Metal work function, same as semiconductor
 	public double W_metal_high;
 	public double W_metal_low;
-	public double E_b_metal;			// Same as semiconductor
+	public double Eg_metal;			// Same as semiconductor
 	public double k_rad_metal;			// Radiative recombination rate constant
 
-	public double ni_currentsource;			// Current source carrier concentration
+	public double g_currentsource;			// Current source carrier concentration
 	public double currentsource_mobility;	// Current source mobility
 	public double currentsource_sigma;		// Current source conductivity
 	
@@ -215,6 +222,8 @@ public class Simulation extends PeriodicTask {
 	
 	public int junction_size;			// Free energy smoothing distance
 	public int dopant_smoothing_distance;
+	
+	public double global_voltage_offset;
 
 	HashMap<MaterialType, String> default_names;
 	HashMap<MaterialType, String> modified_names;
@@ -238,24 +247,25 @@ public class Simulation extends PeriodicTask {
 		v_sat_n_semi = 1.05e8;
 		v_sat_p_semi = 0.525e8;
 
-		ni_semi = 1e16;
-		W_semi = 4.7*eVtoJ;
-		E_b_semi = 1.12*eVtoJ;
+		gc_semi = 2.937e25;
+		gv_semi = 2.937e25;
+		chi_semi = 4.14*eVtoJ;
+		Eg_semi = 1.12*eVtoJ;
 
-		k_rad_semi = 1e7/ni_semi;
+		k_rad_semi = 1e-9;
 		k_aug_n_semi = 0;
 		k_aug_p_semi = 0;
 		k_SRH_n_semi = 0;
 		k_SRH_p_semi = 0;
 		
 
-		ni_metal = 5e20;
-		ni_metal_high = 2.5*ni_metal;
-		ni_metal_low = 0.25*ni_metal;
+		g_metal = 1.468e30;
+		g_metal_high = 2.5*g_metal;
+		g_metal_low = 0.25*g_metal;
 		W_metal_default = 4.7*eVtoJ;
-		W_metal_high = W_semi + 0.3*eVtoJ;
-		W_metal_low = W_semi - 0.3*eVtoJ;
-		E_b_metal = 1.12*eVtoJ;
+		W_metal_high = W_metal_default + 0.3*eVtoJ;
+		W_metal_low = W_metal_default - 0.3*eVtoJ;
+		Eg_metal = 1.12*eVtoJ;
 		k_rad_metal = 10*k_rad_semi;
 
 		
@@ -295,8 +305,9 @@ public class Simulation extends PeriodicTask {
 		D_electron_semi = mu_electron_semi/(beta*e_charge);
 		D_hole_semi = mu_hole_semi/(beta*e_charge);
 
-		ni_currentsource = ni_metal;
-		currentsource_sigma = ni_currentsource*e_charge*(mu_electron_semi + mu_hole_semi)*currentsource_mobility;
+		g_currentsource = g_metal;
+		//TODO
+		//currentsource_sigma = ni_currentsource*e_charge*(mu_electron_semi + mu_hole_semi)*currentsource_mobility;
 		
 		for (MaterialType type : MaterialType.values()) {
 			String name = modified_names.get(type);
@@ -342,17 +353,17 @@ public class Simulation extends PeriodicTask {
 
 	public double[][] G;				// Generation rate
 	public double[][] R;				// Recombination rate
-	public double[][] F_n;				// Total chemical potential of electrons (quasi-Fermi level minus the electrostatic potential)
-	public double[][] F_p;				// Total chemical potential of holes
-	public double[][] grad_E0x_n;		// Gradient of chemical energy
-	public double[][] grad_E0y_n;
-	public double[][] grad_E0x_p;
-	public double[][] grad_E0y_p;
-	public double[][] grad_Fx_n;		// Gradient of total chemical potential
-	public double[][] grad_Fy_n;
-	public double[][] grad_Fx_p;
-	public double[][] grad_Fy_p;
-	public double[][] F;				// Average total electrochemical potential
+	public double[][] mu_n;				// Total chemical potential of electrons with electrostatic contribution
+	public double[][] mu_p;				// Total chemical potential of holes
+	public double[][] gradE0_x_n;		// Gradient of chemical energy
+	public double[][] gradE0_y_n;
+	public double[][] gradE0_x_p;
+	public double[][] gradE0_y_p;
+	public double[][] gradmu_x_n;		// Gradient of total chemical potential
+	public double[][] gradmu_y_n;
+	public double[][] gradmu_x_p;
+	public double[][] gradmu_y_p;
+	public double[][] V_avg;				// Average total electrochemical potential, or voltage
 
 
 	public boolean updateMiscFields = false;
@@ -363,10 +374,10 @@ public class Simulation extends PeriodicTask {
 
 	public Material[][] materials;
 
-	public double[][] F0_n;		// Standard chemical potential of electrons
-	public double[][] F0_p;		// Standard chemical potential of holes
-	public double[][] E0_n;		// Standard chemical energy of electrons
-	public double[][] E0_p;		// Standard chemical energy of holes
+	public double[][] mu0_n;		// Chemical potential of a single electron
+	public double[][] mu0_p;		// Chemical potential of a single hole
+	public double[][] E0_n;			// Energy of a single electron
+	public double[][] E0_p;			// Energy of a single hole
 	public double[][] n_i;			// Square root of charge carrier equilibrium constant
 	public double[][] k_rad;			// Radiative recombination rate constant
 	public double[][] k_SRH_n;			// Shockley-Read-Hall recombination rate
@@ -638,21 +649,21 @@ public class Simulation extends PeriodicTask {
 			
 			if (mat.D_n > D_electron_max) {
 				D_electron_max = mat.D_n;
-				D_electron_name = mat.toString();
+				D_electron_name = mat.getDisplayName();
 			}
 			
 			if (mat.D_p > D_hole_max) {
 				D_hole_max = mat.D_p;
-				D_hole_name = mat.toString();
+				D_hole_name = mat.getDisplayName();
 			}
 			
 
-			double rho_n = calcEquilibriumElectronCharge(mat.rho_back, mat.ni*mat.ni);
-			double rho_p = calcEquilibriumHoleCharge(mat.rho_back, mat.ni*mat.ni);
+			double rho_n = mat.calcEquilibriumElectronCharge(e_charge, k*T);
+			double rho_p = mat.calcEquilibriumHoleCharge(e_charge, k*T);
 			double sigma_epsr = e_charge*(-mat.D_n*beta*rho_n + mat.D_p*beta*rho_p)/mat.eps_r;
 			if (sigma_epsr > sigma_epsr_max) {
 				sigma_epsr_max = sigma_epsr;
-				sigma_epsr_name = mat.toString();
+				sigma_epsr_name = mat.getDisplayName();
 			}
 		}
 		
@@ -723,8 +734,8 @@ public class Simulation extends PeriodicTask {
 
 				materials = new Material[nx][ny];
 				n_i = new double[nx][ny];
-				F0_n = new double[nx][ny];		F0_p = new double[nx][ny];
-				F_n = new double[nx][ny];		F_p = new double[nx][ny];
+				mu0_n = new double[nx][ny];		mu0_p = new double[nx][ny];
+				mu_n = new double[nx][ny];		mu_p = new double[nx][ny];
 				E0_n = new double[nx][ny];		E0_p = new double[nx][ny];
 				k_rad = new double[nx][ny];
 				k_SRH_n = new double[nx][ny];	k_SRH_p = new double[nx][ny];
@@ -753,12 +764,12 @@ public class Simulation extends PeriodicTask {
 
 				G = new double[nx][ny];
 				R = new double[nx][ny];
-				F_n = new double[nx][ny];			F_p = new double[nx][ny];
-				grad_E0x_n = new double[nx][ny];	grad_E0y_n = new double[nx][ny];
-				grad_E0x_p = new double[nx][ny];	grad_E0y_p = new double[nx][ny];
-				grad_Fx_n = new double[nx][ny];		grad_Fy_n = new double[nx][ny];
-				grad_Fx_p = new double[nx][ny];		grad_Fy_p = new double[nx][ny];
-				F = new double[nx][ny];
+				mu_n = new double[nx][ny];			mu_p = new double[nx][ny];
+				gradE0_x_n = new double[nx][ny];	gradE0_y_n = new double[nx][ny];
+				gradE0_x_p = new double[nx][ny];	gradE0_y_p = new double[nx][ny];
+				gradmu_x_n = new double[nx][ny];		gradmu_y_n = new double[nx][ny];
+				gradmu_x_p = new double[nx][ny];		gradmu_y_p = new double[nx][ny];
+				V_avg = new double[nx][ny];
 				debug = new double[nx][ny];
 
 				MG_rho0 = new double[nx][ny];
@@ -795,8 +806,8 @@ public class Simulation extends PeriodicTask {
 						else
 							materials[i][j].initialize();
 
-						F0_n[i][j] = 0;		F0_p[i][j] = 0;
-						F_n[i][j] = 0;		F_p[i][j] = 0;
+						mu0_n[i][j] = 0;		mu0_p[i][j] = 0;
+						mu_n[i][j] = 0;		mu_p[i][j] = 0;
 						E0_n[i][j] = 0;		E0_p[i][j] = 0;
 						n_i[i][j] = 0;
 						k_rad[i][j] = 0;
@@ -868,13 +879,13 @@ public class Simulation extends PeriodicTask {
 
 					G[i][j] = 0.0;
 					R[i][j] = 0.0;
-					F_n[i][j] = 0.0;
-					F_p[i][j] = 0.0;
-					grad_E0x_n[i][j] = 0.0;	grad_E0y_n[i][j] = 0.0;
-					grad_E0x_p[i][j] = 0.0;	grad_E0y_p[i][j] = 0.0;
-					grad_Fx_n[i][j] = 0.0;	grad_Fy_n[i][j] = 0.0;
-					grad_Fx_p[i][j] = 0.0;	grad_Fy_p[i][j] = 0.0;
-					F[i][j] = 0.0;
+					mu_n[i][j] = 0.0;
+					mu_p[i][j] = 0.0;
+					gradE0_x_n[i][j] = 0.0;	gradE0_y_n[i][j] = 0.0;
+					gradE0_x_p[i][j] = 0.0;	gradE0_y_p[i][j] = 0.0;
+					gradmu_x_n[i][j] = 0.0;	gradmu_y_n[i][j] = 0.0;
+					gradmu_x_p[i][j] = 0.0;	gradmu_y_p[i][j] = 0.0;
+					V_avg[i][j] = 0.0;
 					
 					abs_depth[i][j] = 0;
 					
@@ -1284,12 +1295,12 @@ public class Simulation extends PeriodicTask {
 			{
 				// Prevent errors when taking log of 0
 				if (conducting[i][j] == 0) {
-					F_n[i][j] = Double.NaN;
-					F_p[i][j] = Double.NaN;
-					F[i][j] = Double.NaN;
+					mu_n[i][j] = Double.NaN;
+					mu_p[i][j] = Double.NaN;
+					V_avg[i][j] = Double.NaN;
 				} else {
-					F_n[i][j] = F0_n[i][j] + k*T*Math.log(rho_n[i][j]/q_n);
-					F_p[i][j] = F0_p[i][j] + k*T*Math.log(rho_p[i][j]/q_p);
+					mu_n[i][j] = mu0_n[i][j] + k*T*Math.log(rho_n[i][j]/q_n) + phi[i][j]*q_n;
+					mu_p[i][j] = mu0_p[i][j] + k*T*Math.log(rho_p[i][j]/q_p) + phi[i][j]*q_p;
 					// Think about why we should take average
 
 
@@ -1300,8 +1311,8 @@ public class Simulation extends PeriodicTask {
 					double sigma_n = D_n[i][j]*beta*e_charge*(-rho_n[i][j]);
 					double sigma_p = D_p[i][j]*beta*e_charge*rho_p[i][j];
 
-					F[i][j] = (sigma_n*(F_n[i][j]/q_n+phi[i][j]) + sigma_p*(F_p[i][j]/q_p+phi[i][j]))
-							/(sigma_n + sigma_p) - W_semi/eVtoJ;
+					V_avg[i][j] = (sigma_n*mu_n[i][j]/q_n + mu_p[i][j]/q_p)
+							/(sigma_n + sigma_p) - global_voltage_offset;
 				}
 
 				if (conducting[i][j] == 1) {
@@ -1387,8 +1398,8 @@ public class Simulation extends PeriodicTask {
 			{
 				for (int j = 1; j < ny-1; j++)
 				{
-					grad_E0x_n[i][j] = conducting_x[i][j] == 1? -conducting_x[i][j]*(E0_n[i+1][j] - E0_n[i][j])/ds : 0;
-					grad_E0x_p[i][j] = conducting_x[i][j] == 1? -conducting_x[i][j]*(E0_p[i+1][j] - E0_p[i][j])/ds : 0;
+					gradE0_x_n[i][j] = conducting_x[i][j] == 1? -conducting_x[i][j]*(E0_n[i+1][j] - E0_n[i][j])/ds : 0;
+					gradE0_x_p[i][j] = conducting_x[i][j] == 1? -conducting_x[i][j]*(E0_p[i+1][j] - E0_p[i][j])/ds : 0;
 				}
 			}
 
@@ -1396,8 +1407,8 @@ public class Simulation extends PeriodicTask {
 			{
 				for (int j = 0; j < ny-1; j++)
 				{
-					grad_E0y_n[i][j] = conducting_x[i][j] == 1? -conducting_y[i][j]*(E0_n[i][j+1] - E0_n[i][j])/ds : 0;
-					grad_E0y_p[i][j] = conducting_x[i][j] == 1? -conducting_y[i][j]*(E0_p[i][j+1] - E0_p[i][j])/ds : 0;
+					gradE0_y_n[i][j] = conducting_x[i][j] == 1? -conducting_y[i][j]*(E0_n[i][j+1] - E0_n[i][j])/ds : 0;
+					gradE0_y_p[i][j] = conducting_x[i][j] == 1? -conducting_y[i][j]*(E0_p[i][j+1] - E0_p[i][j])/ds : 0;
 				}
 			}
 
@@ -1406,12 +1417,12 @@ public class Simulation extends PeriodicTask {
 				for (int j = 1; j < ny-1; j++)
 				{
 					double n_contrib = -(G[i][j]-R[i][j])*E0_n[i][j];
-					double jn_contrib = 0.5*(grad_E0x_n[i-1][j]*Jx_n[i-1][j]+grad_E0x_n[i][j]*Jx_n[i][j]
-							+grad_E0y_n[i][j-1]*Jy_n[i][j-1]+grad_E0y_n[i][j]*Jy_n[i][j])/q_n;
+					double jn_contrib = 0.5*(gradE0_x_n[i-1][j]*Jx_n[i-1][j]+gradE0_x_n[i][j]*Jx_n[i][j]
+							+gradE0_y_n[i][j-1]*Jy_n[i][j-1]+gradE0_y_n[i][j]*Jy_n[i][j])/q_n;
 
 					double p_contrib = -(G[i][j]-R[i][j])*E0_p[i][j];
-					double jp_contrib = 0.5*(grad_E0x_p[i-1][j]*Jx_p[i-1][j]+grad_E0x_p[i][j]*Jx_p[i][j]
-							+grad_E0y_p[i][j-1]*Jy_p[i][j-1]+grad_E0y_p[i][j]*Jy_p[i][j])/q_p;
+					double jp_contrib = 0.5*(gradE0_x_p[i-1][j]*Jx_p[i-1][j]+gradE0_x_p[i][j]*Jx_p[i][j]
+							+gradE0_y_p[i][j-1]*Jy_p[i][j-1]+gradE0_y_p[i][j]*Jy_p[i][j])/q_p;
 
 					double ohm_contrib = 0.5*(Ex[i-1][j]*Jx_free[i-1][j]+Ex[i][j]*Jx_free[i][j]+Ey[i][j-1]*Jy_free[i][j-1]+Ey[i][j]*Jy_free[i][j]);
 
@@ -1425,8 +1436,8 @@ public class Simulation extends PeriodicTask {
 			{
 				for (int j = 1; j < ny-1; j++)
 				{
-					grad_Fx_n[i][j] = conducting_x[i][j] == 1? -(F_n[i+1][j] - F_n[i][j])/ds : 0;
-					grad_Fx_p[i][j] = conducting_x[i][j] == 1? -(F_p[i+1][j] - F_p[i][j])/ds : 0;
+					gradmu_x_n[i][j] = conducting_x[i][j] == 1? -(mu_n[i+1][j] - mu_n[i][j] - phi[i+1][j]/q_n + phi[i][j]/q_n)/ds : 0;
+					gradmu_x_p[i][j] = conducting_x[i][j] == 1? -(mu_p[i+1][j] - mu_p[i][j] - phi[i+1][j]/q_p + phi[i][j]/q_p)/ds : 0;
 				}
 			}
 
@@ -1434,8 +1445,8 @@ public class Simulation extends PeriodicTask {
 			{
 				for (int j = 0; j < ny-1; j++)
 				{
-					grad_Fy_n[i][j] = conducting_y[i][j] == 1? -(F_n[i][j+1] - F_n[i][j])/ds : 0;
-					grad_Fy_p[i][j] = conducting_y[i][j] == 1? -(F_p[i][j+1] - F_p[i][j])/ds : 0;
+					gradmu_y_n[i][j] = conducting_y[i][j] == 1? -(mu_n[i][j+1] - mu_n[i][j] - phi[i][j+1]/q_n + phi[i][j]/q_n)/ds : 0;
+					gradmu_y_p[i][j] = conducting_y[i][j] == 1? -(mu_p[i][j+1] - mu_p[i][j] - phi[i][j+1]/q_p + phi[i][j]/q_p)/ds : 0;
 				}
 			}
 
@@ -1443,13 +1454,13 @@ public class Simulation extends PeriodicTask {
 			{
 				for (int j = 1; j < ny-1; j++)
 				{
-					double n_contrib = -(G[i][j]-R[i][j])*F_n[i][j];
-					double jn_contrib = 0.5*(grad_Fx_n[i-1][j]*Jx_n[i-1][j]+grad_Fx_n[i][j]*Jx_n[i][j]
-							+grad_Fy_n[i][j-1]*Jy_n[i][j-1]+grad_Fy_n[i][j]*Jy_n[i][j])/q_n;
+					double n_contrib = -(G[i][j]-R[i][j])*mu_n[i][j];
+					double jn_contrib = 0.5*(gradmu_x_n[i-1][j]*Jx_n[i-1][j]+gradmu_x_n[i][j]*Jx_n[i][j]
+							+gradmu_y_n[i][j-1]*Jy_n[i][j-1]+gradmu_y_n[i][j]*Jy_n[i][j])/q_n;
 
-					double p_contrib = -(G[i][j]-R[i][j])*F_p[i][j];
-					double jp_contrib = 0.5*(grad_Fx_p[i-1][j]*Jx_p[i-1][j]+grad_Fx_p[i][j]*Jx_p[i][j]
-							+grad_Fy_p[i][j-1]*Jy_p[i][j-1]+grad_Fy_p[i][j]*Jy_p[i][j])/q_p;
+					double p_contrib = -(G[i][j]-R[i][j])*mu_p[i][j];
+					double jp_contrib = 0.5*(gradmu_x_p[i-1][j]*Jx_p[i-1][j]+gradmu_x_p[i][j]*Jx_p[i][j]
+							+gradmu_y_p[i][j-1]*Jy_p[i][j-1]+gradmu_y_p[i][j]*Jy_p[i][j])/q_p;
 
 					double ohm_contrib = 0.5*(Ex[i-1][j]*Jx_free[i-1][j]+Ex[i][j]*Jx_free[i][j]+Ey[i][j-1]*Jy_free[i][j-1]+Ey[i][j]*Jy_free[i][j]);
 
@@ -1480,12 +1491,15 @@ public class Simulation extends PeriodicTask {
 			for (int j = 0; j < ny; j++)
 			{
 				if (conducting[i][j] == 1) {
-					computeFreeEnergy(i, j, materials[i][j].ni, materials[i][j].W, materials[i][j].Eb);
+					E0_n[i][j] = materials[i][j].Ec;
+					E0_p[i][j] = -materials[i][j].Ev;
+					mu0_n[i][j] = materials[i][j].Ec - k*T*Math.log(materials[i][j].gc);
+					mu0_p[i][j] = -materials[i][j].Ev - k*T*Math.log(materials[i][j].gv);
 				} else {
-					F0_n[i][j] = 0;
-					F0_p[i][j] = 0;
 					E0_n[i][j] = 0;
 					E0_p[i][j] = 0;
+					mu0_n[i][j] = 0;
+					mu0_p[i][j] = 0;
 				}
 			}
 		}
@@ -1493,8 +1507,8 @@ public class Simulation extends PeriodicTask {
 		// Smoothing out free energy in space makes simulation more stable (No longer required in v2.0)
 		if (junction_size > 0) {
 			markJunctions(junction_size);
-			smoothArray(F0_n, junction_size, false);
-			smoothArray(F0_p, junction_size, false);
+			smoothArray(mu0_n, junction_size, false);
+			smoothArray(mu0_p, junction_size, false);
 			smoothArray(E0_n, junction_size, false);
 			smoothArray(E0_p, junction_size, false);
 			smoothArray(k_rad, junction_size, true);
@@ -1514,7 +1528,7 @@ public class Simulation extends PeriodicTask {
 			for (int j = 0; j < ny; j++)
 			{
 				if (conducting[i][j] == 1) {
-					n_i[i][j] = Math.exp(-0.5*beta*(F0_n[i][j]+F0_p[i][j]));
+					n_i[i][j] = Math.exp(-0.5*beta*(mu0_n[i][j]+mu0_p[i][j]));
 				} else {
 					n_i[i][j] = 0;
 				}
@@ -1525,8 +1539,8 @@ public class Simulation extends PeriodicTask {
 		{
 			for (int j = 1; j < ny-1; j++)
 			{
-				cmfx_n[i][j] = -conducting_x[i][j]*(F0_n[i+1][j] - F0_n[i][j])/ds;
-				cmfx_p[i][j] = -conducting_x[i][j]*(F0_p[i+1][j] - F0_p[i][j])/ds;
+				cmfx_n[i][j] = -conducting_x[i][j]*(mu0_n[i+1][j] - mu0_n[i][j])/ds;
+				cmfx_p[i][j] = -conducting_x[i][j]*(mu0_p[i+1][j] - mu0_p[i][j])/ds;
 			}
 		}
 
@@ -1534,8 +1548,8 @@ public class Simulation extends PeriodicTask {
 		{
 			for (int j = 0; j < ny-1; j++)
 			{
-				cmfy_n[i][j] = -conducting_y[i][j]*(F0_n[i][j+1] - F0_n[i][j])/ds;
-				cmfy_p[i][j] = -conducting_y[i][j]*(F0_p[i][j+1] - F0_p[i][j])/ds;
+				cmfy_n[i][j] = -conducting_y[i][j]*(mu0_n[i][j+1] - mu0_n[i][j])/ds;
+				cmfy_p[i][j] = -conducting_y[i][j]*(mu0_p[i][j+1] - mu0_p[i][j])/ds;
 			}
 		}
 		
@@ -1544,8 +1558,8 @@ public class Simulation extends PeriodicTask {
 			for (int j = 0; j < ny; j++)
 			{
 				if (conducting[i][j] == 0) {
-					F0_n[i][j] = Double.NaN;
-					F0_p[i][j] = Double.NaN;
+					mu0_n[i][j] = Double.NaN;
+					mu0_p[i][j] = Double.NaN;
 					E0_n[i][j] = Double.NaN;
 					E0_p[i][j] = Double.NaN;
 				}
@@ -1611,15 +1625,15 @@ public class Simulation extends PeriodicTask {
 			for (int j = 0; j < ny; j++)
 			{
 				rho_back[i][j] = materials[i][j].rho_back;
-				conducting[i][j] = materials[i][j].conducting*materials[i][j].activated;
+				conducting[i][j] = materials[i][j].conducting;
 				semiconducting[i][j] = materials[i][j].semiconducting;
 				k_rad[i][j] = materials[i][j].k_rad;
 				k_SRH_n[i][j] = materials[i][j].k_SRH_n;
 				k_SRH_p[i][j] = materials[i][j].k_SRH_p;
 				k_aug_n[i][j] = materials[i][j].k_aug_n;
 				k_aug_p[i][j] = materials[i][j].k_aug_p;
-				D_n[i][j] = materials[i][j].D_n;
-				D_p[i][j] = materials[i][j].D_p;
+				D_n[i][j] = materials[i][j].D_n * ((materials[i][j].activated==1)? 1:0.00001);
+				D_p[i][j] = materials[i][j].D_p * ((materials[i][j].activated==1)? 1:0.00001);
 				v_sat_n[i][j] = materials[i][j].v_sat_n;
 				v_sat_p[i][j] = materials[i][j].v_sat_p;
 			}
@@ -1628,9 +1642,8 @@ public class Simulation extends PeriodicTask {
 		{
 			for (int j = 1; j < ny-1; j++)
 			{
-				conducting_x[i][j] = Math.min(materials[i+1][j].conducting*materials[i+1][j].activated, materials[i][j].conducting*materials[i][j].activated);
-				emfx[i][j] = 0.5*(materials[i+1][j].emf*Math.cos(materials[i+1][j].emf_direction)*materials[i+1][j].activated
-						+ materials[i][j].emf*Math.cos(materials[i][j].emf_direction)*materials[i][j].activated);
+				conducting_x[i][j] = Math.min(materials[i+1][j].conducting, materials[i][j].conducting);
+				emfx[i][j] = 0.5*(materials[i+1][j].emf*Math.cos(materials[i+1][j].emf_direction) + materials[i][j].emf*Math.cos(materials[i][j].emf_direction));
 				epsx[i][j] = eps0*0.5*(materials[i+1][j].eps_r + materials[i][j].eps_r);
 				absorptivity_x[i][j] = Math.min(materials[i+1][j].absorptivity, materials[i][j].absorptivity);
 				ac_x[i][j] = (materials[i][j].type == MaterialType.AC_EMF || materials[i+1][j].type == MaterialType.AC_EMF) ? 1:0;
@@ -1641,9 +1654,8 @@ public class Simulation extends PeriodicTask {
 		{
 			for (int j = 0; j < ny-1; j++)
 			{
-				conducting_y[i][j] = Math.min(materials[i][j+1].conducting*materials[i][j+1].activated, materials[i][j].conducting*materials[i][j].activated);
-				emfy[i][j] = 0.5*(materials[i][j+1].emf*Math.sin(materials[i][j+1].emf_direction)*materials[i][j+1].activated
-						+ materials[i][j].emf*Math.sin(materials[i][j].emf_direction)*materials[i][j].activated);
+				conducting_y[i][j] = Math.min(materials[i][j+1].conducting, materials[i][j].conducting);
+				emfy[i][j] = 0.5*(materials[i][j+1].emf*Math.sin(materials[i][j+1].emf_direction) + materials[i][j].emf*Math.sin(materials[i][j].emf_direction));
 				epsy[i][j] = eps0*0.5*(materials[i][j+1].eps_r + materials[i][j].eps_r);
 				absorptivity_y[i][j] = Math.min(materials[i][j+1].absorptivity, materials[i][j].absorptivity);
 				ac_y[i][j] = (materials[i][j].type == MaterialType.AC_EMF || materials[i][j+1].type == MaterialType.AC_EMF) ? 1:0;
@@ -1707,8 +1719,8 @@ public class Simulation extends PeriodicTask {
 		{
 			for (int j = 1; j < ny-1; j++)
 			{
-				emfx[i][j] = 0.5*(materials[i+1][j].emf*Math.cos(materials[i+1][j].emf_direction)*materials[i+1][j].activated
-						+ materials[i][j].emf*Math.cos(materials[i][j].emf_direction)*materials[i][j].activated);
+				emfx[i][j] = 0.5*(materials[i+1][j].emf*Math.cos(materials[i+1][j].emf_direction)
+						+ materials[i][j].emf*Math.cos(materials[i][j].emf_direction));
 			}
 		}
 
@@ -1716,24 +1728,10 @@ public class Simulation extends PeriodicTask {
 		{
 			for (int j = 0; j < ny-1; j++)
 			{
-				emfy[i][j] = 0.5*(materials[i][j+1].emf*Math.sin(materials[i][j+1].emf_direction)*materials[i][j+1].activated
-						+ materials[i][j].emf*Math.sin(materials[i][j].emf_direction)*materials[i][j].activated);
+				emfy[i][j] = 0.5*(materials[i][j+1].emf*Math.sin(materials[i][j+1].emf_direction)
+						+ materials[i][j].emf*Math.sin(materials[i][j].emf_direction));
 			}
 		}
-	}
-
-	public void computeFreeEnergy(int i, int j, double ni, double W, double B)
-	{
-		double K = ni*ni;
-
-		E0_n[i][j] = -W + 0.5*B;
-		E0_p[i][j] = W + 0.5*B;
-
-		double TS_n = (Math.log(K)/beta + E0_n[i][j] + E0_p[i][j])/2.0;
-		double TS_p = TS_n;
-
-		F0_n[i][j] = E0_n[i][j] - TS_n;
-		F0_p[i][j] = E0_p[i][j] - TS_p;
 	}
 
 	public double calcEquilibriumElectronCharge(double rho_back, double K) {
@@ -1745,8 +1743,6 @@ public class Simulation extends PeriodicTask {
 		double B = -rho_back/e_charge;
 		return e_charge*0.5*(B+Math.sqrt(B*B+4*K));
 	}
-	
-	
 
 	public void markJunctions(int smoothing_radius) {
 
@@ -1905,9 +1901,8 @@ public class Simulation extends PeriodicTask {
 		if (material.isConducting())
 		{
 			mat.conducting = 1;
-			mat.ni = ni_metal;
-			mat.W = W_metal_default;
-			mat.Eb = E_b_metal;
+			double Phi = W_metal_default;
+			double g = g_metal;
 			mat.k_rad = k_rad_metal;
 			mat.k_SRH_n = k_SRH_n_semi;
 			mat.k_SRH_p = k_SRH_p_semi;
@@ -1920,24 +1915,23 @@ public class Simulation extends PeriodicTask {
 			mat.eps_r = eps_r_semi;
 			//mat.mu_r = 1/mat.eps_r;
 
-			if (material == MaterialType.METAL_HIGH_W) mat.W = W_metal_high;
-			else if (material == MaterialType.METAL_LOW_W) mat.W = W_metal_low;
-			else if (material == MaterialType.METAL_HIGH_C) mat.ni = ni_metal_high;
-			else if (material == MaterialType.METAL_LOW_C) mat.ni = ni_metal_low;
+			if (material == MaterialType.METAL_HIGH_W) Phi = W_metal_high;
+			else if (material == MaterialType.METAL_LOW_W) Phi = W_metal_low;
+			else if (material == MaterialType.METAL_HIGH_C) g = g_metal_high;
+			else if (material == MaterialType.METAL_LOW_C) g = g_metal_low;
 			else if (material == MaterialType.CURRENT) {
-				mat.ni = ni_currentsource;
+				g = g_currentsource;
 				mat.D_n *= currentsource_mobility;
 				mat.D_p *= currentsource_mobility;
 			}
+			
+			mat.computeBandstructurePhiG(Phi, Eg_metal, g, g, k*T);
 		}
 
 		if (material.isSemiconducting())
 		{
 			mat.conducting = 1;
 			mat.semiconducting = 1;
-			mat.ni = ni_semi;
-			mat.W = W_semi;
-			mat.Eb = E_b_semi;
 			mat.k_rad = k_rad_semi;
 			mat.k_SRH_n = k_SRH_n_semi;
 			mat.k_SRH_p = k_SRH_p_semi;
@@ -1956,6 +1950,8 @@ public class Simulation extends PeriodicTask {
 			else if (material == MaterialType.SEMI_HEAVY_N_TYPE) mat.rho_back = n_heavy_doping_concentration*e_charge;
 			else if (material == MaterialType.SEMI_LIGHT_P_TYPE) mat.rho_back = -p_light_doping_concentration*e_charge;
 			else if (material == MaterialType.SEMI_LIGHT_N_TYPE) mat.rho_back = n_light_doping_concentration*e_charge;
+
+			mat.computeBandstructureChiG(chi_semi, Eg_semi, gc_semi, gv_semi, k*T);
 			
 			mat.D_n *= calculateMobilityFactor(d_crit_n, mat.rho_back);
 			mat.D_p *= calculateMobilityFactor(d_crit_p, mat.rho_back);
@@ -2279,9 +2275,9 @@ public class Simulation extends PeriodicTask {
 		str += ("J\t"  						+	units.toString(Utils.bilinearinterp_length(Jx_free, Jy_free, mx, my, nx, ny), Quantity.CURRENT_DENSITY) + "\n");
 		str += "\nThermodynamic quantities\n";
 		str += ("\u03d5\t"  				+	units.toString(phi[mx][my], Quantity.ELECTRIC_POTENTIAL) + "\n");
-		str += ("F\u2099\t"  				+	units.toString(F_n[mx][my]/q_n + phi[mx][my] - W_semi/eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "\n");
-		str += ("F\u209a\t"  				+	units.toString(F_p[mx][my]/q_p + phi[mx][my] - W_semi/eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "\n");
-		str += ("F\t"  						+	units.toString(F[mx][my], Quantity.ELECTRIC_POTENTIAL) + "\n");
+		str += ("F\u2099\t"  				+	units.toString(mu_n[mx][my]/q_n - global_voltage_offset, Quantity.ELECTRIC_POTENTIAL) + "\n");
+		str += ("F\u209a\t"  				+	units.toString(mu_p[mx][my]/q_p - global_voltage_offset, Quantity.ELECTRIC_POTENTIAL) + "\n");
+		str += ("F\t"  						+	units.toString(V_avg[mx][my], Quantity.ELECTRIC_POTENTIAL) + "\n");
 		str += ("G\t"  						+	units.toString(G[mx][my], Quantity.RATE_DENSITY) + "\n");
 		str += ("R\t"  						+	units.toString(R[mx][my], Quantity.RATE_DENSITY) + "\n");
 		str += ("Electron CMF\t"  			+	units.toString(Utils.bilinearinterp_length(cmfy_n, cmfy_n, mx, my, nx, ny), Quantity.FORCE) + "\n");
@@ -2294,9 +2290,6 @@ public class Simulation extends PeriodicTask {
 		str += ("\u2130\t"  				+	units.toString(mat.emf, Quantity.ELECTRIC_FIELD) + "\n");
 		str += ("\u03b5/\u03b5\u2080\t" 	+	units.toString(mat.eps_r, Quantity.DIMENSIONLESS) + "\n");
 		str += ("\u03bc/\u03bc\u2080\t"  	+	units.toString(mat.mu_r, Quantity.DIMENSIONLESS) + "\n");
-		str += ("ni\t"  					+	units.toString(mat.ni, Quantity.NUMBER_DENSITY) + "\n");
-		str += ("W\t"  						+	units.toString(mat.W, Quantity.ELECTRIC_POTENTIAL) + "\n");
-		str += ("Eb\t"  					+	units.toString(mat.Eb, Quantity.ELECTRIC_POTENTIAL) + "\n");
 		str += ("Absorptivity\t"  			+	units.toString(mat.absorptivity, Quantity.DIMENSIONLESS) + "\n");
 		str += ("Conducting\t"  			+	mat.conducting + "\n");
 		str += ("Semicond.\t"  				+	mat.semiconducting + "\n");
@@ -2319,6 +2312,24 @@ public class Simulation extends PeriodicTask {
 		for (Probe p : probes) {
 			if (p instanceof Ground)
 				return (Ground)p;
+		}
+		
+		return null;
+	}
+	
+	public boolean hasRuler() {
+		for (Probe p : probes) {
+			if (p instanceof Ruler)
+				return true;
+		}
+		
+		return false;
+	}
+	
+	public Ruler getRuler() {
+		for (Probe p : probes) {
+			if (p instanceof Ruler)
+				return (Ruler)p;
 		}
 		
 		return null;

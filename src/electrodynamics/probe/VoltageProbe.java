@@ -26,7 +26,7 @@ public class VoltageProbe extends Probe {
 
 	@Override
 	public void measure(Simulation e, boolean savedatapoint) {
-		potential = e.F[x][y];
+		potential = e.V_avg[x][y];
 		if (e.hasGround() && this != e.getGround())
 			potential -= e.getGround().potential;
 		

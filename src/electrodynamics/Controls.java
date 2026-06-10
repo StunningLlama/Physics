@@ -56,6 +56,7 @@ import electrodynamics.probe.CurrentProbe;
 import electrodynamics.probe.FluxProbe;
 import electrodynamics.probe.Ground;
 import electrodynamics.probe.Probe;
+import electrodynamics.probe.Ruler;
 import electrodynamics.probe.VoltageProbe;
 import electrodynamics.units.Quantity;
 import electrodynamics.util.CustJRadioButtonMenuItem;
@@ -494,7 +495,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			
 			if (brush == Brush.LIGHT) {
 				flashlight_strength = e.default_flashlight_strength*Math.pow(10, e.opts.gui_light.getValue()/10.0);
-				e.opts.gui_light_text.setText("Light: " + e.units.toString(flashlight_strength*e.E_b_semi*e.depth, Quantity.INTENSITY));
+				e.opts.gui_light_text.setText("Light: " + e.units.toString(flashlight_strength*e.Eg_semi*e.depth, Quantity.INTENSITY));
 			}
 
 
@@ -903,6 +904,30 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				g.y = my;
 				g.calculateDefaultLabelCoords();
 			} else if (releasing) {
+				flagChanges(false);
+			}
+			break;
+		case RULER:
+			if (pressing) {
+				if (!e.hasRuler()) {
+					Ruler p = new Ruler();
+					e.probes.add(p);
+				}
+				Ruler p = e.getRuler();
+				p.x1 = mx_start;
+				p.y1 = my_start;
+				p.x2 = mx;
+				p.y2 = my;
+			} else if (mouse_pressed) {
+				Ruler g = e.getRuler();
+				g.x2 = mx;
+				g.y2 = my;
+				g.calculateDefaultLabelCoords();
+			} else if (releasing) {
+				Ruler p = e.getRuler();
+				if (p.x1 == p.x2 && p.y1 == p.y2) {
+					e.probes.remove(e.getRuler());
+				}
 				flagChanges(false);
 			}
 			break;
@@ -1852,7 +1877,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		BANDS("Plot bands"),
 		SCALARPLOT("Plot scalar field"),
 		CARRIERPLOT("Plot carriers"),
-		PROBEPLOT("Plot probe data");
+		PROBEPLOT("Plot probe data"),
+		RULER("Ruler");
 	
 		public String name;
 		Brush(String name)

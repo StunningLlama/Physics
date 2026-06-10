@@ -49,6 +49,7 @@ public class EMU extends UnitSystem {
 		case INTENSITY: return "erg/(cm^2 s)";
 
 		case CONDUCTIVITY: return "abA/(abV cm)";
+		case RESISTIVITY: return "(abV cm)/abA";
 		case DIFFUSIVITY: return "(cm^2/s)";
 		case ELECTRIC_MOBILITY: return "(cm^2/(abV s))";
 		}

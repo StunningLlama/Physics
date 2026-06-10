@@ -30,6 +30,7 @@ import electrodynamics.probe.CurrentProbe;
 import electrodynamics.probe.FluxProbe;
 import electrodynamics.probe.Ground;
 import electrodynamics.probe.Probe;
+import electrodynamics.probe.Ruler;
 import electrodynamics.probe.VoltageProbe;
 import electrodynamics.units.Quantity;
 import electrodynamics.util.DistributionSampler;
@@ -648,11 +649,11 @@ public class Renderer extends PeriodicTask {
 			if (e.hasGround() && e.prefs.chkbox_potential.isSelected()) {
 				Ground ground = e.getGround();
 				if (scalarview == ScalarView.ELECTRON_POTENTIAL) {
-					offset = e.conducting[ground.x][ground.y]*(e.F_n[ground.x][ground.y]/e.q_n+e.phi[ground.x][ground.y]-e.W_semi/e.eVtoJ);
+					offset = e.conducting[ground.x][ground.y]*(e.mu_n[ground.x][ground.y]/e.q_n-e.global_voltage_offset);
 				} else if (scalarview == ScalarView.HOLE_POTENTIAL) {
-					offset = e.conducting[ground.x][ground.y]*(e.F_p[ground.x][ground.y]/e.q_p+e.phi[ground.x][ground.y]-e.W_semi/e.eVtoJ);
+					offset = e.conducting[ground.x][ground.y]*(e.mu_p[ground.x][ground.y]/e.q_p-e.global_voltage_offset);
 				} else if (scalarview == ScalarView.AVERAGE_POTENTIAL) {
-					offset = e.F[ground.x][ground.y];
+					offset = e.V_avg[ground.x][ground.y];
 				}
 				
 				if (!Double.isFinite(offset))
@@ -699,10 +700,10 @@ public class Renderer extends PeriodicTask {
 					case HEAT:
 						break;
 					case ELECTRON_POTENTIAL:
-						scalarfield[i][j] = e.conducting[i][j]*(e.F_n[i][j]/e.q_n+e.phi[i][j]-e.W_semi/e.eVtoJ) - offset;
+						scalarfield[i][j] = e.conducting[i][j]*(e.mu_n[i][j]/e.q_n+e.phi[i][j]-e.global_voltage_offset) - offset;
 						break;
 					case HOLE_POTENTIAL:
-						scalarfield[i][j] = e.conducting[i][j]*(e.F_p[i][j]/e.q_p+e.phi[i][j]-e.W_semi/e.eVtoJ) - offset;
+						scalarfield[i][j] = e.conducting[i][j]*(e.mu_p[i][j]/e.q_p+e.phi[i][j]-e.global_voltage_offset) - offset;
 						break;
 					case DEBUG:
 						scalarfield[i][j] = e.debug[i][j];
@@ -714,7 +715,7 @@ public class Renderer extends PeriodicTask {
 						scalarfield[i][j] = e.R[i][j];
 						break;
 					case AVERAGE_POTENTIAL:
-						scalarfield[i][j] = e.F[i][j] - offset;
+						scalarfield[i][j] = e.V_avg[i][j] - offset;
 						break;
 					//case ELECTRON_VEL:
 					//	scalarfield[i][j] = Utils.length(0.5*(e.Jx_n[i][j]+e.Jx_n[i][j+1]), 0.5*(e.Jy_n[i][j]+e.Jy_n[i+1][j]))/e.rho_n[i][j];
@@ -835,7 +836,7 @@ public class Renderer extends PeriodicTask {
 								setColorWavelength(-scalarfield[i][j], 1);
 							} else {
 								double hc = 1.986e-25;
-								double Emax = e.materials[i][j].Eb + 0.5/e.beta; // Peak emission energy
+								double Emax = (e.materials[i][j].Ec - e.materials[i][j].Ev) + 0.5/e.beta; // Peak emission energy
 								double lambda_nm = 1e9*hc/Emax;
 								setColorWavelength(lambda_nm, scalarfield[i][j]*scalingconstant);
 							}
@@ -1082,6 +1083,20 @@ public class Renderer extends PeriodicTask {
 			setalphaFG(0.1);
 			setColorFloat(1.0f, 1.0f, 1.0f);
 			drawPixelLine((p.x1 + p.x2)/2, (p.y1+p.y2)/2, p.labelcoord.x, p.labelcoord.y);
+		} else if (p0 instanceof Ruler) {
+			Ruler p = (Ruler) p0;
+			setalphaFG(1.0);
+			setColorFloat(1.0f, 0.8f, 0.5f);
+			drawPixelRectangle(p.x1-1, p.y1-1, 3, 3);
+			drawPixelRectangle(p.x2-1, p.y2-1, 3, 3);
+
+			setalphaFG(0.3);
+			setColorFloat(1.0f, 0.8f, 0.5f);
+			drawPixelLine(p.x1, p.y1, p.x2, p.y2);
+			
+			setalphaFG(0.1);
+			setColorFloat(1.0f, 1.0f, 1.0f);
+			drawPixelLine((p.x1 + p.x2)/2, (p.y1+p.y2)/2, p.labelcoord.x, p.labelcoord.y);
 		}
 	}
 	
@@ -1126,6 +1141,9 @@ public class Renderer extends PeriodicTask {
 					drawMonospacedStringSimCoords("Q" + e.getProbeName(index) + " = " + e.units.toString_fixedsigfigs(((ChargeProbe)p).charge, Quantity.CHARGE), p.labelcoord.x, p.labelcoord.y, g);
 				else if (p instanceof FluxProbe)
 					drawMonospacedStringSimCoords("Φ" + e.getProbeName(index) + " = " + e.units.toString_fixedsigfigs(((FluxProbe)p).flux, Quantity.MAGNETIC_FLUX), p.labelcoord.x, p.labelcoord.y, g);
+				else if (p instanceof Ruler) {
+					drawMonospacedStringSimCoords(e.units.toString_fixedsigfigs(((Ruler)p).length, Quantity.LENGTH), p.labelcoord.x, p.labelcoord.y, g);
+				}
 				index++;
 			}
 
@@ -1201,7 +1219,7 @@ public class Renderer extends PeriodicTask {
 			}
 
 			if (e.opts.menu_materialname.isSelected()) {
-				String name = "Material: " + mat.toString();
+				String name = "Material: " + mat.getDisplayName();
 				this.drawBigString(name, hoffset, voffset + 1*vspacing, g);
 			}
 
@@ -1221,9 +1239,9 @@ public class Renderer extends PeriodicTask {
 				drawTwoColumnString("J\u2099" ,						e.units.toString(Utils.bilinearinterp_length(e.Jx_n, e.Jy_n, mx, my, e.nx, e.ny), Quantity.CURRENT_DENSITY, 1),			hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("J\u209A" , 					e.units.toString(Utils.bilinearinterp_length(e.Jx_p, e.Jy_p, mx, my, e.nx, e.ny), Quantity.CURRENT_DENSITY, 1),			hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("J" , 							e.units.toString(Utils.bilinearinterp_length(e.Jx_free, e.Jy_free, mx, my, e.nx, e.ny), Quantity.CURRENT_DENSITY, 1),		hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("F\u2099" , 					e.units.toString(e.F_n[mx][my]/e.q_n + e.phi[mx][my] - e.W_semi/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL, 1e-9),						hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("F\u209a" , 					e.units.toString(e.F_p[mx][my]/e.q_p + e.phi[mx][my] - e.W_semi/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL, 1e-9),						hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("F" , 							e.units.toString(e.F[mx][my], Quantity.ELECTRIC_POTENTIAL, 1e-9),				hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("F\u2099" , 					e.units.toString(e.mu_n[mx][my]/e.q_n - e.global_voltage_offset, Quantity.ELECTRIC_POTENTIAL, 1e-9),						hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("F\u209a" , 					e.units.toString(e.mu_p[mx][my]/e.q_p - e.global_voltage_offset, Quantity.ELECTRIC_POTENTIAL, 1e-9),						hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("F" , 							e.units.toString(e.V_avg[mx][my], Quantity.ELECTRIC_POTENTIAL, 1e-9),				hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("x" , 							e.units.toString(mx*e.ds, Quantity.LENGTH),							hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("y" , 							e.units.toString(e.ds*e.ny-(my+1)*e.ds, Quantity.LENGTH),			hoffset, voffset + line*vspacing, g); line++;
 			}
@@ -1944,9 +1962,9 @@ public class Renderer extends PeriodicTask {
 		BACKGROUND_CHARGE("View \u03c1\u2080: Static charge density (doping)",				"\u03c1\u2080",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE,		1e1),
 		HEAT("View Q: Heat dissipation",													"q",		Quantity.POWER_DENSITY,				ColorScheme.RED_BLUE,		1e12),
 		ENTROPY("View s: Entropy generation rate",											"s",		Quantity.ENTROPY_DENSITY_RATE,		ColorScheme.RED_BLUE,		3.33e9),
-		ELECTRON_POTENTIAL("View F\u2099: Electron chemical potential (quasi Fermi level)",	"F\u2099",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
-		HOLE_POTENTIAL("View F\u209A: Hole chemical potential (quasi Fermi level)",			"F\u209A",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
-		AVERAGE_POTENTIAL("View F: Average electrochemical potential",						"F",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
+		ELECTRON_POTENTIAL("View F\u2099: Electron quasi Fermi level",						"μ\u2099",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
+		HOLE_POTENTIAL("View F\u209A: Hole quasi Fermi level",								"μ\u209A",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
+		AVERAGE_POTENTIAL("View F: Average quasi Fermi level/chemical potential/voltage",	"F",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
 		GENERATION("View G: Carrier generation rate",										"G",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
 		RECOMBINATION("View R: Carrier recombination rate",									"R",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
 		LIGHT("View: Emitted light",														"Light",	Quantity.DIMENSIONLESS,				ColorScheme.OTHER,			1e30),

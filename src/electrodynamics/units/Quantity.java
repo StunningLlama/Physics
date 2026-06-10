@@ -29,11 +29,12 @@ public enum Quantity {
 	MAGNETIC_FLUX_DENSITY("(Magnetic flux density)", 	-1, 0, 1, -1, 0),
 	MAGNETIC_FLUX("(Magnetic flux)", 					-1, 2, 1, -1, 0),
 	CONDUCTIVITY("(Conductivity)", 					1, -3, -1, 2, 0),
+	RESISTIVITY("(Resistivity)", 					-1, 3, 1, -2, 0),
 	
 	CHARGE_DENSITY("(Charge density)", 				0, -3, 0, 1, 0),
 	CURRENT_DENSITY("(Current density)", 				-1, -2, 0, 1, 0),
-	NUMBER_DENSITY("(Number density)", 				0, -3, 0, 0, 0),
-	RATE_DENSITY("(Rate density)", 					-1, -3, 0, 0, 0),
+	NUMBER_DENSITY("(Number density)", 				0, -3, 0, 0, 0, true),
+	RATE_DENSITY("(Rate density)", 					-1, -3, 0, 0, 0, true),
 	ENERGY_DENSITY("(Energy density)", 				-2, -1, 1, 0, 0),
 	POWER_DENSITY("(Power density)", 					-3, -1, 1, 0, 0),
 	ENTROPY_DENSITY_RATE("(Entropy density rate)",	-3, -1, 1, 0, -1),
@@ -46,6 +47,17 @@ public enum Quantity {
 		this.mass = mass;
 		this.charge = charge;
 		this.temp = temp;
+		this.no_prefixes = false;
+	}
+	
+	Quantity(String name, int time, int len, int mass, int charge, int temp, boolean no_prefixes) {
+		this.name = name;
+		this.time = time;
+		this.len = len;
+		this.mass = mass;
+		this.charge = charge;
+		this.temp = temp;
+		this.no_prefixes = no_prefixes;
 	}
 	
 	public String name;
@@ -54,4 +66,5 @@ public enum Quantity {
 	int mass;
 	int charge;
 	int temp;
+	boolean no_prefixes;
 }

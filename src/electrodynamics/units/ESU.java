@@ -49,6 +49,7 @@ public class ESU extends UnitSystem {
 		case INTENSITY: return "erg/(cm^2 s)";
 
 		case CONDUCTIVITY: return "statA/(statV cm)";
+		case RESISTIVITY: return "(statV cm)*statA";
 		case DIFFUSIVITY: return "(cm^2/s)";
 		case ELECTRIC_MOBILITY: return "(cm^2/(statV s))";
 		}

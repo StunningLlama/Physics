@@ -128,25 +128,26 @@ public class MaterialViewer extends JFrame implements ActionListener, ListSelect
 			Material mat = new Material();
 			e.initializeMaterial(mat, type);
 			
-
-			double rho_n = e.calcEquilibriumElectronCharge(mat.rho_back, mat.ni*mat.ni);
-			double rho_p = e.calcEquilibriumHoleCharge(mat.rho_back, mat.ni*mat.ni);
+			double rho_n = mat.calcEquilibriumElectronCharge(e.e_charge, e.k*e.T);
+			double rho_p = mat.calcEquilibriumHoleCharge(e.e_charge, e.k*e.T);
 			double sigma = e.e_charge*(-mat.D_n*e.beta*rho_n + mat.D_p*e.beta*rho_p);
 			
 			String str = "<html>";
-			str += "Name: " + mat.toString() + "<br>";
+			str += "Name: " + mat.getDisplayName() + "<br>";
 			str += "<br>";
 			str += "Dielectric const.: <b>" + e.units.toString(mat.eps_r, Quantity.DIMENSIONLESS) + "</b><br>";
 			str += "Relative permeability: <b>" + e.units.toString(mat.mu_r, Quantity.DIMENSIONLESS) + "</b><br>";
 			str += "Speed of light in material: <b>" + e.units.toString(1/Math.sqrt(e.eps0*mat.eps_r * e.mu0*mat.mu_r), Quantity.VELOCITY) + "</b><br>";
 			str += "<br>";
-			str += "Electron affinity: <b>" + e.units.toString((mat.W - 0.5*mat.Eb)/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "</b><br>";
-			str += "Bandgap: <b>" + e.units.toString(mat.Eb/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "</b><br>";
-			str += "Workfunction: <b>" + e.units.toString(mat.W/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "</b><br>";
-			str += "Eq. carrier concentration (ni): <b>" + e.units.toString(mat.ni, Quantity.NUMBER_DENSITY) + "</b><br>";
+			str += "Electron affinity: <b>" + e.units.toString(-mat.Ec/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "</b><br>";
+			str += "Conduction band energy: <b>" + e.units.toString(mat.Ec/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "</b><br>";
+			str += "Valence band energy: <b>" + e.units.toString(mat.Ev/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "</b><br>";
+			str += "Workfunction: <b>" + e.units.toString(mat.calcPhi(e.k*e.T)/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "</b><br>";
+			str += "Effective conduction band DOS: <b>" + e.units.toString(mat.gc, Quantity.NUMBER_DENSITY) + "</b><br>";
+			str += "Effective valence band DOS: <b>" + e.units.toString(mat.gv, Quantity.NUMBER_DENSITY) + "</b><br>";
+			str += "Eq. carrier concentration (ni): <b>" + e.units.toString(mat.calc_ni(e.k*e.T) , Quantity.NUMBER_DENSITY) + "</b><br>";
 			str += "Eq. electron density: <b>" + e.units.toString(-rho_n/e.e_charge, Quantity.NUMBER_DENSITY) + "</b><br>";
 			str += "Eq. hole density: <b>" + e.units.toString(rho_p/e.e_charge, Quantity.NUMBER_DENSITY) + "</b><br>";
-			str += "Conductivity: <b>" + e.units.toString(sigma, Quantity.CONDUCTIVITY) + "</b><br>";
 			str += "<br>";
 			str += "Electron mobility: <b>" + e.units.toString(mat.D_n*e.beta*e.e_charge, Quantity.ELECTRIC_MOBILITY) + "</b><br>";
 			str += "Electron diffusivity: <b>" + e.units.toString(mat.D_n, Quantity.DIFFUSIVITY) + "</b><br>";
@@ -156,6 +157,9 @@ public class MaterialViewer extends JFrame implements ActionListener, ListSelect
 			str += "Hole diffusivity: <b>" + e.units.toString(mat.D_p, Quantity.DIFFUSIVITY) + "</b><br>";
 			str += "Hole saturation velocity: <b>" + e.units.toString(mat.v_sat_p, Quantity.VELOCITY) + "</b><br>";
 			str += "Hole saturation field: <b>" + e.units.toString(mat.v_sat_p/(mat.D_p*e.beta*e.e_charge), Quantity.ELECTRIC_FIELD) + "</b><br>";
+			str += "<br>";
+			str += "Conductivity: <b>" + e.units.toString(sigma, Quantity.CONDUCTIVITY) + "</b><br>";
+			str += "Resistivity: <b>" + e.units.toString(1/sigma, Quantity.RESISTIVITY) + "</b><br>";
 			str += "</html>";
 			textPane.setText(str);
 		}

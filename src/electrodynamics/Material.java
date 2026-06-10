@@ -17,14 +17,15 @@ public class Material {
 	
 	public double eps_r;			// Permittivity
 	public double mu_r;				// Permeability
-	public double rho_back;			// Background charge density
+	public double rho_back;			// Background or doping charge density
 	
-	public double ni;				// Equilibrium carrier density
-	public double W;				// Work function
-	public double Eb;				// Bandgap
+	public double Ec;				// Conduction band energy rel. vacuum
+	public double Ev;				// Valence band energy rel. vacuum
+	public double gc;				// Effective conduction band density of states @ sim temperature
+	public double gv;				// Effective valence band density of states @ sim temperature
 
-	public double D_n;				// Electron diffusion
-	public double D_p;				// Hole diffusion
+	public double D_n;				// Electron diffusivity
+	public double D_p;				// Hole diffusivity
 	
 	public double v_sat_n;			// Velocity at which carrier velocity saturates
 	public double v_sat_p;			// Velocity at which carrier velocity saturates
@@ -69,9 +70,10 @@ public class Material {
 		mu_r = 1.0;
 		rho_back = 0.0;
 		
-		ni = 0;
-		W = 0;
-		Eb = 0;
+		Ec = 0;
+		Ev = 0;
+		gc = 0;
+		gv = 0;
 
 		D_n = 0;
 		D_p = 0;
@@ -106,10 +108,11 @@ public class Material {
     	eps_r = mat.eps_r;			
     	mu_r = mat.mu_r;				
     	rho_back = mat.rho_back;			
-    	
-    	ni = mat.ni;				
-    	W = mat.W;				
-    	Eb = mat.Eb;				
+
+		Ec = mat.Ec;
+		Ev = mat.Ev;
+		gc = mat.gc;
+		gv = mat.gv;			
 
     	D_n = mat.D_n;				
     	D_p = mat.D_p;				
@@ -126,6 +129,82 @@ public class Material {
     	absorptivity = mat.absorptivity;
     }
     
+	public void computeBandstructurePhi(double ni, double Phi, double Eg, double kT)
+	{
+		double K = ni*ni;
+
+		this.Ec = -Phi + 0.5*Eg;
+		this.Ev = -Phi - 0.5*Eg;
+
+		double TS_n = (Math.log(K)*kT + this.Ec - this.Ev)/2.0;
+		double TS_p = TS_n;
+
+		this.gc = Math.exp(TS_n/kT);
+		this.gv = Math.exp(TS_p/kT);
+	}
+	
+	public void computeBandstructureChi(double ni, double chi, double Eg, double kT)
+	{
+		double W = chi + 0.5*Eg;
+		double K = ni*ni;
+
+		this.Ec = -W + 0.5*Eg;
+		this.Ev = -W - 0.5*Eg;
+
+		double TS_n = (Math.log(K)*kT + this.Ec - this.Ev)/2.0;
+		double TS_p = TS_n;
+
+		this.gc = Math.exp(TS_n/kT);
+		this.gv = Math.exp(TS_p/kT);
+	}
+	
+	public void computeBandstructureChiG(double chi, double Eg, double gc, double gv, double kT)
+	{
+		this.Ec = -chi;
+		this.Ev = -(chi+Eg);
+
+		this.gc = gc;
+		this.gv = gv;
+	}
+	
+	public void computeBandstructurePhiG(double Phi, double Eg, double gc, double gv, double kT)
+	{
+		double Esum = kT*(Math.log(gc) - Math.log(gv)) - 2*Phi;
+		this.Ec = 0.5*(Esum + Eg);
+		this.Ev = 0.5*(Esum - Eg);
+
+		this.gc = gc;
+		this.gv = gv;
+	}
+
+	public double calcPhi(double kT)
+	{
+		double Esum = Ec+Ev;
+		return -(0.5*Esum - 0.5*(Math.log(gc) - Math.log(gv))*kT);
+	}
+	
+	public double calc_ni(double kT)
+	{
+		return Math.sqrt(Math.exp(-(this.Ec-this.Ev)/kT)*this.gc*this.gv);
+	}
+	
+	public double calc_ni2(double kT)
+	{
+		return Math.exp(-(this.Ec-this.Ev)/kT)*this.gc*this.gv;
+	}
+
+	public double calcEquilibriumElectronCharge(double e_charge, double kT) {
+		double K = calc_ni2(kT);
+		double B = rho_back/e_charge;
+		return -e_charge*0.5*(B+Math.sqrt(B*B+4*K));
+	}
+
+	public double calcEquilibriumHoleCharge(double e_charge, double kT) {
+		double K = calc_ni2(kT);
+		double B = -rho_back/e_charge;
+		return e_charge*0.5*(B+Math.sqrt(B*B+4*K));
+	}
+    
     public boolean isEmpty() {
     	return type == MaterialType.VACUUM && cust_id == -1;
     }
@@ -135,7 +214,16 @@ public class Material {
     	if (cust_id == -1)
     		return type.name;
     	else if (name != null)
-    		return name + " [c]";
+    		return name;
+    	else
+    		return "";
+    }
+
+    public String getDisplayName() {
+    	if (cust_id == -1)
+    		return type.name;
+    	else if (name != null)
+    		return name + " *";
     	else
     		return "?";
     }

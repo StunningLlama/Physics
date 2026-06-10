@@ -48,6 +48,7 @@ public class SIUnits extends UnitSystem {
 		case ENTROPY_DENSITY_RATE: return "J/(K s m^3)";
 		case INTENSITY: return "W/m^2";
 		case CONDUCTIVITY: return "S/m";
+		case RESISTIVITY: return "Ωm";
 		case DIFFUSIVITY: return "(m^2/s)";
 		case ELECTRIC_MOBILITY: return "(m^2/(V s))";
 		}
