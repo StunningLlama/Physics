@@ -222,7 +222,7 @@ public class Preferences extends JFrame implements ActionListener {
 			try {
 				PrintWriter fstr = new PrintWriter(new FileOutputStream(outfile));
 
-				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+				Gson gson = new GsonBuilder().setPrettyPrinting().serializeSpecialFloatingPointValues().create();
 
 				JsonObject header = new JsonObject();
 				header.addProperty("imgsize_x", (int)spinner_imgx.getValue());

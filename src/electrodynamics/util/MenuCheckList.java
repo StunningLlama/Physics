@@ -11,14 +11,14 @@ import javax.swing.JMenu;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JSeparator;
 
-public class MenuCheckList<T extends Enum<?>, U extends JRadioButtonMenuItem> implements ActionListener {
+public class MenuCheckList<T extends Enum<?>, Button extends JRadioButtonMenuItem> implements ActionListener {
 
-	public HashMap<T, U> buttonmap = new HashMap<T, U>();
-	public HashMap<Integer, U> buttonlist = new HashMap<Integer, U>();
+	public HashMap<T, Button> buttonmap = new HashMap<T, Button>();
+	public HashMap<Integer, Button> buttonlist = new HashMap<Integer, Button>();
 	public ButtonGroup buttongroup = new ButtonGroup();
-	JMenu menu;
+	public JMenu menu;
 	
-	public void initialize(T[] values, JMenu menu, ActionListener a, T default_option, T[] sep, Supplier<U> constructor) {
+	public void initialize(T[] values, JMenu menu, ActionListener a, T default_option, T[] sep, Supplier<Button> constructor) {
 		this.menu = menu;
 		
 		int i = 0;
@@ -26,7 +26,7 @@ public class MenuCheckList<T extends Enum<?>, U extends JRadioButtonMenuItem> im
 			if (sep != null && Arrays.asList(sep).contains(b))
 				menu.add(new JSeparator());
 			
-			U button = constructor.get();
+			Button button = constructor.get();
 			button.setText(b.toString());
 			buttonmap.put(b, button);
 			buttonlist.put(i, button);
@@ -48,6 +48,10 @@ public class MenuCheckList<T extends Enum<?>, U extends JRadioButtonMenuItem> im
 
 	public void addOption(T t) {
 		menu.add(buttonmap.get(t));
+	}
+	
+	public Button getButton(T t) {
+		return buttonmap.get(t);
 	}
 
 	public T getOption() {

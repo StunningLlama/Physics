@@ -166,7 +166,9 @@ public class SaveManager {
 						vecmode_old.applySetting(e);
 					fstr.endObject();
 					e.opts.setRedundantOptions();
+					e.lock_resolution = true;
 					e.reset(true, null);
+					e.lock_resolution = false;
 
 					assertNextObject(fstr, "data");
 					fstr.beginObject();
@@ -213,7 +215,11 @@ public class SaveManager {
 
 					if (testNextObject(fstr, "advsettings")) {
 						fstr.beginObject();
+						e.lock_resolution = true;
 						e.adv_opts.readAdvancedSettings(gson, fstr, version < 4? Preset.VERSION_1 : Preset.DEFAULT);
+						e.calculateDependentConstants();
+						e.calculateMaxTimestep();
+						e.lock_resolution = false;
 						fstr.endObject();
 						e.advsettings_tweaked = true;
 					} else {

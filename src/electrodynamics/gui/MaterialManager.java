@@ -14,9 +14,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
-
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -646,7 +643,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 			if (infile == null || !infile.exists()) return;
 			
 			try {
-				JsonReader fstr = new JsonReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(infile))));
+				JsonReader fstr = new JsonReader(new InputStreamReader(new FileInputStream(infile)));
 				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
 
 				fstr.beginObject();
@@ -749,9 +746,9 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		e.rwLock.writeLock().lock();
 		try {
 			try {
-				PrintWriter fstr = new PrintWriter(new GZIPOutputStream(new FileOutputStream(outfile)));
+				PrintWriter fstr = new PrintWriter(new FileOutputStream(outfile));
 
-				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
 
 				JsonObject save = new JsonObject();
 				save.addProperty("version", current_saveversion);
@@ -765,9 +762,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 
 				JOptionPane.showMessageDialog(this, "Material(s) saved successfully.");
 			} catch (FileNotFoundException e) {
-				return;
-			} catch (IOException e) {
-				e.printStackTrace();
 				return;
 			}
 			return;

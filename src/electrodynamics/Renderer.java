@@ -86,6 +86,9 @@ public class Renderer extends PeriodicTask {
 	ScalarMode scalar_display_mode;
 	ScalarView scalar_view;
 	VectorView vector_view;
+	
+	float scalingconstant;
+	float scalar_offset;
 
 	/* Multithreading */
 	
@@ -102,15 +105,6 @@ public class Renderer extends PeriodicTask {
 	double cc_default_dot_density;	// How many electron/hole dots to draw, in (C/m)^-1
 	double tau;						// How long a dot stays on the screen
 	double tau_events;				// How long a flash stays
-
-	public double[][] drift_x_n;		// Total drift force for electrons
-	public double[][] drift_y_n;
-
-	public double[][] drift_x_p;		// Total drift force for holes
-	public double[][] drift_y_p;
-
-	public double[][] sqrt_D_eff_n;				// Relative mobility.
-	public double[][] sqrt_D_eff_p;				// Relative mobility.
 	
 	/* Performance profiling */
 	
@@ -133,10 +127,6 @@ public class Renderer extends PeriodicTask {
 		rho_G_dist.init(e.nx, e.ny);
 		
 		setCanvasSize();
-
-		drift_x_n = new double[e.nx][e.ny];		drift_y_n = new double[e.nx][e.ny];
-		drift_x_p = new double[e.nx][e.ny];		drift_y_p = new double[e.nx][e.ny];
-		sqrt_D_eff_n = new double[e.nx][e.ny];		sqrt_D_eff_p = new double[e.nx][e.ny];
 		
 		resetChargeDots();
 	}
@@ -159,13 +149,6 @@ public class Renderer extends PeriodicTask {
 			imgData = ((DataBufferInt)img_back.getRaster().getDataBuffer()).getData();
 			depth_buf = new int[imgData.length];
 		}
-	}
-	
-	public void calculateConstants() {
-		//cc_default_dot_density = 5e11;
-		cc_default_dot_density = 1/(25*e.e_charge*e.n_default_doping_concentration*e.ds*e.ds);
-		tau = 5000*e.dt_maximum;
-		tau_events = tau*0.2;
 	}
 	
 	public void resetChargeDots() {
@@ -643,11 +626,15 @@ public class Renderer extends PeriodicTask {
 		ScalarView scalarview = e.controls.scalarview.getOption();
 		ScalarMode scalarmode = e.controls.scalarmode.getOption();
 
+		scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/scalarview.scale);
+		scalar_offset = 0;
+
 		if (scalarview != ScalarView.NONE && scalarmode != ScalarMode.NONE) {
-			double offset = 0;
+			/*double offset = 0;
 			
 			if (e.hasGround() && e.prefs.chkbox_potential.isSelected()) {
 				Ground ground = e.getGround();
+				//TODO
 				if (scalarview == ScalarView.ELECTRON_POTENTIAL) {
 					offset = e.conducting[ground.x][ground.y]*(e.mu_n[ground.x][ground.y]/e.q_n-e.global_voltage_offset);
 				} else if (scalarview == ScalarView.HOLE_POTENTIAL) {
@@ -658,80 +645,24 @@ public class Renderer extends PeriodicTask {
 				
 				if (!Double.isFinite(offset))
 					offset = 0;
+			}*/
+			
+
+			switch (scalarview) {
+			case ELECTRON_POTENTIAL:
+			case HOLE_POTENTIAL:
+				scalar_offset = -(float) e.global_voltage_offset;
+				break;
+			default:
+				break;
 			}
 
 			setalphaBG(1.0);
 			setalphaFG(1.0);
-			for (int i = 1; i < e.nx-1; i++) {
-				for (int j = 1; j < e.ny-1; j++) {
-					switch (scalarview) {
-					case NONE:
-						break;
-					case B_FIELD:
-						scalarfield[i][j] = e.parity*0.25*(e.Bz[i][j]+e.Bz[i-1][j]+e.Bz[i][j-1]+e.Bz[i-1][j-1]);
-						break;
-					case E_FIELD:
-						scalarfield[i][j] = Utils.length(0.5*(e.Ex[i][j]+e.Ex[i][j+1]), 0.5*(e.Ey[i][j]+e.Ey[i+1][j]));
-						break;
-					case H_FIELD:
-						scalarfield[i][j] = e.parity*0.25*(e.Hz[i][j]+e.Hz[i-1][j]+e.Hz[i][j-1]+e.Hz[i-1][j-1]);
-						break;
-					case CURRENT:
-						scalarfield[i][j] = Utils.length(0.5*(e.Jx_free[i][j]+e.Jx_free[i-1][j]), 0.5*(e.Jy_free[i][j]+e.Jy_free[i][j-1]));
-						break;
-					case POTENTIAL:
-						scalarfield[i][j] = e.phi[i][j];
-						break;
-					case CHARGE:
-						scalarfield[i][j] = e.rho_free[i][j];
-						break;
-					case BACKGROUND_CHARGE:
-						scalarfield[i][j] = e.rho_back[i][j];
-						break;
-					case ELECTRON_CHARGE:
-						scalarfield[i][j] = e.rho_n[i][j];
-						break;
-					case HOLE_CHARGE:
-						scalarfield[i][j] = e.rho_p[i][j];
-						break;
-					case COMBINED_CHARGE:
-						scalarfield[i][j] = Double.NaN;
-						break;
-					case HEAT:
-						break;
-					case ELECTRON_POTENTIAL:
-						scalarfield[i][j] = e.conducting[i][j]*(e.mu_n[i][j]/e.q_n+e.phi[i][j]-e.global_voltage_offset) - offset;
-						break;
-					case HOLE_POTENTIAL:
-						scalarfield[i][j] = e.conducting[i][j]*(e.mu_p[i][j]/e.q_p+e.phi[i][j]-e.global_voltage_offset) - offset;
-						break;
-					case DEBUG:
-						scalarfield[i][j] = e.debug[i][j];
-						break;
-					case GENERATION:
-						scalarfield[i][j] = e.G[i][j];
-						break;
-					case RECOMBINATION:
-						scalarfield[i][j] = e.R[i][j];
-						break;
-					case AVERAGE_POTENTIAL:
-						scalarfield[i][j] = e.V_avg[i][j] - offset;
-						break;
-					//case ELECTRON_VEL:
-					//	scalarfield[i][j] = Utils.length(0.5*(e.Jx_n[i][j]+e.Jx_n[i][j+1]), 0.5*(e.Jy_n[i][j]+e.Jy_n[i+1][j]))/e.rho_n[i][j];
-					//	break;
-					//case HOLE_VEL:
-					//	scalarfield[i][j] = Utils.length(0.5*(e.Jx_p[i][j]+e.Jx_p[i][j+1]), 0.5*(e.Jy_p[i][j]+e.Jy_p[i+1][j]))/e.rho_p[i][j];
-					//	break;
-					default:
-						scalarfield[i][j] = e.display[i][j];
-					}
-				}
-			}
 			
+			e.computeScalarField(scalarfield, 0, 0, scalarview);
 
 			ScalarView.ColorScheme colorscheme = scalarview.colorscheme;
-			float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/scalarview.scale);
 			
 			if (e.opts.menu_colormap.isSelected())
 			{
@@ -747,10 +678,10 @@ public class Renderer extends PeriodicTask {
 						double t = 0;
 						if (colorscheme == ScalarView.ColorScheme.RED_BLUE || colorscheme == ScalarView.ColorScheme.CYAN_YELLOW || scalarview == ScalarView.CHARGE) {
 							t = 2*((j2-j)/(double)(j2-j1)-0.5);
-							scalarfield[i][j] = t/scalingconstant;
+							scalarfield[i][j] = t/scalingconstant + scalar_offset;
 						} else if (colorscheme == ScalarView.ColorScheme.WHITE || colorscheme == ScalarView.ColorScheme.GREEN) {
 							t = (j2-j)/(double)(j2-j1);
-							scalarfield[i][j] = t/scalingconstant;
+							scalarfield[i][j] = t/scalingconstant + scalar_offset;
 						} else if (scalarview == ScalarView.LIGHT) {
 							t = (j2-j)/(double)(j2-j1);
 							scalarfield[i][j] = -(400+(650-400)*t);
@@ -773,33 +704,36 @@ public class Renderer extends PeriodicTask {
 
 		if (scalarmode == ScalarMode.COLORS || scalarmode == ScalarMode.CONTOUR_COLORS) {
 			ScalarView.ColorScheme colorscheme = e.controls.scalarview.getOption().colorscheme;
-			float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/scalarview.scale);
 
 			if (colorscheme == ScalarView.ColorScheme.RED_BLUE) {
 				for (int i = 1; i < e.nx-1; i++) {
 					for (int j = 1; j < e.ny-1; j++) {
-						setColorFloat((float) scalarfield[i][j]*scalingconstant, 0, -(float) scalarfield[i][j]*scalingconstant);
+						float v = (float) (scalarfield[i][j]-scalar_offset)*scalingconstant;
+						setColorFloat(v, 0, -v);
 						setPixel(i, j);
 					}
 				}
 			} else if (colorscheme == ScalarView.ColorScheme.CYAN_YELLOW) {
 				for (int i = 1; i < e.nx-1; i++) {
 					for (int j = 1; j < e.ny-1; j++) {
-						setColorFloat((float) scalarfield[i][j]*scalingconstant, Math.abs((float) scalarfield[i][j]*scalingconstant), -(float) scalarfield[i][j]*scalingconstant);
+						float v = (float) (scalarfield[i][j]-scalar_offset)*scalingconstant;
+						setColorFloat(v, Math.abs(v), -v);
 						setPixel(i, j);
 					}
 				}
 			} else if (colorscheme == ScalarView.ColorScheme.GREEN) {
 				for (int i = 1; i < e.nx-1; i++) {
 					for (int j = 1; j < e.ny-1; j++) {
-						setColorFloat(0, Math.abs((float) scalarfield[i][j]*scalingconstant), 0);
+						float v = (float) (scalarfield[i][j]-scalar_offset)*scalingconstant;
+						setColorFloat(0, Math.abs(v), 0);
 						setPixel(i, j);
 					}
 				}
 			} else if (colorscheme == ScalarView.ColorScheme.WHITE) {
 				for (int i = 1; i < e.nx-1; i++) {
 					for (int j = 1; j < e.ny-1; j++) {
-						setColorFloat((float) scalarfield[i][j]*scalingconstant, (float) scalarfield[i][j]*scalingconstant, (float) scalarfield[i][j]*scalingconstant);
+						float v = (float) (scalarfield[i][j]-scalar_offset)*scalingconstant;
+						setColorFloat(v, v, v);
 						setPixel(i, j);
 					}
 				}
@@ -1155,7 +1089,6 @@ public class Renderer extends PeriodicTask {
 		ScalarMode scalarmode = e.controls.scalarmode.getOption();
 		if (scalarview != ScalarView.NONE && scalarmode != ScalarMode.NONE) {
 			ScalarView.ColorScheme colorscheme = scalarview.colorscheme;
-			float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/scalarview.scale);
 
 			if (e.opts.menu_colormap.isSelected())
 			{
@@ -1179,9 +1112,9 @@ public class Renderer extends PeriodicTask {
 					drawMonospacedStringSimCoords(e.units.toString(650e-9, Quantity.LENGTH), (i1+i2)/2, j1, g);
 					texts.get(texts.size()-1).isHorizontalCentered = true;
 				} else {
-					drawMonospacedStringSimCoords(e.units.toString(tmin/scalingconstant, scalarview.unit), (i1+i2)/2, j2, g);
+					drawMonospacedStringSimCoords(e.units.toString(tmin/scalingconstant+scalar_offset, scalarview.unit), (i1+i2)/2, j2, g);
 					texts.get(texts.size()-1).isHorizontalCentered = true;
-					drawMonospacedStringSimCoords(e.units.toString(tmax/scalingconstant, scalarview.unit), (i1+i2)/2, j1, g);
+					drawMonospacedStringSimCoords(e.units.toString(tmax/scalingconstant+scalar_offset, scalarview.unit), (i1+i2)/2, j1, g);
 					texts.get(texts.size()-1).isHorizontalCentered = true;
 				}
 				texts.get(texts.size()-1).isBottomJustified = true;
@@ -1239,9 +1172,9 @@ public class Renderer extends PeriodicTask {
 				drawTwoColumnString("J\u2099" ,						e.units.toString(Utils.bilinearinterp_length(e.Jx_n, e.Jy_n, mx, my, e.nx, e.ny), Quantity.CURRENT_DENSITY, 1),			hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("J\u209A" , 					e.units.toString(Utils.bilinearinterp_length(e.Jx_p, e.Jy_p, mx, my, e.nx, e.ny), Quantity.CURRENT_DENSITY, 1),			hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("J" , 							e.units.toString(Utils.bilinearinterp_length(e.Jx_free, e.Jy_free, mx, my, e.nx, e.ny), Quantity.CURRENT_DENSITY, 1),		hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("F\u2099" , 					e.units.toString(e.mu_n[mx][my]/e.q_n - e.global_voltage_offset, Quantity.ELECTRIC_POTENTIAL, 1e-9),						hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("F\u209a" , 					e.units.toString(e.mu_p[mx][my]/e.q_p - e.global_voltage_offset, Quantity.ELECTRIC_POTENTIAL, 1e-9),						hoffset, voffset + line*vspacing, g); line++;
-				drawTwoColumnString("F" , 							e.units.toString(e.V_avg[mx][my], Quantity.ELECTRIC_POTENTIAL, 1e-9),				hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("F\u2099" , 					e.units.toString(-e.mu_n[mx][my]/e.q_n, Quantity.ELECTRIC_POTENTIAL, 1e-9),						hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("F\u209a" , 					e.units.toString(-e.mu_p[mx][my]/e.q_p, Quantity.ELECTRIC_POTENTIAL, 1e-9),						hoffset, voffset + line*vspacing, g); line++;
+				drawTwoColumnString("V" , 							e.units.toString(e.V_avg[mx][my], Quantity.ELECTRIC_POTENTIAL, 1e-9),				hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("x" , 							e.units.toString(mx*e.ds, Quantity.LENGTH),							hoffset, voffset + line*vspacing, g); line++;
 				drawTwoColumnString("y" , 							e.units.toString(e.ds*e.ny-(my+1)*e.ds, Quantity.LENGTH),			hoffset, voffset + line*vspacing, g); line++;
 			}
@@ -1345,7 +1278,7 @@ public class Renderer extends PeriodicTask {
 
 						double[][] vf_x = null;
 						double[][] vf_y = null;
-						boolean isCurrent = false;
+						boolean conductors_only = false;
 
 						switch (vector_view) {
 						case NONE:
@@ -1361,25 +1294,48 @@ public class Renderer extends PeriodicTask {
 						case ELECTRON_CURRENT:
 							vf_x = e.Jx_n;
 							vf_y = e.Jy_n;
-							isCurrent = true;
+							conductors_only = true;
 							break;
 						case HOLE_CURRENT:
 							vf_x = e.Jx_p;
 							vf_y = e.Jy_p;
-							isCurrent = true;
+							conductors_only = true;
 							break;
 						case TOTAL_CURRENT:
 							vf_x = e.Jx_free;
 							vf_y = e.Jy_free;
-							isCurrent = true;
+							conductors_only = true;
 							break;
 						case EMF:
 							vf_x = e.emfx;
 							vf_y = e.emfy;
+							conductors_only = true;
+							break;
+						case ELECTRON_DIFFUSION:
+							vf_x = e.diff_x_n;
+							vf_y = e.diff_y_n;
+							conductors_only = true;
+							break;
+						case ELECTRON_DRIFT:
+							vf_x = e.drift_x_n;
+							vf_y = e.drift_y_n;
+							conductors_only = true;
+							break;
+						case HOLE_DIFFUSION:
+							vf_x = e.diff_x_p;
+							vf_y = e.diff_y_p;
+							conductors_only = true;
+							break;
+						case HOLE_DRIFT:
+							vf_x = e.drift_x_p;
+							vf_y = e.drift_y_p;
+							conductors_only = true;
+							break;
+						case POYNTING:
+							vf_x = e.Sx;
+							vf_y = e.Sy;
 							break;
 						default:
-							vf_x = e.display_x;
-							vf_y = e.display_y;
 							break;
 						}
 
@@ -1488,7 +1444,7 @@ public class Renderer extends PeriodicTask {
 									d.y = e.ny*rand.nextDouble();
 									d.lifespan = 100*(1+rand.nextDouble());
 									d.time = d.lifespan;
-									if (isCurrent && Utils.bilinearinterp(e.conducting, d.x, d.y, e.nx, e.ny) == 0) {
+									if (conductors_only && Utils.bilinearinterp(e.conducting, d.x, d.y, e.nx, e.ny) == 0) {
 										d.lifespan = 0;
 										d.time = 0;
 									}
@@ -1530,7 +1486,6 @@ public class Renderer extends PeriodicTask {
 
 					if (scalar_view != ScalarView.NONE && (scalar_display_mode == ScalarMode.CONTOUR_COLORS || scalar_display_mode == ScalarMode.CONTOUR)) {
 						graphics_mid_barrier.await();
-						float scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/e.controls.scalarview.getOption().scale);
 						double spacing = 0.2/scalingconstant;
 						double contourwidth = 1e-7;
 
@@ -1550,8 +1505,6 @@ public class Renderer extends PeriodicTask {
 					if (show_carriers) {
 
 						if ((!e.opts.gui_paused.isSelected() || delta_t > 0)) {
-							boolean show_diffusion = e.opts.menu_carrier_diffusion.isSelected();
-							
 							if (n_thread == 0 && carrier_diffusion_warning_timer > 0) {
 								carrier_diffusion_warning_timer--;
 							}
@@ -1562,56 +1515,6 @@ public class Renderer extends PeriodicTask {
 								rho_n_dist.prepare(e.rho_n);
 								rho_p_dist.prepare(e.rho_p);
 								rho_G_dist.prepare(e.G);
-							}
-							if (show_diffusion && n_thread == Math.min(1, n_threads-1)) {
-								for (int i = 1; i < e.nx-1; i++)
-								{
-									for (int j = 1; j < e.ny-1; j++)
-									{
-										if (e.conducting[i][j] == 1) {
-											double E2 = 0.25*(e.Ex[i][j]+e.Ex[i][j+1])*(e.Ex[i][j]+e.Ex[i][j+1]) + 0.25*(e.Ey[i][j]+e.Ey[i+1][j])*(e.Ey[i][j]+e.Ey[i+1][j]);
-											double Esat_n = e.v_sat_n[i][j]/(e.D_n[i][j]*e.e_charge*e.beta);
-											double Esat_p = e.v_sat_p[i][j]/(e.D_p[i][j]*e.e_charge*e.beta);
-											sqrt_D_eff_n[i][j] = Math.sqrt(e.D_n[i][j]/Math.sqrt(E2/(Esat_n*Esat_n) + 1));
-											sqrt_D_eff_p[i][j] = Math.sqrt(e.D_p[i][j]/Math.sqrt(E2/(Esat_p*Esat_p) + 1));
-										} else {
-											sqrt_D_eff_n[i][j] = 0;
-											sqrt_D_eff_p[i][j] = 0;
-										}
-									}
-								}
-							}
-							/*for (int i = 1; i < e.nx-1; i++)
-							{
-								for (int j = 1; j < e.ny-1; j++)
-								{
-									if (e.conducting[i][j] == 0) {
-										sqrt_D_eff_n[i][j] = 0.0*Utils.max(sqrt_D_eff_n[i+1][j], sqrt_D_eff_n[i-1][j], sqrt_D_eff_n[i][j+1], sqrt_D_eff_n[i][j-1]);
-										sqrt_D_eff_p[i][j] = 0.0*Utils.max(sqrt_D_eff_p[i+1][j], sqrt_D_eff_p[i-1][j], sqrt_D_eff_p[i][j+1], sqrt_D_eff_p[i][j-1]);
-									}
-								}
-							}*/
-							if (show_diffusion && n_thread == Math.min(2, n_threads-1)) {
-								for (int i = 0; i < e.nx-1; i++)
-								{
-									for (int j = 1; j < e.ny-1; j++)
-									{
-										double emf_phase = e.ac_y[i][j]*e.AC_amplitude+(1-e.ac_y[i][j]);
-										drift_y_n[i][j] = e.conducting_y[i][j]*(emf_phase*e.emfy[i][j] + e.cmfy_n[i][j]/e.q_n + e.Ey[i][j]);
-										drift_y_p[i][j] = e.conducting_y[i][j]*(emf_phase*e.emfy[i][j] + e.cmfy_p[i][j]/e.q_p + e.Ey[i][j]);
-									}
-								}
-							}
-							if (show_diffusion && n_thread == Math.min(3, n_threads-1)) {
-								for (int i = 1; i < e.nx-1; i++)
-								{
-									for (int j = 0; j < e.ny-1; j++)
-									{
-										double emf_phase = e.ac_x[i][j]*e.AC_amplitude+(1-e.ac_x[i][j]);
-										drift_x_n[i][j] = e.conducting_x[i][j]*(emf_phase*e.emfx[i][j] + e.cmfx_n[i][j]/e.q_n + e.Ex[i][j]);
-										drift_x_p[i][j] = e.conducting_x[i][j]*(emf_phase*e.emfx[i][j] + e.cmfx_p[i][j]/e.q_p + e.Ex[i][j]);
-									}
-								}
 							}
 							
 							int i_low = lower(ccdots.size());
@@ -1733,26 +1636,25 @@ public class Renderer extends PeriodicTask {
 											}
 										} else {
 											if (d.type == DotType.ELECTRON) {
-												double sqrt_D_n = Utils.bilinearinterp(sqrt_D_eff_n, d.x, d.y, e.nx, e.ny);
-												double s = -sqrt_D_n*sqrt_D_n*e.beta*e.e_charge*dt_dot/e.ds;
+												double sqrt_D_n = Utils.bilinearinterp(e.sqrt_D_eff_n, d.x, d.y, e.nx, e.ny);
+												double s = dt_dot/e.ds;
 												double t = factor*sqrt_D_n/e.ds; //Random walk PDF obeys diffusion equation. Variance of uniform dist is 12L^2 and variance of heat kernel is 2Dt
-												
 												for (int k = 0; k < steps; k++) {
-													double dx_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(drift_x_n, d.x-0.5, d.y, e.nx, e.ny);
-													double dy_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(drift_y_n, d.x, d.y-0.5, e.nx, e.ny);
+													double dx_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(e.vel_x_n, d.x-0.5, d.y, e.nx, e.ny);
+													double dy_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(e.vel_y_n, d.x, d.y-0.5, e.nx, e.ny);
 													if (e.conducting[(int)(d.x+dx_diff+0.5)][(int)(d.y+dy_diff+0.5)] == 1) {
 														d.x += dx_diff;
 														d.y += dy_diff;
 													}
 												}
 											} else if (d.type == DotType.HOLE) {
-												double sqrt_D_p = Utils.bilinearinterp(sqrt_D_eff_p, d.x, d.y, e.nx, e.ny);
-												double s = sqrt_D_p*sqrt_D_p*e.beta*e.e_charge*dt_dot/e.ds;
+												double sqrt_D_p = Utils.bilinearinterp(e.sqrt_D_eff_p, d.x, d.y, e.nx, e.ny);
+												double s = dt_dot/e.ds;
 												double t = factor*sqrt_D_p/e.ds;
 												
 												for (int k = 0; k < steps; k++) {
-													double dx_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(drift_x_p, d.x-0.5, d.y, e.nx, e.ny);
-													double dy_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(drift_y_p, d.x, d.y-0.5, e.nx, e.ny);
+													double dx_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(e.vel_x_p, d.x-0.5, d.y, e.nx, e.ny);
+													double dy_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(e.vel_y_p, d.x, d.y-0.5, e.nx, e.ny);
 													if (e.conducting[(int)(d.x+dx_diff+0.5)][(int)(d.y+dy_diff+0.5)] == 1) {
 														d.x += dx_diff;
 														d.y += dy_diff;
@@ -1964,12 +1866,19 @@ public class Renderer extends PeriodicTask {
 		ENTROPY("View s: Entropy generation rate",											"s",		Quantity.ENTROPY_DENSITY_RATE,		ColorScheme.RED_BLUE,		3.33e9),
 		ELECTRON_POTENTIAL("View F\u2099: Electron quasi Fermi level",						"μ\u2099",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
 		HOLE_POTENTIAL("View F\u209A: Hole quasi Fermi level",								"μ\u209A",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
-		AVERAGE_POTENTIAL("View F: Average quasi Fermi level/chemical potential/voltage",	"F",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
+		AVERAGE_POTENTIAL("View V: Voltage",												"V",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
 		GENERATION("View G: Carrier generation rate",										"G",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
 		RECOMBINATION("View R: Carrier recombination rate",									"R",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
 		LIGHT("View: Emitted light",														"Light",	Quantity.DIMENSIONLESS,				ColorScheme.OTHER,			1e30),
-		//ELECTRON_VEL("View: Electron drift velocity",										"ve",	Quantity.VELOCITY,						ColorScheme.GREEN,			1e6),
-		//HOLE_VEL("View: Hole drift velocity",												"vh",	Quantity.VELOCITY,						ColorScheme.GREEN,			1e6),
+		ELECTRON_DENSITY("View: Electron density",											"ne",		Quantity.NUMBER_DENSITY,			ColorScheme.GREEN,			1e23),
+		HOLE_DENSITY("View: Hole density",													"nh",		Quantity.NUMBER_DENSITY,			ColorScheme.GREEN,			1e23),
+		ELECTRON_VOLTAGE("View: Electron voltage",											"Ve",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
+		HOLE_VOLTAGE("View: Hole voltage",													"Vh",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
+		ELECTRON_VEL("View: Electron drift velocity",										"ve",		Quantity.VELOCITY,					ColorScheme.GREEN,			1e6),
+		HOLE_VEL("View: Hole drift velocity",												"vh",		Quantity.VELOCITY,					ColorScheme.GREEN,			1e6),
+		RECOMB_RAD("View: Radiative recombination rate",									"R (rad)",	Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
+		RECOMB_SRH("View: SRH recombination rate",											"R (SRG)",	Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
+		RECOMB_AUGER("View: Auger recombination rate",										"R (aug)",	Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
 		DEBUG("Debug",																		"Debug",	Quantity.DIMENSIONLESS,				ColorScheme.RED_BLUE,		1e-3);
 	
 		enum ColorScheme {
@@ -2005,7 +1914,13 @@ public class Renderer extends PeriodicTask {
 		HOLE_CURRENT("View J\u209A: Hole current",			"J\u209A",	1),
 		TOTAL_CURRENT("View J: Total current",				"J",		1),
 		EMF("View \u2130: External electromotive force",	"\u2130",	1),
-		POYNTING("View S: Poynting vector",					"S",		1);
+		POYNTING("View S: Poynting vector",					"S",		1),
+		ELECTRON_DRIFT("View: Electron drift current",			"Jn (drift)",	1),
+		ELECTRON_DIFFUSION("View: Electron diffusion current",	"Jn (diffus)",	1),
+		ELECTRON_VELOCITY("View: Electron drift velocity",		"vn",			1),
+		HOLE_DRIFT("View: Hole drift current",					"Jp (drift)",	1),
+		HOLE_DIFFUSION("View: Hole diffusion current",			"Jp (diffus)",	1),
+		HOLE_VELOCITY("View: Hole drift velocity",				"vp",			1);
 	
 		public String name;
 		public String shorthand;

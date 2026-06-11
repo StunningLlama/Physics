@@ -62,15 +62,10 @@ public class Simulation extends PeriodicTask {
 	
 	//TODO
 	//Optimize presets
-	//Add more view options
-	//Write manual
+	
 	//Small transistors
 	//Make better MESFET
 	//Cite sources
-	
-	//Drift velocity
-	//Recombination mechanisms
-	//Thermo
 	
 	/* Parts */
 	
@@ -117,6 +112,7 @@ public class Simulation extends PeriodicTask {
 	
 	public int absorber_width;
 	public double absorbing_coeff;
+	public double boundary_stretch_factor;
 	public double Hz_dissipation;
 	public double dt_maximum;
 	public int parity = -1;			// Negative sign resulting from flipped y-axis in graphics coordinate system
@@ -226,11 +222,15 @@ public class Simulation extends PeriodicTask {
 	public HashMap<MaterialType, String> default_names;
 	public HashMap<MaterialType, String> modified_names;
 	
+	public boolean lock_resolution = false;
+
 	public void setDefaultParameters() {
-		default_resolution = 256;
-		default_width = 2.56e-5;
+		if (!lock_resolution) {
+			default_resolution = 256;
+			default_width = 2.56e-5;
+		}
 		depth = 1e-3;
-		
+
 		eps0 = 8.85e-12;
 		mu0 = 1.257e-6;
 		k = 1.381e-23;
@@ -304,6 +304,8 @@ public class Simulation extends PeriodicTask {
 		D_hole_semi = mu_hole_semi/(beta*e_charge);
 
 		g_currentsource = g_metal;
+		
+		global_voltage_offset = (chi_semi+0.5*Eg_semi)/eVtoJ;
 
 		Material cur_source = new Material();
 		initializeMaterial(cur_source, MaterialType.CURRENT);
@@ -342,29 +344,44 @@ public class Simulation extends PeriodicTask {
 
 	/* Miscellaneous fields used for display */
 
-	public double[][] display;			// Field currently being displayed
-	public double[][] display_x;		// Vector field being displayed
-	public double[][] display_y;
-
 	public double[][] Dx;				// Electric displacement field
 	public double[][] Dy;
 	public double[][] Bz;				// B field
 	public double[][] phi;				// Electric scalar potential
 
+	public double[][] Sx;				// Electric displacement field
+	public double[][] Sy;
+
 	public double[][] G;				// Generation rate
 	public double[][] R;				// Recombination rate
-	public double[][] mu_n;				// Total chemical potential of electrons with electrostatic contribution
-	public double[][] mu_p;				// Total chemical potential of holes
-	public double[][] gradE0_x_n;		// Gradient of chemical energy
-	public double[][] gradE0_y_n;
-	public double[][] gradE0_x_p;
-	public double[][] gradE0_y_p;
-	public double[][] gradmu_x_n;		// Gradient of total chemical potential
-	public double[][] gradmu_y_n;
-	public double[][] gradmu_x_p;
-	public double[][] gradmu_y_p;
-	public double[][] V_avg;				// Average total electrochemical potential, or voltage
+	public double[][] mu_n;				// Total chemical potential of electrons with electrostatic contribution, equal to quasi-fermi level
+	public double[][] mu_p;				// Total chemical potential of holes, equal to negative of quasi-fermi level
+	public double[][] grad_x_n;			// Gradient
+	public double[][] grad_y_n;
+	public double[][] grad_x_p;
+	public double[][] grad_y_p;
+	public double[][] V_avg;				// Average voltage, as measured by voltmeter
 
+	public double[][] heat;
+	public double[][] entropy;
+
+	public double[][] vel_x_n;
+	public double[][] vel_y_n;
+	public double[][] vel_x_p;
+	public double[][] vel_y_p;
+	
+	public double[][] drift_x_n;
+	public double[][] drift_y_n;
+	public double[][] drift_x_p;
+	public double[][] drift_y_p;
+	
+	public double[][] diff_x_n;
+	public double[][] diff_y_n;
+	public double[][] diff_x_p;
+	public double[][] diff_y_p;
+
+	public double[][] sqrt_D_eff_n;
+	public double[][] sqrt_D_eff_p;
 
 	public boolean updateMiscFields = false;
 	public double[][] debug;
@@ -563,6 +580,7 @@ public class Simulation extends PeriodicTask {
 
     			if (!opts.gui_paused.isSelected() || controls.advanceframe) {
     				for (int i = 0; i < iteration_multiplier ; i++) {
+    					store_dd = (i == iteration_multiplier-1 && dd_option);
     					start_barrier.await();
     					stop_barrier.await();
     				}
@@ -666,8 +684,17 @@ public class Simulation extends PeriodicTask {
 				sigma_epsr_name = mat.getDisplayName();
 			}
 		}
-		
+
+		ds = width/default_resolution;
 		dt_maximum = 0.9*Math.min(Math.min(ds/(Math.sqrt(2)*c), 4*eps0/sigma_epsr_max), Math.min(ds*ds/(4*D_electron_semi), ds*ds/(4*D_hole_semi)));
+		
+		Hz_dissipation = 0.01*ds*ds/dt_maximum;
+		absorber_width = (int)Math.ceil(0.045*nx);
+		absorbing_coeff = 50*c/(ds*nx);
+		boundary_stretch_factor = 10;
+		renderer.tau = 5000*dt_maximum;
+		renderer.tau_events = renderer.tau*0.2;
+		renderer.cc_default_dot_density = 1/(25*e_charge*n_default_doping_concentration*ds*ds);
 		
 		CFL_text = "";
 		CFL_text += "Wave equation stability ratio = " + units.toString((Math.sqrt(2)*c)/(ds/dt_maximum), Quantity.DIMENSIONLESS) + "\n";
@@ -711,10 +738,8 @@ public class Simulation extends PeriodicTask {
 			}
 			
 			this.width = default_width;
-			ds = width/default_resolution;
 			
 			calculateMaxTimestep();
-			Hz_dissipation = 0.01*ds*ds/dt_maximum;
 
 			if (size_changed) {
 				Ex = new double[nx][ny];		Ey = new double[nx][ny];
@@ -755,20 +780,31 @@ public class Simulation extends PeriodicTask {
 				epsx = new double[nx][ny];		epsy = new double[nx][ny];
 				mu_z = new double[nx][ny];
 
-				display_x = new double[nx][ny]; display_y = new double[nx][ny];
-				display = new double[nx][ny];
+				vel_x_n = new double[nx][ny];	vel_y_n = new double[nx][ny];
+				vel_x_p = new double[nx][ny];	vel_y_p = new double[nx][ny];
+				
+				drift_x_n = new double[nx][ny];	drift_y_n = new double[nx][ny];
+				drift_x_p = new double[nx][ny];	drift_y_p = new double[nx][ny];
+				
+				diff_x_n = new double[nx][ny];	diff_y_n = new double[nx][ny];
+				diff_x_p = new double[nx][ny];	diff_y_p = new double[nx][ny];
+
+				sqrt_D_eff_n = new double[nx][ny];		sqrt_D_eff_p = new double[nx][ny];
+				
+				heat = new double[nx][ny];
+				entropy = new double[nx][ny];
 
 				Dx = new double[nx][ny];		Dy = new double[nx][ny];
 				Hz = new double[nx][ny];
 				phi = new double[nx][ny];
 
+				Sx = new double[nx][ny];		Sy = new double[nx][ny];
+
 				G = new double[nx][ny];
 				R = new double[nx][ny];
 				mu_n = new double[nx][ny];			mu_p = new double[nx][ny];
-				gradE0_x_n = new double[nx][ny];	gradE0_y_n = new double[nx][ny];
-				gradE0_x_p = new double[nx][ny];	gradE0_y_p = new double[nx][ny];
-				gradmu_x_n = new double[nx][ny];		gradmu_y_n = new double[nx][ny];
-				gradmu_x_p = new double[nx][ny];		gradmu_y_p = new double[nx][ny];
+				grad_x_n = new double[nx][ny];	grad_y_n = new double[nx][ny];
+				grad_x_p = new double[nx][ny];	grad_y_p = new double[nx][ny];
 				V_avg = new double[nx][ny];
 				debug = new double[nx][ny];
 
@@ -870,21 +906,29 @@ public class Simulation extends PeriodicTask {
 					visited[i][j] = false;
 					needs_smoothing[i][j] = false;
 
-					display_x[i][j] = 0.0;	display_y[i][j] = 0.0;
-					display[i][j] = 0.0;
+					drift_x_n[i][j] = 0;	drift_y_n[i][j] = 0;
+					drift_x_p[i][j] = 0;	drift_y_p[i][j] = 0;
+					
+					diff_x_n[i][j] = 0;	diff_y_n[i][j] = 0;
+					diff_x_p[i][j] = 0;	diff_y_p[i][j] = 0;
+					
+					heat[i][j] = 0.0;
+					entropy[i][j] = 0.0;
 					
 					Dx[i][j] = 0.0; Dy[i][j] = 0.0;
 					Hz[i][j] = 0.0;
 					phi[i][j] = 0.0;
 
+					Sx[i][j] = 0.0; Sy[i][j] = 0.0;
+
 					G[i][j] = 0.0;
 					R[i][j] = 0.0;
 					mu_n[i][j] = 0.0;
 					mu_p[i][j] = 0.0;
-					gradE0_x_n[i][j] = 0.0;	gradE0_y_n[i][j] = 0.0;
-					gradE0_x_p[i][j] = 0.0;	gradE0_y_p[i][j] = 0.0;
-					gradmu_x_n[i][j] = 0.0;	gradmu_y_n[i][j] = 0.0;
-					gradmu_x_p[i][j] = 0.0;	gradmu_y_p[i][j] = 0.0;
+					grad_x_n[i][j] = 0.0;	grad_y_n[i][j] = 0.0;
+					grad_x_p[i][j] = 0.0;	grad_y_p[i][j] = 0.0;
+					grad_x_n[i][j] = 0.0;	grad_y_n[i][j] = 0.0;
+					grad_x_p[i][j] = 0.0;	grad_y_p[i][j] = 0.0;
 					V_avg[i][j] = 0.0;
 					
 					abs_depth[i][j] = 0;
@@ -916,8 +960,7 @@ public class Simulation extends PeriodicTask {
 				p.reset();
 				p.data.resetData();
 			}
-
-			renderer.calculateConstants();
+			
 			renderer.resetChargeDots();
 
 			initializeAllMaterials();
@@ -932,11 +975,6 @@ public class Simulation extends PeriodicTask {
 	}
 
 	public void constructBoundary() {
-		absorber_width = (int)Math.ceil(0.045*nx);
-		absorbing_coeff = 50*c/(ds*nx);
-		double max_stretch = 10;
-		double coeff = Math.log(max_stretch);
-
 		for (int i = 0; i < nx; i++)
 		{
 			for (int j = 0; j < ny; j++)
@@ -995,7 +1033,8 @@ public class Simulation extends PeriodicTask {
 				}
 			}
 		}
-		
+
+		double coeff = Math.log(boundary_stretch_factor);
 		for (int i = 0; i < nx; i++)
 		{
 			for (int j = 0; j < ny; j++)
@@ -1016,6 +1055,8 @@ public class Simulation extends PeriodicTask {
 		if (materials[i][j].type == MaterialType.ABSORBER && abs_depth[i][j] == 0)
 			abs_depth[i][j] = d;
 	}
+	
+	boolean store_dd = false;
 
 	class SimulationThread extends Thread {
 
@@ -1107,13 +1148,34 @@ public class Simulation extends PeriodicTask {
 									sigma_p = d_p*rho_p_avg*e_charge*beta*(1 + Ey_xgrid[i][j]*Ey_xgrid[i][j]/(Esat_p*Esat_p))*(mr_p*mr_p*mr_p);
 
 									Jx_n[i][j] = mr_n*d_n/ds*(-(rho_n[i+1][j] - rho_n[i][j])*Utils.xtanhxm1(w_n, exp_2wn, approx_n)
-										+ 2*rho_n_avg*w_n) - sigma_n*ex_prev;
+									+ 2*rho_n_avg*w_n) - sigma_n*ex_prev;
 									Jx_p[i][j] = mr_p*d_p/ds*(-(rho_p[i+1][j] - rho_p[i][j])*Utils.xtanhxm1(w_p, exp_2wp, approx_p)
-										+ 2*rho_p_avg*w_p) - sigma_p*ex_prev;
-									
+									+ 2*rho_p_avg*w_p) - sigma_p*ex_prev;
+									if (store_dd) {
+										diff_x_n[i][j] = mr_n*d_n/ds*(-(rho_n[i+1][j] - rho_n[i][j])*Utils.xtanhxm1(w_n, exp_2wn, approx_n));
+										diff_x_p[i][j] = mr_p*d_p/ds*(-(rho_p[i+1][j] - rho_p[i][j])*Utils.xtanhxm1(w_p, exp_2wp, approx_p));
+
+										drift_x_n[i][j] = 2*rho_n_avg*w_n*mr_n*d_n/ds;
+										drift_x_p[i][j] = 2*rho_p_avg*w_p*mr_p*d_p/ds;
+
+										vel_x_n[i][j] = 2*w_n*mr_n*d_n/ds;
+										vel_x_p[i][j] = 2*w_p*mr_p*d_p/ds;
+									}
 								} else {
 									Jx_n[i][j] = 0;
 									Jx_p[i][j] = 0;
+
+									if (store_dd) 
+									{
+										diff_x_n[i][j] = 0;
+										diff_x_p[i][j] = 0;
+
+										drift_x_n[i][j] = 0;
+										drift_x_p[i][j] = 0;
+
+										vel_x_n[i][j] = 0;
+										vel_x_p[i][j] = 0;
+									}
 								}
 
 								Jx_abs[i][j] = 0;
@@ -1174,10 +1236,32 @@ public class Simulation extends PeriodicTask {
 										+ 2*rho_n_avg*w_n) - sigma_n*ey_prev;
 									Jy_p[i][j] = mr_p*d_p/ds*(-(rho_p[i][j+1] - rho_p[i][j])*Utils.xtanhxm1(w_p, exp_2wp, approx_p)
 										+ 2*rho_p_avg*w_p) - sigma_p*ey_prev;
+									
+									if (store_dd) {
+										diff_y_n[i][j] = mr_n*d_n/ds*(-(rho_n[i][j+1] - rho_n[i][j])*Utils.xtanhxm1(w_n, exp_2wn, approx_n));
+										diff_y_p[i][j] = mr_p*d_p/ds*(-(rho_p[i][j+1] - rho_p[i][j])*Utils.xtanhxm1(w_p, exp_2wp, approx_p));
+										
+										drift_y_n[i][j] = 2*rho_n_avg*w_n*mr_n*d_n/ds;
+										drift_y_p[i][j] = 2*rho_p_avg*w_p*mr_p*d_p/ds;
+
+										vel_y_n[i][j] = 2*w_n*mr_n*d_n/ds;
+										vel_y_p[i][j] = 2*w_p*mr_p*d_p/ds;
+									}
 
 								} else {
 									Jy_n[i][j] = 0;
 									Jy_p[i][j] = 0;
+									
+									if (store_dd) {
+										diff_y_n[i][j] = 0;
+										diff_y_p[i][j] = 0;
+										
+										drift_y_n[i][j] = 0;
+										drift_y_p[i][j] = 0;
+										
+										vel_y_n[i][j] = 0;
+										vel_y_p[i][j] = 0;
+									}
 								}
 
 								Jy_abs[i][j] = 0;
@@ -1311,7 +1395,7 @@ public class Simulation extends PeriodicTask {
 					double sigma_n = D_n[i][j]*beta*e_charge*(-rho_n[i][j]);
 					double sigma_p = D_p[i][j]*beta*e_charge*rho_p[i][j];
 
-					V_avg[i][j] = (sigma_n*mu_n[i][j]/q_n + mu_p[i][j]/q_p)
+					V_avg[i][j] = (sigma_n*mu_n[i][j]/q_n + sigma_p*mu_p[i][j]/q_p)
 							/(sigma_n + sigma_p) - global_voltage_offset;
 				}
 
@@ -1325,15 +1409,9 @@ public class Simulation extends PeriodicTask {
 					
 					G[i][j] = rate_const*ni*ni + L[i][j];
 					R[i][j] = rate_const*n*p;
-					
-					if (view_scalar == ScalarView.LIGHT)
-						display[i][j] = semiconducting[i][j]*n*p*k_rad[i][j]; // Radiative recombination only
 				} else {
 					G[i][j] = 0;
 					R[i][j] = 0;
-
-					if (view_scalar == ScalarView.LIGHT)
-						display[i][j] = 0;
 				}
 
 				if (rho_n[i][j] > error_detection_threshold || rho_p[i][j] < -error_detection_threshold) {
@@ -1359,9 +1437,7 @@ public class Simulation extends PeriodicTask {
 			{
 				Jx_free[i][j] = Jx_n[i][j] + Jx_p[i][j];
 				Dx[i][j] = epsx[i][j]*Ex[i][j];
-				
-				if (view_vector == VectorView.POYNTING)
-					display_x[i][j] = -Ex[i][j]*0.5*(Hz[i][j] + Hz[i][j-1]);
+				Sx[i][j] = -Ex[i][j]*0.5*(Hz[i][j] + Hz[i][j-1]);
 			}
 		}
 
@@ -1371,22 +1447,15 @@ public class Simulation extends PeriodicTask {
 			{
 				Jy_free[i][j] = Jy_n[i][j] + Jy_p[i][j];
 				Dy[i][j] = epsy[i][j]*Ey[i][j];
-				
-				if (view_vector == VectorView.POYNTING)
-					display_y[i][j] = Ey[i][j]*0.5*(Hz[i][j] + Hz[i-1][j]);
+				Sy[i][j] = Ey[i][j]*0.5*(Hz[i][j] + Hz[i-1][j]);
 			}
 		}
 
-		for (int i = 1; i < nx-2; i++)
+		for (int i = 0; i < nx-1; i++)
 		{
-			for (int j = 1; j < ny-2; j++)
+			for (int j = 0; j < ny-1; j++)
 			{
 				Bz[i][j] = Hz[i][j]*mu_z[i][j];
-
-				if (view_scalar == ScalarView.ENERGY)
-					display[i][j] = 0.25*(Ex[i][j]*Dx[i][j] + Ex[i][j+1]*Dx[i][j+1])
-						+ 0.25*(Ey[i][j]*Dy[i][j] + Ey[i+1][j]*Dy[i+1][j])
-						+ 0.5*Hz[i][j]*Bz[i][j];
 				
 				if (!Double.isFinite(Hz[i][j]))
 					numerical_overflow = true;
@@ -1398,8 +1467,8 @@ public class Simulation extends PeriodicTask {
 			{
 				for (int j = 1; j < ny-1; j++)
 				{
-					gradE0_x_n[i][j] = conducting_x[i][j] == 1? -conducting_x[i][j]*(E0_n[i+1][j] - E0_n[i][j])/ds : 0;
-					gradE0_x_p[i][j] = conducting_x[i][j] == 1? -conducting_x[i][j]*(E0_p[i+1][j] - E0_p[i][j])/ds : 0;
+					grad_x_n[i][j] = conducting_x[i][j] == 1? -conducting_x[i][j]*(E0_n[i+1][j] - E0_n[i][j])/ds : 0;
+					grad_x_p[i][j] = conducting_x[i][j] == 1? -conducting_x[i][j]*(E0_p[i+1][j] - E0_p[i][j])/ds : 0;
 				}
 			}
 
@@ -1407,8 +1476,8 @@ public class Simulation extends PeriodicTask {
 			{
 				for (int j = 0; j < ny-1; j++)
 				{
-					gradE0_y_n[i][j] = conducting_x[i][j] == 1? -conducting_y[i][j]*(E0_n[i][j+1] - E0_n[i][j])/ds : 0;
-					gradE0_y_p[i][j] = conducting_x[i][j] == 1? -conducting_y[i][j]*(E0_p[i][j+1] - E0_p[i][j])/ds : 0;
+					grad_y_n[i][j] = conducting_x[i][j] == 1? -conducting_y[i][j]*(E0_n[i][j+1] - E0_n[i][j])/ds : 0;
+					grad_y_p[i][j] = conducting_x[i][j] == 1? -conducting_y[i][j]*(E0_p[i][j+1] - E0_p[i][j])/ds : 0;
 				}
 			}
 
@@ -1417,16 +1486,16 @@ public class Simulation extends PeriodicTask {
 				for (int j = 1; j < ny-1; j++)
 				{
 					double n_contrib = -(G[i][j]-R[i][j])*E0_n[i][j];
-					double jn_contrib = 0.5*(gradE0_x_n[i-1][j]*Jx_n[i-1][j]+gradE0_x_n[i][j]*Jx_n[i][j]
-							+gradE0_y_n[i][j-1]*Jy_n[i][j-1]+gradE0_y_n[i][j]*Jy_n[i][j])/q_n;
+					double jn_contrib = 0.5*(grad_x_n[i-1][j]*Jx_n[i-1][j]+grad_x_n[i][j]*Jx_n[i][j]
+							+grad_y_n[i][j-1]*Jy_n[i][j-1]+grad_y_n[i][j]*Jy_n[i][j])/q_n;
 
 					double p_contrib = -(G[i][j]-R[i][j])*E0_p[i][j];
-					double jp_contrib = 0.5*(gradE0_x_p[i-1][j]*Jx_p[i-1][j]+gradE0_x_p[i][j]*Jx_p[i][j]
-							+gradE0_y_p[i][j-1]*Jy_p[i][j-1]+gradE0_y_p[i][j]*Jy_p[i][j])/q_p;
+					double jp_contrib = 0.5*(grad_x_p[i-1][j]*Jx_p[i-1][j]+grad_x_p[i][j]*Jx_p[i][j]
+							+grad_y_p[i][j-1]*Jy_p[i][j-1]+grad_y_p[i][j]*Jy_p[i][j])/q_p;
 
 					double ohm_contrib = 0.5*(Ex[i-1][j]*Jx_free[i-1][j]+Ex[i][j]*Jx_free[i][j]+Ey[i][j-1]*Jy_free[i][j-1]+Ey[i][j]*Jy_free[i][j]);
 
-					display[i][j] = n_contrib + jn_contrib + p_contrib + jp_contrib + ohm_contrib;
+					heat[i][j] = n_contrib + jn_contrib + p_contrib + jp_contrib + ohm_contrib;
 				}
 			}
 		}
@@ -1436,8 +1505,8 @@ public class Simulation extends PeriodicTask {
 			{
 				for (int j = 1; j < ny-1; j++)
 				{
-					gradmu_x_n[i][j] = conducting_x[i][j] == 1? -(mu_n[i+1][j] - mu_n[i][j] - phi[i+1][j]/q_n + phi[i][j]/q_n)/ds : 0;
-					gradmu_x_p[i][j] = conducting_x[i][j] == 1? -(mu_p[i+1][j] - mu_p[i][j] - phi[i+1][j]/q_p + phi[i][j]/q_p)/ds : 0;
+					grad_x_n[i][j] = conducting_x[i][j] == 1? -(mu_n[i+1][j] - mu_n[i][j] - phi[i+1][j]*q_n + phi[i][j]*q_n)/ds : 0;
+					grad_x_p[i][j] = conducting_x[i][j] == 1? -(mu_p[i+1][j] - mu_p[i][j] - phi[i+1][j]*q_p + phi[i][j]*q_p)/ds : 0;
 				}
 			}
 
@@ -1445,8 +1514,8 @@ public class Simulation extends PeriodicTask {
 			{
 				for (int j = 0; j < ny-1; j++)
 				{
-					gradmu_y_n[i][j] = conducting_y[i][j] == 1? -(mu_n[i][j+1] - mu_n[i][j] - phi[i][j+1]/q_n + phi[i][j]/q_n)/ds : 0;
-					gradmu_y_p[i][j] = conducting_y[i][j] == 1? -(mu_p[i][j+1] - mu_p[i][j] - phi[i][j+1]/q_p + phi[i][j]/q_p)/ds : 0;
+					grad_y_n[i][j] = conducting_y[i][j] == 1? -(mu_n[i][j+1] - mu_n[i][j] - phi[i][j+1]*q_n + phi[i][j]*q_n)/ds : 0;
+					grad_y_p[i][j] = conducting_y[i][j] == 1? -(mu_p[i][j+1] - mu_p[i][j] - phi[i][j+1]*q_p + phi[i][j]*q_p)/ds : 0;
 				}
 			}
 
@@ -1455,18 +1524,26 @@ public class Simulation extends PeriodicTask {
 				for (int j = 1; j < ny-1; j++)
 				{
 					double n_contrib = -(G[i][j]-R[i][j])*mu_n[i][j];
-					double jn_contrib = 0.5*(gradmu_x_n[i-1][j]*Jx_n[i-1][j]+gradmu_x_n[i][j]*Jx_n[i][j]
-							+gradmu_y_n[i][j-1]*Jy_n[i][j-1]+gradmu_y_n[i][j]*Jy_n[i][j])/q_n;
+					double jn_contrib = 0.5*(grad_x_n[i-1][j]*Jx_n[i-1][j]+grad_x_n[i][j]*Jx_n[i][j]
+							+grad_y_n[i][j-1]*Jy_n[i][j-1]+grad_y_n[i][j]*Jy_n[i][j])/q_n;
 
 					double p_contrib = -(G[i][j]-R[i][j])*mu_p[i][j];
-					double jp_contrib = 0.5*(gradmu_x_p[i-1][j]*Jx_p[i-1][j]+gradmu_x_p[i][j]*Jx_p[i][j]
-							+gradmu_y_p[i][j-1]*Jy_p[i][j-1]+gradmu_y_p[i][j]*Jy_p[i][j])/q_p;
+					double jp_contrib = 0.5*(grad_x_p[i-1][j]*Jx_p[i-1][j]+grad_x_p[i][j]*Jx_p[i][j]
+							+grad_y_p[i][j-1]*Jy_p[i][j-1]+grad_y_p[i][j]*Jy_p[i][j])/q_p;
 
 					double ohm_contrib = 0.5*(Ex[i-1][j]*Jx_free[i-1][j]+Ex[i][j]*Jx_free[i][j]+Ey[i][j-1]*Jy_free[i][j-1]+Ey[i][j]*Jy_free[i][j]);
 
-					display[i][j] = (n_contrib + jn_contrib + p_contrib + jp_contrib + ohm_contrib)/T;
+					entropy[i][j] = (n_contrib + jn_contrib + p_contrib + jp_contrib + ohm_contrib)/T;
 				}
 			}
+		}
+		
+		if (view_scalar == ScalarView.ELECTRON_VEL || view_scalar == ScalarView.HOLE_VEL
+			|| view_vector == VectorView.ELECTRON_DIFFUSION || view_vector == VectorView.ELECTRON_DRIFT || view_vector == VectorView.ELECTRON_VELOCITY
+			|| view_vector == VectorView.HOLE_DIFFUSION || view_vector == VectorView.HOLE_DRIFT || view_vector == VectorView.HOLE_VELOCITY
+			|| (opts.gui_carriers.isSelected() && opts.menu_carrier_diffusion.isSelected()))
+		{
+			this.calculateDriftDiffusion();
 		}
 
 		for (Probe p: probes) {
@@ -1483,6 +1560,370 @@ public class Simulation extends PeriodicTask {
 		t8.stop();
 	}
 	
+	public void computeScalarField(double[][] scalarfield, int i1, int j1, ScalarView scalarview) {
+		int sx = scalarfield.length;
+		int sy = scalarfield[0].length;
+		
+		switch (scalarview) {
+		case NONE:
+			break;
+		case B_FIELD:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					if (i + i1 > 0 && j + j1 > 0 && i + i1 < nx-1 && j + j1 < ny-1)
+						scalarfield[i][j] = parity*0.25*(Bz[i+i1][j+j1]+Bz[i+i1-1][j+j1]+Bz[i+i1][j+j1-1]+Bz[i+i1-1][j+j1-1]);
+				}
+			}
+			break;
+		case E_FIELD:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					if (i + i1 > 0 && j + j1 > 0 && i + i1 < nx-1 && j + j1 < ny-1)
+						scalarfield[i][j] = Utils.length(0.5*(Ex[i+i1][j+j1]+Ex[i+i1-1][j+j1]), 0.5*(Ey[i+i1][j+j1]+Ey[i+i1][j+j1-1]));
+				}
+			}
+			break;
+		case H_FIELD:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					if (i + i1 > 0 && j + j1 > 0 && i + i1 < nx-1 && j + j1 < ny-1)
+						scalarfield[i][j] = parity*0.25*(Hz[i+i1][j+j1]+Hz[i+i1-1][j+j1]+Hz[i+i1][j+j1-1]+Hz[i+i1-1][j+j1-1]);
+				}
+			}
+			break;
+		case CURRENT:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					if (i + i1 > 0 && j + j1 > 0 && i + i1 < nx-1 && j + j1 < ny-1)
+						scalarfield[i][j] = Utils.length(0.5*(Jx_free[i+i1][j+j1]+Jx_free[i+i1-1][j+j1]), 0.5*(Jy_free[i+i1][j+j1]+Jy_free[i+i1][j+j1-1]));
+				}
+			}
+			break;
+		case POTENTIAL:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = phi[i+i1][j+j1];
+				}
+			}
+			break;
+		case CHARGE:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = rho_free[i+i1][j+j1];
+				}
+			}
+			break;
+		case BACKGROUND_CHARGE:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = rho_back[i+i1][j+j1];
+				}
+			}
+			break;
+		case ELECTRON_CHARGE:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = rho_n[i+i1][j+j1];
+				}
+			}
+			break;
+		case HOLE_CHARGE:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = rho_p[i+i1][j+j1];
+				}
+			}
+			break;
+		case COMBINED_CHARGE:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = Double.NaN;
+				}
+			}
+			break;
+		case HEAT:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = heat[i+i1][j+j1];
+				}
+			}
+			break;
+		case ELECTRON_POTENTIAL:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = mu_n[i+i1][j+j1]/eVtoJ;
+				}
+			}
+			break;
+		case HOLE_POTENTIAL:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = -mu_p[i+i1][j+j1]/eVtoJ;
+				}
+			}
+			break;
+		case DEBUG:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = debug[i+i1][j+j1];
+				}
+			}
+			break;
+		case GENERATION:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = G[i+i1][j+j1];
+				}
+			}
+			break;
+		case RECOMBINATION:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = R[i+i1][j+j1];
+				}
+			}
+			break;
+		case AVERAGE_POTENTIAL:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = V_avg[i+i1][j+j1]; // -offset
+				}
+			}
+			break;
+		case ELECTRON_DENSITY:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = rho_n[i+i1][j+j1]/q_n;
+				}
+			}
+			break;
+		case ELECTRON_VEL:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					if (i + i1 > 0 && j + j1 > 0 && i + i1 < nx-1 && j + j1 < ny-1)
+						scalarfield[i][j] = Utils.length(0.5*(vel_x_n[i+i1][j+j1]+vel_x_n[i+i1-1][j+j1]), 0.5*(vel_y_n[i+i1][j+j1]+vel_y_n[i+i1][j+j1-1]));
+				}
+			}
+			break;
+		case ELECTRON_VOLTAGE:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = -mu_n[i+i1][j+j1]/eVtoJ;
+				}
+			}
+			break;
+		case ENERGY:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					if (i + i1 > 0 && j + j1 > 0 && i + i1 < nx-1 && j + j1 < ny-1) {
+						double E_energy = 0.25*(Ex[i+i1][j+j1]*Ex[i+i1][j+j1]*epsx[i+i1][j+j1] + Ex[i+i1-1][j+j1]*Ex[i+i1-1][j+j1]*epsx[i+i1-1][j+j1]
+								+ Ey[i+i1][j+j1]*Ey[i+i1][j+j1]*epsy[i+i1][j+j1] + Ey[i+i1][j+j1-1]*Ey[i+i1][j+j1-1]*epsy[i+i1][j+j1-1]);
+						double B_energy = 0.25*(Hz[i+i1][j+j1]*Hz[i+i1][j+j1]*mu_z[i+i1][j+j1] + Hz[i+i1-1][j+j1]*Hz[i+i1-1][j+j1]*mu_z[i+i1-1][j+j1]
+								+ Hz[i+i1][j+j1-1]*Hz[i+i1][j+j1-1]*mu_z[i+i1][j+j1-1] + Hz[i+i1-1][j+j1-1]*Hz[i+i1-1][j+j1-1]*mu_z[i+i1-1][j+j1-1]);
+						scalarfield[i][j] = E_energy + B_energy;
+					}
+				}
+			}
+			break;
+		case ENTROPY:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = entropy[i+i1][j+j1];
+				}
+			}
+			break;
+		case HOLE_DENSITY:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = rho_p[i+i1][j+j1]/q_p;
+				}
+			}
+			break;
+		case HOLE_VEL:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					if (i + i1 > 0 && j + j1 > 0 && i + i1 < nx-1 && j + j1 < ny-1)
+						scalarfield[i][j] = Utils.length(0.5*(vel_x_p[i+i1][j+j1]+vel_x_p[i+i1-1][j+j1]), 0.5*(vel_y_p[i+i1][j+j1]+vel_y_p[i+i1][j+j1-1]));
+				}
+			}
+			break;
+		case HOLE_VOLTAGE:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					scalarfield[i][j] = mu_p[i+i1][j+j1]/eVtoJ;
+				}
+			}
+			break;
+		case LIGHT:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					double n = rho_n[i+i1][j+j1]/q_n;
+					double p = rho_p[i+i1][j+j1]/q_p;
+					scalarfield[i][j] = semiconducting[i+i1][j+j1]*k_rad[i+i1][j+j1]*n*p;
+				}
+			}
+			break;
+		case RECOMB_AUGER:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					double n = rho_n[i+i1][j+j1]/q_n;
+					double p = rho_p[i+i1][j+j1]/q_p;
+					scalarfield[i][j] = (k_aug_n[i+i1][j+j1]*n+k_aug_p[i+i1][j+j1]*p)*n*p;
+				}
+			}
+			break;
+		case RECOMB_RAD:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					double n = rho_n[i+i1][j+j1]/q_n;
+					double p = rho_p[i+i1][j+j1]/q_p;
+					scalarfield[i][j] = k_rad[i+i1][j+j1]*n*p;
+				}
+			}
+			break;
+		case RECOMB_SRH:
+			for (int i = 0; i < sx; i++) {
+				for (int j = 0; j < sy; j++) {
+					double n = rho_n[i+i1][j+j1]/q_n;
+					double p = rho_p[i+i1][j+j1]/q_p;
+					double ni = n_i[i+i1][j+j1];
+					double rate_const = (k_SRH_n[i+i1][j+j1]*k_SRH_p[i+i1][j+j1])/(k_SRH_n[i+i1][j+j1]*(n+ni) + k_SRH_p[i+i1][j+j1]*(p+ni) + Double.MIN_VALUE);
+					scalarfield[i][j] = rate_const*n*p;
+				}
+			}
+			break;
+		default:
+			break;
+		}
+	}
+	
+	boolean dd_option = true;
+
+	public void calculateDriftDiffusion() {
+		for (int i = 1; i < nx-1; i++)
+		{
+			for (int j = 1; j < ny-1; j++)
+			{
+				if (conducting[i][j] == 1) {
+					double E2 = 0.25*(Ex[i][j]+Ex[i][j+1])*(Ex[i][j]+Ex[i][j+1]) + 0.25*(Ey[i][j]+Ey[i+1][j])*(Ey[i][j]+Ey[i+1][j]);
+					double Esat_n = v_sat_n[i][j]/(D_n[i][j]*e_charge*beta);
+					double Esat_p = v_sat_p[i][j]/(D_p[i][j]*e_charge*beta);
+					sqrt_D_eff_n[i][j] = Math.sqrt(D_n[i][j]/Math.sqrt(E2/(Esat_n*Esat_n) + 1));
+					sqrt_D_eff_p[i][j] = Math.sqrt(D_p[i][j]/Math.sqrt(E2/(Esat_p*Esat_p) + 1));
+				} else {
+					sqrt_D_eff_n[i][j] = 0;
+					sqrt_D_eff_p[i][j] = 0;
+				}
+			}
+		}
+
+		if (dd_option) return;
+		for (int i = 0; i < nx-1; i++)
+		{
+			for (int j = 1; j < ny-1; j++)
+			{
+				if (conducting_x[i][j] == 1) {
+					double ex = Ex[i][j];
+
+					double d_n = 0.5*(D_n[i+1][j] + D_n[i][j]);
+					double d_p = 0.5*(D_p[i+1][j] + D_p[i][j]);
+
+					double rho_n_avg = 0.5*(rho_n[i+1][j] + rho_n[i][j]);
+					double rho_p_avg = 0.5*(rho_p[i+1][j] + rho_p[i][j]);
+
+					double Esat_n = 0.5*(v_sat_n[i+1][j] + v_sat_n[i][j])/(d_n*e_charge*beta);
+					double Esat_p = 0.5*(v_sat_p[i+1][j] + v_sat_p[i][j])/(d_p*e_charge*beta);
+
+					double mr_n = 1/Math.sqrt((ex*ex + Ey_xgrid[i][j]*Ey_xgrid[i][j])/(Esat_n*Esat_n) + 1);
+					double mr_p = 1/Math.sqrt((ex*ex + Ey_xgrid[i][j]*Ey_xgrid[i][j])/(Esat_p*Esat_p) + 1);
+
+					double emf_phase = ac_x[i][j]*AC_amplitude+(1-ac_x[i][j]);
+
+					double w_n = (emf_phase*emfx[i][j]*q_n + cmfx_n[i][j] + ex*q_n)*beta*ds/2;
+					double w_p = (emf_phase*emfx[i][j]*q_p + cmfx_p[i][j] + ex*q_p)*beta*ds/2;
+
+					boolean approx_n = Math.abs(w_n) < 0.2;
+					boolean approx_p = Math.abs(w_p) < 0.2;
+
+					double exp_2wn = approx_n? 1 : FastExp.exp(2*w_n);
+					double exp_2wp = approx_p? 1 : FastExp.exp(2*w_p);
+					
+					diff_x_n[i][j] = mr_n*d_n/ds*(-(rho_n[i+1][j] - rho_n[i][j])*Utils.xtanhxm1(w_n, exp_2wn, approx_n));
+					diff_x_p[i][j] = mr_p*d_p/ds*(-(rho_p[i+1][j] - rho_p[i][j])*Utils.xtanhxm1(w_p, exp_2wp, approx_p));
+
+					drift_x_n[i][j] = 2*rho_n_avg*w_n*mr_n*d_n/ds;
+					drift_x_p[i][j] = 2*rho_p_avg*w_p*mr_p*d_p/ds;
+					
+					vel_x_n[i][j] = 2*w_n*mr_n*d_n/ds;
+					vel_x_p[i][j] = 2*w_p*mr_p*d_p/ds;
+
+				} else {
+					diff_x_n[i][j] = 0;
+					diff_x_p[i][j] = 0;
+					
+					drift_x_n[i][j] = 0;
+					drift_x_p[i][j] = 0;
+					
+					vel_x_n[i][j] = 0;
+					vel_x_p[i][j] = 0;
+				}
+			}
+		}
+
+		for (int i = 1; i < nx-1; i++)
+		{
+			for (int j = 0; j < ny-1; j++)
+			{
+				if (conducting_y[i][j] == 1) {
+					double ey = Ey[i][j];
+
+					double d_n = 0.5*(D_n[i][j+1] + D_n[i][j]);
+					double d_p = 0.5*(D_p[i][j+1] + D_p[i][j]);
+
+					double rho_n_avg = 0.5*(rho_n[i][j+1] + rho_n[i][j]);
+					double rho_p_avg = 0.5*(rho_p[i][j+1] + rho_p[i][j]);
+
+					double Esat_n = 0.5*(v_sat_n[i][j+1] + v_sat_n[i][j])/(d_n*e_charge*beta);
+					double Esat_p = 0.5*(v_sat_p[i][j+1] + v_sat_p[i][j])/(d_p*e_charge*beta);
+
+					double mr_n = 1/Math.sqrt((ey*ey + Ex_ygrid[i][j]*Ex_ygrid[i][j])/(Esat_n*Esat_n)+1);
+					double mr_p = 1/Math.sqrt((ey*ey + Ex_ygrid[i][j]*Ex_ygrid[i][j])/(Esat_p*Esat_p)+1);
+
+					double emf_phase = ac_y[i][j]*AC_amplitude+(1-ac_y[i][j]);
+
+					double w_n = (emf_phase*emfy[i][j]*q_n + cmfy_n[i][j] + ey*q_n)*beta*ds/2;
+					double w_p = (emf_phase*emfy[i][j]*q_p + cmfy_p[i][j] + ey*q_p)*beta*ds/2;
+
+					boolean approx_n = Math.abs(w_n) < 0.2;
+					boolean approx_p = Math.abs(w_p) < 0.2;
+
+					double exp_2wn = approx_n? 1 : FastExp.exp(2*w_n);
+					double exp_2wp = approx_p? 1 : FastExp.exp(2*w_p);
+
+					diff_y_n[i][j] = mr_n*d_n/ds*(-(rho_n[i][j+1] - rho_n[i][j])*Utils.xtanhxm1(w_n, exp_2wn, approx_n));
+					diff_y_p[i][j] = mr_p*d_p/ds*(-(rho_p[i][j+1] - rho_p[i][j])*Utils.xtanhxm1(w_p, exp_2wp, approx_p));
+					
+					drift_y_n[i][j] = 2*rho_n_avg*w_n*mr_n*d_n/ds;
+					drift_y_p[i][j] = 2*rho_p_avg*w_p*mr_p*d_p/ds;
+
+					vel_y_n[i][j] = 2*w_n*mr_n*d_n/ds;
+					vel_y_p[i][j] = 2*w_p*mr_p*d_p/ds;
+
+				} else {
+					diff_y_n[i][j] = 0;
+					diff_y_p[i][j] = 0;
+					
+					drift_y_n[i][j] = 0;
+					drift_y_p[i][j] = 0;
+					
+					vel_y_n[i][j] = 0;
+					vel_y_p[i][j] = 0;
+				}
+			}
+		}
+		
+	}
+
 	public void computeChemicalForces()
 	{
 
@@ -2275,9 +2716,9 @@ public class Simulation extends PeriodicTask {
 		str += ("J\t"  						+	units.toString(Utils.bilinearinterp_length(Jx_free, Jy_free, mx, my, nx, ny), Quantity.CURRENT_DENSITY) + "\n");
 		str += "\nThermodynamic quantities\n";
 		str += ("\u03d5\t"  				+	units.toString(phi[mx][my], Quantity.ELECTRIC_POTENTIAL) + "\n");
-		str += ("F\u2099\t"  				+	units.toString(mu_n[mx][my]/q_n - global_voltage_offset, Quantity.ELECTRIC_POTENTIAL) + "\n");
-		str += ("F\u209a\t"  				+	units.toString(mu_p[mx][my]/q_p - global_voltage_offset, Quantity.ELECTRIC_POTENTIAL) + "\n");
-		str += ("F\t"  						+	units.toString(V_avg[mx][my], Quantity.ELECTRIC_POTENTIAL) + "\n");
+		str += ("F\u2099\t"  				+	units.toString(mu_n[mx][my]/eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "\n");
+		str += ("F\u209a\t"  				+	units.toString(-mu_p[mx][my]/eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "\n");
+		str += ("V\t"  						+	units.toString(V_avg[mx][my], Quantity.ELECTRIC_POTENTIAL) + "\n");
 		str += ("G\t"  						+	units.toString(G[mx][my], Quantity.RATE_DENSITY) + "\n");
 		str += ("R\t"  						+	units.toString(R[mx][my], Quantity.RATE_DENSITY) + "\n");
 		str += ("Electron CMF\t"  			+	units.toString(Utils.bilinearinterp_length(cmfy_n, cmfy_n, mx, my, nx, ny), Quantity.FORCE) + "\n");

@@ -47,6 +47,13 @@
 				</includes>
 			</resource>
 			<resource>
+				<directory>${basedir}/materials</directory>
+				<targetPath>${project.build.directory}/materials</targetPath>
+				<includes>
+					<include>**/*.material</include>
+				</includes>
+			</resource>
+			<resource>
 				<directory>${basedir}/images</directory>
 				<targetPath>${project.build.directory}/images</targetPath>
 				<includes>

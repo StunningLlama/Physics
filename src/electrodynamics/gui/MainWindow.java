@@ -60,6 +60,7 @@ import electrodynamics.Simulation;
 import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.util.CustJRadioButtonMenuItem;
 import electrodynamics.util.MenuBuilder;
+import electrodynamics.util.MenuCheckList;
 
 public class MainWindow extends JFrame implements ComponentListener {
 
@@ -692,10 +693,52 @@ public class MainWindow extends JFrame implements ComponentListener {
 		e.controls.brushes.initialize(Controls.Brush.values(), menu_tools, e.controls, Controls.Brush.INTERACT, new Controls.Brush[] {Controls.Brush.DRAW, Controls.Brush.VOLTAGE, Controls.Brush.BANDS}, () -> new JRadioButtonMenuItem());
 
 		e.controls.scalarview.initialize(ScalarView.values(), menu_view, e.controls, ScalarView.CHARGE, null, () -> new CustJRadioButtonMenuItem());
+		
+		
+		
+		MenuCheckList<ScalarView, ?> c = e.controls.scalarview;
+
+        JMenu thermo = new JMenu("Thermodynamics");
+        c.menu.add(thermo);
+        JMenu carrier = new JMenu("Carrier dynamics");
+        c.menu.add(carrier);
+        JMenu recomb = new JMenu("Recombination");
+        c.menu.add(recomb);
+		c.removeOption(ScalarView.ELECTRON_POTENTIAL); thermo.add(c.getButton(ScalarView.ELECTRON_POTENTIAL));
+		c.removeOption(ScalarView.HOLE_POTENTIAL); thermo.add(c.getButton(ScalarView.HOLE_POTENTIAL));
+		c.removeOption(ScalarView.ELECTRON_VOLTAGE); thermo.add(c.getButton(ScalarView.ELECTRON_VOLTAGE));
+		c.removeOption(ScalarView.HOLE_VOLTAGE); thermo.add(c.getButton(ScalarView.HOLE_VOLTAGE));
+		c.removeOption(ScalarView.HEAT); thermo.add(c.getButton(ScalarView.HEAT));
+		c.removeOption(ScalarView.ENTROPY); thermo.add(c.getButton(ScalarView.ENTROPY));
+
+		c.removeOption(ScalarView.ELECTRON_DENSITY); carrier.add(c.getButton(ScalarView.ELECTRON_DENSITY));
+		c.removeOption(ScalarView.HOLE_DENSITY); carrier.add(c.getButton(ScalarView.HOLE_DENSITY));
+		c.removeOption(ScalarView.ELECTRON_VEL); carrier.add(c.getButton(ScalarView.ELECTRON_VEL));
+		c.removeOption(ScalarView.HOLE_VEL); carrier.add(c.getButton(ScalarView.HOLE_VEL));
+
+		c.removeOption(ScalarView.RECOMB_RAD); recomb.add(c.getButton(ScalarView.RECOMB_RAD));
+		c.removeOption(ScalarView.RECOMB_SRH); recomb.add(c.getButton(ScalarView.RECOMB_SRH));
+		c.removeOption(ScalarView.RECOMB_AUGER); recomb.add(c.getButton(ScalarView.RECOMB_AUGER));
+		c.removeOption(ScalarView.LIGHT); recomb.add(c.getButton(ScalarView.LIGHT));
+		//menu_view.remove();
+		
 		menu_view.add(new JSeparator());
 		e.controls.scalarmode.initialize(ScalarMode.values(), menu_view, e.controls, ScalarMode.COLORS, null, () -> new CustJRadioButtonMenuItem());
 		menu_view.add(new JSeparator());
 		e.controls.vectorview.initialize(VectorView.values(), menu_view, e.controls, VectorView.E_FIELD, null, () -> new CustJRadioButtonMenuItem());
+		
+
+		MenuCheckList<VectorView, ?> v = e.controls.vectorview;
+        JMenu dd = new JMenu("Diffusion and drift");
+        v.menu.add(dd);
+
+		v.removeOption(VectorView.ELECTRON_DIFFUSION); dd.add(v.getButton(VectorView.ELECTRON_DIFFUSION));
+		v.removeOption(VectorView.ELECTRON_DRIFT); dd.add(v.getButton(VectorView.ELECTRON_DRIFT));
+		v.removeOption(VectorView.ELECTRON_VELOCITY); dd.add(v.getButton(VectorView.ELECTRON_VELOCITY));
+		v.removeOption(VectorView.HOLE_DIFFUSION); dd.add(v.getButton(VectorView.HOLE_DIFFUSION));
+		v.removeOption(VectorView.HOLE_DRIFT); dd.add(v.getButton(VectorView.HOLE_DRIFT));
+		v.removeOption(VectorView.HOLE_VELOCITY); dd.add(v.getButton(VectorView.HOLE_VELOCITY));
+		
 		menu_view.add(new JSeparator());
 		e.controls.vectormode.initialize(VectorMode.values(), menu_view, e.controls, VectorMode.ARROWS, null, () -> new CustJRadioButtonMenuItem());
 

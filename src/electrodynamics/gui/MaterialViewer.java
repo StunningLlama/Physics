@@ -142,6 +142,7 @@ public class MaterialViewer extends JFrame implements ActionListener, ListSelect
 			str += "Electron affinity: <b>" + e.units.toString(-mat.Ec/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "</b><br>";
 			str += "Conduction band energy: <b>" + e.units.toString(mat.Ec/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "</b><br>";
 			str += "Valence band energy: <b>" + e.units.toString(mat.Ev/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "</b><br>";
+			str += "Band gap: <b>" + e.units.toString((mat.Ec - mat.Ev)/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "</b><br>";
 			str += "Workfunction: <b>" + e.units.toString(mat.calcPhi(e.k*e.T)/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "</b><br>";
 			str += "Effective conduction band DOS: <b>" + e.units.toString(mat.gc, Quantity.NUMBER_DENSITY) + "</b><br>";
 			str += "Effective valence band DOS: <b>" + e.units.toString(mat.gv, Quantity.NUMBER_DENSITY) + "</b><br>";

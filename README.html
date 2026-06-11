@@ -183,7 +183,7 @@ This results in a simulation that demonstrates many of the important properties 
 <li>Heterojunctions</li>
 <li>Simulation of common semiconductor devices, eg. BJTs, MOSFETs, JFETs, diodes, etc.
 </ul>
-Since version 2.0, the simulation supports the following:
+Since version 2.0, the simulation also supports the following:
 <ul>
 <li>Velocity saturation</li>
 <li>Radiative, trap-assisted, and auger recombination</li>
@@ -281,6 +281,7 @@ The brightness and density of lines indicates the magnitude of the field. <figur
     <tr><td>Plot scalar field</td><td>Click and drag to make a plot of the currently selected scalar field.</td></tr>
     <tr><td>Plot carriers</td><td>Click an drag to make a logarithmic plot of the number density of electrons and holes.</td></tr>
     <tr><td>Plot probe data</td><td>Selecting this will create a plot of probe measurements over time, similar to an oscilloscope.</td></tr>
+    <tr><td>Ruler</td><td>Measures euclidean length.</td></tr>
 </table>
 
 <h2>Keyboard/Mouse Controls</h2>
@@ -307,7 +308,7 @@ This table includes keyboard commands that are not explicitly stated.
     <tr><td>Ctrl-G</td><td>Flip the clipboard vertically</td></tr>
 </table>
 
-<h2>Materials</h2>
+<h2>Default materials</h2>
 <table>
     <tr><td>Voltage source</td><td>Generates a voltage that can be used to power circuits.</td></tr>
     <tr><td>AC voltage source</td><td>Voltage source that oscillates sinusoidally at a fixed frequency.</td></tr>
@@ -338,12 +339,45 @@ This table includes keyboard commands that are not explicitly stated.
 
 <h1>Advanced topics</h1>
 <h2>Numerical stability</h2>
-In 
+Because the simulation is based on the finite difference method, care must be taken to ensure the simulation remains numerically stable. SemiSim automatically limits the maximum time step to maintain stability, but the user may adjust the simulation settings for optimal speed. In the simulation, let the width of a single pixel be \(\Delta s\), equal to the total width divided by the resolution. The simulation moves forward in time in discrete intervals \(\Delta t\). The following three conditions are required for stability:
+$$\begin{aligned}
+\sqrt{2} c \frac{\Delta t}{\Delta s} < 1 \qquad&\text{(Wave equation)}\\
+4D \frac{\Delta t}{\Delta s^2} < 1  \qquad&\text{(Diffusion equation)}\\
+\frac{\sigma}{4\epsilon} \Delta t \lesssim 1  \qquad&\text{(Charge relaxation)}
+\end{aligned}
+$$
+Here \(c\) is the speed of light in a medium, \(D\) is the diffusion constant, \(\sigma\) the electrical conductivity, and \(\epsilon\) the absolute permittivity. The conditions must be satisfied for every material in the simulation and the diffusion inequality must hold for both electrons and holes. The timestep \(\Delta t\) is adjusted to satisfy all of these conditions. In practice, electrons usually have larger diffusion constants so we are free to ignore the holes. The charge relaxation inequality only matters for the most conductive material, which is conductive metal.
+<p>To optimize the time step, first open debug mode by pressing "D" and then scroll down through the text box on the right. At the bottom, it will display the ratios defined above, and the greatest of them indicates which condition is closest to being violated. Ideally, we would want all the ratios to be close to 1. If the wave equation ratio is much larger than the others, you can make the simulation faster by increasing the vacuum permeability \(\mu_0\), and thus decreasing the speed of light, which is calculated as
+$$
+c = \frac{1}{\sqrt{\mu \epsilon}}
+$$
+This has the same effect as encasing the circuit in a ferromagnetic material. For semiconductor simulations, this will not affect the steady state charge and current distributions, but it will slightly affect the behavior of transients.
+</p>
+<p>If the charge relaxation ratio is too high, that means one of the materials is too conductive. This can be fixed by decreasing the equilibrium carrier concentration or lowering the mobility. If it is not possible to do so (eg. for a fixed semiconductor doping level), an alternative fix is to decrease the pixel width or increase the spatial resolution.
+<h2>Junction smoothing</h2>
+Numerical instability may also be caused by interfaces between materials with very different chemical potentials or Fermi levels. If high frequency oscillations occur at junctions, it may be a sign of instability. To fix this, you may increase the "junction smoothing" setting which automatically smooths the Fermi level over space. Typically, a value of 3 pixels is enough to remove all instabilities. The downside is that metal-semiconductor junctions do not work properly when smoothing is greater than around 2. An alternative option is to decrease the saturation velocity until the instability dissapears. The rule of thumb is
+$$
+E_\text{sat} \lesssim \frac{2}{\beta e \Delta s} \text{, or equivalently, } v_\text{sat} \lesssim \frac{2D}{\Delta s}
+$$
+Bear in mind that this is not a hard limit and the saturation velocity can be set to arbitrarily high values.
 <h2>Velocity saturation</h2>
-
+The model of velocity saturation used by the simulation is
+$$
+\mu(E) = \frac{\mu(0)}{\sqrt{(E/E_\text{sat})^2 + 1}}\\
+E_\text{sat} = \frac{v_\text{sat}}{\beta e D}
+$$
+Here \(E_\text{sat}\) and \(v_\text{sat}\) denote the saturation field and velocity, which are proportional to each other. This equation is a special case of the power law relationship that is typically used to describe saturation. The simulation is unable to handle more complicated functional relationships at the moment, such as in the case of Gallium Arsenide.
 <h2>Doping dependent mobility</h2>
-
-
+Charge carrier mobility in a semiconductor depends on the level of doping. The more dopant atoms there are, the more electrons get scattered. The simulation models this dependency with the following equation:
+$$
+\mu = \frac{\mu_0}{(n/n_c)^{1/2}+1}
+$$
+where \(\mu_0\) is the mobility of electrons or holes in undoped semiconductor, \(n\) is the doping density, and \(n_c\) is the doping density at which mobility drops to \(1/2\) of its original value.
+<h2>Performance/Benchmarking</h2>
+SemiSim requires a couple hundred MB of RAM at the default resolution. The amount of memory needed is proportional to the number of grid points, which is the square of the resolution. Resolutions greater than 512 require a huge amount of memory.
+<p>
+The speed of simulation depends slightly on the fraction of area filled with conducuctive material. I like to use the file "realistic BJT.semisim" as a benchmark since it covers the majority of the area with semiconductor. Running this setup on an M2 macbook pro, I get around 900 steps/s.
+</p>
 <h1>Miscellaneous questions and answers</h1>
 <h2>Why does this simulation exist?</h2>
 I created this simulator because I wanted to get a deeper understanding of how semiconductors work.
