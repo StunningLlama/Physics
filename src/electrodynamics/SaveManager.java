@@ -11,6 +11,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,13 +29,17 @@ import javax.swing.filechooser.FileFilter;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
 import electrodynamics.Compatibility.VectorMode_v1;
-import electrodynamics.Renderer.ScalarMode;
-import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
@@ -111,6 +116,7 @@ public class SaveManager {
 			try {
 				JsonReader fstr = new JsonReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(infile))));
 				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+				Gson gson_probe = new GsonBuilder().serializeSpecialFloatingPointValues().registerTypeHierarchyAdapter(Probe.class, new ProbeAdapter()).create();
 
 				fstr.beginObject();
 
@@ -197,8 +203,7 @@ public class SaveManager {
 						case "materialmap": e.materialmanager.mat_map = (HashMap<Integer, Material>) gson.fromJson(fstr, new TypeToken<HashMap<Integer, Material>>(){}.getType()); break;
 						case "last_material_id": e.materialmanager.id_counter = fstr.nextInt(); break;
 
-						case "all_probes": e.probes.addAll(Arrays.asList(
-						(Probe[]) gson.fromJson(fstr, Probe[].class))); break;
+						case "all_probes": e.probes.addAll((ArrayList<Probe>) gson_probe.fromJson(fstr, new TypeToken<ArrayList<Probe>>() {}.getType())); break;
 						
 						case "voltageprobes": e.probes.addAll(Arrays.asList(
 						(VoltageProbe[]) gson.fromJson(fstr, VoltageProbe[].class))); break;
@@ -453,7 +458,7 @@ public class SaveManager {
 			try {
 				PrintWriter fstr = new PrintWriter(new GZIPOutputStream(new FileOutputStream(outfile)));
 
-				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().registerTypeHierarchyAdapter(Probe.class, new ProbeAdapter()).create();
 
 				JOptionPane optionPane = new JOptionPane("Saving file, please wait.", JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
 				JDialog dialog = optionPane.createDialog("Saving");
@@ -540,4 +545,31 @@ public class SaveManager {
 		e.setDefaultParameters();
 		e.opts.setDefaults(e);
 	}
+}
+
+class ProbeAdapter implements JsonSerializer<Probe>, JsonDeserializer<Probe>{
+	
+    @Override
+    public JsonElement serialize(Probe src, Type typeOfSrc,
+            JsonSerializationContext context) {
+
+    	JsonElement elem = new GsonBuilder().serializeSpecialFloatingPointValues().create().toJsonTree(src);
+        elem.getAsJsonObject().addProperty("CLASS_NAME", src.getClass().getName());
+        return elem;
+    }
+
+    @SuppressWarnings("unchecked")
+	@Override
+    public Probe deserialize(JsonElement json, Type typeOfT,
+            JsonDeserializationContext context) throws JsonParseException  {
+    	JsonObject jsonObject = json.getAsJsonObject();
+        String typeName = jsonObject.get("CLASS_NAME").getAsString();
+
+        try {
+            Class<? extends Probe> cls = (Class<? extends Probe>) Class.forName(typeName);
+            return new GsonBuilder().serializeSpecialFloatingPointValues().create().fromJson(json, cls);
+        } catch (ClassNotFoundException e) {
+            throw new JsonParseException(e);
+        }
+    }
 }

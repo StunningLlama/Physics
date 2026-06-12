@@ -51,6 +51,10 @@ public class MixedUnits extends UnitSystem {
 		case RESISTIVITY: return "(cm V)/A";
 		case DIFFUSIVITY: return "(cm^2/s)";
 		case ELECTRIC_MOBILITY: return "(cm^2/(V s))";
+
+		case ENTROPY_RATE: return "J/(K s)";
+		case POWER: return "W";
+		case RATE: return "/s";
 		}
 		
 		return q.name;

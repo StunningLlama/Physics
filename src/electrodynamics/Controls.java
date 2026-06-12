@@ -57,6 +57,7 @@ import electrodynamics.plot.Plot;
 import electrodynamics.plot.ProbePlot;
 import electrodynamics.plot.SegmentedPath;
 import electrodynamics.probe.AreaProbe;
+import electrodynamics.probe.AreaProbe.QuantityType;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
 import electrodynamics.probe.FluxProbe;
@@ -309,6 +310,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 			}
 			e.probes.removeIf((p) -> p.selected);
+			e.relabelProbes();
 			
 			delete = false;
 			flagChanges(true);
@@ -792,7 +794,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (pressing) {
 				CurrentProbe p = new CurrentProbe(mx_start, my_start);
 				p.name = e.getProbeName(); e.probe_index++;
-				e.probes.add(p);
+				e.addProbe(p);
 			} else if (mouse_pressed) {
 				e.probes.get(e.probes.size()-1).drag(mx, my);
 			} else if (releasing) {
@@ -803,7 +805,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (pressing) {
 				VoltageProbe p = new VoltageProbe(mx_start, my_start);
 				p.name = e.getProbeName(); e.probe_index++;
-				e.probes.add(p);
+				e.addProbe(p);
 			} else if (mouse_pressed) {
 				e.probes.get(e.probes.size()-1).drag(mx, my);
 			} else if (releasing) {
@@ -814,7 +816,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (pressing) {
 				ChargeProbe p = new ChargeProbe(mx_start, my_start);
 				p.name = e.getProbeName(); e.probe_index++;
-				e.probes.add(p);
+				e.addProbe(p);
 			} else if (mouse_pressed) {
 				e.probes.get(e.probes.size()-1).drag(mx, my);
 			} else if (releasing) {
@@ -825,7 +827,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (pressing) {
 				FluxProbe p = new FluxProbe(mx_start, my_start);
 				p.name = e.getProbeName(); e.probe_index++;
-				e.probes.add(p);
+				e.addProbe(p);
 			} else if (mouse_pressed) {
 				e.probes.get(e.probes.size()-1).drag(mx, my);
 			} else if (releasing) {
@@ -850,7 +852,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 				if (p != null) {
 					p.name = e.getProbeName(); e.probe_index++;
-					e.probes.add(p);
+					e.addProbe(p);
 				}
 			} else if (mouse_pressed) {
 				Probe p = e.probes.get(e.probes.size()-1);
@@ -874,12 +876,32 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 							ScalarView selected = tmplist.getSelectedValue();
 
 							if (selected != null) {
-								((AreaProbe)p).scalarname = selected;
-								((AreaProbe)p).shorthand = selected.shorthand;
-								((AreaProbe)p).quantity = selected.unit;
+								Quantity quantity = selected.unit;
+								QuantityType quantitytype = QuantityType.SCALAR;
+								
+								Quantity new_quantity = quantity.multiplyArea();
+								if (new_quantity != null) {
+									quantity = new_quantity;
+									quantitytype = QuantityType.FLUX_DENSITY;
+								} else {
+									new_quantity = quantity.multiplyVolume();
+									if (new_quantity != null) {
+										quantity = new_quantity;
+										quantitytype = QuantityType.DENSITY;
+									} 
+								}
+								
+								if (quantity != null)
+								{
+									((AreaProbe)p).scalarname = selected;
+									((AreaProbe)p).shorthand = quantity.shorthand;
+									((AreaProbe)p).quantity = quantity;
+									((AreaProbe)p).quantitytype = quantitytype;
+									((AreaProbe)p).user_placed = true;
+								}
 							}
 						} else {
-							e.probes.remove(p);
+							e.removeProbe(p);
 						}
 					} else if (p instanceof PointProbe) {
 						JList<ScalarView> tmplist = new JList<>(ScalarView.values());
@@ -899,7 +921,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 								((PointProbe)p).quantity = selected.unit;
 							}
 						} else {
-							e.probes.remove(p);
+							e.removeProbe(p);
 						}
 					} else if (p instanceof LineProbe) {
 						JList<VectorView> tmplist = new JList<>(VectorView.values());
@@ -914,12 +936,19 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 							VectorView selected = tmplist.getSelectedValue();
 
 							if (selected != null) {
-								((LineProbe)p).vectorname = selected;
-								((LineProbe)p).shorthand = selected.shorthand;
-								((LineProbe)p).quantity = selected.unit;
+								Quantity quantity = selected.unit;
+								quantity = quantity.multiplyArea();
+								if (quantity != null)
+								{
+									((LineProbe)p).vectorname = selected;
+									((LineProbe)p).shorthand = quantity.shorthand;
+									((LineProbe)p).quantity = quantity;
+								} else {
+									e.removeProbe(p);
+								}
 							}
 						} else {
-							e.probes.remove(p);
+							e.removeProbe(p);
 						}
 					}
 				}
@@ -934,7 +963,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				if (p.isMouseHovering(mx, my)) {
 					e.canvas.setCursor(HAND_CURSOR);
 					if (pressing) {
-						e.probes.remove(i);
+						e.removeProbe(p);
 						flagChanges(false);
 						i--;
 					}
@@ -980,7 +1009,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (pressing) {
 				if (!e.hasGround()) {
 					Ground ground = new Ground(mx_start, my_start);
-					e.probes.add(ground);
+					e.addProbe(ground);
 				}
 			} else if (mouse_pressed) {
 				e.getGround().drag(mx, my);
@@ -992,7 +1021,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (pressing) {
 				if (!e.hasRuler()) {
 					Ruler p = new Ruler(mx_start, my_start);
-					e.probes.add(p);
+					e.addProbe(p);
 				} else {
 					Ruler p = e.getRuler();
 					p.x1 = mx_start;
@@ -1003,7 +1032,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			} else if (releasing) {
 				Ruler p = e.getRuler();
 				if (p.x1 == p.x2 && p.y1 == p.y2) {
-					e.probes.remove(e.getRuler());
+					e.removeProbe(e.getRuler());
 				}
 				flagChanges(false);
 			}
@@ -2067,7 +2096,18 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	}
 	
 	public enum CustProbeType {
-		POINT, LINE, AREA;
+		POINT("Type: point"), LINE("Type: line"), AREA("Type: area");
+
+		public String name;
+		CustProbeType(String name)
+		{
+			this.name = name;
+		}
+
+		@Override
+		public String toString() {
+			return name;
+		}
 	}
 
 	class DescDialog extends JDialog {

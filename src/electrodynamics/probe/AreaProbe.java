@@ -24,9 +24,10 @@ public class AreaProbe extends Probe {
 	public int x2;
 	public int y2;
 
-	public boolean isDensity = true;
+	public QuantityType quantitytype = QuantityType.SCALAR;
 	public ScalarView scalarname = ScalarView.NONE;
 	public double[][] scalarfield = new double[][] {{0}};
+	public boolean user_placed = false;
 	
 	@Override
 	public void reset() {
@@ -65,10 +66,16 @@ public class AreaProbe extends Probe {
 			}
 		}
 
-		if (isDensity) {
+		switch (quantitytype) {
+		case DENSITY:
 			value = Q*e.depth;
-		} else {
+			break;
+		case FLUX_DENSITY:
 			value = Q;
+			break;
+		case SCALAR:
+			value = Q/((n_max-n_min+1)*(m_max-m_min+1)*e.ds*e.ds);
+			break;
 		}
 		if (savedatapoint) data.addData(value, e.time);
 	}
@@ -159,6 +166,23 @@ public class AreaProbe extends Probe {
 
 	@Override
 	public String getText(Units units) {
-		return shorthand + name + " = " + units.toString_fixedsigfigs(value, quantity);
+		if (user_placed) {
+			switch (quantitytype) {
+			case DENSITY:
+				return shorthand + name + " (total) = " + units.toString_fixedsigfigs(value, quantity);
+			case FLUX_DENSITY:
+				return shorthand + name + " (flux) = " + units.toString_fixedsigfigs(value, quantity);
+			case SCALAR:
+				return shorthand + name + " (avg) = " + units.toString_fixedsigfigs(value, quantity);
+			default:
+				return "";
+			}
+		} else {
+			return shorthand + name + " = " + units.toString_fixedsigfigs(value, quantity);
+		}
+	}
+	
+	public enum QuantityType {
+		DENSITY, FLUX_DENSITY, SCALAR;
 	}
 }

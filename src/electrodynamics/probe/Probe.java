@@ -8,6 +8,7 @@ import electrodynamics.Renderer;
 import electrodynamics.Simulation;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorView;
+import electrodynamics.probe.AreaProbe.QuantityType;
 import electrodynamics.units.Quantity;
 import electrodynamics.units.Units;
 
@@ -66,7 +67,7 @@ public abstract class Probe implements Cloneable {
 		} else if (this instanceof ChargeProbe) {
 			quantity = Quantity.CHARGE;
 			shorthand = "Q";
-			((ChargeProbe)this).isDensity = true;
+			((ChargeProbe)this).quantitytype = QuantityType.DENSITY;
 			((ChargeProbe)this).scalarname = ScalarView.CHARGE;
 		} else if (this instanceof CurrentProbe) {
 			shorthand = "I";
@@ -75,7 +76,7 @@ public abstract class Probe implements Cloneable {
 		} else if (this instanceof FluxProbe) {
 			quantity = Quantity.MAGNETIC_FLUX;
 			shorthand = "Φ";
-			((FluxProbe)this).isDensity = true;
+			((FluxProbe)this).quantitytype = QuantityType.FLUX_DENSITY;
 			((FluxProbe)this).scalarname = ScalarView.B_FIELD;
 		} else if (this instanceof Ground) {
 			shorthand = "V";

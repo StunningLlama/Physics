@@ -12,7 +12,7 @@ public class ChargeProbe extends AreaProbe {
 		super(mx, my);
 		quantity = Quantity.CHARGE;
 		shorthand = "Q";
-		isDensity = true;
+		quantitytype = QuantityType.DENSITY;
 		scalarname = ScalarView.CHARGE;
 	}
 }

@@ -51,6 +51,9 @@ public class SIUnits extends UnitSystem {
 		case RESISTIVITY: return "Ωm";
 		case DIFFUSIVITY: return "(m^2/s)";
 		case ELECTRIC_MOBILITY: return "(m^2/(V s))";
+		case ENTROPY_RATE: return "J/(K s)";
+		case POWER: return "W";
+		case RATE: return "/s";
 		}
 		
 		return q.name;

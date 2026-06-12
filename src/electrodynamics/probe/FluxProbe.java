@@ -12,7 +12,7 @@ public class FluxProbe extends AreaProbe {
 		super(mx, my);
 		quantity = Quantity.MAGNETIC_FLUX;
 		shorthand = "Φ";
-		isDensity = true;
+		quantitytype = QuantityType.DENSITY;
 		scalarname = ScalarView.B_FIELD;
 	}
 }

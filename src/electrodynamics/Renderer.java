@@ -1740,16 +1740,16 @@ public class Renderer extends PeriodicTask {
 		NONE("No vector overlay",								"None",				Quantity.DIMENSIONLESS,			1),
 		E_FIELD("View E: Electric field",						"E",				Quantity.ELECTRIC_FIELD,		10),
 		D_FIELD("View D: Displacement field",					"D",				Quantity.ELECTRIC_FLUX_DENSITY,	10*8.85e-12),
-		ELECTRON_CURRENT("View J\u2099: Electron current",		"J\u2099",			Quantity.ELECTRIC_CURRENT,		1),
-		HOLE_CURRENT("View J\u209A: Hole current",				"J\u209A",			Quantity.ELECTRIC_CURRENT,		1),
-		TOTAL_CURRENT("View J: Total current",					"J",				Quantity.ELECTRIC_CURRENT,		1),
+		ELECTRON_CURRENT("View J\u2099: Electron current",		"J\u2099",			Quantity.CURRENT_DENSITY,		1),
+		HOLE_CURRENT("View J\u209A: Hole current",				"J\u209A",			Quantity.CURRENT_DENSITY,		1),
+		TOTAL_CURRENT("View J: Total current",					"J",				Quantity.CURRENT_DENSITY,		1),
 		EMF("View \u2130: External electromotive force",		"\u2130",			Quantity.ELECTRIC_FIELD,		1),
 		POYNTING("View S: Poynting vector",						"S",				Quantity.INTENSITY,				1),
-		ELECTRON_DRIFT("View: Electron drift current",			"Jn (drift)",		Quantity.ELECTRIC_CURRENT,		1),
-		ELECTRON_DIFFUSION("View: Electron diffusion current",	"Jn (diffusion)",	Quantity.ELECTRIC_CURRENT,		1),
+		ELECTRON_DRIFT("View: Electron drift current",			"Jn (drift)",		Quantity.CURRENT_DENSITY,		1),
+		ELECTRON_DIFFUSION("View: Electron diffusion current",	"Jn (diffusion)",	Quantity.CURRENT_DENSITY,		1),
 		ELECTRON_VELOCITY("View: Electron drift velocity",		"vn",				Quantity.VELOCITY,				1),
-		HOLE_DRIFT("View: Hole drift current",					"Jp (drift)",		Quantity.ELECTRIC_CURRENT,		1),
-		HOLE_DIFFUSION("View: Hole diffusion current",			"Jp (diffusion)",	Quantity.ELECTRIC_CURRENT,		1),
+		HOLE_DRIFT("View: Hole drift current",					"Jp (drift)",		Quantity.CURRENT_DENSITY,		1),
+		HOLE_DIFFUSION("View: Hole diffusion current",			"Jp (diffusion)",	Quantity.CURRENT_DENSITY,		1),
 		HOLE_VELOCITY("View: Hole drift velocity",				"vp",				Quantity.VELOCITY,				1);
 	
 		public String name;

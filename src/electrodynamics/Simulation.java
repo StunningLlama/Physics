@@ -63,7 +63,6 @@ public class Simulation extends PeriodicTask {
 	
 	//TODO
 	//Optimize presets
-	//probe units
 	
 	//Small transistors
 	//Make better MESFET
@@ -2834,6 +2833,16 @@ public class Simulation extends PeriodicTask {
 			p.name = getProbeName();
 			probe_index++;
 		}
+	}
+	
+	public void addProbe(Probe p) {
+		probes.add(p);
+		relabelProbes();
+	}
+	
+	public void removeProbe(Probe p) {
+		probes.remove(p);
+		relabelProbes();
 	}
 	
 	int probe_index = 0;
