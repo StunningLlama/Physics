@@ -20,6 +20,8 @@ import org.jfree.chart.axis.LogarithmicAxis;
 import org.jfree.chart.axis.NumberAxis;
 
 import electrodynamics.Simulation;
+import electrodynamics.units.Quantity;
+import electrodynamics.units.Units;
 
 public abstract class Plot implements ActionListener {
 	public MatlabChart fig;
@@ -28,11 +30,16 @@ public abstract class Plot implements ActionListener {
 	public Font regularfont = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
 
 	public Path path;
+	public JMenuBar menuBar;
+	public JMenu menu;
 	public JMenuItem menu_log;
 	public JMenuItem menu_reset;
 
 	public LogarithmicAxis logaxis;
 	public NumberAxis linaxis;
+	
+	public double xunitquantity;
+	public double yunitquantity;
 
 	public Plot() {
 		fig = new MatlabChart();
@@ -61,17 +68,17 @@ public abstract class Plot implements ActionListener {
 		frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 		
 
-		JMenuBar menuBar = new JMenuBar();
+		menuBar = new JMenuBar();
 		frame.setJMenuBar(menuBar);
 
-		JMenu mnNewMenu = new JMenu("Plot settings");
-		menuBar.add(mnNewMenu);
+		menu = new JMenu("Plot settings");
+		menuBar.add(menu);
 
 		menu_log = new JCheckBoxMenuItem("Logarithmic y axis");
-		mnNewMenu.add(menu_log);
+		menu.add(menu_log);
 
 		menu_reset = new JMenuItem("Clear data");
-		mnNewMenu.add(menu_reset);
+		menu.add(menu_reset);
 		
 		menu_log.addActionListener(this);
 		menu_reset.addActionListener(this);
@@ -104,5 +111,34 @@ public abstract class Plot implements ActionListener {
 		} else if (ev.getSource() == menu_reset) {
 			reset();
 		}
+	}
+	
+	public void setxunits(Units units, Quantity quantity) {
+		xunitquantity = units.sys.toSI(1, quantity);
+	    String unitname = units.sys.toString(1, quantity, "%.0f");
+	    if (unitname.startsWith("1 ")) unitname = unitname.substring(2);
+	    fig.xlabel(quantity.name.replaceAll("[\\(\\)]", "") + " (" + unitname + ")");
+	}
+	
+	public void setyunits(Units units, Quantity quantity) {
+		yunitquantity = units.sys.toSI(1, quantity);
+	    String unitname = units.sys.toString(1, quantity, "%.0f");
+	    if (unitname.startsWith("1 ")) unitname = unitname.substring(2);
+	    fig.ylabel(quantity.name.replaceAll("[\\(\\)]", "") + " (" + unitname + ")");
+	}
+	
+
+	public void setxunitsfixed(Units units, Quantity quantity, double value) {
+		xunitquantity = value;
+	    String unitname = units.sys.toStringSI(value, quantity, "%.0f");
+	    if (unitname.startsWith("1 ")) unitname = unitname.substring(2);
+	    fig.xlabel(quantity.name.replaceAll("[\\(\\)]", "") + " (" + unitname + ")");
+	}
+	
+	public void setyunitsfixed(Units units, Quantity quantity, double value) {
+		yunitquantity = value;
+	    String unitname = units.sys.toStringSI(value, quantity, "%.0f");
+	    if (unitname.startsWith("1 ")) unitname = unitname.substring(2);
+	    fig.ylabel(quantity.name.replaceAll("[\\(\\)]", "") + " (" + unitname + ")");
 	}
 }

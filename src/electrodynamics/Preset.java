@@ -25,7 +25,7 @@ public enum Preset {
 		switch(this) {
 		case SILICON_300K:
 			e.default_width = 2*2.56e-6;
-			e.mu0 = 5*1.257e-2;
+			e.mu0 = 1e5*1.257e-6;
 			e.T = 300;
 			
 			e.Eg_semi = 1.12*eVtoJ;
@@ -52,24 +52,25 @@ public enum Preset {
 			e.p_default_doping_concentration = 2e16*1e6;
 			e.n_heavy_doping_concentration = 4e17*1e6;
 			e.p_heavy_doping_concentration = 4e17*1e6;
-			
-			e.g_metal = 1e20*1e6;
+
+			e.Eg_metal = 1*eVtoJ;
+			e.g_metal = 2.5e25*1e6;
 			e.g_metal_high = 2*e.g_metal;
 			e.g_metal_low = 0.25*e.g_metal;
 			e.W_metal_default = 4.6*eVtoJ;
 			e.W_metal_high = 5.1*eVtoJ;
 			e.W_metal_low = 4.1*eVtoJ;
-			e.Eg_metal = e.Eg_semi-0.2*eVtoJ;
 			e.k_rad_metal = 1.1e-10 * 1e-6;
 
 			e.max_EMF = 5e6;
 			e.default_AC_freq = 1e12;
+			e.junction_size = 2;
 			
 			semi_name = "silicon";
 			break;
 		case GERMANIUM_300K:
 			e.default_width = 2*2.56e-6;
-			e.mu0 = 5*1.257e-2;
+			e.mu0 = 2.5e4*1.257e-6;
 			e.T = 300;
 
 			e.Eg_semi = 0.661*eVtoJ;
@@ -97,23 +98,24 @@ public enum Preset {
 			e.n_heavy_doping_concentration = 4e17*1e6;
 			e.p_heavy_doping_concentration = 4e17*1e6;
 
-			e.g_metal = 1e20*1e6;
+			e.Eg_metal = 1*eVtoJ;
+			e.g_metal = 2.5e25*1e6;
 			e.g_metal_high = 2*e.g_metal;
 			e.g_metal_low = 0.25*e.g_metal;
 			e.W_metal_default = 4.6*eVtoJ;
 			e.W_metal_high = 5.1*eVtoJ;
 			e.W_metal_low = 4.1*eVtoJ;
-			e.Eg_metal = e.Eg_semi-0.2*eVtoJ;
 			e.k_rad_metal = 1.1e-10 * 1e-6;
 
 			e.max_EMF = 5e6;
 			e.default_AC_freq = 1e12;
+			e.junction_size = 2;
 			
 			semi_name = "germanium";
 			break;
 		case GAAS_300K:
 			e.default_width = 2*2.56e-6;
-			e.mu0 = 5*1.257e-2;
+			e.mu0 = 0.75e4*1.257e-6;
 			e.T = 300;
 			
 			e.Eg_semi = 1.424*eVtoJ;
@@ -141,23 +143,24 @@ public enum Preset {
 			e.n_heavy_doping_concentration = 4e17*1e6;
 			e.p_heavy_doping_concentration = 4e17*1e6;
 
-			e.g_metal = 1e20*1e6;
+			e.Eg_metal = 1*eVtoJ;
+			e.g_metal = 2.5e25*1e6;
 			e.g_metal_high = 2*e.g_metal;
 			e.g_metal_low = 0.25*e.g_metal;
-			e.W_metal_default = 4.6*eVtoJ;
-			e.W_metal_high = 5.1*eVtoJ;
+			e.W_metal_default = 4.7*eVtoJ;
+			e.W_metal_high = 5.4*eVtoJ;
 			e.W_metal_low = 4.1*eVtoJ;
-			e.Eg_metal = e.Eg_semi-0.2*eVtoJ;
 			e.k_rad_metal = 1.1e-10 * 1e-6;
 
 			e.max_EMF = 5e6;
 			e.default_AC_freq = 1e12;
+			e.junction_size = 2;
 			
 			semi_name = "GaAs";
 			break;
 		case GAN_300K:
 			e.default_width = 2*2.56e-6;
-			e.mu0 = 5*1.257e-2;
+			e.mu0 = 0.5e5*1.257e-6;
 			e.T = 300;
 
 			e.Eg_semi = 3.47*eVtoJ;
@@ -185,17 +188,18 @@ public enum Preset {
 			e.n_heavy_doping_concentration = 4e17*1e6;
 			e.p_heavy_doping_concentration = 4e17*1e6;
 
-			e.g_metal = 1e20*1e6;
+			e.Eg_metal = 1*eVtoJ;
+			e.g_metal = 1.25e25*1e6;
 			e.g_metal_high = 2*e.g_metal;
 			e.g_metal_low = 0.25*e.g_metal;
-			e.W_metal_default = 4.6*eVtoJ;
-			e.W_metal_high = 5.1*eVtoJ;
+			e.W_metal_default = 5.5*eVtoJ;
+			e.W_metal_high = 7*eVtoJ;
 			e.W_metal_low = 4.1*eVtoJ;
-			e.Eg_metal = e.Eg_semi-0.2*eVtoJ;
 			e.k_rad_metal = 1.1e-10 * 1e-6;
 
 			e.max_EMF = 5e6;
 			e.default_AC_freq = 1e12;
+			e.junction_size = 2;
 			
 			semi_name = "GaN";
 			break;

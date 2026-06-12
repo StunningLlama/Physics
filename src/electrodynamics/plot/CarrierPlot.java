@@ -32,10 +32,8 @@ public class CarrierPlot extends Plot {
 	@Override
 	public void updatePlot(Simulation e) {
 		if (frame.isVisible() && e.frame%10 == 0) {
-	        double unitquantity = e.units.sys.toSI(1, Quantity.NUMBER_DENSITY);
-	        String unitname = e.units.sys.toString(1, Quantity.NUMBER_DENSITY, "%.0f");
-	        if (unitname.startsWith("1 ")) unitname = "1".concat(unitname.substring(2));
-	        fig.ylabel("Density (" + unitname + ")");
+	        setxunitsfixed(e.units, Quantity.LENGTH, 1e-6);
+	        setyunits(e.units, Quantity.NUMBER_DENSITY);
 	        
 			rho_n_data.setNotify(false);
 			rho_p_data.setNotify(false);
@@ -47,14 +45,15 @@ public class CarrierPlot extends Plot {
 				double t = n/100.0;
 				double x = path.getX(t);
 				double y = path.getY(t);
+				double len = t*path.getArclength()*e.ds/xunitquantity;
 
-				double rho_n = Utils.bilinearinterp_geometric_extrap(e.rho_n, x, y, e.nx, e.ny)/e.e_charge/unitquantity;
-				if (rho_n > 0) rho_n_data.add(t, rho_n);
-				else rho_n_data.add(t, Double.NaN);
+				double rho_n = Utils.bilinearinterp_geometric_extrap(e.rho_n, x, y, e.nx, e.ny)/e.e_charge/yunitquantity;
+				if (rho_n > 0) rho_n_data.add(len, rho_n);
+				else rho_n_data.add(len, Double.NaN);
 
-				double rho_p = Utils.bilinearinterp_geometric_extrap(e.rho_p, x, y, e.nx, e.ny)/e.e_charge/unitquantity;
-				if (rho_p > 0) rho_p_data.add(t, rho_p);
-				else rho_p_data.add(t, Double.NaN);
+				double rho_p = Utils.bilinearinterp_geometric_extrap(e.rho_p, x, y, e.nx, e.ny)/e.e_charge/yunitquantity;
+				if (rho_p > 0) rho_p_data.add(len, rho_p);
+				else rho_p_data.add(len, Double.NaN);
 			}
 
 			rho_n_data.setNotify(true);

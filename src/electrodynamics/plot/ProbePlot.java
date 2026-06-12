@@ -1,3 +1,7 @@
+// Copyright (c) Brandon Li 2025
+// This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
+// See LICENSE.txt for full license details.
+
 package electrodynamics.plot;
 
 import java.util.function.Predicate;
@@ -13,10 +17,9 @@ public class ProbePlot extends Plot {
 	String yaxis;
 	String title;
 	String nameprefix;
-	double unitquantity;
-	double time_quantity = 1e-12;
 	Quantity quantity;
 	Predicate<Probe> probefilter;
+	double scalefactor;
 	
 	int window_offset = 0;
 	
@@ -24,8 +27,8 @@ public class ProbePlot extends Plot {
 		this.title = title;
 		this.yaxis = yaxis;
 		this.nameprefix = nameprefix;
-		this.unitquantity = scalefactor;
 		this.quantity = quantity;
+		this.scalefactor = scalefactor;
 		this.probefilter = probefilter;
 		this.window_offset = window_offset;
 	}
@@ -54,17 +57,12 @@ public class ProbePlot extends Plot {
 	@Override
 	public void updatePlot(Simulation e) {
 		if (frame.isVisible() && e.frame%10 == 0) {
+	        setxunitsfixed(e.units, Quantity.TIME, 1e-12);
+	        setyunitsfixed(e.units, quantity, scalefactor);
+	        
 			fig.dataset.removeAllSeries();
 			fig.colors.clear();
 			fig.strokes.clear();
-			
-	        String unitname = e.units.sys.toStringSI(unitquantity, quantity, "%.0f");
-	        if (unitname.startsWith("1 ")) unitname = unitname.substring(2);
-			fig.ylabel(yaxis + " (" + unitname + ")");
-
-	        String unitname_time = e.units.sys.toStringSI(time_quantity, Quantity.TIME, "%.0f");
-	        if (unitname_time.startsWith("1 ")) unitname_time = unitname_time.substring(2);
-			fig.xlabel("Time (" + unitname_time + ")");
 			
 			double yrange = 0;
 			double tmax = 0;
@@ -76,8 +74,8 @@ public class ProbePlot extends Plot {
 
 					for (int i = 0; i < p.data.data_size; i++) {
 						if (!Double.isNaN(p.data.data[i])) {
-							double datapointy = p.data.data[i]/unitquantity;
-							dat.add(p.data.time[i]/time_quantity, datapointy);
+							double datapointy = p.data.data[i]/yunitquantity;
+							dat.add(p.data.time[i]/xunitquantity, datapointy);
 							if (Math.abs(datapointy) > yrange) {
 								yrange = Math.abs(datapointy);
 							}
@@ -96,7 +94,7 @@ public class ProbePlot extends Plot {
 			}
 
 			double time_window = Probe.data_size*e.iteration_multiplier*e.controls.plotinterval*e.dt;
-			fig.chart.getXYPlot().getDomainAxis().setRange((tmax-time_window)/time_quantity, tmax/time_quantity);
+			fig.chart.getXYPlot().getDomainAxis().setRange((tmax-time_window)/xunitquantity, tmax/xunitquantity);
 			fig.chart.getXYPlot().getRangeAxis().setRange(-1.1*yrange, 1.1*yrange);
 		}
 	}

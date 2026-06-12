@@ -69,6 +69,7 @@ public abstract class Probe implements Cloneable {
 			shorthand = "Q";
 			((ChargeProbe)this).quantitytype = QuantityType.DENSITY;
 			((ChargeProbe)this).scalarname = ScalarView.CHARGE;
+			((ChargeProbe)this).scalarfield = new double[][] {{0}};
 		} else if (this instanceof CurrentProbe) {
 			shorthand = "I";
 			quantity = Quantity.ELECTRIC_CURRENT;
@@ -78,6 +79,7 @@ public abstract class Probe implements Cloneable {
 			shorthand = "Φ";
 			((FluxProbe)this).quantitytype = QuantityType.FLUX_DENSITY;
 			((FluxProbe)this).scalarname = ScalarView.B_FIELD;
+			((FluxProbe)this).scalarfield = new double[][] {{0}};
 		} else if (this instanceof Ground) {
 			shorthand = "V";
 			quantity = Quantity.ELECTRIC_POTENTIAL;

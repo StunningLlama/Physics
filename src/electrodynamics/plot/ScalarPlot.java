@@ -30,12 +30,9 @@ public class ScalarPlot extends Plot {
 	public void updatePlot(Simulation e) {
         String title = e.controls.scalarview.getOption().name;
         fig.title(title);
-        Quantity q = e.controls.scalarview.getOption().unit;
-        double unitquantity = e.units.sys.toSI(1, q);
-        //String unitname = e.units.toString(unitquantity, e.controls.scalarview.getOption().unit);
-        String unitname = e.units.sys.toString(1, q, "%.0f");
-        if (unitname.startsWith("1 ")) unitname = unitname.substring(2);
-        fig.ylabel(q.name + " (" + unitname + ")");
+
+        setxunitsfixed(e.units, Quantity.LENGTH, 1e-6);
+        setyunits(e.units, e.controls.scalarview.getOption().unit);
         
 		if (frame.isVisible() && e.frame%10 == 0) {
 
@@ -47,8 +44,9 @@ public class ScalarPlot extends Plot {
 				double t = n/100.0;
 				double x = path.getX(t);
 				double y = path.getY(t);
+				double len = t*path.getArclength()*e.ds/xunitquantity;
 
-				data.add(t, Utils.bilinearinterp_extrap(e.renderer.scalarfield, x, y, e.nx, e.ny)/unitquantity);
+				data.add(len, Utils.bilinearinterp_extrap(e.renderer.scalarfield, x, y, e.nx, e.ny)/yunitquantity);
 			}
 
 			data.setNotify(true);

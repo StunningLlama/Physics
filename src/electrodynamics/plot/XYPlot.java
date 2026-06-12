@@ -4,27 +4,44 @@
 
 package electrodynamics.plot;
 
+import java.awt.event.ActionEvent;
+
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JMenuItem;
+
 import org.jfree.data.xy.XYSeries;
 
 import electrodynamics.Simulation;
 import electrodynamics.probe.Probe;
-import electrodynamics.units.Quantity;
 
 public class XYPlot extends Plot {
 
 	public XYSeries data;
 	public Probe x;
 	public Probe y;
+	
+	JCheckBoxMenuItem menu_paused;
+	JMenuItem menu_measure;
+	
 
 	@Override
 	public void initialize() {
 		super.initialize();
+
+		menu_paused = new JCheckBoxMenuItem("Pause continuous data collection");
+		menu.add(menu_paused);
+		menu_paused.addActionListener(this);
+
+		menu_measure = new JMenuItem("Measure data point");
+		menu.add(menu_measure);
+		menu_measure.addActionListener(this);
+		
         frame.setTitle("XY plot");
 	}
 	
 	@Override
 	public void createDataSeries() {
-        data = new XYSeries("", false);
+        data = new XYSeries("x/y", false);
         fig.dataset.addSeries(data);
         fig.FindColor("-k", 2.0f);
 	}
@@ -34,19 +51,11 @@ public class XYPlot extends Plot {
         
 		if (frame.isVisible() && e.frame%10 == 0) {
 			if (x != null && y != null) {
-		        Quantity q = x.quantity;
-		        double unitquantity_x = e.units.sys.toSI(1, q);
-		        String unitname_x = e.units.sys.toString(1, q, "%.0f");
-		        if (unitname_x.startsWith("1 ")) unitname_x = unitname_x.substring(2);
-		        fig.xlabel(q.name + " (" + unitname_x + ")");
+				this.setxunits(e.units, x.quantity);
+				this.setyunits(e.units, y.quantity);
 		        
-		        q = y.quantity;
-		        double unitquantity_y = e.units.sys.toSI(1, q);
-		        String unitname_y = e.units.sys.toString(1, q, "%.0f");
-		        if (unitname_y.startsWith("1 ")) unitname_y = unitname_y.substring(2);
-		        fig.ylabel(q.name + " (" + unitname_y + ")");
-		        
-				data.add(x.value/unitquantity_x, y.value/unitquantity_y);
+		        if (!menu_paused.isSelected())
+		        	data.add(x.value/xunitquantity, y.value/yunitquantity);
 			}
 		}
 	}
@@ -54,5 +63,14 @@ public class XYPlot extends Plot {
 	@Override
 	public void reset() {
 		data.clear();
+	}
+	
+
+	@Override
+	public void actionPerformed(ActionEvent ev) {
+		super.actionPerformed(ev);
+		if (ev.getSource() == menu_measure) {
+			data.add(x.value/xunitquantity, y.value/yunitquantity);
+		}
 	}
 }

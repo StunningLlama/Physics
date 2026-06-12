@@ -1,3 +1,7 @@
+// Copyright (c) Brandon Li 2025
+// This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
+// See LICENSE.txt for full license details.
+
 package electrodynamics.plot;
 
 import java.util.ArrayList;
@@ -9,6 +13,7 @@ public class SegmentedPath extends Path {
 	public ArrayList<Integer> vx;
 	public ArrayList<Integer> vy;
 	public double[] arclength;
+	public double total_arclength;
 	
 	public SegmentedPath() {
 		vx = new ArrayList<Integer>();
@@ -69,9 +74,15 @@ public class SegmentedPath extends Path {
 		}
 		
 		arclength[vx.size()-1] = l_total;
+		total_arclength = l_total;
 
 		for (int i = 0; i < vx.size(); i++) {
 			arclength[i] /= l_total;
 		}
+	}
+
+	@Override
+	public double getArclength() {
+		return total_arclength;
 	}
 }

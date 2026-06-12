@@ -25,6 +25,7 @@ import javax.swing.JPanel;
 
 import electrodynamics.Controls.Brush;
 import electrodynamics.plot.Plot;
+import electrodynamics.probe.Ground;
 import electrodynamics.probe.Probe;
 import electrodynamics.units.Quantity;
 import electrodynamics.util.DistributionSampler;
@@ -624,29 +625,14 @@ public class Renderer extends PeriodicTask {
 		scalar_offset = 0;
 
 		if (scalarview != ScalarView.NONE && scalarmode != ScalarMode.NONE) {
-			/*double offset = 0;
-			
-			if (e.hasGround() && e.prefs.chkbox_potential.isSelected()) {
-				Ground ground = e.getGround();
-				//TODO
-				if (scalarview == ScalarView.ELECTRON_POTENTIAL) {
-					offset = e.conducting[ground.x][ground.y]*(e.mu_n[ground.x][ground.y]/e.q_n-e.global_voltage_offset);
-				} else if (scalarview == ScalarView.HOLE_POTENTIAL) {
-					offset = e.conducting[ground.x][ground.y]*(e.mu_p[ground.x][ground.y]/e.q_p-e.global_voltage_offset);
-				} else if (scalarview == ScalarView.AVERAGE_POTENTIAL) {
-					offset = e.V_avg[ground.x][ground.y];
-				}
-				
-				if (!Double.isFinite(offset))
-					offset = 0;
-			}*/
-			
-
 			switch (scalarview) {
 			case ELECTRON_POTENTIAL:
 			case HOLE_POTENTIAL:
 				scalar_offset = -(float) e.global_voltage_offset;
 				break;
+			case ELECTRON_VOLTAGE:
+			case HOLE_VOLTAGE:
+				scalar_offset = (float) e.global_voltage_offset;
 			default:
 				break;
 			}
@@ -655,6 +641,17 @@ public class Renderer extends PeriodicTask {
 			setalphaFG(1.0);
 			
 			e.computeScalarField(scalarfield, 0, 0, scalarview);
+			
+			if (e.hasGround() && e.prefs.chkbox_potential.isSelected()) {
+				Ground ground = e.getGround();
+
+				if (scalarview == ScalarView.ELECTRON_VOLTAGE || scalarview == ScalarView.HOLE_VOLTAGE || scalarview == ScalarView.AVERAGE_POTENTIAL) {
+					scalar_offset = (float) scalarfield[ground.x][ground.y];
+				}
+				
+				if (!Double.isFinite(scalar_offset))
+					scalar_offset = 0;
+			}
 
 			ScalarView.ColorScheme colorscheme = scalarview.colorscheme;
 			
@@ -678,7 +675,7 @@ public class Renderer extends PeriodicTask {
 							scalarfield[i][j] = t/scalingconstant + scalar_offset;
 						} else if (scalarview == ScalarView.LIGHT) {
 							t = (j2-j)/(double)(j2-j1);
-							scalarfield[i][j] = -(400+(650-400)*t);
+							scalarfield[i][j] = -(400+(650-400)*t)*1e50;
 						}
 					}
 				}
@@ -761,14 +758,15 @@ public class Renderer extends PeriodicTask {
 					for (int i = 1; i < e.nx-1; i++) {
 						for (int j = 1; j < e.ny-1; j++) {
 							if (scalarfield[i][j] < 0) {
-								setColorWavelength(-scalarfield[i][j], 1);
-							} else {
+								setColorWavelength(-scalarfield[i][j]/1e50, 1); //The color scale
+								setPixel(i, j);
+							} else if (scalarfield[i][j] > 0) {
 								double hc = 1.986e-25;
 								double Emax = (e.materials[i][j].Ec - e.materials[i][j].Ev) + 0.5/e.beta; // Peak emission energy
 								double lambda_nm = 1e9*hc/Emax;
 								setColorWavelength(lambda_nm, scalarfield[i][j]*scalingconstant);
+								setPixel(i, j);
 							}
-							setPixel(i, j);
 						}
 					}
 				}

@@ -1339,7 +1339,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				tmplist.setVisibleRowCount(5);
 				tmplist.setSelectedValue(Preset.DEFAULT, true);
 				JScrollPane scrollPane = new JScrollPane(tmplist);
-				int result = JOptionPane.showConfirmDialog(null, scrollPane, "Select X variable", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+				int result = JOptionPane.showConfirmDialog(null, scrollPane, "Select X variable (must be probe)", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
 				if (result == JOptionPane.OK_OPTION) {
 					Probe selected = tmplist.getSelectedValue();
@@ -1355,7 +1355,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				tmplist.setVisibleRowCount(5);
 				tmplist.setSelectedValue(Preset.DEFAULT, true);
 				scrollPane = new JScrollPane(tmplist);
-				result = JOptionPane.showConfirmDialog(null, scrollPane, "Select Y variable", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+				result = JOptionPane.showConfirmDialog(null, scrollPane, "Select Y variable (must be probe)", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
 				if (result == JOptionPane.OK_OPTION) {
 					Probe selected = tmplist.getSelectedValue();
@@ -2056,12 +2056,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		PROBE("Custom probe"),
 		DELETEPROBE("Delete probe"),
 		MOVELABEL("Move label"),
+		RULER("Ruler"),
 		BANDS("Plot bands"),
 		SCALARPLOT("Plot scalar field"),
 		CARRIERPLOT("Plot carriers"),
 		PROBEPLOT("Plot probe data"),
-		XYPLOT("XY plot"),
-		RULER("Ruler");
+		XYPLOT("Plot X/Y");
 	
 		public String name;
 		Brush(String name)
@@ -2096,7 +2096,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	}
 	
 	public enum CustProbeType {
-		POINT("Type: point"), LINE("Type: line"), AREA("Type: area");
+		POINT("Type: Point"),
+		LINE("Type: Line"),
+		AREA("Type: Area");
 
 		public String name;
 		CustProbeType(String name)

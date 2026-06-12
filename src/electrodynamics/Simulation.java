@@ -68,6 +68,10 @@ public class Simulation extends PeriodicTask {
 	//Make better MESFET
 	//Cite sources
 	
+	//New examples
+	//InGaN LEDs
+	//
+	
 	/* Parts */
 	
 	public Renderer.RenderCanvas canvas;
