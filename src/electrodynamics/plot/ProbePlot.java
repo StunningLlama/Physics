@@ -54,7 +54,6 @@ public class ProbePlot extends Plot {
 	@Override
 	public void updatePlot(Simulation e) {
 		if (frame.isVisible() && e.frame%10 == 0) {
-			int index = 0;
 			fig.dataset.removeAllSeries();
 			fig.colors.clear();
 			fig.strokes.clear();
@@ -71,7 +70,7 @@ public class ProbePlot extends Plot {
 			double tmax = 0;
 			for (Probe p : e.probes) {
 				if (probefilter.test(p)) {
-					XYSeries dat = fig.plot("-k", 2.0f, nameprefix + e.getProbeName(index));
+					XYSeries dat = fig.plot("-k", 2.0f, nameprefix + p.name);
 					dat.setNotify(false);
 					dat.clear();
 
@@ -87,8 +86,6 @@ public class ProbePlot extends Plot {
 					
 					if (p.data.time[p.data.data_size-1] > tmax)
 						tmax = p.data.time[p.data.data_size-1];
-
-					index++;
 				}
 			}
 			if (yrange == 0)
@@ -105,8 +102,8 @@ public class ProbePlot extends Plot {
 	}
 	
 	@Override
-	public void createPlot(Simulation e) {
-		super.createPlot(e);
+	public void createPlot(Simulation e, Path p) {
+		super.createPlot(e, p);
 		frame.setLocation(500, 300+window_offset);
 	}
 }

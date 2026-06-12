@@ -61,6 +61,7 @@ import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.util.CustJRadioButtonMenuItem;
 import electrodynamics.util.MenuBuilder;
 import electrodynamics.util.MenuCheckList;
+import electrodynamics.Controls.CustProbeType;
 
 public class MainWindow extends JFrame implements ComponentListener {
 
@@ -153,6 +154,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 	public JLabel gui_light_text;
 	public JScrollBar gui_light;
 	public JMenuItem menu_view_materials;
+	public JComboBox<CustProbeType> gui_probetype;
 
 	/**
 	 * Create the frame.
@@ -568,6 +570,12 @@ public class MainWindow extends JFrame implements ComponentListener {
 		gui_light.setMaximum(25);
 		gui_light.setBounds(202, 261, 171, 17);
 		panel.add(gui_light);
+		
+		gui_probetype = new JComboBox<CustProbeType>();
+		gui_probetype.setModel(new DefaultComboBoxModel<>(CustProbeType.values()));
+		gui_probetype.setMaximumRowCount(16);
+		gui_probetype.setBounds(202, 82, 171, 22);
+		panel.add(gui_probetype);
 
 		getContentPane().add(e.canvas, BorderLayout.CENTER);
 		pack();

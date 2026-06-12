@@ -32,6 +32,7 @@ import electrodynamics.plot.CarrierPlot;
 import electrodynamics.plot.Plot;
 import electrodynamics.plot.ProbePlot;
 import electrodynamics.plot.ScalarPlot;
+import electrodynamics.plot.XYPlot;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
 import electrodynamics.probe.FluxProbe;
@@ -62,6 +63,7 @@ public class Simulation extends PeriodicTask {
 	
 	//TODO
 	//Optimize presets
+	//probe units
 	
 	//Small transistors
 	//Make better MESFET
@@ -83,6 +85,7 @@ public class Simulation extends PeriodicTask {
 	public BandPlot bandplot;
 	public ScalarPlot scalarplot;
 	public CarrierPlot carrierplot;
+	public XYPlot xyplot;
 	
 	public Units units = Units.SI;
 	public String description = "Description of simulation";
@@ -491,6 +494,7 @@ public class Simulation extends PeriodicTask {
 		bandplot = new BandPlot(); plots.add(bandplot);
 		scalarplot = new ScalarPlot(); plots.add(scalarplot);
 		carrierplot = new CarrierPlot(); plots.add(carrierplot);
+		xyplot = new XYPlot(); plots.add(xyplot);
 		plots.add(new ProbePlot("Voltage probe plot", "Voltage", "V", 1e-3, Quantity.ELECTRIC_POTENTIAL, (p) -> (p instanceof VoltageProbe && !(p instanceof Ground)), 0));
 		plots.add(new ProbePlot("Current probe plot", "Current", "I", 1e-3, Quantity.ELECTRIC_CURRENT, (p) -> p instanceof CurrentProbe, 200));
 		plots.add(new ProbePlot("Charge probe plot", "Charge", "Q", 1e-15, Quantity.CHARGE, (p) -> p instanceof ChargeProbe, 400));
@@ -947,6 +951,7 @@ public class Simulation extends PeriodicTask {
 				controls.prev_boundary = BoundaryCondition.DISSIPATIVE;
 				
 				probes.clear();
+				probe_index = 0;
 
 				for (Plot p: plots) {
 					p.frame.setVisible(false);
@@ -1791,6 +1796,59 @@ public class Simulation extends PeriodicTask {
 					scalarfield[i][j] = rate_const*n*p;
 				}
 			}
+			break;
+		default:
+			break;
+		}
+	}
+	
+	public void computeVectorField(double[][][] vectorfield, VectorView vector_view) {
+		switch (vector_view) {
+		case NONE:
+			break;
+		case D_FIELD:
+			vectorfield[0] = Dx;
+			vectorfield[1] = Dy;
+			break;
+		case E_FIELD:
+			vectorfield[0] = Ex;
+			vectorfield[1] = Ey;
+			break;
+		case ELECTRON_CURRENT:
+			vectorfield[0] = Jx_n;
+			vectorfield[1] = Jy_n;
+			break;
+		case HOLE_CURRENT:
+			vectorfield[0] = Jx_p;
+			vectorfield[1] = Jy_p;
+			break;
+		case TOTAL_CURRENT:
+			vectorfield[0] = Jx_free;
+			vectorfield[1] = Jy_free;
+			break;
+		case EMF:
+			vectorfield[0] = emfx;
+			vectorfield[1] = emfy;
+			break;
+		case ELECTRON_DIFFUSION:
+			vectorfield[0] = diff_x_n;
+			vectorfield[1] = diff_y_n;
+			break;
+		case ELECTRON_DRIFT:
+			vectorfield[0] = drift_x_n;
+			vectorfield[1] = drift_y_n;
+			break;
+		case HOLE_DIFFUSION:
+			vectorfield[0] = diff_x_p;
+			vectorfield[1] = diff_y_p;
+			break;
+		case HOLE_DRIFT:
+			vectorfield[0] = drift_x_p;
+			vectorfield[1] = drift_y_p;
+			break;
+		case POYNTING:
+			vectorfield[0] = Sx;
+			vectorfield[1] = Sy;
 			break;
 		default:
 			break;
@@ -2665,17 +2723,11 @@ public class Simulation extends PeriodicTask {
 		String data = "";
 		data += ("t = " + units.toString(time, Quantity.TIME));
 
-		int index = 0;
 		for (Probe p: probes) {
-			if (p instanceof VoltageProbe && !(p instanceof Ground))
-				data += (", V" + getProbeName(index) + " = " + units.toString(((VoltageProbe)p).potential, Quantity.ELECTRIC_POTENTIAL));
-			if (p instanceof CurrentProbe)
-				data += (", I" + getProbeName(index) + " = " + units.toString(((CurrentProbe) p).current, Quantity.ELECTRIC_CURRENT));
-			if (p instanceof ChargeProbe)
-				data += (", Q" + getProbeName(index) + " = " + units.toString(((ChargeProbe) p).charge, Quantity.CHARGE));
-			if (p instanceof FluxProbe)
-				data += (", Φ" + getProbeName(index) + " = " + units.toString(((FluxProbe) p).flux, Quantity.MAGNETIC_FLUX));
-			index++;
+			if (!(p instanceof Ground || p instanceof Ruler)) {
+				data += ", ";
+				data += p.getText(units);
+			}
 		}
 
 		data += "\n";
@@ -2776,16 +2828,18 @@ public class Simulation extends PeriodicTask {
 		return null;
 	}
 	
-	public String getProbeName(int index) {
-		int newindex = 0;
-		
-		for (int i = 0; i < index; i++) {
-			if (probes.get(i).getClass().equals(probes.get(index).getClass()))
-				newindex++;
+	public void relabelProbes() {
+		probe_index = 0;
+		for (Probe p : probes) {
+			p.name = getProbeName();
+			probe_index++;
 		}
-		
-		if (newindex < 26) return String.valueOf((char)('a'+newindex));
-		return String.valueOf(newindex - 26);
+	}
+	
+	int probe_index = 0;
+	public String getProbeName() {
+		if (probe_index < 26) return String.valueOf((char)('a'+probe_index));
+		return String.valueOf(probe_index - 26);
 	}
 	
 	public enum BoundaryCondition {

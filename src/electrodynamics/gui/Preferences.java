@@ -49,7 +49,6 @@ public class Preferences extends JFrame implements ActionListener {
 	Simulation e;
 	public int saveversion = 1;
 	public File preferences_file = null;
-	public JCheckBox chkbox_logscale;
 	private JSpinner spinner_imgy;
 
 	public Preferences(Simulation e) {
@@ -100,20 +99,13 @@ public class Preferences extends JFrame implements ActionListener {
 		
 		JLabel lblUnitSystem = new JLabel("Unit system");
 		lblUnitSystem.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblUnitSystem.setBounds(6, 165, 116, 16);
+		lblUnitSystem.setBounds(6, 139, 116, 16);
 		contentPane.add(lblUnitSystem);
 		
 		gui_units = new JComboBox<>();
 		gui_units.setModel(new DefaultComboBoxModel<>(Units.values()));
-		gui_units.setBounds(134, 161, 146, 27);
+		gui_units.setBounds(134, 135, 146, 27);
 		contentPane.add(gui_units);
-		
-		chkbox_logscale = new JCheckBox("Use log scale for density plots");
-		chkbox_logscale.setHorizontalAlignment(SwingConstants.TRAILING);
-		chkbox_logscale.setSelected(true);
-		chkbox_logscale.setHorizontalTextPosition(SwingConstants.LEADING);
-		chkbox_logscale.setBounds(21, 126, 255, 23);
-		contentPane.add(chkbox_logscale);
 		
 		JLabel lblDisplayHeightpx = new JLabel("Display height [px]");
 		lblDisplayHeightpx.setHorizontalAlignment(SwingConstants.TRAILING);
@@ -159,7 +151,6 @@ public class Preferences extends JFrame implements ActionListener {
 		spinner_imgy.setValue(opt_height);
 		chkbox_undo.setSelected(true);
 		chkbox_potential.setSelected(true);
-		chkbox_logscale.setSelected(true);
 		gui_units.setSelectedItem(Units.SI);
 	}
 
@@ -197,8 +188,8 @@ public class Preferences extends JFrame implements ActionListener {
 						case "imgsize_y": spinner_imgy.setValue(fstr.nextInt()); break;
 						case "undotrackssettings": chkbox_undo.setSelected(fstr.nextBoolean()); break;
 						case "potential": chkbox_potential.setSelected(fstr.nextBoolean()); break;
-						case "logscale": chkbox_logscale.setSelected(fstr.nextBoolean()); break;
 						case "units": gui_units.setSelectedItem(gson.fromJson(fstr, Units.class)); break;
+						default: fstr.skipValue();
 						}
 					}
 					fstr.endObject();
@@ -229,7 +220,6 @@ public class Preferences extends JFrame implements ActionListener {
 				header.addProperty("imgsize_y", (int)spinner_imgy.getValue());
 				header.addProperty("undotrackssettings", chkbox_undo.isSelected());
 				header.addProperty("potential", chkbox_potential.isSelected());
-				header.addProperty("logscale", chkbox_logscale.isSelected());
 				header.add("units", gson.toJsonTree((Units) gui_units.getSelectedItem()));
 
 

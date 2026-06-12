@@ -22,16 +22,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.swing.JPanel;
+
 import electrodynamics.Controls.Brush;
 import electrodynamics.plot.Plot;
-import electrodynamics.plot.ProbePlot;
-import electrodynamics.probe.ChargeProbe;
-import electrodynamics.probe.CurrentProbe;
-import electrodynamics.probe.FluxProbe;
-import electrodynamics.probe.Ground;
 import electrodynamics.probe.Probe;
-import electrodynamics.probe.Ruler;
-import electrodynamics.probe.VoltageProbe;
 import electrodynamics.units.Quantity;
 import electrodynamics.util.DistributionSampler;
 import electrodynamics.util.FastList;
@@ -905,37 +899,27 @@ public class Renderer extends PeriodicTask {
 			if (e.opts.menu_probes.isSelected())
 			{
 				for (Probe p0 : e.probes) {
-					drawProbe(p0);
+					p0.draw(this);
 				}
 				
 				if (e.controls.moving_selection) {
 					for (Probe p0 : e.controls.selection.probes) {
 						p0.translate(e.controls.delta_mx, e.controls.delta_my);
-						drawProbe(p0);
+						p0.draw(this);
 						p0.translate(-e.controls.delta_mx, -e.controls.delta_my);
 					}
 				}
 			}
 
-			setalphaFG(1.0);
-			setColorFloat(1.0f, 1.0f, 1.0f);
-
 			for (Plot p: e.plots) {
-				if (p.frame.isVisible() && !(p instanceof ProbePlot)) {
-					drawPixelRectangle((int)p.x1-1, (int)p.y1-1, 3, 3);
-					drawPixelRectangle((int)p.x2-1, (int)p.y2-1, 3, 3);
+				if (p.frame.isVisible()) {
+					if (p.path != null)
+						p.path.draw(this);
 				}
 			}
-
-			setalphaFG(1.0);
-			setColorFloat(1.0f, 1.0f, 1.0f);
-
-			for (Plot p: e.plots) {
-				if (p != null && p.frame.isVisible() && !(p instanceof ProbePlot)) {
-					drawPixelLine((int)p.x1, (int)p.y1, (int)p.x2, (int)p.y2);
-				}
-			}
-
+			
+			if (e.controls.plotpath != null)
+				e.controls.plotpath.draw(this);
 		}
 
 		setalphaFG(0.8);
@@ -947,91 +931,6 @@ public class Renderer extends PeriodicTask {
 
 		stampPixelData();
 
-	}
-	
-	void drawProbe(Probe p0) {
-		if (p0 instanceof VoltageProbe || p0 instanceof Ground) {
-			VoltageProbe p = (VoltageProbe) p0;
-			setalphaFG(1.0);
-			setColorFloat(0.5f, 1.0f, 1.0f);
-			drawPixelRectangle(p.x-1, p.y-1, 3, 3);
-			
-			setalphaFG(0.1);
-			setColorFloat(1.0f, 1.0f, 1.0f);
-			drawPixelLine(p.x, p.y, p.labelcoord.x, p.labelcoord.y);
-		}
-		else if (p0 instanceof CurrentProbe) {
-			CurrentProbe p = (CurrentProbe) p0;
-			setalphaFG(1.0);
-			setColorFloat(0.5f, 1.0f, 1.0f);
-			drawPixelRectangle(p.x1-1, p.y1-1, 3, 3);
-			drawPixelRectangle(p.x2-1, p.y2-1, 3, 3);
-
-			setalphaFG(0.3);
-			setColorFloat(0.5f, 1.0f, 1.0f);
-			drawPixelLine(p.x1, p.y1, p.x2, p.y2);
-			double dx_perp = (p.y2-p.y1);
-			double dy_perp = -(p.x2-p.x1);
-			double norm = Utils.length(dx_perp, dy_perp);
-			if (norm > 0) {
-				dx_perp = dx_perp/norm;
-				dy_perp = dy_perp/norm;
-
-				int dist = 3;
-
-				setPixel((int)Math.round(p.x1 + dist*dx_perp), (int)Math.round(p.y1+dist*dy_perp));
-				setPixel((int)Math.round(p.x2 + dist*dx_perp), (int)Math.round(p.y2+dist*dy_perp));
-			}
-			
-			setalphaFG(0.1);
-			setColorFloat(1.0f, 1.0f, 1.0f);
-			drawPixelLine((p.x1 + p.x2)/2, (p.y1+p.y2)/2, p.labelcoord.x, p.labelcoord.y);
-		}
-		else if (p0 instanceof ChargeProbe) {
-			ChargeProbe p = (ChargeProbe) p0;
-			setalphaFG(1.0);
-			setColorFloat(0.5f, 1.0f, 1.0f);
-
-			setalphaFG(0.3);
-			setColorFloat(0.5f, 1.0f, 1.0f);
-			drawPixelLine(p.x1, p.y1, p.x2, p.y1);
-			drawPixelLine(p.x2, p.y1, p.x2, p.y2);
-			drawPixelLine(p.x2, p.y2, p.x1, p.y2);
-			drawPixelLine(p.x1, p.y2, p.x1, p.y1);
-			
-			setalphaFG(0.1);
-			setColorFloat(1.0f, 1.0f, 1.0f);
-			drawPixelLine((p.x1 + p.x2)/2, (p.y1+p.y2)/2, p.labelcoord.x, p.labelcoord.y);
-		} else if (p0 instanceof FluxProbe) {
-			FluxProbe p = (FluxProbe) p0;
-			setalphaFG(1.0);
-			setColorFloat(0.5f, 1.0f, 1.0f);
-
-			setalphaFG(0.3);
-			setColorFloat(0.5f, 1.0f, 1.0f);
-			drawPixelLine(p.x1, p.y1, p.x2, p.y1);
-			drawPixelLine(p.x2, p.y1, p.x2, p.y2);
-			drawPixelLine(p.x2, p.y2, p.x1, p.y2);
-			drawPixelLine(p.x1, p.y2, p.x1, p.y1);
-			
-			setalphaFG(0.1);
-			setColorFloat(1.0f, 1.0f, 1.0f);
-			drawPixelLine((p.x1 + p.x2)/2, (p.y1+p.y2)/2, p.labelcoord.x, p.labelcoord.y);
-		} else if (p0 instanceof Ruler) {
-			Ruler p = (Ruler) p0;
-			setalphaFG(1.0);
-			setColorFloat(1.0f, 0.8f, 0.5f);
-			drawPixelRectangle(p.x1-1, p.y1-1, 3, 3);
-			drawPixelRectangle(p.x2-1, p.y2-1, 3, 3);
-
-			setalphaFG(0.3);
-			setColorFloat(1.0f, 0.8f, 0.5f);
-			drawPixelLine(p.x1, p.y1, p.x2, p.y2);
-			
-			setalphaFG(0.1);
-			setColorFloat(1.0f, 1.0f, 1.0f);
-			drawPixelLine((p.x1 + p.x2)/2, (p.y1+p.y2)/2, p.labelcoord.x, p.labelcoord.y);
-		}
 	}
 	
 	void drawOverlay() {
@@ -1063,22 +962,8 @@ public class Renderer extends PeriodicTask {
 		RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
 		if (e.opts.menu_probes.isSelected()) {
-			int index = 0;
 			for (Probe p: e.probes) {
-				if (p instanceof Ground)
-					drawMonospacedStringSimCoords("Ground = " + e.units.toString_fixedsigfigs(((Ground)p).potential - ((Ground)p).potential, Quantity.ELECTRIC_POTENTIAL, 1e-6), p.labelcoord.x, p.labelcoord.y, g);
-				else if (p instanceof VoltageProbe)
-					drawMonospacedStringSimCoords("V" + e.getProbeName(index) + " = " + e.units.toString_fixedsigfigs(((VoltageProbe)p).potential, Quantity.ELECTRIC_POTENTIAL, 1e-6), p.labelcoord.x, p.labelcoord.y, g);
-				else if (p instanceof CurrentProbe)
-					drawMonospacedStringSimCoords("I" + e.getProbeName(index) + " = " + e.units.toString_fixedsigfigs(((CurrentProbe)p).current, Quantity.ELECTRIC_CURRENT, 1e-9), p.labelcoord.x, p.labelcoord.y, g);
-				else if (p instanceof ChargeProbe)
-					drawMonospacedStringSimCoords("Q" + e.getProbeName(index) + " = " + e.units.toString_fixedsigfigs(((ChargeProbe)p).charge, Quantity.CHARGE), p.labelcoord.x, p.labelcoord.y, g);
-				else if (p instanceof FluxProbe)
-					drawMonospacedStringSimCoords("Φ" + e.getProbeName(index) + " = " + e.units.toString_fixedsigfigs(((FluxProbe)p).flux, Quantity.MAGNETIC_FLUX), p.labelcoord.x, p.labelcoord.y, g);
-				else if (p instanceof Ruler) {
-					drawMonospacedStringSimCoords(e.units.toString_fixedsigfigs(((Ruler)p).length, Quantity.LENGTH), p.labelcoord.x, p.labelcoord.y, g);
-				}
-				index++;
+				drawMonospacedStringSimCoords(p.getText(e.units), p.labelcoord.x, p.labelcoord.y, g);
 			}
 
 			drawStrings(g);
@@ -1276,68 +1161,13 @@ public class Renderer extends PeriodicTask {
 							randomness = 0.75;
 						}
 
-						double[][] vf_x = null;
-						double[][] vf_y = null;
-						boolean conductors_only = false;
-
-						switch (vector_view) {
-						case NONE:
-							break;
-						case D_FIELD:
-							vf_x = e.Dx;
-							vf_y = e.Dy;
-							break;
-						case E_FIELD:
-							vf_x = e.Ex;
-							vf_y = e.Ey;
-							break;
-						case ELECTRON_CURRENT:
-							vf_x = e.Jx_n;
-							vf_y = e.Jy_n;
-							conductors_only = true;
-							break;
-						case HOLE_CURRENT:
-							vf_x = e.Jx_p;
-							vf_y = e.Jy_p;
-							conductors_only = true;
-							break;
-						case TOTAL_CURRENT:
-							vf_x = e.Jx_free;
-							vf_y = e.Jy_free;
-							conductors_only = true;
-							break;
-						case EMF:
-							vf_x = e.emfx;
-							vf_y = e.emfy;
-							conductors_only = true;
-							break;
-						case ELECTRON_DIFFUSION:
-							vf_x = e.diff_x_n;
-							vf_y = e.diff_y_n;
-							conductors_only = true;
-							break;
-						case ELECTRON_DRIFT:
-							vf_x = e.drift_x_n;
-							vf_y = e.drift_y_n;
-							conductors_only = true;
-							break;
-						case HOLE_DIFFUSION:
-							vf_x = e.diff_x_p;
-							vf_y = e.diff_y_p;
-							conductors_only = true;
-							break;
-						case HOLE_DRIFT:
-							vf_x = e.drift_x_p;
-							vf_y = e.drift_y_p;
-							conductors_only = true;
-							break;
-						case POYNTING:
-							vf_x = e.Sx;
-							vf_y = e.Sy;
-							break;
-						default:
-							break;
-						}
+						
+						boolean conductors_only = vector_view.isConductorOnly();
+						
+						double[][][] vf = {null, null};
+						e.computeVectorField(vf, vector_view);
+						double[][] vf_x = vf[0];
+						double[][] vf_y = vf[1];
 
 						Vector ctr = new Vector(0,0);
 						Vector arrow = new Vector(0,0);
@@ -1853,15 +1683,15 @@ public class Renderer extends PeriodicTask {
 		NONE("No scalar overlay",															"None",		Quantity.DIMENSIONLESS,				ColorScheme.OTHER,			1),
 		E_FIELD("View: E field magnitude",													"E",		Quantity.ELECTRIC_FIELD,			ColorScheme.GREEN,			1e5),
 		B_FIELD("View: B field",															"B",		Quantity.MAGNETIC_FLUX_DENSITY,		ColorScheme.CYAN_YELLOW,	1e-5),
-		CHARGE("View \u03c1: Net charge density",											"\u03c1",	Quantity.CHARGE_DENSITY,			ColorScheme.OTHER,			1e1),
-		CURRENT("View J: Total current magnitude",											"J",		Quantity.CURRENT_DENSITY,			ColorScheme.GREEN,			1e7),
 		H_FIELD("View H field",																"H",		Quantity.MAGNETIC_FIELD_STRENGTH,	ColorScheme.CYAN_YELLOW,	1e-5/1.257e-6),
 		POTENTIAL("View \u03d5: Electric scalar potential", 								"\u03d5",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
 		ENERGY("View u: Electromagnetic energy density",									"u",		Quantity.ENERGY_DENSITY,			ColorScheme.GREEN,			1),
+		CURRENT("View J: Total current magnitude",											"J",		Quantity.CURRENT_DENSITY,			ColorScheme.GREEN,			1e7),
+		CHARGE("View \u03c1: Net charge density",											"\u03c1",	Quantity.CHARGE_DENSITY,			ColorScheme.OTHER,			1e1),
 		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density",						"\u03c1\u2099",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE,		1e1),
 		HOLE_CHARGE("View \u03c1\u209A: Hole charge density",								"\u03c1\u209A",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE,		1e1),
-		COMBINED_CHARGE("View: Combined electron+hole charge density",						"\u03c1\u2099 and \u03c1\u209A",	Quantity.DIMENSIONLESS,	ColorScheme.OTHER,			1),
 		BACKGROUND_CHARGE("View \u03c1\u2080: Static charge density (doping)",				"\u03c1\u2080",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE,		1e1),
+		COMBINED_CHARGE("View: Combined electron+hole charge density",						"\u03c1\u2099 and \u03c1\u209A",	Quantity.DIMENSIONLESS,	ColorScheme.OTHER,			1),
 		HEAT("View Q: Heat dissipation",													"q",		Quantity.POWER_DENSITY,				ColorScheme.RED_BLUE,		1e12),
 		ENTROPY("View s: Entropy generation rate",											"s",		Quantity.ENTROPY_DENSITY_RATE,		ColorScheme.RED_BLUE,		3.33e9),
 		ELECTRON_POTENTIAL("View F\u2099: Electron quasi Fermi level",						"μ\u2099",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
@@ -1907,35 +1737,41 @@ public class Renderer extends PeriodicTask {
 	}
 
 	public enum VectorView {
-		NONE("No vector overlay",							"None",		1),
-		E_FIELD("View E: Electric field",					"E",		10),
-		D_FIELD("View D: Displacement field",				"D",		10*8.85e-12),
-		ELECTRON_CURRENT("View J\u2099: Electron current",	"J\u2099",	1),
-		HOLE_CURRENT("View J\u209A: Hole current",			"J\u209A",	1),
-		TOTAL_CURRENT("View J: Total current",				"J",		1),
-		EMF("View \u2130: External electromotive force",	"\u2130",	1),
-		POYNTING("View S: Poynting vector",					"S",		1),
-		ELECTRON_DRIFT("View: Electron drift current",			"Jn (drift)",	1),
-		ELECTRON_DIFFUSION("View: Electron diffusion current",	"Jn (diffus)",	1),
-		ELECTRON_VELOCITY("View: Electron drift velocity",		"vn",			1),
-		HOLE_DRIFT("View: Hole drift current",					"Jp (drift)",	1),
-		HOLE_DIFFUSION("View: Hole diffusion current",			"Jp (diffus)",	1),
-		HOLE_VELOCITY("View: Hole drift velocity",				"vp",			1);
+		NONE("No vector overlay",								"None",				Quantity.DIMENSIONLESS,			1),
+		E_FIELD("View E: Electric field",						"E",				Quantity.ELECTRIC_FIELD,		10),
+		D_FIELD("View D: Displacement field",					"D",				Quantity.ELECTRIC_FLUX_DENSITY,	10*8.85e-12),
+		ELECTRON_CURRENT("View J\u2099: Electron current",		"J\u2099",			Quantity.ELECTRIC_CURRENT,		1),
+		HOLE_CURRENT("View J\u209A: Hole current",				"J\u209A",			Quantity.ELECTRIC_CURRENT,		1),
+		TOTAL_CURRENT("View J: Total current",					"J",				Quantity.ELECTRIC_CURRENT,		1),
+		EMF("View \u2130: External electromotive force",		"\u2130",			Quantity.ELECTRIC_FIELD,		1),
+		POYNTING("View S: Poynting vector",						"S",				Quantity.INTENSITY,				1),
+		ELECTRON_DRIFT("View: Electron drift current",			"Jn (drift)",		Quantity.ELECTRIC_CURRENT,		1),
+		ELECTRON_DIFFUSION("View: Electron diffusion current",	"Jn (diffusion)",	Quantity.ELECTRIC_CURRENT,		1),
+		ELECTRON_VELOCITY("View: Electron drift velocity",		"vn",				Quantity.VELOCITY,				1),
+		HOLE_DRIFT("View: Hole drift current",					"Jp (drift)",		Quantity.ELECTRIC_CURRENT,		1),
+		HOLE_DIFFUSION("View: Hole diffusion current",			"Jp (diffusion)",	Quantity.ELECTRIC_CURRENT,		1),
+		HOLE_VELOCITY("View: Hole drift velocity",				"vp",				Quantity.VELOCITY,				1);
 	
 		public String name;
+		public Quantity unit;
 		public String shorthand;
 		public double scale;
 	
-		VectorView(String name, String shorthand, double scale)
+		VectorView(String name, String shorthand, Quantity unit, double scale)
 		{
 			this.name = name;
 			this.shorthand = shorthand;
+			this.unit = unit;
 			this.scale = scale;
 		}
 	
 		@Override
 		public String toString() {
 			return name;
+		}
+		
+		public boolean isConductorOnly() {
+			return (!(this == E_FIELD || this == D_FIELD || this == POYNTING));
 		}
 	}
 

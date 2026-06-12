@@ -5,24 +5,34 @@
 package electrodynamics.plot;
 
 import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.WindowConstants;
 
 import org.jfree.chart.ChartPanel;
+import org.jfree.chart.axis.LogarithmicAxis;
+import org.jfree.chart.axis.NumberAxis;
 
 import electrodynamics.Simulation;
 
-public abstract class Plot {
+public abstract class Plot implements ActionListener {
 	public MatlabChart fig;
 	public JFrame frame;
 	public Font boldfont = new Font(Font.SANS_SERIF, Font.BOLD, 12);
 	public Font regularfont = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
 
-	public double x1;
-	public double y1;
-	public double x2;
-	public double y2;
+	public Path path;
+	public JMenuItem menu_log;
+	public JMenuItem menu_reset;
+
+	public LogarithmicAxis logaxis;
+	public NumberAxis linaxis;
 
 	public Plot() {
 		fig = new MatlabChart();
@@ -41,8 +51,31 @@ public abstract class Plot {
 
 		ChartPanel chartPanel = new ChartPanel(fig.chart);
 
+		logaxis = new LogarithmicAxis("");
+		logaxis.setLog10TickLabelsFlag(true);
+		logaxis.setStrictValuesFlag(false);
+		logaxis.setAllowNegativesFlag(true);
+		linaxis = new NumberAxis("");
+
 		frame = new JFrame("");
 		frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+		
+
+		JMenuBar menuBar = new JMenuBar();
+		frame.setJMenuBar(menuBar);
+
+		JMenu mnNewMenu = new JMenu("Plot settings");
+		menuBar.add(mnNewMenu);
+
+		menu_log = new JCheckBoxMenuItem("Logarithmic y axis");
+		mnNewMenu.add(menu_log);
+
+		menu_reset = new JMenuItem("Clear data");
+		mnNewMenu.add(menu_reset);
+		
+		menu_log.addActionListener(this);
+		menu_reset.addActionListener(this);
+		
 		frame.add(chartPanel);
 		frame.setSize(600, 400);
 		frame.setLocationRelativeTo(null);
@@ -53,11 +86,23 @@ public abstract class Plot {
 	
 	public abstract void updatePlot(Simulation e);
 	
-	public void createPlot(Simulation e) {
-		x1 = e.controls.mx_start;
-		y1 = e.controls.my_start;
-		x2 = e.controls.mx;
-		y2 = e.controls.my;
+	public void createPlot(Simulation e, Path p) {
+		this.path = p;
 		frame.setVisible(true);
+	}
+
+	public void reset() {};
+	
+	@Override
+	public void actionPerformed(ActionEvent ev) {
+		if (ev.getSource() == menu_log) {
+			if (menu_log.isSelected() && fig.chart.getXYPlot().getRangeAxis() != logaxis) {
+				fig.chart.getXYPlot().setRangeAxis(logaxis);
+			} else if (!menu_log.isSelected() && fig.chart.getXYPlot().getRangeAxis() != linaxis) {
+				fig.chart.getXYPlot().setRangeAxis(linaxis);
+			}
+		} else if (ev.getSource() == menu_reset) {
+			reset();
+		}
 	}
 }

@@ -45,8 +45,8 @@ public class ScalarPlot extends Plot {
 
 			for (int n = 0; n <= 100; n++) {
 				double t = n/100.0;
-				double x = t*(x2 - x1) + x1;
-				double y = t*(y2 - y1) + y1;
+				double x = path.getX(t);
+				double y = path.getY(t);
 
 				data.add(t, Utils.bilinearinterp_extrap(e.renderer.scalarfield, x, y, e.nx, e.ny)/unitquantity);
 			}

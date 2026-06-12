@@ -4,11 +4,23 @@
 
 package electrodynamics.probe;
 
+import electrodynamics.units.Quantity;
+import electrodynamics.units.Units;
+
 public class Ground extends VoltageProbe {
+	public Ground(int mx, int my) {
+		super(mx, my);
+	}
+
 	@Override
 	public Ground clone() {
 		Ground p = null;
 		p = (Ground) super.clone();
 		return p;
+	}
+	
+	@Override
+	public String getText(Units units) {
+		return "Ground = " + units.toString_fixedsigfigs(value - value, Quantity.ELECTRIC_POTENTIAL, 1e-6);
 	}
 }

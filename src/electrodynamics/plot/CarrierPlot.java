@@ -4,8 +4,6 @@
 
 package electrodynamics.plot;
 
-import org.jfree.chart.axis.LogarithmicAxis;
-import org.jfree.chart.axis.NumberAxis;
 import org.jfree.data.xy.XYSeries;
 
 import electrodynamics.Simulation;
@@ -15,17 +13,12 @@ import electrodynamics.util.Utils;
 public class CarrierPlot extends Plot {
 	public XYSeries rho_n_data;
 	public XYSeries rho_p_data;
-	
-	public LogarithmicAxis logaxis;
-	public NumberAxis linaxis;
 
 	@Override
 	public void initialize() {
 		super.initialize();
-		logaxis = new LogarithmicAxis("");
-		logaxis.setLog10TickLabelsFlag(true);
-		linaxis = new NumberAxis("");
         fig.chart.getXYPlot().setRangeAxis(logaxis);
+        menu_log.setSelected(true);
         fig.xlabel("Position");
         frame.setTitle("Carrier density plot");
 	}
@@ -39,12 +32,6 @@ public class CarrierPlot extends Plot {
 	@Override
 	public void updatePlot(Simulation e) {
 		if (frame.isVisible() && e.frame%10 == 0) {
-			if (e.prefs.chkbox_logscale.isSelected() && fig.chart.getXYPlot().getRangeAxis() != logaxis) {
-		        fig.chart.getXYPlot().setRangeAxis(logaxis);
-			} else if (!e.prefs.chkbox_logscale.isSelected() && fig.chart.getXYPlot().getRangeAxis() != linaxis) {
-		        fig.chart.getXYPlot().setRangeAxis(linaxis);
-			}
-			
 	        double unitquantity = e.units.sys.toSI(1, Quantity.NUMBER_DENSITY);
 	        String unitname = e.units.sys.toString(1, Quantity.NUMBER_DENSITY, "%.0f");
 	        if (unitname.startsWith("1 ")) unitname = "1".concat(unitname.substring(2));
@@ -58,8 +45,8 @@ public class CarrierPlot extends Plot {
 
 			for (int n = 0; n <= 100; n++) {
 				double t = n/100.0;
-				double x = t*(x2 - x1) + x1;
-				double y = t*(y2 - y1) + y1;
+				double x = path.getX(t);
+				double y = path.getY(t);
 
 				double rho_n = Utils.bilinearinterp_geometric_extrap(e.rho_n, x, y, e.nx, e.ny)/e.e_charge/unitquantity;
 				if (rho_n > 0) rho_n_data.add(t, rho_n);
@@ -73,5 +60,11 @@ public class CarrierPlot extends Plot {
 			rho_n_data.setNotify(true);
 			rho_p_data.setNotify(true);
 		}
+	}
+
+	@Override
+	public void reset() {
+		rho_n_data.clear();
+		rho_p_data.clear();
 	}
 }

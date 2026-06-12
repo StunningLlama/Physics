@@ -49,8 +49,8 @@ public class BandPlot extends Plot {
 
 			for (int n = 0; n <= 100; n++) {
 				double t = n/100.0;
-				double x = t*(x2 - x1) + x1;
-				double y = t*(y2 - y1) + y1;
+				double x = path.getX(t);
+				double y = path.getY(t);
 
 				// Add chemical energy and electrostatic energy to get band energy
 				E_n_data.add(t, -(Utils.bilinearinterp_extrap(e.E0_n, x, y, e.nx, e.ny)/e.q_n+Utils.bilinearinterp_extrap(e.phi, e.E0_n, x, y, e.nx, e.ny)));
@@ -66,5 +66,13 @@ public class BandPlot extends Plot {
 			F_p_data.setNotify(true);
 			//F_data.setNotify(true);
 		}
+	}
+	
+	@Override
+	public void reset() {
+		E_n_data.clear();
+		E_p_data.clear();
+		F_n_data.clear();
+		F_p_data.clear();
 	}
 }

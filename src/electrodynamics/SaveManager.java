@@ -32,6 +32,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
+import electrodynamics.Compatibility.VectorMode_v1;
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Simulation.BoundaryCondition;
@@ -132,7 +133,7 @@ public class SaveManager {
 
 				if (version == 2 || version == 3 || version == 4) {
 					setDefaults();
-					VectorMode_old vecmode_old = null;
+					VectorMode_v1 vecmode_old = null;
 					assertNextObject(fstr, "header");
 					fstr.beginObject();
 					while (fstr.hasNext()) {
@@ -147,7 +148,7 @@ public class SaveManager {
 						// Version 2
 						case "gui_view": e.controls.scalarview.setOption(gson.fromJson(fstr, Renderer.ScalarView.class)); break;
 						case "gui_view_vec": e.controls.vectorview.setOption(gson.fromJson(fstr, Renderer.VectorView.class)); break;
-						case "gui_view_vec_mode": vecmode_old = gson.fromJson(fstr, VectorMode_old.class); break;
+						case "gui_view_vec_mode": vecmode_old = gson.fromJson(fstr, VectorMode_v1.class); break;
 
 						// Version 3
 						case "scalarview": e.controls.scalarview.setOption(gson.fromJson(fstr, Renderer.ScalarView.class)); break;
@@ -195,6 +196,9 @@ public class SaveManager {
 						case "materials": e.materials = validateArraySize((Material[][]) gson.fromJson(fstr, Material[][].class)); break;
 						case "materialmap": e.materialmanager.mat_map = (HashMap<Integer, Material>) gson.fromJson(fstr, new TypeToken<HashMap<Integer, Material>>(){}.getType()); break;
 						case "last_material_id": e.materialmanager.id_counter = fstr.nextInt(); break;
+
+						case "all_probes": e.probes.addAll(Arrays.asList(
+						(Probe[]) gson.fromJson(fstr, Probe[].class))); break;
 						
 						case "voltageprobes": e.probes.addAll(Arrays.asList(
 						(VoltageProbe[]) gson.fromJson(fstr, VoltageProbe[].class))); break;
@@ -211,7 +215,12 @@ public class SaveManager {
 					}
 					fstr.endObject();
 
-					for (Probe p : e.probes) p.data.fixWeirdIssue();
+					for (Probe p : e.probes) {
+						p.eliminateNulls();
+						p.data.fixWeirdIssue();
+					}
+
+					e.relabelProbes();
 
 					if (testNextObject(fstr, "advsettings")) {
 						fstr.beginObject();
@@ -251,8 +260,8 @@ public class SaveManager {
 						case "gui_paused": e.opts.gui_paused.setSelected(fstr.nextBoolean()); break;
 						case "gui_tooltip": e.opts.menu_tooltip.setSelected(fstr.nextBoolean()); break;
 						case "gui_text_bg": e.opts.menu_text_bg.setSelected(fstr.nextBoolean()); break;
-						case "gui_view": e.controls.scalarview.setOption(fstr.nextInt()); break;
-						case "gui_view_vec": e.controls.vectorview.setOption(fstr.nextInt()); break;
+						case "gui_view": e.controls.scalarview.setOption(Compatibility.scalar_order_v1[fstr.nextInt()]); break;
+						case "gui_view_vec": e.controls.vectorview.setOption(Compatibility.vector_order_v1[fstr.nextInt()]); break;
 						case "gui_view_vec_mode": view_vec_mode = fstr.nextInt(); break;
 						case "gui_simspeed": e.opts.gui_simspeed.setValue(fstr.nextInt()); break;
 						case "gui_simspeed_2": e.opts.gui_simspeed_2.setValue(fstr.nextInt()); break;
@@ -291,9 +300,16 @@ public class SaveManager {
 						default: fstr.skipValue(); break; // skip others
 						}
 					}
+					
+					for (Probe p : e.probes) {
+						p.eliminateNulls();
+						p.data.fixWeirdIssue();
+					}
+					
+					e.relabelProbes();
 
 					if (view_vec_mode != -1) {
-						VectorMode_old vecmode_old = VectorMode_old.values()[view_vec_mode];
+						VectorMode_v1 vecmode_old = VectorMode_v1.values()[view_vec_mode];
 						vecmode_old.applySetting(e);
 					}
 
@@ -478,11 +494,7 @@ public class SaveManager {
 				data.add("jx_p", gson.toJsonTree(e.Jx_p));
 				data.add("jy_p", gson.toJsonTree(e.Jy_p));
 				data.add("materials", gson.toJsonTree(e.materials));
-				data.add("voltageprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof VoltageProbe && !(p instanceof Ground))).toArray()));
-				data.add("currentprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof CurrentProbe)).toArray()));
-				data.add("chargeprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof ChargeProbe)).toArray()));
-				data.add("fluxprobes", gson.toJsonTree(filterByType(e.probes, (p)->!(p instanceof FluxProbe)).toArray()));
-				data.add("ground", gson.toJsonTree(e.getGround()));
+				data.add("all_probes", gson.toJsonTree(e.probes));
 				data.add("materialmap", gson.toJsonTree(e.materialmanager.mat_map));
 				data.addProperty("last_material_id", e.materialmanager.id_counter);
 
@@ -527,48 +539,5 @@ public class SaveManager {
 	public void setDefaults() {
 		e.setDefaultParameters();
 		e.opts.setDefaults(e);
-	}
-	
-	// Old version of VectorMode for backwards file compatibility
-	enum VectorMode_old {
-
-		ARROWS,
-		LINES,
-		DOTS,
-		CONTOUR,
-		SPECIES;
-		
-		public void applySetting(Simulation e) {
-			switch(this) {
-			case ARROWS:
-				e.controls.vectormode.setOption(VectorMode.ARROWS);
-				e.controls.scalarmode.setOption(ScalarMode.COLORS);
-				e.opts.gui_carriers.setSelected(false);
-				break;
-			case CONTOUR:
-				e.controls.vectormode.setOption(VectorMode.NONE);
-				e.controls.scalarmode.setOption(ScalarMode.CONTOUR_COLORS);
-				e.opts.gui_carriers.setSelected(false);
-				break;
-			case DOTS:
-				e.controls.vectormode.setOption(VectorMode.DOTS);
-				e.controls.scalarmode.setOption(ScalarMode.COLORS);
-				e.opts.gui_carriers.setSelected(false);
-				break;
-			case LINES:
-				e.controls.vectormode.setOption(VectorMode.LINES);
-				e.controls.scalarmode.setOption(ScalarMode.COLORS);
-				e.opts.gui_carriers.setSelected(false);
-				break;
-			case SPECIES:
-				e.controls.vectormode.setOption(VectorMode.NONE);
-				e.controls.scalarmode.setOption(ScalarMode.COLORS);
-				e.opts.gui_carriers.setSelected(true);
-				e.opts.gui_carrier_density.setValue(e.opts.gui_brightness_vec.getValue());
-				break;
-			default:
-				break;
-			}
-		}
 	}
 }

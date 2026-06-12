@@ -721,9 +721,9 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		junction_size		.setText(Integer.toString(e.junction_size			));
 		dopant_smoothing_distance		.setText(Integer.toString(e.dopant_smoothing_distance			));
 
-		eps0					.setText(Utils.formatDouble(e.eps0						));
+		eps0				.setText(Utils.formatDouble(e.eps0						));
 		mu0					.setText(Utils.formatDouble(e.mu0							));
-		e_charge				.setText(Utils.formatDouble(e.e_charge					));
+		e_charge			.setText(Utils.formatDouble(e.e_charge					));
 		T					.setText(Utils.formatDouble(e.T							));
 		
 		mu_electron			.setText(Utils.formatDouble(e.mu_electron_semi			));

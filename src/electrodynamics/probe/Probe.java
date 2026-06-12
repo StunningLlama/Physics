@@ -4,7 +4,12 @@
 
 package electrodynamics.probe;
 
+import electrodynamics.Renderer;
 import electrodynamics.Simulation;
+import electrodynamics.Renderer.ScalarView;
+import electrodynamics.Renderer.VectorView;
+import electrodynamics.units.Quantity;
+import electrodynamics.units.Units;
 
 public abstract class Probe implements Cloneable {
 	public static int data_size = 100;
@@ -12,7 +17,12 @@ public abstract class Probe implements Cloneable {
 	public LabelCoord labelcoord = new LabelCoord();
 	public ProbeData data = new ProbeData();
 	public boolean selected = false;
+	public double value = 0;
+	public Quantity quantity = Quantity.DIMENSIONLESS;
+	public String shorthand = "";
+	public String name = "";
 
+	public Probe(int mx, int my) {};
 	public abstract void reset();
 	public abstract void calculateDefaultLabelCoords();
 	public abstract void measure(Simulation e, boolean savedatapoint);
@@ -23,16 +33,54 @@ public abstract class Probe implements Cloneable {
 	public abstract void rotate90(int i_max, int j_max);
 	public abstract void flip_h(int i_min, int i_max);
 	public abstract void flip_v(int j_min, int j_max);
+	public abstract void drag(int mx, int my);
+	public abstract void draw(Renderer r);
+	public abstract String getText(Units units);
+	
+	@Override
+	public String toString() {
+		return shorthand + name;
+	}
 	
 	@Override
 	public Probe clone() {
 		try {
 			return (Probe) super.clone();
 		} catch (CloneNotSupportedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	public void eliminateNulls() {
+		if (data == null)
+			data = new ProbeData();
+		if (labelcoord == null)
+			labelcoord = new LabelCoord();
+		if (quantity == null)
+			quantity = Quantity.DIMENSIONLESS;
+		
+		if (this instanceof VoltageProbe) {
+			shorthand = "V";
+			quantity = Quantity.ELECTRIC_POTENTIAL;
+		} else if (this instanceof ChargeProbe) {
+			quantity = Quantity.CHARGE;
+			shorthand = "Q";
+			((ChargeProbe)this).isDensity = true;
+			((ChargeProbe)this).scalarname = ScalarView.CHARGE;
+		} else if (this instanceof CurrentProbe) {
+			shorthand = "I";
+			quantity = Quantity.ELECTRIC_CURRENT;
+			((CurrentProbe)this).vectorname = VectorView.TOTAL_CURRENT;
+		} else if (this instanceof FluxProbe) {
+			quantity = Quantity.MAGNETIC_FLUX;
+			shorthand = "Φ";
+			((FluxProbe)this).isDensity = true;
+			((FluxProbe)this).scalarname = ScalarView.B_FIELD;
+		} else if (this instanceof Ground) {
+			shorthand = "V";
+			quantity = Quantity.ELECTRIC_POTENTIAL;
+		}
 	}
 	
 	public class LabelCoord implements Cloneable {

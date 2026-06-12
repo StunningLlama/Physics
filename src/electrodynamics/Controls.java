@@ -36,12 +36,14 @@ import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 
 import electrodynamics.Renderer.ScalarMode;
@@ -49,12 +51,18 @@ import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
 import electrodynamics.Simulation.BoundaryCondition;
+import electrodynamics.plot.LinePath;
+import electrodynamics.plot.Path;
 import electrodynamics.plot.Plot;
 import electrodynamics.plot.ProbePlot;
+import electrodynamics.plot.SegmentedPath;
+import electrodynamics.probe.AreaProbe;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
 import electrodynamics.probe.FluxProbe;
 import electrodynamics.probe.Ground;
+import electrodynamics.probe.LineProbe;
+import electrodynamics.probe.PointProbe;
 import electrodynamics.probe.Probe;
 import electrodynamics.probe.Ruler;
 import electrodynamics.probe.VoltageProbe;
@@ -175,6 +183,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public UndoRedo undoredo = new UndoRedo(4);
 	
 	public Probe.LabelCoord labelcoord = null;
+	
+	public Path plotpath = null;
 	
 	public Controls(Simulation e) {
 		this.e = e;
@@ -439,6 +449,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		} else {
 			e.opts.gui_light.setVisible(false);
 			e.opts.gui_light_text.setVisible(false);
+		}
+
+		if (brush == Brush.PROBE) {
+			e.opts.gui_probetype.setVisible(true);
+		} else {
+			e.opts.gui_probetype.setVisible(false);
 		}
 	}
 	
@@ -774,67 +790,139 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 		case CURRENT:
 			if (pressing) {
-				CurrentProbe p = new CurrentProbe();
-				p.x1 = mx_start;
-				p.y1 = my_start;
-				p.x2 = mx;
-				p.y2 = my;
+				CurrentProbe p = new CurrentProbe(mx_start, my_start);
+				p.name = e.getProbeName(); e.probe_index++;
 				e.probes.add(p);
 			} else if (mouse_pressed) {
-				CurrentProbe p = (CurrentProbe) e.probes.get(e.probes.size()-1);
-				p.x2 = mx;
-				p.y2 = my;
-				p.calculateDefaultLabelCoords();
+				e.probes.get(e.probes.size()-1).drag(mx, my);
 			} else if (releasing) {
 				flagChanges(false);
 			}
 			break;
 		case VOLTAGE:
 			if (pressing) {
-				VoltageProbe p = new VoltageProbe();
-				p.x = mx_start;
-				p.y = my_start;
+				VoltageProbe p = new VoltageProbe(mx_start, my_start);
+				p.name = e.getProbeName(); e.probe_index++;
 				e.probes.add(p);
 			} else if (mouse_pressed) {
-				VoltageProbe p = (VoltageProbe) e.probes.get(e.probes.size()-1);
-				p.x = mx;
-				p.y = my;
-				p.calculateDefaultLabelCoords();
+				e.probes.get(e.probes.size()-1).drag(mx, my);
 			} else if (releasing) {
 				flagChanges(false);
 			}
 			break;
 		case CHARGE:
 			if (pressing) {
-				ChargeProbe p = new ChargeProbe();
-				p.x1 = mx_start;
-				p.y1 = my_start;
-				p.x2 = mx;
-				p.y2 = my;
+				ChargeProbe p = new ChargeProbe(mx_start, my_start);
+				p.name = e.getProbeName(); e.probe_index++;
 				e.probes.add(p);
 			} else if (mouse_pressed) {
-				ChargeProbe p = (ChargeProbe) e.probes.get(e.probes.size()-1);
-				p.x2 = mx;
-				p.y2 = my;
-				p.calculateDefaultLabelCoords();
+				e.probes.get(e.probes.size()-1).drag(mx, my);
 			} else if (releasing) {
 				flagChanges(false);
 			}
 			break;
 		case FLUX:
 			if (pressing) {
-				FluxProbe p = new FluxProbe();
-				p.x1 = mx_start;
-				p.y1 = my_start;
-				p.x2 = mx;
-				p.y2 = my;
+				FluxProbe p = new FluxProbe(mx_start, my_start);
+				p.name = e.getProbeName(); e.probe_index++;
 				e.probes.add(p);
 			} else if (mouse_pressed) {
-				FluxProbe p = (FluxProbe) e.probes.get(e.probes.size()-1);
-				p.x2 = mx;
-				p.y2 = my;
-				p.calculateDefaultLabelCoords();
+				e.probes.get(e.probes.size()-1).drag(mx, my);
 			} else if (releasing) {
+				flagChanges(false);
+			}
+			break;
+		case PROBE:
+			if (pressing) {
+				Probe p = null;
+				switch ((CustProbeType) e.opts.gui_probetype.getSelectedItem()) {
+				case AREA:
+					p = new AreaProbe(mx_start, my_start);
+					break;
+				case LINE:
+					p = new LineProbe(mx_start, my_start);
+					break;
+				case POINT:
+					p = new PointProbe(mx_start, my_start);
+					break;
+				default:
+					break;
+				}
+				if (p != null) {
+					p.name = e.getProbeName(); e.probe_index++;
+					e.probes.add(p);
+				}
+			} else if (mouse_pressed) {
+				Probe p = e.probes.get(e.probes.size()-1);
+				if (p != null) {
+					p.drag(mx, my);
+				}
+			} else if (releasing) {
+				Probe p = e.probes.get(e.probes.size()-1);
+				if (p != null) {
+					if (p instanceof AreaProbe) {
+
+						JList<ScalarView> tmplist = new JList<>(ScalarView.values());
+
+						tmplist.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+						tmplist.setVisibleRowCount(5);
+						tmplist.setSelectedValue(Preset.DEFAULT, true);
+						JScrollPane scrollPane = new JScrollPane(tmplist);
+						int result = JOptionPane.showConfirmDialog(null, scrollPane, "Select quantity", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+						if (result == JOptionPane.OK_OPTION) {
+							ScalarView selected = tmplist.getSelectedValue();
+
+							if (selected != null) {
+								((AreaProbe)p).scalarname = selected;
+								((AreaProbe)p).shorthand = selected.shorthand;
+								((AreaProbe)p).quantity = selected.unit;
+							}
+						} else {
+							e.probes.remove(p);
+						}
+					} else if (p instanceof PointProbe) {
+						JList<ScalarView> tmplist = new JList<>(ScalarView.values());
+
+						tmplist.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+						tmplist.setVisibleRowCount(5);
+						tmplist.setSelectedValue(Preset.DEFAULT, true);
+						JScrollPane scrollPane = new JScrollPane(tmplist);
+						int result = JOptionPane.showConfirmDialog(null, scrollPane, "Select quantity", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+						if (result == JOptionPane.OK_OPTION) {
+							ScalarView selected = tmplist.getSelectedValue();
+
+							if (selected != null) {
+								((PointProbe)p).scalarname = selected;
+								((PointProbe)p).shorthand = selected.shorthand;
+								((PointProbe)p).quantity = selected.unit;
+							}
+						} else {
+							e.probes.remove(p);
+						}
+					} else if (p instanceof LineProbe) {
+						JList<VectorView> tmplist = new JList<>(VectorView.values());
+
+						tmplist.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+						tmplist.setVisibleRowCount(5);
+						tmplist.setSelectedValue(Preset.DEFAULT, true);
+						JScrollPane scrollPane = new JScrollPane(tmplist);
+						int result = JOptionPane.showConfirmDialog(null, scrollPane, "Select quantity", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+						if (result == JOptionPane.OK_OPTION) {
+							VectorView selected = tmplist.getSelectedValue();
+
+							if (selected != null) {
+								((LineProbe)p).vectorname = selected;
+								((LineProbe)p).shorthand = selected.shorthand;
+								((LineProbe)p).quantity = selected.unit;
+							}
+						} else {
+							e.probes.remove(p);
+						}
+					}
+				}
 				flagChanges(false);
 			}
 			break;
@@ -891,18 +979,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case GROUND:
 			if (pressing) {
 				if (!e.hasGround()) {
-					Ground ground = new Ground();
+					Ground ground = new Ground(mx_start, my_start);
 					e.probes.add(ground);
 				}
-				
-				Ground g = e.getGround();
-				g.x = mx_start;
-				g.y = my_start;
 			} else if (mouse_pressed) {
-				Ground g = e.getGround();
-				g.x = mx;
-				g.y = my;
-				g.calculateDefaultLabelCoords();
+				e.getGround().drag(mx, my);
 			} else if (releasing) {
 				flagChanges(false);
 			}
@@ -910,19 +991,15 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case RULER:
 			if (pressing) {
 				if (!e.hasRuler()) {
-					Ruler p = new Ruler();
+					Ruler p = new Ruler(mx_start, my_start);
 					e.probes.add(p);
+				} else {
+					Ruler p = e.getRuler();
+					p.x1 = mx_start;
+					p.y1 = my_start;
 				}
-				Ruler p = e.getRuler();
-				p.x1 = mx_start;
-				p.y1 = my_start;
-				p.x2 = mx;
-				p.y2 = my;
 			} else if (mouse_pressed) {
-				Ruler g = e.getRuler();
-				g.x2 = mx;
-				g.y2 = my;
-				g.calculateDefaultLabelCoords();
+				e.getRuler().drag(mx, my);
 			} else if (releasing) {
 				Ruler p = e.getRuler();
 				if (p.x1 == p.x2 && p.y1 == p.y2) {
@@ -932,22 +1009,24 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 			break;
 		case BANDS:
-			if (releasing) e.bandplot.createPlot(e);
+			createPath();
+			if (releasing && !shift_down) {
+				e.bandplot.createPlot(e, plotpath);
+				plotpath = null;
+			}
 			break;
 		case SCALARPLOT:
-			if (releasing) e.scalarplot.createPlot(e);
+			createPath();
+			if (releasing && !shift_down) {
+				e.scalarplot.createPlot(e, plotpath);
+				plotpath = null;
+			}
 			break;
 		case CARRIERPLOT:
-			if (releasing) e.carrierplot.createPlot(e);
-			break;
-		case PROBEPLOT:
-			plotinterval = e.opts.gui_plotinterval.getValue();
-			e.opts.gui_plotinterval_text.setText("Time resolution: " + e.units.toString(plotinterval*e.dt*e.iteration_multiplier, Quantity.TIME));
-			for (Plot p : e.plots) {
-				if (p instanceof ProbePlot) {
-					if (!p.frame.isVisible() && ((ProbePlot)p).checkProbesExist(e))
-						p.createPlot(e);
-				}
+			createPath();
+			if (releasing && !shift_down) {
+				e.carrierplot.createPlot(e, plotpath);
+				plotpath = null;
 			}
 			break;
 		default:
@@ -981,6 +1060,32 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 		mxp = mx;
 		myp = my;
+	}
+
+	public void createPath() {
+		if (plotpath == null) {
+			if (pressing) {
+				if (shift_down) {
+					plotpath = new SegmentedPath();
+					((SegmentedPath) plotpath).addNewJoint(mx_start, my_start);
+				} else {
+					plotpath = new LinePath();
+					((LinePath) plotpath).x1 = mx_start;
+					((LinePath) plotpath).y1 = my_start;
+					((LinePath) plotpath).x2 = mx_start;
+					((LinePath) plotpath).y2 = my_start;
+				}
+			}
+		} else if (plotpath instanceof LinePath) {
+			if (mouse_pressed) {
+				((LinePath) plotpath).x2 = mx;
+				((LinePath) plotpath).y2 = my;
+			}
+		} else if (plotpath instanceof SegmentedPath) {
+			if (pressing) {
+				((SegmentedPath) plotpath).addNewJoint(mx, my);
+			}
+		}
 	}
 	
 	public boolean updatematerials = false;
@@ -1184,6 +1289,53 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				new DescDialog();
 			});
 		} else if (ev.getSource() == e.opts.gui_brush) {
+
+			Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
+
+			if (brush == Brush.PROBEPLOT) {
+				plotinterval = e.opts.gui_plotinterval.getValue();
+				e.opts.gui_plotinterval_text.setText("Time resolution: " + e.units.toString(plotinterval*e.dt*e.iteration_multiplier, Quantity.TIME));
+				for (Plot p : e.plots) {
+					if (p instanceof ProbePlot) {
+						if (!p.frame.isVisible() && ((ProbePlot)p).checkProbesExist(e))
+							p.createPlot(e, null);
+					}
+				}
+			} else if (brush == Brush.XYPLOT) {
+				e.xyplot.createPlot(e, null);
+				
+				JList<Probe> tmplist = new JList<>(e.probes.toArray(new Probe[0]));
+
+				tmplist.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+				tmplist.setVisibleRowCount(5);
+				tmplist.setSelectedValue(Preset.DEFAULT, true);
+				JScrollPane scrollPane = new JScrollPane(tmplist);
+				int result = JOptionPane.showConfirmDialog(null, scrollPane, "Select X variable", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+				if (result == JOptionPane.OK_OPTION) {
+					Probe selected = tmplist.getSelectedValue();
+
+					if (selected != null) {
+						e.xyplot.x = selected;
+					}
+				}
+				
+				tmplist = new JList<>(e.probes.toArray(new Probe[0]));
+
+				tmplist.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+				tmplist.setVisibleRowCount(5);
+				tmplist.setSelectedValue(Preset.DEFAULT, true);
+				scrollPane = new JScrollPane(tmplist);
+				result = JOptionPane.showConfirmDialog(null, scrollPane, "Select Y variable", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+				if (result == JOptionPane.OK_OPTION) {
+					Probe selected = tmplist.getSelectedValue();
+
+					if (selected != null) {
+						e.xyplot.y = selected;
+					}
+				}
+			}
 			e.controls.brush_changed = true;
 		} else if (ev.getSource() == e.opts.menu_advancedsettings) {
 			e.adv_opts.storeAdvancedSettings();
@@ -1872,12 +2024,14 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		CHARGE("Charge probe"),
 		FLUX("Magnetic flux probe"),
 		GROUND("Ground"),
+		PROBE("Custom probe"),
 		DELETEPROBE("Delete probe"),
 		MOVELABEL("Move label"),
 		BANDS("Plot bands"),
 		SCALARPLOT("Plot scalar field"),
 		CARRIERPLOT("Plot carriers"),
 		PROBEPLOT("Plot probe data"),
+		XYPLOT("XY plot"),
 		RULER("Ruler");
 	
 		public String name;
@@ -1910,6 +2064,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		public static boolean drawLine(Brush brush) {
 			return (brush == Brush.LINE || brush == Brush.BANDS || brush == Brush.SCALARPLOT || brush == Brush.CARRIERPLOT);
 		}
+	}
+	
+	public enum CustProbeType {
+		POINT, LINE, AREA;
 	}
 
 	class DescDialog extends JDialog {
