@@ -147,10 +147,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	public boolean EMF_selected = false;
 
-	Brush prev_brush;
 	public double brushsize = 0;
 	public int prev_EMF_setting = 0;
-	BoundaryCondition prev_boundary = BoundaryCondition.DISSIPATIVE;
+	public BoundaryCondition prev_boundary = BoundaryCondition.DISSIPATIVE;
 
 	public boolean[][] under_brush;
 	public boolean[][] selected;
@@ -171,8 +170,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	
 	public int plotinterval = 10;
 
-	Cursor HAND_CURSOR = new Cursor(Cursor.HAND_CURSOR);
-	Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
+	private Cursor HAND_CURSOR = new Cursor(Cursor.HAND_CURSOR);
+	private Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
 	
 	public MenuCheckList<Brush, JRadioButtonMenuItem> brushes = new MenuCheckList<Brush, JRadioButtonMenuItem>();
 	public MenuCheckList<ScalarView, CustJRadioButtonMenuItem> scalarview = new MenuCheckList<ScalarView, CustJRadioButtonMenuItem>();

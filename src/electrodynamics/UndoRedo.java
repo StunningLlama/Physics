@@ -25,9 +25,20 @@ public class UndoRedo {
 	public List<Snapshot> prev_states = new ArrayList<Snapshot>();
 	public int undoredo_pointer = 0;
 	public int history_size = 0;
+	public boolean tracksettings = true;
 	
 	public UndoRedo(int history_size) {
 		this.history_size = history_size;
+	}
+	
+	public void setHistorySize(int new_history_size) {
+		this.history_size = new_history_size;
+		
+		while (prev_states.size() > history_size)
+		{
+			prev_states.remove(0);
+			undoredo_pointer--;
+		}
 	}
 
 	public void resetUndoHistory(Simulation e) {
@@ -180,7 +191,7 @@ class Snapshot {
 		try {
 			e.time = time;
 
-			if (e.prefs.chkbox_undo.isSelected()) {
+			if (e.controls.undoredo.tracksettings) {
 				e.description = description;
 				e.controls.scalarview.setOption(gui_view);
 				e.controls.vectorview.setOption(gui_view_vec);

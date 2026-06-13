@@ -606,7 +606,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		setInputVisibility();
 	}
 
-	public int current_saveversion = 1;
+	public int current_material_saveversion = 1;
 	public String fileextension = ".material";
 	public String startingpath = ".";
 	JTextField gv;
@@ -664,12 +664,12 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 				
 				System.out.println("Loading " + infile.getName() + ", version = " + version);
 
-				if (version > current_saveversion) {
+				if (version > current_material_saveversion) {
 					fstr.close();
 					throw new IllegalArgumentException("The file was created in a newer version of SemiSim.");
 				}
 
-				if (version == current_saveversion) {
+				if (version == current_material_saveversion) {
 					assertNextObject(fstr, "materials");
 					Material[] mats = (Material[]) gson.fromJson(fstr, Material[].class);
 
@@ -762,7 +762,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
 
 				JsonObject save = new JsonObject();
-				save.addProperty("version", current_saveversion);
+				save.addProperty("version", current_material_saveversion);
 				Material[] mats = list.getSelectedValuesList().toArray(new Material[0]);
 				save.add("materials", gson.toJsonTree(mats));
 				String json = gson.toJson(save);

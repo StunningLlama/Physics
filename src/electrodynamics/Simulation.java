@@ -59,6 +59,9 @@ public class Simulation extends PeriodicTask {
 	 *  - MESFET [done]
 	 *  - SCR  [done]
 	 *  - Darlington pair [done]
+	 *  - LEDs
+	 *  - Saturation velocity
+	 *  - Recombination
 	 */
 	
 	/* Parts */
@@ -87,9 +90,9 @@ public class Simulation extends PeriodicTask {
 	public ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
 	public ReentrantLock poissonLock = new ReentrantLock(true);
 
-	CyclicBarrier start_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
-	CyclicBarrier stop_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
-	CyclicBarrier mid_barrier = new CyclicBarrier(SemiSim.n_threads);
+	private CyclicBarrier start_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
+	private CyclicBarrier stop_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
+	private CyclicBarrier mid_barrier = new CyclicBarrier(SemiSim.n_threads);
 
 	
 	/* Domain parameters */
@@ -1866,7 +1869,13 @@ public class Simulation extends PeriodicTask {
 			vectorfield[0] = Sx;
 			vectorfield[1] = Sy;
 			break;
-		default:
+		case ELECTRON_VELOCITY:
+			vectorfield[0] = vel_x_n;
+			vectorfield[1] = vel_y_n;
+			break;
+		case HOLE_VELOCITY:
+			vectorfield[0] = vel_x_p;
+			vectorfield[1] = vel_y_p;
 			break;
 		}
 	}

@@ -117,14 +117,14 @@ public abstract class Plot implements ActionListener {
 		xunitquantity = units.sys.toSI(1, quantity);
 	    String unitname = units.sys.toString(1, quantity, "%.0f");
 	    if (unitname.startsWith("1 ")) unitname = unitname.substring(2);
-	    fig.xlabel(quantity.name.replaceAll("[\\(\\)]", "") + " (" + unitname + ")");
+	    fig.xlabel(quantity.name + " (" + unitname + ")");
 	}
 	
 	public void setyunits(Units units, Quantity quantity) {
 		yunitquantity = units.sys.toSI(1, quantity);
 	    String unitname = units.sys.toString(1, quantity, "%.0f");
 	    if (unitname.startsWith("1 ")) unitname = unitname.substring(2);
-	    fig.ylabel(quantity.name.replaceAll("[\\(\\)]", "") + " (" + unitname + ")");
+	    fig.ylabel(quantity.name + " (" + unitname + ")");
 	}
 	
 
@@ -132,13 +132,13 @@ public abstract class Plot implements ActionListener {
 		xunitquantity = value;
 	    String unitname = units.sys.toStringSI(value, quantity, "%.0f");
 	    if (unitname.startsWith("1 ")) unitname = unitname.substring(2);
-	    fig.xlabel(quantity.name.replaceAll("[\\(\\)]", "") + " (" + unitname + ")");
+	    fig.xlabel(quantity.name + " (" + unitname + ")");
 	}
 	
 	public void setyunitsfixed(Units units, Quantity quantity, double value) {
 		yunitquantity = value;
 	    String unitname = units.sys.toStringSI(value, quantity, "%.0f");
 	    if (unitname.startsWith("1 ")) unitname = unitname.substring(2);
-	    fig.ylabel(quantity.name.replaceAll("[\\(\\)]", "") + " (" + unitname + ")");
+	    fig.ylabel(quantity.name + " (" + unitname + ")");
 	}
 }

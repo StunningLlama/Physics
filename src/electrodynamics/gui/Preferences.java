@@ -32,24 +32,32 @@ import com.google.gson.stream.JsonReader;
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
 
+import electrodynamics.Renderer.Text;
 import electrodynamics.Simulation;
 import electrodynamics.units.Units;
+import javax.swing.SpinnerNumberModel;
 
 public class Preferences extends JFrame implements ActionListener {
 
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
-	public JButton btn_apply;
-	public JButton btn_cancel;
-	public JCheckBox chkbox_undo;
-	public JSpinner spinner_imgx;
-	public JCheckBox chkbox_potential;
+	private JButton btn_apply;
+	private JButton btn_reset;
+	private JCheckBox chkbox_undo;
+	private JSpinner spinner_imgx;
+	private JCheckBox chkbox_potential;
 	public JComboBox<Units> gui_units;
 	
 	Simulation e;
-	public int saveversion = 1;
+	public int current_pref_saveversion = 1;
 	public File preferences_file = null;
 	private JSpinner spinner_imgy;
+	private JLabel lblUndoHistorySize_2;
+	private JSpinner spinner_undosize;
+	private JSpinner spinner_fps;
+	private JLabel lblFontSize;
+	private JSpinner spinner_font;
+	private JButton btn_cancel;
 
 	public Preferences(Simulation e) {
 		setResizable(false);
@@ -58,7 +66,7 @@ public class Preferences extends JFrame implements ActionListener {
 		
 		setTitle("Preferences");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		setBounds(100, 100, 315, 281);
+		setBounds(100, 100, 590, 259);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 
@@ -67,19 +75,19 @@ public class Preferences extends JFrame implements ActionListener {
 		
 		JLabel lblNewLabel = new JLabel("Display width [px]");
 		lblNewLabel.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblNewLabel.setToolTipText("Width of simulation domain");
 		lblNewLabel.setBounds(17, 18, 138, 16);
 		contentPane.add(lblNewLabel);
 		
-		btn_apply = new JButton("Save");
-		btn_apply.setBounds(46, 218, 128, 29);
+		btn_apply = new JButton("Apply");
+		btn_apply.setBounds(321, 196, 128, 29);
 		contentPane.add(btn_apply);
 		
-		btn_cancel = new JButton("Reset to defaults");
-		btn_cancel.setBounds(173, 218, 136, 29);
-		contentPane.add(btn_cancel);
+		btn_reset = new JButton("Reset to defaults");
+		btn_reset.setBounds(17, 196, 136, 29);
+		contentPane.add(btn_reset);
 		
 		spinner_imgx = new JSpinner();
+		spinner_imgx.setModel(new SpinnerNumberModel(768, 1, 10000, 1));
 		spinner_imgx.setBounds(167, 13, 109, 26);
 		contentPane.add(spinner_imgx);
 		
@@ -87,43 +95,78 @@ public class Preferences extends JFrame implements ActionListener {
 		chkbox_undo.setHorizontalAlignment(SwingConstants.TRAILING);
 		chkbox_undo.setSelected(true);
 		chkbox_undo.setHorizontalTextPosition(SwingConstants.LEADING);
-		chkbox_undo.setBounds(52, 74, 224, 23);
+		chkbox_undo.setBounds(334, 43, 224, 23);
 		contentPane.add(chkbox_undo);
 		
 		chkbox_potential = new JCheckBox("Display potential relative to ground");
 		chkbox_potential.setHorizontalAlignment(SwingConstants.TRAILING);
 		chkbox_potential.setSelected(true);
 		chkbox_potential.setHorizontalTextPosition(SwingConstants.LEADING);
-		chkbox_potential.setBounds(21, 100, 255, 23);
+		chkbox_potential.setBounds(303, 72, 255, 23);
 		contentPane.add(chkbox_potential);
 		
 		JLabel lblUnitSystem = new JLabel("Unit system");
 		lblUnitSystem.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblUnitSystem.setBounds(6, 139, 116, 16);
+		lblUnitSystem.setBounds(288, 105, 116, 16);
 		contentPane.add(lblUnitSystem);
 		
 		gui_units = new JComboBox<>();
 		gui_units.setModel(new DefaultComboBoxModel<>(Units.values()));
-		gui_units.setBounds(134, 135, 146, 27);
+		gui_units.setBounds(416, 101, 146, 27);
 		contentPane.add(gui_units);
 		
 		JLabel lblDisplayHeightpx = new JLabel("Display height [px]");
 		lblDisplayHeightpx.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblDisplayHeightpx.setToolTipText("Width of simulation domain");
 		lblDisplayHeightpx.setBounds(17, 46, 138, 16);
 		contentPane.add(lblDisplayHeightpx);
 		
 		spinner_imgy = new JSpinner();
+		spinner_imgy.setModel(new SpinnerNumberModel(768, 1, 10000, 1));
 		spinner_imgy.setBounds(167, 41, 109, 26);
 		contentPane.add(spinner_imgy);
+		
+		JLabel lblUndoHistorySize = new JLabel("Target FPS");
+		lblUndoHistorySize.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblUndoHistorySize.setBounds(17, 104, 138, 16);
+		contentPane.add(lblUndoHistorySize);
+		
+		spinner_fps = new JSpinner();
+		spinner_fps.setModel(new SpinnerNumberModel(60, 1, 1000, 1));
+		spinner_fps.setBounds(167, 99, 109, 26);
+		contentPane.add(spinner_fps);
+		
+		lblUndoHistorySize_2 = new JLabel("Undo history size");
+		lblUndoHistorySize_2.setToolTipText("Warning: uses memory");
+		lblUndoHistorySize_2.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblUndoHistorySize_2.setBounds(303, 18, 138, 16);
+		contentPane.add(lblUndoHistorySize_2);
+		
+		spinner_undosize = new JSpinner();
+		spinner_undosize.setModel(new SpinnerNumberModel(4, 2, 100, 1));
+		spinner_undosize.setBounds(453, 13, 109, 26);
+		contentPane.add(spinner_undosize);
+		
+		lblFontSize = new JLabel("Font size [px]");
+		lblFontSize.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblFontSize.setBounds(17, 75, 138, 16);
+		contentPane.add(lblFontSize);
+		
+		spinner_font = new JSpinner();
+		spinner_font.setModel(new SpinnerNumberModel(12, 1, 100, 1));
+		spinner_font.setBounds(167, 70, 109, 26);
+		contentPane.add(spinner_font);
+		
+		btn_cancel = new JButton("Cancel");
+		btn_cancel.setBounds(456, 196, 128, 29);
+		contentPane.add(btn_cancel);
 		
 		resetPrefs();
 	}
 	
 	public void initialize() {
 		btn_apply.addActionListener(this);
+		btn_reset.addActionListener(this);
 		btn_cancel.addActionListener(this);
-		gui_units.addActionListener(this);
 		setLocationRelativeTo(null);
 		setVisible(false);
 		
@@ -134,12 +177,29 @@ public class Preferences extends JFrame implements ActionListener {
 	public void getPrefs() {
 		spinner_imgx.setValue(e.canvas.getWidth());
 		spinner_imgy.setValue(e.canvas.getHeight());
+		chkbox_undo.setSelected(e.controls.undoredo.tracksettings);
+		spinner_undosize.setValue(e.controls.undoredo.history_size);
+		spinner_fps.setValue((int) e.renderer.targetframerate);
+		chkbox_potential.setSelected(e.renderer.display_relative_voltage);
+		spinner_font.setValue(Text.fontsize);
+		gui_units.setSelectedItem(e.units);
 	}
 
 	public void applyPrefs() {
+		
+		e.controls.undoredo.tracksettings = chkbox_undo.isSelected();
+		e.controls.undoredo.setHistorySize((int) spinner_undosize.getValue());
+		
+		e.renderer.targetframerate = (double)((int) spinner_fps.getValue());
+		e.renderer.frameduration = 1000/e.renderer.targetframerate;
+		
+		e.renderer.display_relative_voltage = chkbox_potential.isSelected();
+		Text.setFontSize((int) spinner_font.getValue());
+
+		e.units = (Units) gui_units.getSelectedItem();
+		
 		int x = (int)(spinner_imgx.getValue());
 		int y = (int)(spinner_imgy.getValue());
-
 		e.canvas.setPreferredSize(new Dimension(x, y));
 		e.opts.pack();
 	}
@@ -152,6 +212,9 @@ public class Preferences extends JFrame implements ActionListener {
 		chkbox_undo.setSelected(true);
 		chkbox_potential.setSelected(true);
 		gui_units.setSelectedItem(Units.SI);
+		spinner_undosize.setValue(4);
+		spinner_fps.setValue(60);
+		spinner_font.setValue(12);
 	}
 
 	public void readfile(File infile) {
@@ -168,12 +231,12 @@ public class Preferences extends JFrame implements ActionListener {
 				assertNextObject(fstr, "version");
 				int version = fstr.nextInt();
 
-				if (version > saveversion) {
+				if (version > current_pref_saveversion) {
 					fstr.close();
 					return;
 				}
 
-				if (version == saveversion) {
+				if (version == current_pref_saveversion) {
 					assertNextObject(fstr, "preferences");
 					fstr.beginObject();
 					while (fstr.hasNext()) {
@@ -189,6 +252,9 @@ public class Preferences extends JFrame implements ActionListener {
 						case "undotrackssettings": chkbox_undo.setSelected(fstr.nextBoolean()); break;
 						case "potential": chkbox_potential.setSelected(fstr.nextBoolean()); break;
 						case "units": gui_units.setSelectedItem(gson.fromJson(fstr, Units.class)); break;
+						case "fps": this.spinner_fps.setValue(fstr.nextInt()); break;
+						case "fontsize": this.spinner_font.setValue(fstr.nextInt()); break;
+						case "undosize": this.spinner_undosize.setValue(fstr.nextInt()); break;
 						default: fstr.skipValue();
 						}
 					}
@@ -221,11 +287,13 @@ public class Preferences extends JFrame implements ActionListener {
 				header.addProperty("undotrackssettings", chkbox_undo.isSelected());
 				header.addProperty("potential", chkbox_potential.isSelected());
 				header.add("units", gson.toJsonTree((Units) gui_units.getSelectedItem()));
-
+				header.addProperty("fps", (int)spinner_fps.getValue());
+				header.addProperty("fontsize", (int)spinner_font.getValue());
+				header.addProperty("undosize", (int)spinner_undosize.getValue());
 
 				// Version should always be first
 				JsonObject save = new JsonObject();
-				save.addProperty("version", saveversion);
+				save.addProperty("version", current_pref_saveversion);
 				save.add("preferences", header);
 
 				String json = gson.toJson(save);
@@ -258,11 +326,10 @@ public class Preferences extends JFrame implements ActionListener {
 		if (ev.getSource() == btn_apply) {
 			applyPrefs();
 			writeFile(preferences_file);
-			setVisible(false);
-		} else if (ev.getSource() == btn_cancel) {
+		} else if (ev.getSource() == btn_reset) {
 			resetPrefs();
-		}  else if (ev.getSource() == gui_units) {
-			e.units = (Units) gui_units.getSelectedItem();
-		} 
+		} else if (ev.getSource() == btn_cancel) {
+			this.setVisible(false);
+		}
 	}
 }

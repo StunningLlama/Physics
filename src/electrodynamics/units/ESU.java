@@ -53,8 +53,8 @@ public class ESU extends UnitSystem {
 		case DIFFUSIVITY: return "(cm^2/s)";
 		case ELECTRIC_MOBILITY: return "(cm^2/(statV s))";
 		}
-		
-		return q.name;
+
+		return "(" + q.name + ")";
 	}
 	
 

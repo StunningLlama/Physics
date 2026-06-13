@@ -46,6 +46,7 @@ public class XYPlot extends Plot {
         fig.FindColor("-k", 2.0f);
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Override
 	public void updatePlot(Simulation e) {
         
@@ -53,6 +54,8 @@ public class XYPlot extends Plot {
 			if (x != null && y != null) {
 				this.setxunits(e.units, x.quantity);
 				this.setyunits(e.units, y.quantity);
+				
+				data.setKey(x.toString() + " vs " + y.toString());
 		        
 		        if (!menu_paused.isSelected())
 		        	data.add(x.value/xunitquantity, y.value/yunitquantity);

@@ -55,8 +55,8 @@ public class SIUnits extends UnitSystem {
 		case POWER: return "W";
 		case RATE: return "/s";
 		}
-		
-		return q.name;
+
+		return "(" + q.name + ")";
 	}
 	
 

@@ -54,7 +54,7 @@ public class EMU extends UnitSystem {
 		case ELECTRIC_MOBILITY: return "(cm^2/(abV s))";
 		}
 		
-		return q.name;
+		return "(" + q.name + ")";
 	}
 	
 

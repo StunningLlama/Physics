@@ -41,8 +41,8 @@ public class Renderer extends PeriodicTask {
 	
 	/* Graphics */
 	
-	BufferedImage img_back;
-	BufferedImage img_front;
+	public BufferedImage img_back;
+	public BufferedImage img_front;
 	public int[] imgData;
 	public int[] depth_buf;
 	public double[][] scalarfield;
@@ -64,42 +64,44 @@ public class Renderer extends PeriodicTask {
 	public double targetframerate = 60;
 	public double frameduration = 1000/targetframerate;
 	
-	double t_prev = 0;
-	double delta_t = 0;
+	private double t_prev = 0;
+	private double delta_t = 0;
 
-	ArrayList<Dot> dots = new ArrayList<>();
-	FastList<ChargeCarrierDot> ccdots = new FastList<>();
-	int numdots = 2000;
-	double rho_n_max = 0;
-	double rho_p_max = 0;
-	double C_prev = 0;
+	public ArrayList<Dot> dots = new ArrayList<>();
+	public FastList<ChargeCarrierDot> ccdots = new FastList<>();
+	public int numdots = 2000;
+	public double rho_n_max = 0;
+	public double rho_p_max = 0;
+	public double C_prev = 0;
 	public int carrier_diffusion_warning_timer = 0;
 
-	int probetexttimer = 0;
-	boolean show_carriers;
-	VectorMode vector_display_mode;
-	ScalarMode scalar_display_mode;
-	ScalarView scalar_view;
-	VectorView vector_view;
+	public int probetexttimer = 0;
+	private boolean synchronized_show_carriers;
+	private boolean synchronized_update_carriers;
+	private VectorMode synchronized_vector_display_mode;
+	private ScalarMode synchronized_scalar_display_mode;
+	private ScalarView synchronized_scalar_view;
+	private VectorView synchronized_vector_view;
 	
-	float scalingconstant;
-	float scalar_offset;
+	private float scalingconstant;
+	private float scalar_offset;
+	public boolean display_relative_voltage = false;
 
 	/* Multithreading */
 	
-	CyclicBarrier graphics_start_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
-	CyclicBarrier graphics_mid_barrier = new CyclicBarrier(SemiSim.n_threads);
-	CyclicBarrier graphics_end_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
+	private CyclicBarrier graphics_start_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
+	private CyclicBarrier graphics_mid_barrier = new CyclicBarrier(SemiSim.n_threads);
+	private CyclicBarrier graphics_end_barrier = new CyclicBarrier(SemiSim.n_threads + 1);
 
 	/* Electron and hole dots */
 	
-	DistributionSampler rho_p_dist = new DistributionSampler();
-	DistributionSampler rho_n_dist = new DistributionSampler();
-	DistributionSampler rho_G_dist = new DistributionSampler();
-	FastRandom frand = new FastRandom();
-	double cc_default_dot_density;	// How many electron/hole dots to draw, in (C/m)^-1
-	double tau;						// How long a dot stays on the screen
-	double tau_events;				// How long a flash stays
+	public DistributionSampler rho_p_dist = new DistributionSampler();
+	public DistributionSampler rho_n_dist = new DistributionSampler();
+	public DistributionSampler rho_G_dist = new DistributionSampler();
+	private FastRandom frand = new FastRandom();
+	public double cc_default_dot_density;	// How many electron/hole dots to draw, in (C/m)^-1
+	public double tau;						// How long a dot stays on the screen
+	public double tau_events;				// How long a flash stays
 	
 	/* Performance profiling */
 	
@@ -642,7 +644,7 @@ public class Renderer extends PeriodicTask {
 			
 			e.computeScalarField(scalarfield, 0, 0, scalarview);
 			
-			if (e.hasGround() && e.prefs.chkbox_potential.isSelected()) {
+			if (e.hasGround() && display_relative_voltage) {
 				Ground ground = e.getGround();
 
 				if (scalarview == ScalarView.ELECTRON_VOLTAGE || scalarview == ScalarView.HOLE_VOLTAGE || scalarview == ScalarView.AVERAGE_POTENTIAL) {
@@ -935,11 +937,12 @@ public class Renderer extends PeriodicTask {
 		delta_t = e.time - t_prev;
 		t_prev = e.time;
 
-		show_carriers = e.opts.gui_carriers.isSelected();
-		vector_display_mode = e.controls.vectormode.getOption();
-		scalar_display_mode = e.controls.scalarmode.getOption();
-		scalar_view = e.controls.scalarview.getOption();
-		vector_view = e.controls.vectorview.getOption();
+		synchronized_show_carriers = e.opts.gui_carriers.isSelected();
+		synchronized_update_carriers = !e.opts.gui_paused.isSelected() || delta_t > 0;
+		synchronized_vector_display_mode = e.controls.vectormode.getOption();
+		synchronized_scalar_display_mode = e.controls.scalarmode.getOption();
+		synchronized_scalar_view = e.controls.scalarview.getOption();
+		synchronized_vector_view = e.controls.vectorview.getOption();
 		
 		try {
 			if (SemiSim.instance.graphics_threads.size() == SemiSim.n_threads) {
@@ -1019,7 +1022,7 @@ public class Renderer extends PeriodicTask {
 
 			Material mat = e.materials[mx][my];
 
-			int vspacing = 12;
+			int vspacing = Text.fontsize;
 			int voffset = 1 + (int)(e.controls.my_screen);
 			int hoffset = 5 + (int)(e.controls.mx_screen)+15;
 			//int voffset = 1 + (int)(e.controls.my*scalefactor);
@@ -1066,7 +1069,7 @@ public class Renderer extends PeriodicTask {
 			startNewStringLayer();
 		}
 
-		int vspacing = 13;
+		int vspacing = Text.fontsize+1;
 		int voffset = 3;
 		int hoffset = 5;
 		int line = 1;
@@ -1143,7 +1146,7 @@ public class Renderer extends PeriodicTask {
 				while (true) {
 					graphics_start_barrier.await();
 
-					if (vector_display_mode != VectorMode.NONE && vector_view != VectorView.NONE) {
+					if (synchronized_vector_display_mode != VectorMode.NONE && synchronized_vector_view != VectorView.NONE) {
 						double arrowlength = 10.0/scalefactor;
 
 						double vectorscalingconstant = 0;
@@ -1153,17 +1156,17 @@ public class Renderer extends PeriodicTask {
 
 						double randomness = 0;
 
-						if (vector_display_mode == VectorMode.ARROWS) {
+						if (synchronized_vector_display_mode == VectorMode.ARROWS) {
 							randomness = 0.5;
-						} else if (vector_display_mode == VectorMode.LINES) {
+						} else if (synchronized_vector_display_mode == VectorMode.LINES) {
 							randomness = 0.75;
 						}
 
 						
-						boolean conductors_only = vector_view.isConductorOnly();
+						boolean conductors_only = synchronized_vector_view.isConductorOnly();
 						
 						double[][][] vf = {null, null};
-						e.computeVectorField(vf, vector_view);
+						e.computeVectorField(vf, synchronized_vector_view);
 						double[][] vf_x = vf[0];
 						double[][] vf_y = vf[1];
 
@@ -1174,7 +1177,7 @@ public class Renderer extends PeriodicTask {
 						Vector body1 = new Vector(0,0);
 						Vector body2 = new Vector(0,0);
 
-						if (vector_display_mode == VectorMode.LINES) {
+						if (synchronized_vector_display_mode == VectorMode.LINES) {
 							vectorscalingconstant = 0.01*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/5.0)/e.controls.vectorview.getOption().scale;
 							rand.setSeed(n_thread);
 							density = 75;
@@ -1219,7 +1222,7 @@ public class Renderer extends PeriodicTask {
 								}
 
 							}
-						} else if (vector_display_mode == VectorMode.ARROWS) {
+						} else if (synchronized_vector_display_mode == VectorMode.ARROWS) {
 							vectorscalingconstant = 0.01*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/5.0)/e.controls.vectorview.getOption().scale;
 							rand.setSeed(n_thread);
 							for (int i = lower(density); i < upper(density); i++) {
@@ -1259,7 +1262,7 @@ public class Renderer extends PeriodicTask {
 									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
 								}
 							}
-						} else if (vector_display_mode == VectorMode.DOTS) {
+						} else if (synchronized_vector_display_mode == VectorMode.DOTS) {
 							boolean paused = e.opts.gui_paused.isSelected();
 
 							vectorscalingconstant = Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/10.0)/e.controls.vectorview.getOption().scale;
@@ -1312,7 +1315,7 @@ public class Renderer extends PeriodicTask {
 					}
 					
 
-					if (scalar_view != ScalarView.NONE && (scalar_display_mode == ScalarMode.CONTOUR_COLORS || scalar_display_mode == ScalarMode.CONTOUR)) {
+					if (synchronized_scalar_view != ScalarView.NONE && (synchronized_scalar_display_mode == ScalarMode.CONTOUR_COLORS || synchronized_scalar_display_mode == ScalarMode.CONTOUR)) {
 						graphics_mid_barrier.await();
 						double spacing = 0.2/scalingconstant;
 						double contourwidth = 1e-7;
@@ -1330,9 +1333,9 @@ public class Renderer extends PeriodicTask {
 					}
 					
 					
-					if (show_carriers) {
+					if (synchronized_show_carriers) {
 
-						if ((!e.opts.gui_paused.isSelected() || delta_t > 0)) {
+						if (synchronized_update_carriers) {
 							if (n_thread == 0 && carrier_diffusion_warning_timer > 0) {
 								carrier_diffusion_warning_timer--;
 							}
@@ -1625,9 +1628,17 @@ public class Renderer extends PeriodicTask {
 	
 	public static class Text {
 
-		public static Font bigfont = new Font(Font.SANS_SERIF, Font.PLAIN, 15);
-		public static Font regularfont = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
+		public static int fontsize = 12;
+		public static Font bigfont = new Font(Font.SANS_SERIF, Font.PLAIN, (int)(1.3*fontsize));
+		public static Font regularfont = new Font(Font.SANS_SERIF, Font.PLAIN, fontsize);
 		public static Font monospacefont = getMonospacedFont();
+		
+		public static void setFontSize(int newfontsize) {
+			fontsize = newfontsize;
+			bigfont = new Font(Font.SANS_SERIF, Font.PLAIN, (int)(1.3*fontsize));
+			regularfont = new Font(Font.SANS_SERIF, Font.PLAIN, fontsize);
+			monospacefont = getMonospacedFont();
+		}
 		
 		String text;
 		int x;
@@ -1668,11 +1679,11 @@ public class Renderer extends PeriodicTask {
 		}
 		
 		public static Font getMonospacedFont() {
-			Font f = Font.decode("Consolas-PLAIN-12");
+			Font f = Font.decode("Consolas-PLAIN-" + fontsize);
 			if (f.getFamily() == "Dialog")
-				f = Font.decode("Andale Mono-PLAIN-12");
+				f = Font.decode("Andale Mono-PLAIN-" + fontsize);
 			if (f.getFamily() == "Dialog")
-				f = new Font(Font.MONOSPACED, Font.PLAIN, 12);
+				f = new Font(Font.MONOSPACED, Font.PLAIN, fontsize);
 			return f;
 		}
 	}

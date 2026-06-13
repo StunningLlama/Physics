@@ -14,15 +14,15 @@ import electrodynamics.units.Quantity;
 
 public class ProbePlot extends Plot {
 	
-	String yaxis;
-	String title;
-	String nameprefix;
-	Quantity quantity;
-	Predicate<Probe> probefilter;
-	double scalefactor;
+	public String yaxis;
+	public String title;
+	public String nameprefix;
+	public Quantity quantity;
+	public Predicate<Probe> probefilter;
+	public double scalefactor;
 	public boolean customprobe = false;
 	
-	int window_offset = 0;
+	public int window_offset = 0;
 	
 	public ProbePlot(String title, String yaxis, String nameprefix, double scalefactor, Quantity quantity, Predicate<Probe> probefilter, int window_offset) {
 		this.title = title;
