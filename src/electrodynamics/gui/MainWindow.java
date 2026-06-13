@@ -189,6 +189,9 @@ public class MainWindow extends JFrame implements ComponentListener {
 
 		menu_editdesc = new JMenuItem("Edit description...");
 		mnNewMenu.add(menu_editdesc);
+		
+				menu_pref = new JMenuItem("Preferences");
+				mnNewMenu.add(menu_pref);
 
 		separator_1 = new JSeparator();
 		mnNewMenu.add(separator_1);
@@ -248,16 +251,13 @@ public class MainWindow extends JFrame implements ComponentListener {
 		separator_2 = new JSeparator();
 		menu_asdf.add(separator_2);
 
-		menu_pref = new JMenuItem("Preferences");
-		menu_asdf.add(menu_pref);
-
 		menu_advancedsettings = new JMenuItem("Simulation settings");
 		menu_asdf.add(menu_advancedsettings);
 
-		menu_cust_material = new JMenuItem("Custom materials");
+		menu_cust_material = new JMenuItem("Material editor");
 		menu_asdf.add(menu_cust_material);
 
-		menu_view_materials = new JMenuItem("Material viewer");
+		menu_view_materials = new JMenuItem("Material property viewer");
 		menu_asdf.add(menu_view_materials);
 
 		menu_tools = new JMenu("Tools");
@@ -713,15 +713,15 @@ public class MainWindow extends JFrame implements ComponentListener {
         JMenu recomb = new JMenu("Recombination");
         c.menu.add(recomb);
 		c.removeOption(ScalarView.ELECTRON_POTENTIAL); thermo.add(c.getButton(ScalarView.ELECTRON_POTENTIAL));
-		c.removeOption(ScalarView.HOLE_POTENTIAL); thermo.add(c.getButton(ScalarView.HOLE_POTENTIAL));
 		c.removeOption(ScalarView.ELECTRON_VOLTAGE); thermo.add(c.getButton(ScalarView.ELECTRON_VOLTAGE));
+		c.removeOption(ScalarView.HOLE_POTENTIAL); thermo.add(c.getButton(ScalarView.HOLE_POTENTIAL));
 		c.removeOption(ScalarView.HOLE_VOLTAGE); thermo.add(c.getButton(ScalarView.HOLE_VOLTAGE));
 		c.removeOption(ScalarView.HEAT); thermo.add(c.getButton(ScalarView.HEAT));
 		c.removeOption(ScalarView.ENTROPY); thermo.add(c.getButton(ScalarView.ENTROPY));
 
 		c.removeOption(ScalarView.ELECTRON_DENSITY); carrier.add(c.getButton(ScalarView.ELECTRON_DENSITY));
-		c.removeOption(ScalarView.HOLE_DENSITY); carrier.add(c.getButton(ScalarView.HOLE_DENSITY));
 		c.removeOption(ScalarView.ELECTRON_VEL); carrier.add(c.getButton(ScalarView.ELECTRON_VEL));
+		c.removeOption(ScalarView.HOLE_DENSITY); carrier.add(c.getButton(ScalarView.HOLE_DENSITY));
 		c.removeOption(ScalarView.HOLE_VEL); carrier.add(c.getButton(ScalarView.HOLE_VEL));
 
 		c.removeOption(ScalarView.RECOMB_RAD); recomb.add(c.getButton(ScalarView.RECOMB_RAD));
@@ -755,6 +755,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 		e.controls.brushes.buttonmap.get(Controls.Brush.LINE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_3, 0));
 		e.controls.brushes.buttonmap.get(Controls.Brush.FILL).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_4, 0));
 		e.controls.brushes.buttonmap.get(Controls.Brush.SELECT).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_5, 0));
+		e.controls.brushes.buttonmap.get(Controls.Brush.ZOOM).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_6, 0));
 
 		e.controls.scalarmode.buttonmap.get(ScalarMode.NONE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, 0));
 		e.controls.vectormode.buttonmap.get(VectorMode.NONE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, 0));

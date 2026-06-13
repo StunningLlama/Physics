@@ -1,5 +1,7 @@
 package electrodynamics.gui;
 
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -14,6 +16,8 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -327,7 +331,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(gv);
 		
 		btn_calc = new JButton("Band and DOS calculator");
-		btn_calc.setBounds(649, 3, 212, 29);
+		btn_calc.setBounds(651, 33, 212, 29);
 		contentPane.add(btn_calc);
 	}
 	
@@ -339,6 +343,10 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		this.btn_import.addActionListener(this);
 		this.btn_export.addActionListener(this);
 		this.btn_calc.addActionListener(this);
+		for (Component c : contentPane.getComponents()) {
+			if (c instanceof JTextField)
+				((JTextField) c).addActionListener(this);
+		}
 		this.list.addListSelectionListener(this);
 		this.type.addItemListener(this);
 		e.opts.gui_material.setModel(new DefaultComboBoxModel<GeneralMaterialType>(makelist()));
@@ -365,6 +373,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
         tmplist.setVisibleRowCount(5);
 
         JScrollPane scrollPane = new JScrollPane(tmplist);
+        scrollPane.setPreferredSize(new Dimension(400, 400));
 
         tmplist.setSelectedValue(arr[ind], true);
 
@@ -405,13 +414,13 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	}
 	
 	public void delete() {
-		Material mat = list.getSelectedValue();
-		if (mat != null) {
+		List<Material> mats = list.getSelectedValuesList();
+		for (Material mat : mats) {
 			mat_map.remove(mat.cust_id);
-			updateUI();
-			e.initializeAllMaterials();
-			e.updateAllMaterials(true);
 		}
+		updateUI();
+		e.initializeAllMaterials();
+		e.updateAllMaterials(true);
 	}
 
 	public void save() {
@@ -447,6 +456,8 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		} else if (e.getSource() == btn_calc) {
 			Calculator calc = new Calculator(this);
 			calc.setVisible(true);
+		} else if (e.getSource() instanceof JTextField) {
+			save();
 		}
 	}
 

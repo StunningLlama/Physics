@@ -31,6 +31,8 @@ import electrodynamics.util.Utils;
 
 import javax.swing.JTabbedPane;
 
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -641,7 +643,11 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		btn_presets.setBounds(10, 372, 144, 29);
 		panel.add(btn_presets);
 		
-		//.add(tabbedPane);
+		addEnterKey(phys);
+		addEnterKey(semi);
+		addEnterKey(metal);
+		addEnterKey(other);
+		addEnterKey(sim);
 	}
 	
 	public void initialize() {
@@ -651,6 +657,13 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		btn_presets.addActionListener(this);
 		setLocationRelativeTo(null);
 		setVisible(false);
+	}
+	
+	public void addEnterKey(JPanel panel) {
+		for (Component c : panel.getComponents()) {
+			if (c instanceof JTextField)
+				((JTextField) c).addActionListener(this);
+		}
 	}
 	
 	public void applyPreset(Preset p) {
@@ -682,6 +695,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		tmplist.setSelectedValue(Preset.DEFAULT, true);
 
 		JScrollPane scrollPane = new JScrollPane(tmplist);
+        scrollPane.setPreferredSize(new Dimension(300, 250));
 
 		int result = JOptionPane.showConfirmDialog(
 		null,
@@ -1013,6 +1027,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			applyPreset(Preset.DEFAULT);
 		} else if (ev.getSource() == btn_presets) {
 			pickPresets();
+		} else if (ev.getSource() instanceof JTextField) {
+			loadAdvancedSettings(true);
 		}
 	}
 }

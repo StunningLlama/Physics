@@ -48,12 +48,13 @@ public class MaterialViewer extends JFrame implements ActionListener, ListSelect
 	private JPanel panel_1;
 	private JPanel panel_2;
 	private JPanel panel_3;
+	private JScrollPane scrollPane_1;
 
 	public MaterialViewer(Simulation e) {
 		this.e = e;
 		setTitle("Material property viewer");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		setBounds(100, 100, 705, 562);
+		setBounds(100, 100, 705, 595);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -75,7 +76,7 @@ public class MaterialViewer extends JFrame implements ActionListener, ListSelect
 		contentPane.add(panel_1, BorderLayout.CENTER);
 		panel_1.setLayout(new BorderLayout(0, 0));
 		
-		JScrollPane scrollPane_1 = new JScrollPane();
+		scrollPane_1 = new JScrollPane();
 		panel_1.add(scrollPane_1);
 		
 		textPane = new JTextPane();
@@ -132,6 +133,16 @@ public class MaterialViewer extends JFrame implements ActionListener, ListSelect
 			double rho_p = mat.calcEquilibriumHoleCharge(e.e_charge, e.k*e.T);
 			double sigma = mat.calcConductivity(e.e_charge, e.k*e.T);
 			
+
+			double n = rho_n/e.q_n;
+			double p = rho_p/e.q_p;
+			double ni = n*p;
+			double rate_const = (mat.k_aug_n*n+mat.k_aug_p*p)
+				+ (mat.k_SRH_n*mat.k_SRH_p)/(mat.k_SRH_n*(n+ni) + mat.k_SRH_p*(p+ni) + Double.MIN_VALUE)
+				+ mat.k_rad;
+			double n_time = 1/(rate_const*p);
+			double p_time = 1/(rate_const*n);
+			
 			String str = "<html>";
 			str += "Name: " + mat.getDisplayName() + "<br>";
 			str += "<br>";
@@ -146,6 +157,7 @@ public class MaterialViewer extends JFrame implements ActionListener, ListSelect
 			str += "Workfunction: <b>" + e.units.toString(mat.calcPhi(e.k*e.T)/e.eVtoJ, Quantity.ELECTRIC_POTENTIAL) + "</b><br>";
 			str += "Effective conduction band DOS: <b>" + e.units.toString(mat.gc, Quantity.NUMBER_DENSITY) + "</b><br>";
 			str += "Effective valence band DOS: <b>" + e.units.toString(mat.gv, Quantity.NUMBER_DENSITY) + "</b><br>";
+			str += "Dopant concentration: <b>" + e.units.toString(Math.abs(mat.rho_back/e.e_charge), Quantity.NUMBER_DENSITY) + "</b><br>";
 			str += "Eq. carrier concentration (ni): <b>" + e.units.toString(mat.calc_ni(e.k*e.T) , Quantity.NUMBER_DENSITY) + "</b><br>";
 			str += "Eq. electron density: <b>" + e.units.toString(-rho_n/e.e_charge, Quantity.NUMBER_DENSITY) + "</b><br>";
 			str += "Eq. hole density: <b>" + e.units.toString(rho_p/e.e_charge, Quantity.NUMBER_DENSITY) + "</b><br>";
@@ -159,10 +171,16 @@ public class MaterialViewer extends JFrame implements ActionListener, ListSelect
 			str += "Hole saturation velocity: <b>" + e.units.toString(mat.v_sat_p, Quantity.VELOCITY) + "</b><br>";
 			str += "Hole saturation field: <b>" + e.units.toString(mat.v_sat_p/(mat.D_p*e.beta*e.e_charge), Quantity.ELECTRIC_FIELD) + "</b><br>";
 			str += "<br>";
+			str += "Excess electron lifetime: <b>" + e.units.toString(n_time, Quantity.TIME) + "</b><br>";
+			str += "Electron diffusion length: <b>" + e.units.toString(Math.sqrt(n_time*mat.D_n), Quantity.LENGTH) + "</b><br>";
+			str += "Excess hole lifetime: <b>" + e.units.toString(p_time, Quantity.TIME) + "</b><br>";
+			str += "Hole diffusion length: <b>" + e.units.toString(Math.sqrt(p_time*mat.D_p), Quantity.LENGTH) + "</b><br>";
 			str += "Conductivity: <b>" + e.units.toString(sigma, Quantity.CONDUCTIVITY) + "</b><br>";
 			str += "Resistivity: <b>" + e.units.toString(1/sigma, Quantity.RESISTIVITY) + "</b><br>";
 			str += "</html>";
 			textPane.setText(str);
+			textPane.setCaretPosition(0);
+			//this.scrollPane_1.getVerticalScrollBar().setValue(0);
 		}
 	}
 	

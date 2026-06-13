@@ -990,9 +990,9 @@ public class Renderer extends PeriodicTask {
 					tmax = 2*(tmax-0.5);
 				}
 				if (scalarview == ScalarView.LIGHT) {
-					drawMonospacedStringSimCoords(e.units.toString(400e-9, Quantity.LENGTH), (i1+i2)/2, j2, g);
+					drawMonospacedStringSimCoords("≥ " + e.units.toString(400e-9, Quantity.LENGTH), (i1+i2)/2, j2, g);
 					texts.get(texts.size()-1).isHorizontalCentered = true;
-					drawMonospacedStringSimCoords(e.units.toString(650e-9, Quantity.LENGTH), (i1+i2)/2, j1, g);
+					drawMonospacedStringSimCoords("≤ " + e.units.toString(650e-9, Quantity.LENGTH), (i1+i2)/2, j1, g);
 					texts.get(texts.size()-1).isHorizontalCentered = true;
 				} else {
 					drawMonospacedStringSimCoords(e.units.toString(tmin/scalingconstant+scalar_offset, scalarview.unit), (i1+i2)/2, j2, g);
@@ -1695,15 +1695,15 @@ public class Renderer extends PeriodicTask {
 		ELECTRON_POTENTIAL("View F\u2099: Electron quasi Fermi level",						"μ\u2099",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
 		HOLE_POTENTIAL("View F\u209A: Hole quasi Fermi level",								"μ\u209A",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
 		AVERAGE_POTENTIAL("View V: Voltage",												"V",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
-		GENERATION("View G: Carrier generation rate",										"G",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
-		RECOMBINATION("View R: Carrier recombination rate",									"R",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
+		GENERATION("View G: Carrier generation rate (net)",									"G",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
+		RECOMBINATION("View R: Carrier recombination rate (net)",							"R",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
 		LIGHT("View: Emitted light",														"Light",	Quantity.DIMENSIONLESS,				ColorScheme.OTHER,			1e30),
-		ELECTRON_DENSITY("View: Electron density",											"ne",		Quantity.NUMBER_DENSITY,			ColorScheme.GREEN,			1e23),
-		HOLE_DENSITY("View: Hole density",													"nh",		Quantity.NUMBER_DENSITY,			ColorScheme.GREEN,			1e23),
-		ELECTRON_VOLTAGE("View: Electron voltage",											"Ve",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
-		HOLE_VOLTAGE("View: Hole voltage",													"Vh",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
-		ELECTRON_VEL("View: Electron drift velocity",										"ve",		Quantity.VELOCITY,					ColorScheme.GREEN,			1e6),
-		HOLE_VEL("View: Hole drift velocity",												"vh",		Quantity.VELOCITY,					ColorScheme.GREEN,			1e6),
+		ELECTRON_DENSITY("View n\u2099: Electron density",									"n\u2099",	Quantity.NUMBER_DENSITY,			ColorScheme.GREEN,			1e23),
+		HOLE_DENSITY("View n\u209A: Hole density",											"n\u209A",	Quantity.NUMBER_DENSITY,			ColorScheme.GREEN,			1e23),
+		ELECTRON_VOLTAGE("View V\u2099: Electron voltage",									"V\u2099",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
+		HOLE_VOLTAGE("View V\u209A: Hole voltage",											"V\u209A",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
+		ELECTRON_VEL("View v\u2099: Electron drift velocity",								"v\u2099",	Quantity.VELOCITY,					ColorScheme.GREEN,			1e6),
+		HOLE_VEL("View v\u209A: Hole drift velocity",										"v\u209A",	Quantity.VELOCITY,					ColorScheme.GREEN,			1e6),
 		RECOMB_RAD("View: Radiative recombination rate",									"R (rad)",	Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
 		RECOMB_SRH("View: SRH recombination rate",											"R (SRG)",	Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
 		RECOMB_AUGER("View: Auger recombination rate",										"R (aug)",	Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
@@ -1743,12 +1743,12 @@ public class Renderer extends PeriodicTask {
 		TOTAL_CURRENT("View J: Total current",					"J",				Quantity.CURRENT_DENSITY,		1),
 		EMF("View \u2130: External electromotive force",		"\u2130",			Quantity.ELECTRIC_FIELD,		1),
 		POYNTING("View S: Poynting vector",						"S",				Quantity.INTENSITY,				1),
-		ELECTRON_DRIFT("View: Electron drift current",			"Jn (drift)",		Quantity.CURRENT_DENSITY,		1),
-		ELECTRON_DIFFUSION("View: Electron diffusion current",	"Jn (diffusion)",	Quantity.CURRENT_DENSITY,		1),
-		ELECTRON_VELOCITY("View: Electron drift velocity",		"vn",				Quantity.VELOCITY,				1),
-		HOLE_DRIFT("View: Hole drift current",					"Jp (drift)",		Quantity.CURRENT_DENSITY,		1),
-		HOLE_DIFFUSION("View: Hole diffusion current",			"Jp (diffusion)",	Quantity.CURRENT_DENSITY,		1),
-		HOLE_VELOCITY("View: Hole drift velocity",				"vp",				Quantity.VELOCITY,				1);
+		ELECTRON_DRIFT("View: Electron drift current",			"J\u2099 (drift)",		Quantity.CURRENT_DENSITY,		1),
+		ELECTRON_DIFFUSION("View: Electron diffusion current",	"J\u2099 (diffusion)",	Quantity.CURRENT_DENSITY,		1),
+		ELECTRON_VELOCITY("View: Electron drift velocity",		"v\u2099",				Quantity.VELOCITY,				1),
+		HOLE_DRIFT("View: Hole drift current",					"J\u209A (drift)",		Quantity.CURRENT_DENSITY,		1),
+		HOLE_DIFFUSION("View: Hole diffusion current",			"J\u209A (diffusion)",	Quantity.CURRENT_DENSITY,		1),
+		HOLE_VELOCITY("View: Hole drift velocity",				"v\u209A",				Quantity.VELOCITY,				1);
 	
 		public String name;
 		public Quantity unit;

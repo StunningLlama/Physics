@@ -20,6 +20,7 @@ public class ProbePlot extends Plot {
 	Quantity quantity;
 	Predicate<Probe> probefilter;
 	double scalefactor;
+	public boolean customprobe = false;
 	
 	int window_offset = 0;
 	

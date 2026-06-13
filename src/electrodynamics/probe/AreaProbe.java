@@ -27,7 +27,6 @@ public class AreaProbe extends Probe {
 	public QuantityType quantitytype = QuantityType.SCALAR;
 	public ScalarView scalarname = ScalarView.NONE;
 	public double[][] scalarfield = new double[][] {{0}};
-	public boolean user_placed = false;
 	
 	@Override
 	public void reset() {
@@ -166,7 +165,7 @@ public class AreaProbe extends Probe {
 
 	@Override
 	public String getText(Units units) {
-		if (user_placed) {
+		if (custom) {
 			switch (quantitytype) {
 			case DENSITY:
 				return shorthand + name + " (total) = " + units.toString_fixedsigfigs(value, quantity);

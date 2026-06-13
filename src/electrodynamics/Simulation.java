@@ -56,21 +56,10 @@ public class Simulation extends PeriodicTask {
 	 * 	- BJT (NPN, PNP) [done]
 	 * 	- JFET (p-channel, n-channel) [done]
 	 *  - IGBT - [done, okay]
-	 *  - MESFET [...]
+	 *  - MESFET [done]
 	 *  - SCR  [done]
 	 *  - Darlington pair [done]
 	 */
-	
-	//TODO
-	//Optimize presets
-	
-	//Small transistors
-	//Make better MESFET
-	//Cite sources
-	
-	//New examples
-	//InGaN LEDs
-	//
 	
 	/* Parts */
 	
@@ -251,8 +240,8 @@ public class Simulation extends PeriodicTask {
 		v_sat_n_semi = 1.05e8;
 		v_sat_p_semi = 0.525e8;
 
-		gc_semi = 2.937e25;
-		gv_semi = 2.937e25;
+		gc_semi = 2.9366e25;
+		gv_semi = 2.9366e25;
 		chi_semi = 4.14*eVtoJ;
 		Eg_semi = 1.12*eVtoJ;
 
@@ -263,7 +252,7 @@ public class Simulation extends PeriodicTask {
 		k_SRH_p_semi = 0;
 		
 
-		g_metal = 1.469e30;
+		g_metal = 1.4683e30;
 		g_metal_high = 2.5*g_metal;
 		g_metal_low = 0.25*g_metal;
 		W_metal_default = 4.7*eVtoJ;
@@ -390,6 +379,8 @@ public class Simulation extends PeriodicTask {
 	public double[][] sqrt_D_eff_p;
 
 	public boolean updateMiscFields = false;
+	public boolean store_diff_drift = false;
+	public boolean need_diff_drift = false;
 	public double[][] debug;
 
 	
@@ -587,7 +578,7 @@ public class Simulation extends PeriodicTask {
 
     			if (!opts.gui_paused.isSelected() || controls.advanceframe) {
     				for (int i = 0; i < iteration_multiplier ; i++) {
-    					store_dd = (i == iteration_multiplier-1 && dd_option);
+    					store_diff_drift = (i == iteration_multiplier-1 && need_diff_drift);
     					start_barrier.await();
     					stop_barrier.await();
     				}
@@ -596,6 +587,7 @@ public class Simulation extends PeriodicTask {
     			} else if (updateMiscFields) {
     				calcMiscFields(false);
     			}
+    			performProbeMeasurements();
 
     			setDebugInfo();
     			
@@ -1063,8 +1055,6 @@ public class Simulation extends PeriodicTask {
 		if (materials[i][j].type == MaterialType.ABSORBER && abs_depth[i][j] == 0)
 			abs_depth[i][j] = d;
 	}
-	
-	boolean store_dd = false;
 
 	class SimulationThread extends Thread {
 
@@ -1159,7 +1149,8 @@ public class Simulation extends PeriodicTask {
 									+ 2*rho_n_avg*w_n) - sigma_n*ex_prev;
 									Jx_p[i][j] = mr_p*d_p/ds*(-(rho_p[i+1][j] - rho_p[i][j])*Utils.xtanhxm1(w_p, exp_2wp, approx_p)
 									+ 2*rho_p_avg*w_p) - sigma_p*ex_prev;
-									if (store_dd) {
+									
+									if (store_diff_drift) {
 										diff_x_n[i][j] = mr_n*d_n/ds*(-(rho_n[i+1][j] - rho_n[i][j])*Utils.xtanhxm1(w_n, exp_2wn, approx_n));
 										diff_x_p[i][j] = mr_p*d_p/ds*(-(rho_p[i+1][j] - rho_p[i][j])*Utils.xtanhxm1(w_p, exp_2wp, approx_p));
 
@@ -1173,8 +1164,7 @@ public class Simulation extends PeriodicTask {
 									Jx_n[i][j] = 0;
 									Jx_p[i][j] = 0;
 
-									if (store_dd) 
-									{
+									if (store_diff_drift) {
 										diff_x_n[i][j] = 0;
 										diff_x_p[i][j] = 0;
 
@@ -1245,7 +1235,7 @@ public class Simulation extends PeriodicTask {
 									Jy_p[i][j] = mr_p*d_p/ds*(-(rho_p[i][j+1] - rho_p[i][j])*Utils.xtanhxm1(w_p, exp_2wp, approx_p)
 										+ 2*rho_p_avg*w_p) - sigma_p*ey_prev;
 									
-									if (store_dd) {
+									if (store_diff_drift) {
 										diff_y_n[i][j] = mr_n*d_n/ds*(-(rho_n[i][j+1] - rho_n[i][j])*Utils.xtanhxm1(w_n, exp_2wn, approx_n));
 										diff_y_p[i][j] = mr_p*d_p/ds*(-(rho_p[i][j+1] - rho_p[i][j])*Utils.xtanhxm1(w_p, exp_2wp, approx_p));
 										
@@ -1260,7 +1250,7 @@ public class Simulation extends PeriodicTask {
 									Jy_n[i][j] = 0;
 									Jy_p[i][j] = 0;
 									
-									if (store_dd) {
+									if (store_diff_drift) {
 										diff_y_n[i][j] = 0;
 										diff_y_p[i][j] = 0;
 										
@@ -1350,7 +1340,7 @@ public class Simulation extends PeriodicTask {
 						t6.stop();
 						
 						/* Enforce Gauss law constraint */
-						if (stepnumber%500 == 0 && controls.test == false) {
+						if (stepnumber%500 == 0) {
 							multigridSolve(true, false);
 						}
 
@@ -1551,9 +1541,34 @@ public class Simulation extends PeriodicTask {
 			|| view_vector == VectorView.HOLE_DIFFUSION || view_vector == VectorView.HOLE_DRIFT || view_vector == VectorView.HOLE_VELOCITY
 			|| (opts.gui_carriers.isSelected() && opts.menu_carrier_diffusion.isSelected()))
 		{
-			this.calculateDriftDiffusion();
+			need_diff_drift = true;
+			
+			for (int i = 1; i < nx-1; i++)
+			{
+				for (int j = 1; j < ny-1; j++)
+				{
+					if (conducting[i][j] == 1) {
+						double E2 = 0.25*(Ex[i][j]+Ex[i][j+1])*(Ex[i][j]+Ex[i][j+1]) + 0.25*(Ey[i][j]+Ey[i+1][j])*(Ey[i][j]+Ey[i+1][j]);
+						double Esat_n = v_sat_n[i][j]/(D_n[i][j]*e_charge*beta);
+						double Esat_p = v_sat_p[i][j]/(D_p[i][j]*e_charge*beta);
+						sqrt_D_eff_n[i][j] = Math.sqrt(D_n[i][j]/Math.sqrt(E2/(Esat_n*Esat_n) + 1));
+						sqrt_D_eff_p[i][j] = Math.sqrt(D_p[i][j]/Math.sqrt(E2/(Esat_p*Esat_p) + 1));
+					} else {
+						sqrt_D_eff_n[i][j] = 0;
+						sqrt_D_eff_p[i][j] = 0;
+					}
+				}
+			}
+		} else {
+			need_diff_drift = false;
 		}
+		
+		updateMiscFields = false;
 
+		t8.stop();
+	}
+	
+	public void performProbeMeasurements() {
 		for (Probe p: probes) {
 			p.measure(this, frame%controls.plotinterval == 0);
 		}
@@ -1562,10 +1577,6 @@ public class Simulation extends PeriodicTask {
 			logProbeData();
 			controls.logdata = false;
 		}
-		
-		updateMiscFields = false;
-
-		t8.stop();
 	}
 	
 	public void computeScalarField(double[][] scalarfield, int i1, int j1, ScalarView scalarview) {
@@ -1768,6 +1779,8 @@ public class Simulation extends PeriodicTask {
 					double n = rho_n[i+i1][j+j1]/q_n;
 					double p = rho_p[i+i1][j+j1]/q_p;
 					scalarfield[i][j] = semiconducting[i+i1][j+j1]*k_rad[i+i1][j+j1]*n*p;
+					if (!(scalarfield[i][j] > 0))
+						scalarfield[i][j] = 0;
 				}
 			}
 			break;
@@ -1856,133 +1869,6 @@ public class Simulation extends PeriodicTask {
 		default:
 			break;
 		}
-	}
-	
-	boolean dd_option = true;
-
-	public void calculateDriftDiffusion() {
-		for (int i = 1; i < nx-1; i++)
-		{
-			for (int j = 1; j < ny-1; j++)
-			{
-				if (conducting[i][j] == 1) {
-					double E2 = 0.25*(Ex[i][j]+Ex[i][j+1])*(Ex[i][j]+Ex[i][j+1]) + 0.25*(Ey[i][j]+Ey[i+1][j])*(Ey[i][j]+Ey[i+1][j]);
-					double Esat_n = v_sat_n[i][j]/(D_n[i][j]*e_charge*beta);
-					double Esat_p = v_sat_p[i][j]/(D_p[i][j]*e_charge*beta);
-					sqrt_D_eff_n[i][j] = Math.sqrt(D_n[i][j]/Math.sqrt(E2/(Esat_n*Esat_n) + 1));
-					sqrt_D_eff_p[i][j] = Math.sqrt(D_p[i][j]/Math.sqrt(E2/(Esat_p*Esat_p) + 1));
-				} else {
-					sqrt_D_eff_n[i][j] = 0;
-					sqrt_D_eff_p[i][j] = 0;
-				}
-			}
-		}
-
-		if (dd_option) return;
-		for (int i = 0; i < nx-1; i++)
-		{
-			for (int j = 1; j < ny-1; j++)
-			{
-				if (conducting_x[i][j] == 1) {
-					double ex = Ex[i][j];
-
-					double d_n = 0.5*(D_n[i+1][j] + D_n[i][j]);
-					double d_p = 0.5*(D_p[i+1][j] + D_p[i][j]);
-
-					double rho_n_avg = 0.5*(rho_n[i+1][j] + rho_n[i][j]);
-					double rho_p_avg = 0.5*(rho_p[i+1][j] + rho_p[i][j]);
-
-					double Esat_n = 0.5*(v_sat_n[i+1][j] + v_sat_n[i][j])/(d_n*e_charge*beta);
-					double Esat_p = 0.5*(v_sat_p[i+1][j] + v_sat_p[i][j])/(d_p*e_charge*beta);
-
-					double mr_n = 1/Math.sqrt((ex*ex + Ey_xgrid[i][j]*Ey_xgrid[i][j])/(Esat_n*Esat_n) + 1);
-					double mr_p = 1/Math.sqrt((ex*ex + Ey_xgrid[i][j]*Ey_xgrid[i][j])/(Esat_p*Esat_p) + 1);
-
-					double emf_phase = ac_x[i][j]*AC_amplitude+(1-ac_x[i][j]);
-
-					double w_n = (emf_phase*emfx[i][j]*q_n + cmfx_n[i][j] + ex*q_n)*beta*ds/2;
-					double w_p = (emf_phase*emfx[i][j]*q_p + cmfx_p[i][j] + ex*q_p)*beta*ds/2;
-
-					boolean approx_n = Math.abs(w_n) < 0.2;
-					boolean approx_p = Math.abs(w_p) < 0.2;
-
-					double exp_2wn = approx_n? 1 : FastExp.exp(2*w_n);
-					double exp_2wp = approx_p? 1 : FastExp.exp(2*w_p);
-					
-					diff_x_n[i][j] = mr_n*d_n/ds*(-(rho_n[i+1][j] - rho_n[i][j])*Utils.xtanhxm1(w_n, exp_2wn, approx_n));
-					diff_x_p[i][j] = mr_p*d_p/ds*(-(rho_p[i+1][j] - rho_p[i][j])*Utils.xtanhxm1(w_p, exp_2wp, approx_p));
-
-					drift_x_n[i][j] = 2*rho_n_avg*w_n*mr_n*d_n/ds;
-					drift_x_p[i][j] = 2*rho_p_avg*w_p*mr_p*d_p/ds;
-					
-					vel_x_n[i][j] = 2*w_n*mr_n*d_n/ds;
-					vel_x_p[i][j] = 2*w_p*mr_p*d_p/ds;
-
-				} else {
-					diff_x_n[i][j] = 0;
-					diff_x_p[i][j] = 0;
-					
-					drift_x_n[i][j] = 0;
-					drift_x_p[i][j] = 0;
-					
-					vel_x_n[i][j] = 0;
-					vel_x_p[i][j] = 0;
-				}
-			}
-		}
-
-		for (int i = 1; i < nx-1; i++)
-		{
-			for (int j = 0; j < ny-1; j++)
-			{
-				if (conducting_y[i][j] == 1) {
-					double ey = Ey[i][j];
-
-					double d_n = 0.5*(D_n[i][j+1] + D_n[i][j]);
-					double d_p = 0.5*(D_p[i][j+1] + D_p[i][j]);
-
-					double rho_n_avg = 0.5*(rho_n[i][j+1] + rho_n[i][j]);
-					double rho_p_avg = 0.5*(rho_p[i][j+1] + rho_p[i][j]);
-
-					double Esat_n = 0.5*(v_sat_n[i][j+1] + v_sat_n[i][j])/(d_n*e_charge*beta);
-					double Esat_p = 0.5*(v_sat_p[i][j+1] + v_sat_p[i][j])/(d_p*e_charge*beta);
-
-					double mr_n = 1/Math.sqrt((ey*ey + Ex_ygrid[i][j]*Ex_ygrid[i][j])/(Esat_n*Esat_n)+1);
-					double mr_p = 1/Math.sqrt((ey*ey + Ex_ygrid[i][j]*Ex_ygrid[i][j])/(Esat_p*Esat_p)+1);
-
-					double emf_phase = ac_y[i][j]*AC_amplitude+(1-ac_y[i][j]);
-
-					double w_n = (emf_phase*emfy[i][j]*q_n + cmfy_n[i][j] + ey*q_n)*beta*ds/2;
-					double w_p = (emf_phase*emfy[i][j]*q_p + cmfy_p[i][j] + ey*q_p)*beta*ds/2;
-
-					boolean approx_n = Math.abs(w_n) < 0.2;
-					boolean approx_p = Math.abs(w_p) < 0.2;
-
-					double exp_2wn = approx_n? 1 : FastExp.exp(2*w_n);
-					double exp_2wp = approx_p? 1 : FastExp.exp(2*w_p);
-
-					diff_y_n[i][j] = mr_n*d_n/ds*(-(rho_n[i][j+1] - rho_n[i][j])*Utils.xtanhxm1(w_n, exp_2wn, approx_n));
-					diff_y_p[i][j] = mr_p*d_p/ds*(-(rho_p[i][j+1] - rho_p[i][j])*Utils.xtanhxm1(w_p, exp_2wp, approx_p));
-					
-					drift_y_n[i][j] = 2*rho_n_avg*w_n*mr_n*d_n/ds;
-					drift_y_p[i][j] = 2*rho_p_avg*w_p*mr_p*d_p/ds;
-
-					vel_y_n[i][j] = 2*w_n*mr_n*d_n/ds;
-					vel_y_p[i][j] = 2*w_p*mr_p*d_p/ds;
-
-				} else {
-					diff_y_n[i][j] = 0;
-					diff_y_p[i][j] = 0;
-					
-					drift_y_n[i][j] = 0;
-					drift_y_p[i][j] = 0;
-					
-					vel_y_n[i][j] = 0;
-					vel_y_p[i][j] = 0;
-				}
-			}
-		}
-		
 	}
 
 	public void computeChemicalForces()

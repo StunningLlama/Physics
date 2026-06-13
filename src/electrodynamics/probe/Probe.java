@@ -22,6 +22,7 @@ public abstract class Probe implements Cloneable {
 	public Quantity quantity = Quantity.DIMENSIONLESS;
 	public String shorthand = "";
 	public String name = "";
+	public boolean custom = false;
 
 	public Probe(int mx, int my) {};
 	public abstract void reset();

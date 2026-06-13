@@ -6,6 +6,7 @@ package electrodynamics;
 
 import java.awt.BorderLayout;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.MouseInfo;
 import java.awt.PointerInfo;
@@ -103,7 +104,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     public boolean flip_v_selection = false;
     public boolean exit = false;
     public boolean updateimagesize = false;
-    public boolean test = false;
 
 
 	/* Mouse controls */
@@ -870,6 +870,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						tmplist.setVisibleRowCount(5);
 						tmplist.setSelectedValue(Preset.DEFAULT, true);
 						JScrollPane scrollPane = new JScrollPane(tmplist);
+				        scrollPane.setPreferredSize(new Dimension(300, 250));
 						int result = JOptionPane.showConfirmDialog(null, scrollPane, "Select quantity", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
 						if (result == JOptionPane.OK_OPTION) {
@@ -897,7 +898,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 									((AreaProbe)p).shorthand = quantity.shorthand;
 									((AreaProbe)p).quantity = quantity;
 									((AreaProbe)p).quantitytype = quantitytype;
-									((AreaProbe)p).user_placed = true;
+									((AreaProbe)p).custom = true;
 								}
 							}
 						} else {
@@ -910,6 +911,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						tmplist.setVisibleRowCount(5);
 						tmplist.setSelectedValue(Preset.DEFAULT, true);
 						JScrollPane scrollPane = new JScrollPane(tmplist);
+				        scrollPane.setPreferredSize(new Dimension(300, 250));
 						int result = JOptionPane.showConfirmDialog(null, scrollPane, "Select quantity", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
 						if (result == JOptionPane.OK_OPTION) {
@@ -919,6 +921,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 								((PointProbe)p).scalarname = selected;
 								((PointProbe)p).shorthand = selected.shorthand;
 								((PointProbe)p).quantity = selected.unit;
+								((PointProbe)p).custom = true;
 							}
 						} else {
 							e.removeProbe(p);
@@ -943,6 +946,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 									((LineProbe)p).vectorname = selected;
 									((LineProbe)p).shorthand = quantity.shorthand;
 									((LineProbe)p).quantity = quantity;
+									((LineProbe)p).custom = true;
 								} else {
 									e.removeProbe(p);
 								}
@@ -1324,6 +1328,26 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (brush == Brush.PROBEPLOT) {
 				plotinterval = e.opts.gui_plotinterval.getValue();
 				e.opts.gui_plotinterval_text.setText("Time resolution: " + e.units.toString(plotinterval*e.dt*e.iteration_multiplier, Quantity.TIME));
+
+				for (int i = e.plots.size()-1; i >= 0; i--) {
+					Plot p = e.plots.get(i);
+					if (p instanceof ProbePlot) {
+						if (((ProbePlot)p).customprobe == true && !p.frame.isVisible()) {
+							p.frame.dispose();
+							e.plots.remove(i);
+						}
+					}
+				}
+				
+				for (Probe p : e.probes) {
+					if (p.custom) {
+						ProbePlot newplot = new ProbePlot("Custom probe plot", "", p.quantity.shorthand, 1, p.quantity, (pr) -> (pr == p), 0);
+						newplot.customprobe = true;
+						newplot.initialize();
+						e.plots.add(newplot);
+					}
+				}
+				
 				for (Plot p : e.plots) {
 					if (p instanceof ProbePlot) {
 						if (!p.frame.isVisible() && ((ProbePlot)p).checkProbesExist(e))
@@ -1339,6 +1363,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				tmplist.setVisibleRowCount(5);
 				tmplist.setSelectedValue(Preset.DEFAULT, true);
 				JScrollPane scrollPane = new JScrollPane(tmplist);
+		        scrollPane.setPreferredSize(new Dimension(300, 250));
 				int result = JOptionPane.showConfirmDialog(null, scrollPane, "Select X variable (must be probe)", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
 				if (result == JOptionPane.OK_OPTION) {
@@ -1355,6 +1380,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				tmplist.setVisibleRowCount(5);
 				tmplist.setSelectedValue(Preset.DEFAULT, true);
 				scrollPane = new JScrollPane(tmplist);
+		        scrollPane.setPreferredSize(new Dimension(300, 250));
 				result = JOptionPane.showConfirmDialog(null, scrollPane, "Select Y variable (must be probe)", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
 				if (result == JOptionPane.OK_OPTION) {
@@ -1774,8 +1800,14 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     private Action key_5 = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
-    		//e.opts.gui_brush.setSelectedItem(Brush.SELECT);
-			test = !test;
+    		e.opts.gui_brush.setSelectedItem(Brush.SELECT);
+        }
+    };
+    
+    private Action key_6 = new AbstractAction(null) {
+		@Override
+        public void actionPerformed(ActionEvent ev) {
+    		e.opts.gui_brush.setSelectedItem(Brush.ZOOM);
         }
     };
     
@@ -1940,6 +1972,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_5, 0), key_5);
     	contentPane.getActionMap().put(key_5, key_5);
+
+    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_6, 0), key_6);
+    	contentPane.getActionMap().put(key_6, key_6);
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, 0), key_prevtool);
     	contentPane.getActionMap().put(key_prevtool, key_prevtool);

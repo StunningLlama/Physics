@@ -229,7 +229,7 @@ public class Material {
     	if (cust_id == -1)
     		return type.name;
     	else if (name != null)
-    		return name + " *";
+    		return name + "*";
     	else
     		return "?";
     }

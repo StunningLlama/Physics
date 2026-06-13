@@ -28,7 +28,10 @@ public class SemiSim {
 	public static String about = "<html><body><p style='width: 250px;'>Brandon's Semiconductor Simulator / SemiSim.<br>"
 									+ "Version 2.0<br>"
 									+ "(c) 2026 Brandon Li<br><br>"
-									+ "Thanks to Paul Falstad, Ariel Baksh, and retconaway for providing help, feedback, and suggestions.</p></body></html>";
+									+ "Thanks to Paul Falstad, Ariel Baksh, and retconaway for providing help, feedback, and suggestions.<br><br>"
+									+ "Data taken from:<br>"
+									+ "Sitlisky, Vadim. &ldquo;New Semiconductor Materials. Characteristics and Properties&rdquo;. <a href=\"http://www.ioffe.ru\"><em>www.ioffe.ru</em></a>.<br> Retrieved June 2026.<br>"
+									+ "Schroder, D. K. (2006). <em>Semiconductor material<br> and device characterization</em>. John Wiley &amp; Sons.</p></body></html>";
 
 	ArrayList<SimulationThread> sim_threads = new ArrayList<>();
 	ArrayList<Renderer.GraphicsThread> graphics_threads = new ArrayList<>();
