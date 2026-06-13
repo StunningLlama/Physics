@@ -2,8 +2,11 @@ package electrodynamics.util;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.function.Supplier;
 
 import javax.swing.ButtonGroup;
@@ -14,28 +17,32 @@ import javax.swing.JSeparator;
 public class MenuCheckList<T extends Enum<?>, Button extends JRadioButtonMenuItem> implements ActionListener {
 
 	public HashMap<T, Button> buttonmap = new HashMap<T, Button>();
-	public HashMap<Integer, Button> buttonlist = new HashMap<Integer, Button>();
+	public List<Button> buttonlist = new ArrayList<Button>();
+	public List<T> optionlist = new ArrayList<T>();
 	public ButtonGroup buttongroup = new ButtonGroup();
 	public JMenu menu;
+	public HashSet<T> separators;
 	
 	public void initialize(T[] values, JMenu menu, ActionListener a, T default_option, T[] sep, Supplier<Button> constructor) {
 		this.menu = menu;
+		this.separators = new HashSet<T>();
+		if (sep != null)
+			separators.addAll(Arrays.asList(sep));
 		
-		int i = 0;
 		for (T b : values) {
-			if (sep != null && Arrays.asList(sep).contains(b))
+			if (separators.contains(b))
 				menu.add(new JSeparator());
 			
 			Button button = constructor.get();
 			button.setText(b.toString());
 			buttonmap.put(b, button);
-			buttonlist.put(i, button);
+			buttonlist.add(button);
+			optionlist.add(b);
+			button.setActionCommand(values[0].getClass().getName());
 			button.addActionListener(a);
 			button.addActionListener(this);
 			buttongroup.add(button);
 			menu.add(button);
-			
-			i++;
 		}
 		
 		if (default_option != null)

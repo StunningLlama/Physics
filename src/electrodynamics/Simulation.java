@@ -2155,18 +2155,20 @@ public class Simulation extends PeriodicTask {
 
 					for (int di = -smoothing_radius; di <= smoothing_radius; di++) {
 						for (int dj = -smoothing_radius; dj <= smoothing_radius; dj++) {
-							if (i+di >= 0 && j+dj >= 0 && i+di < nx && j+dj < ny && conducting[i+di][j+dj] == 1) {
-								if (!visited[i+di][j+dj]) {
-									needs_smoothing[i][j] = true;
+							if (i+di >= 0 && j+dj >= 0 && i+di < nx && j+dj < ny) {
+								if (conducting[i+di][j+dj] == 1) {
+									if (!visited[i+di][j+dj]) {
+										needs_smoothing[i][j] = true;
+									}
+
+									if (mat.type != materials[i+di][j+dj].type || mat.cust_id != materials[i+di][j+dj].cust_id) {
+										needs_smoothing[i][j] = true;
+									}
 								}
-								
-								if (mat.type != materials[i+di][j+dj].type || mat.cust_id != materials[i+di][j+dj].cust_id) {
-									needs_smoothing[i][j] = true;
-								}
+
+								distance[i+di][j+dj] = Integer.MAX_VALUE;
+								visited[i+di][j+dj] = false;
 							}
-							
-							distance[i+di][j+dj] = Integer.MAX_VALUE;
-							visited[i+di][j+dj] = false;
 						}
 					}
 				}

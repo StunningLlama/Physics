@@ -122,7 +122,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 	public JMenu menu_view;
 	public JCheckBox gui_carriers;
 	public JMenuItem menu_pref;
-	public JMenu mnNewMenu_1;
+	public JMenu menu_graphics;
 	public CustJCheckBoxMenuItem menu_materialname;
 	public CustJCheckBoxMenuItem menu_interface;
 	public CustJCheckBoxMenuItem menu_tooltip;
@@ -142,7 +142,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 	public JMenuItem menu_selectall;
 	public JMenuItem menu_deselectall;
 	public JMenuItem menu_save;
-	private JMenu menu_view_1;
+	public JMenu menu_help2;
 	public JMenuItem menu_exit;
 	private JSeparator separator_1;
 	public JMenuItem menu_github;
@@ -155,6 +155,8 @@ public class MainWindow extends JFrame implements ComponentListener {
 	public JScrollBar gui_light;
 	public JMenuItem menu_view_materials;
 	public JComboBox<CustProbeType> gui_probetype;
+	public JMenu menu_edit;
+	public JMenu menu_file;
 
 	/**
 	 * Create the frame.
@@ -168,97 +170,97 @@ public class MainWindow extends JFrame implements ComponentListener {
 		menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
 
-		JMenu mnNewMenu = new JMenu("File");
-		menuBar.add(mnNewMenu);
+		menu_file = new JMenu("File");
+		menuBar.add(menu_file);
 
 		menu_new = new JMenuItem("New simulation...");
 		menu_new.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
-		mnNewMenu.add(menu_new);
+		menu_file.add(menu_new);
 
 		menu_open = new JMenuItem("Open file...");
 		menu_open.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
-		mnNewMenu.add(menu_open);
+		menu_file.add(menu_open);
 
 		menu_save = new JMenuItem("Save");
 		menu_save.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
-		mnNewMenu.add(menu_save);
+		menu_file.add(menu_save);
 
 		menu_saveas = new JMenuItem("Save as...");
 		menu_saveas.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
-		mnNewMenu.add(menu_saveas);
+		menu_file.add(menu_saveas);
 
 		menu_editdesc = new JMenuItem("Edit description...");
-		mnNewMenu.add(menu_editdesc);
+		menu_file.add(menu_editdesc);
 		
 				menu_pref = new JMenuItem("Preferences");
-				mnNewMenu.add(menu_pref);
+				menu_file.add(menu_pref);
 
 		separator_1 = new JSeparator();
-		mnNewMenu.add(separator_1);
+		menu_file.add(separator_1);
 
 		menu_exit = new JMenuItem("Exit");
-		mnNewMenu.add(menu_exit);
+		menu_file.add(menu_exit);
 
-		JMenu menu_asdf = new JMenu("Edit");
-		menuBar.add(menu_asdf);
+		menu_edit = new JMenu("Edit");
+		menuBar.add(menu_edit);
 
 		menu_undo = new JMenuItem("Undo");
 		menu_undo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK));
-		menu_asdf.add(menu_undo);
+		menu_edit.add(menu_undo);
 
 		menu_redo = new JMenuItem("Redo");
 		menu_redo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
-		menu_asdf.add(menu_redo);
+		menu_edit.add(menu_redo);
 
 		JSeparator separator = new JSeparator();
-		menu_asdf.add(separator);
+		menu_edit.add(separator);
 
 		menu_cut = new JMenuItem("Cut");
 		menu_cut.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK));
-		menu_asdf.add(menu_cut);
+		menu_edit.add(menu_cut);
 
 		menu_copy = new JMenuItem("Copy");
 		menu_copy.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
-		menu_asdf.add(menu_copy);
+		menu_edit.add(menu_copy);
 
 		menu_paste = new JMenuItem("Paste");
 		menu_paste.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK));
-		menu_asdf.add(menu_paste);
+		menu_edit.add(menu_paste);
 
 		menu_rotate = new JMenuItem("Rotate");
 		menu_rotate.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
-		menu_asdf.add(menu_rotate);
+		menu_edit.add(menu_rotate);
 
 		menu_flip_h = new JMenuItem("Flip horizontally");
 		menu_flip_h.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK));
-		menu_asdf.add(menu_flip_h);
+		menu_edit.add(menu_flip_h);
 
 		menu_flip_v = new JMenuItem("Flip vertically");
 		menu_flip_v.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK));
-		menu_asdf.add(menu_flip_v);
+		menu_edit.add(menu_flip_v);
 
 		separator_3 = new JSeparator();
-		menu_asdf.add(separator_3);
+		menu_edit.add(separator_3);
 
 		menu_selectall = new JMenuItem("Select all");
 		menu_selectall.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK));
-		menu_asdf.add(menu_selectall);
+		menu_edit.add(menu_selectall);
 
 		menu_deselectall = new JMenuItem("Deselect all");
 		menu_deselectall.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK));
-		menu_asdf.add(menu_deselectall);
+		menu_edit.add(menu_deselectall);
 
 		separator_2 = new JSeparator();
-		menu_asdf.add(separator_2);
+		menu_edit.add(separator_2);
 
 		menu_advancedsettings = new JMenuItem("Simulation settings");
-		menu_asdf.add(menu_advancedsettings);
+		menu_edit.add(menu_advancedsettings);
 
 		menu_cust_material = new JMenuItem("Material editor");
-		menu_asdf.add(menu_cust_material);
+		menu_edit.add(menu_cust_material);
 
 		menu_view_materials = new JMenuItem("Material property viewer");
-		menu_asdf.add(menu_view_materials);
+		menu_edit.add(menu_view_materials);
 
 		menu_tools = new JMenu("Tools");
 		menuBar.add(menu_tools);
@@ -266,89 +268,89 @@ public class MainWindow extends JFrame implements ComponentListener {
 		menu_view = new JMenu("View");
 		menuBar.add(menu_view);
 
-		mnNewMenu_1 = new JMenu("Graphics");
-		menuBar.add(mnNewMenu_1);
+		menu_graphics = new JMenu("Graphics");
+		menuBar.add(menu_graphics);
 
 		menu_interface = new CustJCheckBoxMenuItem("Display interface");
 		menu_interface.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H, 0));
 		menu_interface.setSelected(true);
-		mnNewMenu_1.add(menu_interface);
+		menu_graphics.add(menu_interface);
 
 		menu_time = new CustJCheckBoxMenuItem("Show time");
 		menu_time.setSelected(true);
-		mnNewMenu_1.add(menu_time);
+		menu_graphics.add(menu_time);
 
 		menu_materialname = new CustJCheckBoxMenuItem("Show material name");
 		menu_materialname.setSelected(true);
-		mnNewMenu_1.add(menu_materialname);
+		menu_graphics.add(menu_materialname);
 
 		menu_tooltip = new CustJCheckBoxMenuItem("Show simulation variables");
 		menu_tooltip.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_T, 0));
-		mnNewMenu_1.add(menu_tooltip);
+		menu_graphics.add(menu_tooltip);
 
 		menu_probes = new CustJCheckBoxMenuItem("Show probes");
 		menu_probes.setSelected(true);
-		mnNewMenu_1.add(menu_probes);
+		menu_graphics.add(menu_probes);
 
 		menu_elem_colors = new CustJCheckBoxMenuItem("Show material colors");
 		menu_elem_colors.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, 0));
 		menu_elem_colors.setSelected(true);
-		mnNewMenu_1.add(menu_elem_colors);
+		menu_graphics.add(menu_elem_colors);
 
 		menu_borders = new CustJCheckBoxMenuItem("Show material borders");
 		menu_borders.setSelected(true);
-		mnNewMenu_1.add(menu_borders);
+		menu_graphics.add(menu_borders);
 
 		menu_text_bg = new CustJCheckBoxMenuItem("Show text background");
 		menu_text_bg.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, 0));
 		menu_text_bg.setSelected(true);
-		mnNewMenu_1.add(menu_text_bg);
+		menu_graphics.add(menu_text_bg);
 
 		menu_colormap = new CustJCheckBoxMenuItem("Show color scale");
 		menu_colormap.setSelected(true);
-		mnNewMenu_1.add(menu_colormap);
+		menu_graphics.add(menu_colormap);
 
 		JSeparator separator_4 = new JSeparator();
-		mnNewMenu_1.add(separator_4);
+		menu_graphics.add(separator_4);
 
 		menu_carriers = new CustJCheckBoxMenuItem("Show charge carriers");
-		mnNewMenu_1.add(menu_carriers);
+		menu_graphics.add(menu_carriers);
 
 		menu_hide_carriers_metal = new CustJCheckBoxMenuItem("Hide carriers in metal");
 		menu_hide_carriers_metal.setSelected(true);
-		mnNewMenu_1.add(menu_hide_carriers_metal);
+		menu_graphics.add(menu_hide_carriers_metal);
 
 		menu_gen_recomb = new CustJCheckBoxMenuItem("Show generation and recombination");
 		menu_gen_recomb.setSelected(true);
-		mnNewMenu_1.add(menu_gen_recomb);
+		menu_graphics.add(menu_gen_recomb);
 
 		menu_carrier_diffusion = new CustJCheckBoxMenuItem("Show carrier diffusion");
-		mnNewMenu_1.add(menu_carrier_diffusion);
+		menu_graphics.add(menu_carrier_diffusion);
 
 		JSeparator separator_5 = new JSeparator();
-		mnNewMenu_1.add(separator_5);
+		menu_graphics.add(separator_5);
 
 		menu_debug = new CustJCheckBoxMenuItem("Debug mode");
 		menu_debug.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0));
-		mnNewMenu_1.add(menu_debug);
+		menu_graphics.add(menu_debug);
 
 		menu_examples = new JMenu("Examples");
 		menuBar.add(menu_examples);
 
-		menu_view_1 = new JMenu("Help");
-		menuBar.add(menu_view_1);
+		menu_help2 = new JMenu("Help");
+		menuBar.add(menu_help2);
 
 		menu_help = new JMenuItem("Open manual");
-		menu_view_1.add(menu_help);
+		menu_help2.add(menu_help);
 
 		menu_github = new JMenuItem("Github");
-		menu_view_1.add(menu_github);
+		menu_help2.add(menu_github);
 
 		menu_report = new JMenuItem("Report a bug...");
-		menu_view_1.add(menu_report);
+		menu_help2.add(menu_report);
 
 		menu_about = new JMenuItem("About...");
-		menu_view_1.add(menu_about);
+		menu_help2.add(menu_about);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		contentPane.setLayout(new BorderLayout(0, 0));
@@ -656,18 +658,12 @@ public class MainWindow extends JFrame implements ComponentListener {
 		e.canvas.addMouseWheelListener(e.controls);
 		e.canvas.addKeyListener(e.controls);
 		this.getRootPane(). addComponentListener(this);
+
 		gui_reset.addActionListener(e.controls);
 		gui_brush.addActionListener(e.controls);
-		
-		removeKeyListeners(gui_brush);
-		removeKeyListeners(gui_bc);
-		removeKeyListeners(gui_material);
-		removeKeyListeners(gui_brush_1);
-
 		gui_material.addActionListener(e.controls);
 		gui_carriers.addActionListener(e.controls);
 		menu_advancedsettings.addActionListener(e.controls);
-		
 		menu_open.addActionListener(e.controls);
 		menu_saveas.addActionListener(e.controls);
 		menu_save.addActionListener(e.controls);
@@ -694,6 +690,43 @@ public class MainWindow extends JFrame implements ComponentListener {
 		menu_report.addActionListener(e.controls);
 		menu_cust_material.addActionListener(e.controls);
 		menu_view_materials.addActionListener(e.controls);
+
+		gui_reset				.setActionCommand("gui_reset");
+		gui_brush				.setActionCommand("gui_brush");
+		gui_material			.setActionCommand("gui_material");
+		gui_carriers			.setActionCommand("gui_carriers");
+		menu_advancedsettings	.setActionCommand("menu_advancedsettings");
+		menu_open				.setActionCommand("menu_open");
+		menu_saveas				.setActionCommand("menu_saveas");
+		menu_save				.setActionCommand("menu_save");
+		menu_about				.setActionCommand("menu_about");
+		menu_help				.setActionCommand("menu_help");
+		menu_undo				.setActionCommand("menu_undo");
+		menu_redo				.setActionCommand("menu_redo");
+		menu_saveas				.setActionCommand("menu_saveas");
+		menu_cut				.setActionCommand("menu_cut");
+		menu_copy				.setActionCommand("menu_copy");
+		menu_paste				.setActionCommand("menu_paste");
+		menu_editdesc			.setActionCommand("menu_editdesc");
+		menu_new				.setActionCommand("menu_new");
+		menu_rotate				.setActionCommand("menu_rotate");
+		menu_flip_v				.setActionCommand("menu_flip_v");
+		menu_flip_h				.setActionCommand("menu_flip_h");
+		menu_selectall			.setActionCommand("menu_selectall");
+		menu_deselectall		.setActionCommand("menu_deselectall");
+		menu_pref				.setActionCommand("menu_pref");
+		menu_carriers			.setActionCommand("menu_carriers");
+		menu_debug				.setActionCommand("menu_debug");
+		menu_exit				.setActionCommand("menu_exit");
+		menu_github				.setActionCommand("menu_github");
+		menu_report				.setActionCommand("menu_report");
+		menu_cust_material		.setActionCommand("menu_cust_material");
+		menu_view_materials		.setActionCommand("menu_view_materials");
+
+		removeKeyListeners(gui_brush);
+		removeKeyListeners(gui_bc);
+		removeKeyListeners(gui_material);
+		removeKeyListeners(gui_brush_1);
 		
 		gui_brush.addItemListener(e.controls);
 		

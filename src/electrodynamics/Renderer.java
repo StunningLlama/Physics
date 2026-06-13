@@ -878,11 +878,11 @@ public class Renderer extends PeriodicTask {
 		setalphaFG(1);
 		setColorFloat(0.7f, 0.7f, 0.7f);
 
-		if (Brush.drawLine(brush) && e.controls.mouse_pressed_prev) {
+		if (Brush.drawLine(brush) && e.controls.mouse_pressed_prev_left) {
 			drawPixelLine(e.controls.mx_start, e.controls.my_start, e.controls.mx, e.controls.my);
 		}
 
-		if (brush == Brush.ZOOM && e.controls.mouse_pressed_prev && !e.controls.shift_down) {
+		if (brush == Brush.ZOOM && e.controls.mouse_pressed_prev_left && !e.controls.shift_down) {
 			int x1 = e.controls.mx_start;
 			int y1 = e.controls.my_start;
 			int x2 = e.controls.mx;
