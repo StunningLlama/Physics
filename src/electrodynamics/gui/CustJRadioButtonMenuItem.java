@@ -1,4 +1,4 @@
-package electrodynamics.util;
+package electrodynamics.gui;
 
 import java.awt.event.MouseEvent;
 

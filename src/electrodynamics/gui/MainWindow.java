@@ -58,9 +58,6 @@ import electrodynamics.Renderer.VectorView;
 import electrodynamics.SemiSim;
 import electrodynamics.Simulation;
 import electrodynamics.Simulation.BoundaryCondition;
-import electrodynamics.util.CustJRadioButtonMenuItem;
-import electrodynamics.util.MenuBuilder;
-import electrodynamics.util.MenuCheckList;
 import electrodynamics.Controls.CustProbeType;
 
 public class MainWindow extends JFrame implements ComponentListener {

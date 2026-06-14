@@ -48,8 +48,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	public JTextField width;
 	public JTextField resolution;
 	public JTextField depth;
-	public JTextField mu_electron;
-	public JTextField mu_hole;
+	public JTextField mu_electron_semi;
+	public JTextField mu_hole_semi;
 	public JTextField chi_semi;
 	public JTextField Eg_semi;
 	public JTextField g_metal;
@@ -95,9 +95,9 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	private JPanel panel;
 	public JButton btn_reset;
 	private JLabel lblNewLabel_5_8;
-	private JTextField v_sat_n;
+	private JTextField v_sat_n_semi;
 	private JLabel lblNewLabel_5_9;
-	private JTextField v_sat_p;
+	private JTextField v_sat_p_semi;
 	private JLabel lblNewLabel_5_10;
 	private JTextField k_SRH_n_semi;
 	private JLabel lblNewLabel_5_11;
@@ -324,10 +324,10 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		tabbedPane.addTab("Semiconductor", null, semi, null);
 		semi.setLayout(null);
 		
-		mu_electron = new JTextField();
-		mu_electron.setColumns(10);
-		mu_electron.setBounds(216, 6, 98, 26);
-		semi.add(mu_electron);
+		mu_electron_semi = new JTextField();
+		mu_electron_semi.setColumns(10);
+		mu_electron_semi.setBounds(216, 6, 98, 26);
+		semi.add(mu_electron_semi);
 		
 		JLabel lblNewLabel_3 = new JLabel("Electron mobility [m^2/(V s)]");
 		lblNewLabel_3.setToolTipText("Electron mobility");
@@ -341,10 +341,10 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		lblNewLabel_4.setBounds(36, 44, 168, 16);
 		semi.add(lblNewLabel_4);
 		
-		mu_hole = new JTextField();
-		mu_hole.setColumns(10);
-		mu_hole.setBounds(216, 39, 98, 26);
-		semi.add(mu_hole);
+		mu_hole_semi = new JTextField();
+		mu_hole_semi.setColumns(10);
+		mu_hole_semi.setBounds(216, 39, 98, 26);
+		semi.add(mu_hole_semi);
 		
 		JLabel lblNewLabel_6 = new JLabel("Electron affinity [eV]");
 		lblNewLabel_6.setToolTipText("Semiconductor work function");
@@ -448,20 +448,20 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		lblNewLabel_5_8.setBounds(12, 209, 192, 16);
 		semi.add(lblNewLabel_5_8);
 		
-		v_sat_n = new JTextField();
-		v_sat_n.setColumns(10);
-		v_sat_n.setBounds(216, 204, 98, 26);
-		semi.add(v_sat_n);
+		v_sat_n_semi = new JTextField();
+		v_sat_n_semi.setColumns(10);
+		v_sat_n_semi.setBounds(216, 204, 98, 26);
+		semi.add(v_sat_n_semi);
 		
 		lblNewLabel_5_9 = new JLabel("Hole sat. velocity [m/s]");
 		lblNewLabel_5_9.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_5_9.setBounds(12, 242, 192, 16);
 		semi.add(lblNewLabel_5_9);
 		
-		v_sat_p = new JTextField();
-		v_sat_p.setColumns(10);
-		v_sat_p.setBounds(216, 237, 98, 26);
-		semi.add(v_sat_p);
+		v_sat_p_semi = new JTextField();
+		v_sat_p_semi.setColumns(10);
+		v_sat_p_semi.setBounds(216, 237, 98, 26);
+		semi.add(v_sat_p_semi);
 		
 		lblNewLabel_5_10 = new JLabel("SRH recomb. rate n [1/s]");
 		lblNewLabel_5_10.setHorizontalAlignment(SwingConstants.TRAILING);
@@ -646,6 +646,58 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		addEnterKey(phys);
 		addEnterKey(semi);
 		addEnterKey(metal);
+		
+		JLabel lblNewLabel_3_2 = new JLabel("Electron mobility [m^2/(V s)]");
+		lblNewLabel_3_2.setToolTipText("Electron mobility");
+		lblNewLabel_3_2.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblNewLabel_3_2.setBounds(17, 143, 192, 16);
+		metal.add(lblNewLabel_3_2);
+		
+		mu_electron_metal = new JTextField();
+		mu_electron_metal.setColumns(10);
+		mu_electron_metal.setBounds(221, 138, 98, 26);
+		metal.add(mu_electron_metal);
+		
+		JLabel lblNewLabel_4_2 = new JLabel("Hole mobility [m^2/(V s)]");
+		lblNewLabel_4_2.setToolTipText("Hole mobility");
+		lblNewLabel_4_2.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblNewLabel_4_2.setBounds(41, 176, 168, 16);
+		metal.add(lblNewLabel_4_2);
+		
+		mu_hole_metal = new JTextField();
+		mu_hole_metal.setColumns(10);
+		mu_hole_metal.setBounds(221, 171, 98, 26);
+		metal.add(mu_hole_metal);
+		
+		JLabel lblNewLabel_5_8_1 = new JLabel("Electron sat. velocity [m/s]");
+		lblNewLabel_5_8_1.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblNewLabel_5_8_1.setBounds(17, 208, 192, 16);
+		metal.add(lblNewLabel_5_8_1);
+		
+		v_sat_n_metal = new JTextField();
+		v_sat_n_metal.setColumns(10);
+		v_sat_n_metal.setBounds(221, 203, 98, 26);
+		metal.add(v_sat_n_metal);
+		
+		JLabel lblNewLabel_5_9_2 = new JLabel("Hole sat. velocity [m/s]");
+		lblNewLabel_5_9_2.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblNewLabel_5_9_2.setBounds(17, 241, 192, 16);
+		metal.add(lblNewLabel_5_9_2);
+		
+		v_sat_p_metal = new JTextField();
+		v_sat_p_metal.setColumns(10);
+		v_sat_p_metal.setBounds(221, 236, 98, 26);
+		metal.add(v_sat_p_metal);
+		
+		JLabel lblNewLabel_5_9_1_1 = new JLabel("Dielectric constant");
+		lblNewLabel_5_9_1_1.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblNewLabel_5_9_1_1.setBounds(370, 143, 192, 16);
+		metal.add(lblNewLabel_5_9_1_1);
+		
+		eps_r_metal = new JTextField();
+		eps_r_metal.setColumns(10);
+		eps_r_metal.setBounds(574, 138, 98, 26);
+		metal.add(eps_r_metal);
 		addEnterKey(other);
 		addEnterKey(sim);
 	}
@@ -727,6 +779,11 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	private JTextField gc_semi;
 	private JLabel lblNewLabel_10;
 	private JTextField gv_semi;
+	private JTextField mu_electron_metal;
+	private JTextField mu_hole_metal;
+	private JTextField v_sat_n_metal;
+	private JTextField v_sat_p_metal;
+	private JTextField eps_r_metal;
 
 	public void storeAdvancedSettings() {
 		width				.setText(Utils.formatDouble(e.default_width				));
@@ -740,8 +797,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		e_charge			.setText(Utils.formatDouble(e.e_charge					));
 		T					.setText(Utils.formatDouble(e.T							));
 		
-		mu_electron			.setText(Utils.formatDouble(e.mu_electron_semi			));
-		mu_hole				.setText(Utils.formatDouble(e.mu_hole_semi				));
+		mu_electron_semi			.setText(Utils.formatDouble(e.mu_electron_semi			));
+		mu_hole_semi				.setText(Utils.formatDouble(e.mu_hole_semi				));
 		gc_semi				.setText(Utils.formatDouble(e.gc_semi						));
 		gv_semi				.setText(Utils.formatDouble(e.gv_semi						));
 		chi_semi				.setText(Utils.formatDouble(e.chi_semi/e.eVtoJ				));
@@ -752,8 +809,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		k_aug_n_semi		.setText(Utils.formatDouble(e.k_aug_n_semi			));
 		k_aug_p_semi		.setText(Utils.formatDouble(e.k_aug_p_semi			));
 		
-		v_sat_n				.setText(Utils.formatDouble(e.v_sat_n_semi						));
-		v_sat_p				.setText(Utils.formatDouble(e.v_sat_p_semi						));
+		v_sat_n_semi			.setText(Utils.formatDouble(e.v_sat_n_semi						));
+		v_sat_p_semi			.setText(Utils.formatDouble(e.v_sat_p_semi						));
 		n_default_doping		.setText(Utils.formatDouble(e.n_default_doping_concentration		));
 		p_default_doping		.setText(Utils.formatDouble(e.p_default_doping_concentration		));
 		n_light_doping		.setText(Utils.formatDouble(e.n_light_doping_concentration		));
@@ -769,6 +826,12 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		W_metal_high			.setText(Utils.formatDouble(e.W_metal_high/e.eVtoJ		));
 		W_metal_low			.setText(Utils.formatDouble(e.W_metal_low/e.eVtoJ			));
 		recomb_rate_metal	.setText(Utils.formatDouble(e.k_rad_metal					));
+
+		mu_electron_metal			.setText(Utils.formatDouble(e.mu_electron_metal			));
+		mu_hole_metal				.setText(Utils.formatDouble(e.mu_hole_metal				));
+		v_sat_n_metal			.setText(Utils.formatDouble(e.v_sat_n_metal						));
+		v_sat_p_metal			.setText(Utils.formatDouble(e.v_sat_p_metal						));
+		eps_r_metal		.setText(Utils.formatDouble(e.eps_r_metal));
 
 		dielectric_eps_r			.setText(Utils.formatDouble(e.dielectric_eps_r		));
 		ferromagnet_mu_r			.setText(Utils.formatDouble(e.ferromagnet_mu_r		));
@@ -832,8 +895,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			e.mu0						= Double.valueOf(mu0					.getText());
 			e.e_charge					= Double.valueOf(e_charge			.getText());
 
-			e.mu_electron_semi				= Double.valueOf(mu_electron			.getText());
-			e.mu_hole_semi					= Double.valueOf(mu_hole				.getText());
+			e.mu_electron_semi				= Double.valueOf(mu_electron_semi			.getText());
+			e.mu_hole_semi					= Double.valueOf(mu_hole_semi				.getText());
 			e.gc_semi					= Double.valueOf(gc_semi				.getText());
 			e.gv_semi					= Double.valueOf(gv_semi				.getText());
 			e.chi_semi					= Double.valueOf(chi_semi				.getText())*e.eVtoJ;
@@ -843,8 +906,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			e.k_SRH_p_semi			= Double.valueOf(k_SRH_p_semi	.getText());
 			e.k_aug_n_semi			= Double.valueOf(k_aug_n_semi	.getText());
 			e.k_aug_p_semi			= Double.valueOf(k_aug_p_semi	.getText());
-			e.v_sat_n_semi						= Double.valueOf(v_sat_n				.getText());
-			e.v_sat_p_semi						= Double.valueOf(v_sat_p				.getText());
+			e.v_sat_n_semi						= Double.valueOf(v_sat_n_semi				.getText());
+			e.v_sat_p_semi						= Double.valueOf(v_sat_p_semi				.getText());
 			e.n_default_doping_concentration	= Double.valueOf(n_default_doping	.getText());
 			e.p_default_doping_concentration	= Double.valueOf(p_default_doping	.getText());
 			e.n_light_doping_concentration		= Double.valueOf(n_light_doping	.getText());
@@ -860,6 +923,12 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			e.W_metal_high				= Double.valueOf(W_metal_high		.getText())*e.eVtoJ;
 			e.W_metal_low				= Double.valueOf(W_metal_low			.getText())*e.eVtoJ;
 			e.k_rad_metal			= Double.valueOf(recomb_rate_metal	.getText());
+
+			e.mu_electron_metal				= Double.valueOf(mu_electron_metal			.getText());
+			e.mu_hole_metal					= Double.valueOf(mu_hole_metal				.getText());
+			e.v_sat_n_metal						= Double.valueOf(v_sat_n_metal				.getText());
+			e.v_sat_p_metal						= Double.valueOf(v_sat_p_metal				.getText());
+			e.eps_r_metal = Double.valueOf(eps_r_metal	.getText());
 
 			e.dielectric_eps_r			= Double.valueOf(dielectric_eps_r	.getText());
 			e.ferromagnet_mu_r			= Double.valueOf(ferromagnet_mu_r	.getText());
@@ -930,6 +999,12 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		advsettings.addProperty("W_metal_low", e.W_metal_low				);
 		advsettings.addProperty("k_rad_metal", e.k_rad_metal	);
 
+		advsettings.addProperty("mu_electron_metal", e.mu_electron_metal			);
+		advsettings.addProperty("mu_hole_metal", e.mu_hole_metal					);
+		advsettings.addProperty("v_sat_n_metal", e.v_sat_n_metal						);
+		advsettings.addProperty("v_sat_p_metal", e.v_sat_p_metal						);
+		advsettings.addProperty("eps_r_metal", e.eps_r_metal	);
+
 		advsettings.addProperty("dielectric_eps_r", e.dielectric_eps_r	);
 		advsettings.addProperty("ferromagnet_mu_r", e.ferromagnet_mu_r	);
 		advsettings.addProperty("staticcharge_density", e.staticcharge_density	);
@@ -994,6 +1069,12 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			case "W_metal_high": e.W_metal_high				= fstr.nextDouble(); break;
 			case "W_metal_low": e.W_metal_low				= fstr.nextDouble(); break;
 			case "k_rad_metal": e.k_rad_metal			= fstr.nextDouble(); break;
+
+			case "mu_electron_metal": e.mu_electron_metal			= fstr.nextDouble(); break;
+			case "mu_hole_metal": e.mu_hole_metal					= fstr.nextDouble(); break;
+			case "v_sat_n_metal": e.v_sat_n_metal					= fstr.nextDouble(); break;
+			case "v_sat_p_metal": e.v_sat_p_metal						= fstr.nextDouble(); break;
+			case "eps_r_metal": e.eps_r_metal	= fstr.nextDouble(); break;
 
 			case "dielectric_eps_r": e.dielectric_eps_r		= fstr.nextDouble(); break;
 			case "ferromagnet_mu_r": e.ferromagnet_mu_r		= fstr.nextDouble(); break;

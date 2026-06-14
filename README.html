@@ -148,21 +148,6 @@ td:first-child, th:first-child {
   </li>
 </ol>
 
-<h1>Build Instructions</h1>
-
-Clone the repository using
-<code>bash
-git clone https://github.com/StunningLlama/SemiSim.git
-</code><br>
-Note: Building requires JRE 1.8 and Maven for dependency management.
-
-<h2>Eclipse</h2>
-<ol>
-<li>Go to File → Import → Existing Maven Projects</li>
-<li>Select the cloned repository folder</li>
-<li>Click Finish</li>
-</ol>
-
 
 <h1>Introduction</h1>
 Brandon's semiconductor simulator (SemiSim) is an educational tool made with the original purpose of helping its creator understand semiconductor devices.
@@ -207,33 +192,6 @@ The default semiconductor material is designed to showcase the general behavior 
 <h1>Simulation features</h1>
 The interface consists of the simulation area which the user can interact with, simulation controls that allow various parameters to be adjusted, and a menu bar containing different settings and tools. <figure><img src="images/app.png" alt="Application" style="max-width:60%"><figcaption>Simulation area (purple), controls (blue), and menu bar (green).</figcaption></figure>
 The main way to interact with circuits is through voltage sources and switches. A good way to get started with this software is to load one of the many examples.
-<h2>Simulation variables</h2>
-Listed below are the most important variables that capture the state of the simulation at a given time:
-<table>
-<ul>
-  <tr><td>\(\vec{E} = (E_x, E_y, 0)\)</td><td>Electric field [V/m]</td></tr>
-  <tr><td>\(\vec{B} = (0, 0, B_z)\)</td><td>Magnetic field [T]</td></tr>
-  <tr><td>\(\rho_n\)</td><td>Charge density of electrons [C/m^3]</td></tr>
-  <tr><td>\(\rho_p\)</td><td>Charge density of holes [C/m^3]</td></tr>
-  <tr><td>\(\rho = \rho_n + \rho_p\)</td><td>Net charge density [C/m^3]</td></tr>
-  <tr><td>\(\vec{J}_n = (J_{nx}, J_{ny}, 0)\)</td><td>Electron current density [A/m^2]</td></tr>
-  <tr><td>\(\vec{J}_p = (J_{px}, J_{py}, 0)\)</td><td>Hole current density [A/m^2]</td></tr>
-  <tr><td>\(\vec{J} = \vec{J}_n + \vec{J}_p\)</td><td>Total current density [A/m^2]</td></tr>
-  <tr><td>\(\vec{D} = \epsilon \vec{E}\)</td><td>Electric displacement field [C/m^2]</td></tr>
-  <tr><td>\(\vec{H} = \frac{1}{\mu} \vec{B}\)</td><td>Magnetic field [A/m]</td></tr>
-  <tr><td>\(\vec{S} = \vec{E}\times \vec{H}\)</td><td>Poynting vector [W/m^2]</td></tr>
-  <tr><td>\(u = \frac{1}{2}(\vec{E}\cdot \vec{D} + \vec{B} \cdot \vec{H})\)</td><td>Electromagnetic energy density [J/m^3]</td></tr>
-  <tr><td>\(\phi\)</td><td>Electric scalar potential [V]</td></tr>
-  <tr><td>\(G\)</td><td>Charge carrier generation rate [1/(m^3 s)]</td></tr>
-  <tr><td>\(R\)</td><td>Charge carrier recombination rate [1/(m^3 s)]</td></tr>
-  <tr><td>\(F_n\)</td><td>Electron quasi-Fermi level (free energy) [V]*</td></tr>
-  <tr><td>\(F_p\)</td><td>Hole quasi-Fermi level (free energy) [V]*</td></tr>
-  <tr><td>\(F\)</td><td>Average free energy [V]</td></tr>
-  <tr><td>\(Q\)</td><td>Heat dissipation [J/(s m^3)]</td></tr>
-  <tr><td>\(S\)</td><td>Entropy generation [J/ (K s m^3)]</td></tr>
-</ul>
-</table>
-* Here free energy is measured per unit of charge instead of per particle, hence the units used are [V] and not [eV].
 <h2>View options</h2>
   <p><strong>Colors:</strong> The value of a field is mapped to a color. <figure><img src="images/colors.png" alt="Colors"></figure></p>
   <p><strong>Contour:</strong> Contour lines indicate a region on which the scalar field has a constant value.  <figure><img src="images/contour.png" alt="Contour lines"></figure></p>
@@ -284,10 +242,9 @@ The brightness and density of lines indicates the magnitude of the field. <figur
     <tr><td>Ruler</td><td>Measures euclidean length.</td></tr>
 </table>
 
-<h2>Keyboard/Mouse Controls</h2>
-This table includes keyboard commands that are not explicitly stated.
+<h2>Extra keyboard/mouse controls</h2>
+This table includes keyboard commands that do not have corresponding menu options.
 <table>
-    <tr><td>P or Space</td><td>Pause &amp; unpause</td></tr>
     <tr><td>F</td><td>Advance frame</td></tr>
     <tr><td>Q</td><td>Change brush shape</td></tr>
     <tr><td>Mouse wheel</td><td>Change brush size</td></tr>
@@ -300,13 +257,8 @@ This table includes keyboard commands that are not explicitly stated.
     <tr><td>R</td><td>Record probe data (saves to probedata.txt)</td></tr>
     <tr><td>[</td><td>Previous tool</td></tr>
     <tr><td>]</td><td>Next tool</td></tr>
-    <tr><td>Ctrl-X</td><td>Cut a region made with the select tool</td></tr>
-    <tr><td>Ctrl-C</td><td>Copy a region made with the select tool</td></tr>
-    <tr><td>Ctrl-V</td><td>Paste the clipboard</td></tr>
-    <tr><td>Ctrl-R</td><td>Rotate the clipboard after using the paste command</td></tr>
-    <tr><td>Ctrl-F</td><td>Flip the clipboard horizontally after using the paste command</td></tr>
-    <tr><td>Ctrl-G</td><td>Flip the clipboard vertically</td></tr>
 </table>
+Notes: Cut/copy commands must be used after selecting a region. Flip command only works after paste.
 
 <h2>Default materials</h2>
 <table>
@@ -402,6 +354,23 @@ I approximate this with a simple weighted average, the result of which is displa
 Because the simulation is in 2D, circuits actually extend infinitely in the z-direction (out of the page), so current flowing through a closed circuit has the same effect as current flowing through a 3D solenoid.
 If you recall from E&amp;M class, the magnetic field within an infinitely long solenoid is entirely contained within it. This is certainly a point of departure from how we expect circuits to behave. It means that each current loop has its own inductance,
 and trying to create "inductors" that behave like their 3D counterparts is quite tricky.
+
+
+<h1>Build Instructions</h1>
+
+Clone the repository using
+<code>bash
+git clone https://github.com/StunningLlama/SemiSim.git
+</code><br>
+Note: Building requires JRE 1.8 and Maven for dependency management.
+
+<h2>Eclipse</h2>
+<ol>
+<li>Go to File → Import → Existing Maven Projects</li>
+<li>Select the cloned repository folder</li>
+<li>Click Finish</li>
+</ol>
+
 <p>
     Copyright (c) 2026 Brandon Li<br>
     <a href="mailto:brandonli.lex@gmail.com">brandonli.lex@gmail.com</a>

@@ -16,6 +16,7 @@ public class AreaProbe extends Probe {
 		x2 = mx;
 		y1 = my;
 		y2 = my;
+		calculateDefaultLabelCoords();
 	}
 
 	public int x1;

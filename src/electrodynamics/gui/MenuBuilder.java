@@ -1,4 +1,4 @@
-package electrodynamics.util;
+package electrodynamics.gui;
 import javax.swing.*;
 
 import java.io.File;

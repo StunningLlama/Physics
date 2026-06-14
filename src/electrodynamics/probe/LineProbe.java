@@ -17,6 +17,7 @@ public class LineProbe extends Probe {
 		x2 = mx;
 		y1 = my;
 		y2 = my;
+		calculateDefaultLabelCoords();
 	}
 
 	public int x1 = 0;

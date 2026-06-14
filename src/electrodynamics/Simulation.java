@@ -190,6 +190,16 @@ public class Simulation extends PeriodicTask {
 	public double W_metal_high;
 	public double W_metal_low;
 	public double Eg_metal;			// Same as semiconductor
+	
+
+	public double mu_electron_metal;			// Electron mobility
+	public double mu_hole_metal;				// Hole mobility, slightly lower than electron
+	public double D_electron_metal;			// Diffusion constant, determined by Einstein relation
+	public double D_hole_metal;				// Hole diffusion constant
+	public double v_sat_n_metal;				// Velocity at which carrier velocity saturates
+	public double v_sat_p_metal;				// Velocity at which carrier velocity saturates
+	
+	public double eps_r_metal;			// Semiconductor dielectric constant
 	public double k_rad_metal;			// Radiative recombination rate constant
 
 	public double g_currentsource;			// Current source carrier concentration
@@ -264,6 +274,13 @@ public class Simulation extends PeriodicTask {
 		Eg_metal = 1.12*eVtoJ;
 		k_rad_metal = 10*k_rad_semi;
 
+		mu_electron_metal = mu_electron_semi;
+		mu_hole_metal = mu_hole_semi;
+		v_sat_n_metal = v_sat_n_semi;
+		v_sat_p_metal = v_sat_p_semi;
+		eps_r_metal = 1;
+		
+
 		
 		n_default_doping_concentration = 5e19;
 		p_default_doping_concentration = 5e19;
@@ -300,6 +317,9 @@ public class Simulation extends PeriodicTask {
 		beta = 1/(k*T);
 		D_electron_semi = mu_electron_semi/(beta*e_charge);
 		D_hole_semi = mu_hole_semi/(beta*e_charge);
+
+		D_electron_metal = mu_electron_metal/(beta*e_charge);
+		D_hole_metal = mu_hole_metal/(beta*e_charge);
 
 		g_currentsource = g_metal;
 		
@@ -1438,7 +1458,7 @@ public class Simulation extends PeriodicTask {
 			{
 				Jx_free[i][j] = Jx_n[i][j] + Jx_p[i][j];
 				Dx[i][j] = epsx[i][j]*Ex[i][j];
-				Sx[i][j] = -Ex[i][j]*0.5*(Hz[i][j] + Hz[i][j-1]);
+				Sy[i][j] = -Ex[i][j]*0.5*(Hz[i][j] + Hz[i][j-1]);
 			}
 		}
 
@@ -1448,7 +1468,7 @@ public class Simulation extends PeriodicTask {
 			{
 				Jy_free[i][j] = Jy_n[i][j] + Jy_p[i][j];
 				Dy[i][j] = epsy[i][j]*Ey[i][j];
-				Sy[i][j] = Ey[i][j]*0.5*(Hz[i][j] + Hz[i-1][j]);
+				Sx[i][j] = Ey[i][j]*0.5*(Hz[i][j] + Hz[i-1][j]);
 			}
 		}
 
@@ -2303,15 +2323,15 @@ public class Simulation extends PeriodicTask {
 			double Phi = W_metal_default;
 			double g = g_metal;
 			mat.k_rad = k_rad_metal;
-			mat.k_SRH_n = k_SRH_n_semi;
-			mat.k_SRH_p = k_SRH_p_semi;
-			mat.k_aug_n = k_aug_n_semi;
-			mat.k_aug_p = k_aug_p_semi;
-			mat.D_n = D_electron_semi;
-			mat.D_p = D_hole_semi;
-			mat.v_sat_n = v_sat_n_semi;
-			mat.v_sat_p = v_sat_p_semi;
-			mat.eps_r = eps_r_semi;
+			mat.k_SRH_n = 0;
+			mat.k_SRH_p = 0;
+			mat.k_aug_n = 0;
+			mat.k_aug_p = 0;
+			mat.D_n = D_electron_metal;
+			mat.D_p = D_hole_metal;
+			mat.v_sat_n = v_sat_n_metal;
+			mat.v_sat_p = v_sat_p_metal;
+			mat.eps_r = eps_r_metal;
 			//mat.mu_r = 1/mat.eps_r;
 
 			if (material == MaterialType.METAL_HIGH_W) Phi = W_metal_high;

@@ -14,7 +14,8 @@ public class PointProbe extends Probe {
 	public PointProbe(int mx, int my) {
 		super(mx, my);
 		x = mx;
-		y = mx;
+		y = my;
+		calculateDefaultLabelCoords();
 	}
 
 	public int x = 0;

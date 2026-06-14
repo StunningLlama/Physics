@@ -57,6 +57,9 @@ import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
 import electrodynamics.Simulation.BoundaryCondition;
+import electrodynamics.gui.CustJMenuItem;
+import electrodynamics.gui.CustJRadioButtonMenuItem;
+import electrodynamics.gui.MenuCheckList;
 import electrodynamics.plot.LinePath;
 import electrodynamics.plot.Path;
 import electrodynamics.plot.Plot;
@@ -74,9 +77,7 @@ import electrodynamics.probe.Probe;
 import electrodynamics.probe.Ruler;
 import electrodynamics.probe.VoltageProbe;
 import electrodynamics.units.Quantity;
-import electrodynamics.util.CustJRadioButtonMenuItem;
 import electrodynamics.util.Font7x5;
-import electrodynamics.util.MenuCheckList;
 import electrodynamics.util.Utils;
 import electrodynamics.util.Vector;
 
@@ -1078,6 +1079,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					Ruler p = e.getRuler();
 					p.x1 = mx_start;
 					p.y1 = my_start;
+					p.x2 = mx_start;
+					p.y2 = my_start;
+					p.calculateDefaultLabelCoords();
 				}
 			} else if (mouse_pressed_left) {
 				e.getRuler().drag(mx, my);
@@ -2337,10 +2341,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			addImportantTools();
 			add(new JSeparator());
 			copyMenu(brushes, "Tools");
-			copyMenu(scalarview, "Scalar view");
-			copyMenu(vectorview, "Vector view");
-			copyMenu(scalarmode, "Scalar display mode");
-			copyMenu(vectormode, "Vector display mode");
+			copyMenuDontClose(scalarview, "Scalar view");
+			copyMenuDontClose(vectorview, "Vector view");
+			copyMenuDontClose(scalarmode, "Scalar display mode");
+			copyMenuDontClose(vectormode, "Vector display mode");
 
 			JMenuItem close = new JMenuItem("Close menu");
 			close.addActionListener(new ActionListener() {
@@ -2403,6 +2407,28 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			JMenu newbigmenu = new JMenu(newmenuname);
 			for (T o : list.optionlist) {
 				JMenuItem newitem = new JMenuItem(o.toString());
+				newitem.setActionCommand(o.getClass().getName());
+				newitem.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						list.setOption((T) o);
+						Controls.this.actionPerformed(e);
+					}
+				});
+				newitem.addActionListener(Controls.this);
+				newbigmenu.add(newitem);
+				
+				if (list.separators.contains(o)) {
+					newbigmenu.add(new JSeparator());
+				}
+			}
+			add(newbigmenu);
+		}
+		
+		public<T extends Enum<?>, U extends JRadioButtonMenuItem> void copyMenuDontClose(MenuCheckList<T, U> list, String newmenuname) {
+			JMenu newbigmenu = new JMenu(newmenuname);
+			for (T o : list.optionlist) {
+				CustJMenuItem newitem = new CustJMenuItem(o.toString());
 				newitem.setActionCommand(o.getClass().getName());
 				newitem.addActionListener(new ActionListener() {
 					@Override

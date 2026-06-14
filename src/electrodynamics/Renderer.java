@@ -1318,7 +1318,7 @@ public class Renderer extends PeriodicTask {
 					if (synchronized_scalar_view != ScalarView.NONE && (synchronized_scalar_display_mode == ScalarMode.CONTOUR_COLORS || synchronized_scalar_display_mode == ScalarMode.CONTOUR)) {
 						graphics_mid_barrier.await();
 						double spacing = 0.2/scalingconstant;
-						double contourwidth = 1e-7;
+						double contourwidth = e.ds;
 
 						for (int i = lower(scalefactor*e.nx); i < upper(scalefactor*e.nx); i++) {
 							for (int j = 0; j < scalefactor*e.ny; j++) {

@@ -46,21 +46,8 @@ public enum Preset {
 			e.k_aug_n_semi = 1.1e-30 * 1e-12;
 			e.k_aug_p_semi = 0.3e-30 * 1e-12;
 
-			e.n_light_doping_concentration = 1e15*1e6;
-			e.p_light_doping_concentration = 1e15*1e6;
-			e.n_default_doping_concentration = 2e16*1e6;
-			e.p_default_doping_concentration = 2e16*1e6;
-			e.n_heavy_doping_concentration = 4e17*1e6;
-			e.p_heavy_doping_concentration = 4e17*1e6;
-
-			e.Eg_metal = 1*eVtoJ;
-			e.g_metal = 2.5e25*1e6;
-			e.g_metal_high = 2*e.g_metal;
-			e.g_metal_low = 0.25*e.g_metal;
-			e.W_metal_default = 4.6*eVtoJ;
-			e.W_metal_high = 5.1*eVtoJ;
-			e.W_metal_low = 4.1*eVtoJ;
-			e.k_rad_metal = 1.1e-10 * 1e-6;
+			setStandardDoping(e);
+			setStandardMetalConstants(e);
 
 			e.max_EMF = 5e6;
 			e.default_AC_freq = 1e12;
@@ -91,21 +78,8 @@ public enum Preset {
 			e.k_aug_n_semi = 8e-32 * 1e-12; //(Dieter)
 			e.k_aug_p_semi = 2.8e-31 * 1e-12; //(Dieter)
 
-			e.n_light_doping_concentration = 1e15*1e6;
-			e.p_light_doping_concentration = 1e15*1e6;
-			e.n_default_doping_concentration = 2e16*1e6;
-			e.p_default_doping_concentration = 2e16*1e6;
-			e.n_heavy_doping_concentration = 4e17*1e6;
-			e.p_heavy_doping_concentration = 4e17*1e6;
-
-			e.Eg_metal = 1*eVtoJ;
-			e.g_metal = 2.5e25*1e6;
-			e.g_metal_high = 2*e.g_metal;
-			e.g_metal_low = 0.25*e.g_metal;
-			e.W_metal_default = 4.6*eVtoJ;
-			e.W_metal_high = 5.1*eVtoJ;
-			e.W_metal_low = 4.1*eVtoJ;
-			e.k_rad_metal = 1.1e-10 * 1e-6;
+			setStandardDoping(e);
+			setStandardMetalConstants(e);
 
 			e.max_EMF = 5e6;
 			e.default_AC_freq = 1e12;
@@ -136,21 +110,12 @@ public enum Preset {
 			e.k_aug_n_semi = 5e-30 * 1e-12; //Conflicting values
 			e.k_aug_p_semi = 2e-30 * 1e-12; //Conflicting values
 
-			e.n_light_doping_concentration = 1e15*1e6;
-			e.p_light_doping_concentration = 1e15*1e6;
-			e.n_default_doping_concentration = 2e16*1e6;
-			e.p_default_doping_concentration = 2e16*1e6;
-			e.n_heavy_doping_concentration = 4e17*1e6;
-			e.p_heavy_doping_concentration = 4e17*1e6;
-
-			e.Eg_metal = 1*eVtoJ;
-			e.g_metal = 2.5e25*1e6;
-			e.g_metal_high = 2*e.g_metal;
-			e.g_metal_low = 0.25*e.g_metal;
+			setStandardDoping(e);
+			setStandardMetalConstants(e);
+			
 			e.W_metal_default = 4.7*eVtoJ;
 			e.W_metal_high = 5.4*eVtoJ;
 			e.W_metal_low = 4.1*eVtoJ;
-			e.k_rad_metal = 1.1e-10 * 1e-6;
 
 			e.max_EMF = 5e6;
 			e.default_AC_freq = 1e12;
@@ -181,21 +146,12 @@ public enum Preset {
 			e.k_aug_n_semi = 0.5e-30 * 1e-12; //Guess
 			e.k_aug_p_semi = 0.5e-30 * 1e-12; //Guess
 
-			e.n_light_doping_concentration = 1e15*1e6;
-			e.p_light_doping_concentration = 1e15*1e6;
-			e.n_default_doping_concentration = 2e16*1e6;
-			e.p_default_doping_concentration = 2e16*1e6;
-			e.n_heavy_doping_concentration = 4e17*1e6;
-			e.p_heavy_doping_concentration = 4e17*1e6;
-
-			e.Eg_metal = 1*eVtoJ;
-			e.g_metal = 1.25e25*1e6;
-			e.g_metal_high = 2*e.g_metal;
-			e.g_metal_low = 0.25*e.g_metal;
+			setStandardDoping(e);
+			setStandardMetalConstants(e);
+			
 			e.W_metal_default = 5.5*eVtoJ;
 			e.W_metal_high = 7*eVtoJ;
 			e.W_metal_low = 4.1*eVtoJ;
-			e.k_rad_metal = 1.1e-10 * 1e-6;
 
 			e.max_EMF = 5e6;
 			e.default_AC_freq = 1e12;
@@ -222,6 +178,33 @@ public enum Preset {
 		}
 
 		e.calculateDependentConstants();
+	}
+	
+	public void setStandardDoping(Simulation e) {
+		e.n_light_doping_concentration = 1e15*1e6;
+		e.p_light_doping_concentration = 1e15*1e6;
+		e.n_default_doping_concentration = 2e16*1e6;
+		e.p_default_doping_concentration = 2e16*1e6;
+		e.n_heavy_doping_concentration = 4e17*1e6;
+		e.p_heavy_doping_concentration = 4e17*1e6;
+	}
+	
+	public void setStandardMetalConstants(Simulation e) {
+		double eVtoJ = 1.6e-19;
+		
+		e.Eg_metal = 1*eVtoJ;
+		e.g_metal = 1.25e26*1e6;
+		e.g_metal_high = 2*e.g_metal;
+		e.g_metal_low = 0.25*e.g_metal;
+		e.W_metal_default = 4.6*eVtoJ;
+		e.W_metal_high = 5.1*eVtoJ;
+		e.W_metal_low = 4.1*eVtoJ;
+		e.k_rad_metal = 1.1e-6 * 1e-6;
+		e.mu_electron_metal = 200/1e4;
+		e.mu_hole_metal = 200/1e4;
+		e.v_sat_n_metal = 1e7*1e-2;
+		e.v_sat_p_metal = 1e7*1e-2;
+		e.eps_r_metal = 5;
 	}
 	
 	@Override
