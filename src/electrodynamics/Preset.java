@@ -51,13 +51,13 @@ public enum Preset {
 
 			e.max_EMF = 5e6;
 			e.default_AC_freq = 1e12;
-			e.junction_size = 2;
+			e.junction_size = 1;
 			
 			semi_name = "silicon";
 			break;
 		case GERMANIUM_300K:
 			e.default_width = 2*2.56e-6;
-			e.mu0 = 2.5e4*1.257e-6;
+			e.mu0 = 2e4*1.257e-6;
 			e.T = 300;
 
 			e.Eg_semi = 0.661*eVtoJ;
@@ -83,13 +83,13 @@ public enum Preset {
 
 			e.max_EMF = 5e6;
 			e.default_AC_freq = 1e12;
-			e.junction_size = 2;
+			e.junction_size = 1;
 			
 			semi_name = "germanium";
 			break;
 		case GAAS_300K:
 			e.default_width = 2*2.56e-6;
-			e.mu0 = 0.75e4*1.257e-6;
+			e.mu0 = 0.4e4*1.257e-6;
 			e.T = 300;
 			
 			e.Eg_semi = 1.424*eVtoJ;
@@ -112,6 +112,10 @@ public enum Preset {
 
 			setStandardDoping(e);
 			setStandardMetalConstants(e);
+
+			e.g_metal = 2.5e26*1e6;
+			e.g_metal_high = 2*e.g_metal;
+			e.g_metal_low = 0.25*e.g_metal;
 			
 			e.W_metal_default = 4.7*eVtoJ;
 			e.W_metal_high = 5.4*eVtoJ;
@@ -155,7 +159,7 @@ public enum Preset {
 
 			e.max_EMF = 5e6;
 			e.default_AC_freq = 1e12;
-			e.junction_size = 2;
+			e.junction_size = 1;
 			
 			semi_name = "GaN";
 			break;

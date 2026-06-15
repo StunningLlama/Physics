@@ -357,8 +357,10 @@ public class Simulation extends PeriodicTask {
 	public double[][] Jx_free;		// Total free current
 	public double[][] Jy_free;
 
-	public double[][] Ey_xgrid;			// y component of E field on x grid
-	public double[][] Ex_ygrid;			// x component of E field on y grid
+	public double[][] Fnx;			// Total force on electrons
+	public double[][] Fny;
+	public double[][] Fpx;			// Total force on holes
+	public double[][] Fpy;
 
 	/* Miscellaneous fields used for display */
 
@@ -437,6 +439,7 @@ public class Simulation extends PeriodicTask {
 
 	public double[][] D_n;					// Electron diffusion constant
 	public double[][] D_p;					// Hole diffusion constant
+
 	public double[][] v_sat_n;				// Saturation velocity
 	public double[][] v_sat_p;				// Saturation velocity
 	public int[][] conducting;		// Does the material have partially filled bands
@@ -777,7 +780,8 @@ public class Simulation extends PeriodicTask {
 				Jx_p = new double[nx][ny];		Jy_p = new double[nx][ny];
 				Jx_free = new double[nx][ny];	Jy_free = new double[nx][ny];
 
-				Ey_xgrid = new double[nx][ny];	Ex_ygrid = new double[nx][ny];
+				Fnx = new double[nx][ny];		Fny = new double[nx][ny];
+				Fpx = new double[nx][ny];		Fpy = new double[nx][ny];
 
 				materials = new Material[nx][ny];
 				n_i = new double[nx][ny];
@@ -912,7 +916,8 @@ public class Simulation extends PeriodicTask {
 					Jx_p[i][j] = 0.0;		Jy_p[i][j] = 0.0;
 					Jx_free[i][j] = 0.0;	Jy_free[i][j] = 0.0;
 
-					Ey_xgrid[i][j] = 0.0;	Ex_ygrid[i][j] = 0.0;
+					Fnx[i][j] = 0.0;		Fny[i][j] = 0.0;
+					Fpx[i][j] = 0.0;		Fpy[i][j] = 0.0;
 
 					MG_rho0 [i][j] = 0.0;
 					MG_eps_avg [i][j] = 0.0;
@@ -1110,7 +1115,9 @@ public class Simulation extends PeriodicTask {
 						if (i >= i_min && i <= i_max) {
 							for (int j = 1; j < ny-1; j++)
 							{
-								Ey_xgrid[i][j] = 0.25*(Ey[i][j] + Ey[i+1][j] + Ey[i][j-1] + Ey[i+1][j-1]);
+								double emf_phase = ac_x[i][j]*AC_amplitude+(1-ac_x[i][j]);
+								Fnx[i][j] = emf_phase*emfx[i][j] + cmfx_n[i][j]/q_n + Ex[i][j];
+								Fpx[i][j] = emf_phase*emfx[i][j] + cmfx_p[i][j]/q_p + Ex[i][j];
 							}
 						}
 					}
@@ -1121,7 +1128,9 @@ public class Simulation extends PeriodicTask {
 						if (i >= i_min && i <= i_max) {
 							for (int j = 0; j < ny-1; j++)
 							{
-								Ex_ygrid[i][j] = 0.25*(Ex[i][j] + Ex[i][j+1] + Ex[i-1][j] + Ex[i-1][j+1]);
+								double emf_phase = ac_y[i][j]*AC_amplitude+(1-ac_y[i][j]);
+								Fny[i][j] = emf_phase*emfy[i][j] + cmfy_n[i][j]/q_n + Ey[i][j];
+								Fpy[i][j] = emf_phase*emfy[i][j] + cmfy_p[i][j]/q_p + Ey[i][j];
 							}
 						}
 					}
@@ -1140,7 +1149,7 @@ public class Simulation extends PeriodicTask {
 								double sigma_p = 0;
 
 								if (conducting_x[i][j] == 1) {
-
+									
 									double d_n = 0.5*(D_n[i+1][j] + D_n[i][j]);
 									double d_p = 0.5*(D_p[i+1][j] + D_p[i][j]);
 									
@@ -1149,14 +1158,15 @@ public class Simulation extends PeriodicTask {
 									
 									double Esat_n = 0.5*(v_sat_n[i+1][j] + v_sat_n[i][j])/(d_n*e_charge*beta);
 									double Esat_p = 0.5*(v_sat_p[i+1][j] + v_sat_p[i][j])/(d_p*e_charge*beta);
+									
+									double Fny_avg = 0.25*(Fny[i][j] + Fny[i+1][j] + Fny[i][j-1] + Fny[i+1][j-1]);
+									double Fpy_avg = 0.25*(Fpy[i][j] + Fpy[i+1][j] + Fpy[i][j-1] + Fpy[i+1][j-1]);
 
-									double mr_n = 1/Math.sqrt((ex_prev*ex_prev + Ey_xgrid[i][j]*Ey_xgrid[i][j])/(Esat_n*Esat_n) + 1);
-									double mr_p = 1/Math.sqrt((ex_prev*ex_prev + Ey_xgrid[i][j]*Ey_xgrid[i][j])/(Esat_p*Esat_p) + 1);
+									double w_n = Fnx[i][j]*q_n*beta*ds/2;
+									double w_p = Fpx[i][j]*q_p*beta*ds/2;
 
-									double emf_phase = ac_x[i][j]*AC_amplitude+(1-ac_x[i][j]);
-
-									double w_n = (emf_phase*emfx[i][j]*q_n + cmfx_n[i][j] + ex_prev*q_n)*beta*ds/2;
-									double w_p = (emf_phase*emfx[i][j]*q_p + cmfx_p[i][j] + ex_prev*q_p)*beta*ds/2;
+									double mr_n = 1/Math.sqrt((Fnx[i][j]*Fnx[i][j] + Fny_avg*Fny_avg)/(Esat_n*Esat_n) + 1);
+									double mr_p = 1/Math.sqrt((Fpx[i][j]*Fpx[i][j] + Fpy_avg*Fpy_avg)/(Esat_p*Esat_p) + 1);
 									
 									// whether to use taylor series approximation around x=0
 									boolean approx_n = Math.abs(w_n) < 0.2;
@@ -1165,8 +1175,8 @@ public class Simulation extends PeriodicTask {
 									double exp_2wn = approx_n? 1 : FastExp.exp(2*w_n);
 									double exp_2wp = approx_p? 1 : FastExp.exp(2*w_p);
 
-									sigma_n = -d_n*rho_n_avg*e_charge*beta*(1 + Ey_xgrid[i][j]*Ey_xgrid[i][j]/(Esat_n*Esat_n))*(mr_n*mr_n*mr_n);
-									sigma_p = d_p*rho_p_avg*e_charge*beta*(1 + Ey_xgrid[i][j]*Ey_xgrid[i][j]/(Esat_p*Esat_p))*(mr_p*mr_p*mr_p);
+									sigma_n = -d_n*rho_n_avg*e_charge*beta*(1 + Fny_avg*Fny_avg/(Esat_n*Esat_n))*(mr_n*mr_n*mr_n);
+									sigma_p = d_p*rho_p_avg*e_charge*beta*(1 + Fpy_avg*Fpy_avg/(Esat_p*Esat_p))*(mr_p*mr_p*mr_p);
 
 									Jx_n[i][j] = mr_n*d_n/ds*(-(rho_n[i+1][j] - rho_n[i][j])*Utils.xtanhxm1(w_n, exp_2wn, approx_n)
 									+ 2*rho_n_avg*w_n) - sigma_n*ex_prev;
@@ -1226,7 +1236,7 @@ public class Simulation extends PeriodicTask {
 								double sigma_p = 0;
 
 								if (conducting_y[i][j] == 1) {
-
+									
 									double d_n = 0.5*(D_n[i][j+1] + D_n[i][j]);
 									double d_p = 0.5*(D_p[i][j+1] + D_p[i][j]);
 									
@@ -1235,14 +1245,15 @@ public class Simulation extends PeriodicTask {
 									
 									double Esat_n = 0.5*(v_sat_n[i][j+1] + v_sat_n[i][j])/(d_n*e_charge*beta);
 									double Esat_p = 0.5*(v_sat_p[i][j+1] + v_sat_p[i][j])/(d_p*e_charge*beta);
+									
+									double Fnx_avg = 0.25*(Fnx[i][j] + Fnx[i][j+1] + Fnx[i-1][j] + Fnx[i-1][j+1]);
+									double Fpx_avg = 0.25*(Fpx[i][j] + Fpx[i][j+1] + Fpx[i-1][j] + Fpx[i-1][j+1]);
+									
+									double w_n = Fny[i][j]*q_n*beta*ds/2;
+									double w_p = Fpy[i][j]*q_p*beta*ds/2;
 
-									double mr_n = 1/Math.sqrt((ey_prev*ey_prev + Ex_ygrid[i][j]*Ex_ygrid[i][j])/(Esat_n*Esat_n)+1);
-									double mr_p = 1/Math.sqrt((ey_prev*ey_prev + Ex_ygrid[i][j]*Ex_ygrid[i][j])/(Esat_p*Esat_p)+1);
-
-									double emf_phase = ac_y[i][j]*AC_amplitude+(1-ac_y[i][j]);
-
-									double w_n = (emf_phase*emfy[i][j]*q_n + cmfy_n[i][j] + ey_prev*q_n)*beta*ds/2;
-									double w_p = (emf_phase*emfy[i][j]*q_p + cmfy_p[i][j] + ey_prev*q_p)*beta*ds/2;
+									double mr_n = 1/Math.sqrt((Fny[i][j]*Fny[i][j] + Fnx_avg*Fnx_avg)/(Esat_n*Esat_n)+1);
+									double mr_p = 1/Math.sqrt((Fpy[i][j]*Fpy[i][j] + Fpx_avg*Fpx_avg)/(Esat_p*Esat_p)+1);
 
 									boolean approx_n = Math.abs(w_n) < 0.2;
 									boolean approx_p = Math.abs(w_p) < 0.2;
@@ -1250,8 +1261,8 @@ public class Simulation extends PeriodicTask {
 									double exp_2wn = approx_n? 1 : FastExp.exp(2*w_n);
 									double exp_2wp = approx_p? 1 : FastExp.exp(2*w_p);
 
-									sigma_n = -d_n*rho_n_avg*e_charge*beta*(1 + Ex_ygrid[i][j]*Ex_ygrid[i][j]/(Esat_n*Esat_n))*(mr_n*mr_n*mr_n);
-									sigma_p = d_p*rho_p_avg*e_charge*beta*(1 + Ex_ygrid[i][j]*Ex_ygrid[i][j]/(Esat_p*Esat_p))*(mr_p*mr_p*mr_p);
+									sigma_n = -d_n*rho_n_avg*e_charge*beta*(1 + Fnx_avg*Fnx_avg/(Esat_n*Esat_n))*(mr_n*mr_n*mr_n);
+									sigma_p = d_p*rho_p_avg*e_charge*beta*(1 + Fpx_avg*Fpx_avg/(Esat_p*Esat_p))*(mr_p*mr_p*mr_p);
 
 									Jy_n[i][j] = mr_n*d_n/ds*(-(rho_n[i][j+1] - rho_n[i][j])*Utils.xtanhxm1(w_n, exp_2wn, approx_n)
 										+ 2*rho_n_avg*w_n) - sigma_n*ey_prev;
@@ -1404,8 +1415,8 @@ public class Simulation extends PeriodicTask {
 					mu_p[i][j] = Double.NaN;
 					V_avg[i][j] = Double.NaN;
 				} else {
-					mu_n[i][j] = mu0_n[i][j] + k*T*Math.log(rho_n[i][j]/q_n) + phi[i][j]*q_n;
-					mu_p[i][j] = mu0_p[i][j] + k*T*Math.log(rho_p[i][j]/q_p) + phi[i][j]*q_p;
+					mu_n[i][j] = mu0_n[i][j] + k*T*Math.log(Math.abs(rho_n[i][j]/q_n)) + phi[i][j]*q_n;
+					mu_p[i][j] = mu0_p[i][j] + k*T*Math.log(Math.abs(rho_p[i][j]/q_p)) + phi[i][j]*q_p;
 					// Think about why we should take average
 
 
@@ -1437,6 +1448,9 @@ public class Simulation extends PeriodicTask {
 
 				if (rho_n[i][j] > error_detection_threshold || rho_p[i][j] < -error_detection_threshold) {
 					sign_violation_timer = 20;
+				}
+
+				if (rho_n[i][j] > 0 || rho_p[i][j] < -0) {
 					debug[i][j] = 1;
 				} else {
 					debug[i][j] = 0;
@@ -1571,11 +1585,14 @@ public class Simulation extends PeriodicTask {
 				for (int j = 1; j < ny-1; j++)
 				{
 					if (conducting[i][j] == 1) {
-						double E2 = 0.25*(Ex[i][j]+Ex[i][j+1])*(Ex[i][j]+Ex[i][j+1]) + 0.25*(Ey[i][j]+Ey[i+1][j])*(Ey[i][j]+Ey[i+1][j]);
+						double Fxn_avg = 0.5*(Fnx[i][j]+Fnx[i-1][j]);
+						double Fyn_avg = 0.5*(Fny[i][j]+Fny[i][j-1]);
+						double Fxp_avg = 0.5*(Fpx[i][j]+Fpx[i-1][j]);
+						double Fyp_avg = 0.5*(Fpx[i][j]+Fpx[i][j-1]);
 						double Esat_n = v_sat_n[i][j]/(D_n[i][j]*e_charge*beta);
 						double Esat_p = v_sat_p[i][j]/(D_p[i][j]*e_charge*beta);
-						sqrt_D_eff_n[i][j] = Math.sqrt(D_n[i][j]/Math.sqrt(E2/(Esat_n*Esat_n) + 1));
-						sqrt_D_eff_p[i][j] = Math.sqrt(D_p[i][j]/Math.sqrt(E2/(Esat_p*Esat_p) + 1));
+						sqrt_D_eff_n[i][j] = Math.sqrt(D_n[i][j]/Math.sqrt((Fxn_avg*Fxn_avg+Fyn_avg*Fyn_avg)/(Esat_n*Esat_n) + 1));
+						sqrt_D_eff_p[i][j] = Math.sqrt(D_p[i][j]/Math.sqrt((Fxp_avg*Fxp_avg+Fyp_avg*Fyp_avg)/(Esat_p*Esat_p) + 1));
 					} else {
 						sqrt_D_eff_n[i][j] = 0;
 						sqrt_D_eff_p[i][j] = 0;
@@ -1933,6 +1950,29 @@ public class Simulation extends PeriodicTask {
 			smoothArray(k_SRH_p, junction_size, true);
 			smoothArray(k_aug_n, junction_size, true);
 			smoothArray(k_aug_p, junction_size, true);
+			
+			/*for (int i = 0; i < nx; i++)
+			{
+				for (int j = 0; j < ny; j++)
+				{
+					if (needs_smoothing[i][j]) {
+						this.v_sat_n[i][j] *= 0.1;
+						this.v_sat_p[i][j] *= 0.1;
+					}
+				}
+			}*/
+			
+			/*for (int i = 0; i < junction_size; i++) {
+				smoothArray(mu0_n, 1, false);
+				smoothArray(mu0_p, 1, false);
+				smoothArray(E0_n, 1, false);
+				smoothArray(E0_p, 1, false);
+				smoothArray(k_rad, 1, true);
+				smoothArray(k_SRH_n, 1, true);
+				smoothArray(k_SRH_p, 1, true);
+				smoothArray(k_aug_n, 1, true);
+				smoothArray(k_aug_p, 1, true);
+			}*/
 		}
 		
 		if (dopant_smoothing_distance > 0) {
@@ -2693,8 +2733,8 @@ public class Simulation extends PeriodicTask {
 		str += ("V\t"  						+	units.toString(V_avg[mx][my], Quantity.ELECTRIC_POTENTIAL) + "\n");
 		str += ("G\t"  						+	units.toString(G[mx][my], Quantity.RATE_DENSITY) + "\n");
 		str += ("R\t"  						+	units.toString(R[mx][my], Quantity.RATE_DENSITY) + "\n");
-		str += ("Electron CMF\t"  			+	units.toString(Utils.bilinearinterp_length(cmfy_n, cmfy_n, mx, my, nx, ny), Quantity.FORCE) + "\n");
-		str += ("Hole CMF\t"  				+	units.toString(Utils.bilinearinterp_length(cmfy_p, cmfy_p, mx, my, nx, ny), Quantity.FORCE) + "\n");
+		str += ("Electron CMF\t"  			+	units.toString(Utils.bilinearinterp_length(cmfx_n, cmfy_n, mx, my, nx, ny), Quantity.FORCE) + "\n");
+		str += ("Hole CMF\t"  				+	units.toString(Utils.bilinearinterp_length(cmfx_p, cmfy_p, mx, my, nx, ny), Quantity.FORCE) + "\n");
 		str += ("EMF\t"  					+	units.toString(Utils.bilinearinterp_length(emfx, emfy, mx, my, nx, ny), Quantity.ELECTRIC_FIELD) + "\n");
 		str += ("Electron vel.\t"  			+	units.toString(Utils.bilinearinterp_length(Jx_n, Jy_n, mx, my, nx, ny)/rho_n[mx][my], Quantity.VELOCITY) + "\n");
 		str += ("Hole vel.\t"  				+	units.toString(Utils.bilinearinterp_length(Jx_p, Jy_p, mx, my, nx, ny)/rho_p[mx][my], Quantity.VELOCITY) + "\n");

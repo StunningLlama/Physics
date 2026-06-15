@@ -13,6 +13,7 @@ import electrodynamics.util.Utils;
 public class CarrierPlot extends Plot {
 	public XYSeries rho_n_data;
 	public XYSeries rho_p_data;
+	public static boolean debug_charge = false;
 
 	@Override
 	public void initialize() {
@@ -47,13 +48,20 @@ public class CarrierPlot extends Plot {
 				double y = path.getY(t);
 				double len = t*path.getArclength()*e.ds/xunitquantity;
 
-				double rho_n = Utils.bilinearinterp_geometric_extrap(e.rho_n, x, y, e.nx, e.ny)/e.e_charge/yunitquantity;
-				if (rho_n > 0) rho_n_data.add(len, rho_n);
-				else rho_n_data.add(len, Double.NaN);
+				if (!debug_charge) {
+					double n_n = Utils.bilinearinterp_charge(e.rho_n, x, y, e.nx, e.ny)/e.e_charge/yunitquantity;
+					if (n_n > 0) rho_n_data.add(len, n_n);
+					else rho_n_data.add(len, Double.NaN);
 
-				double rho_p = Utils.bilinearinterp_geometric_extrap(e.rho_p, x, y, e.nx, e.ny)/e.e_charge/yunitquantity;
-				if (rho_p > 0) rho_p_data.add(len, rho_p);
-				else rho_p_data.add(len, Double.NaN);
+					double n_p = Utils.bilinearinterp_charge(e.rho_p, x, y, e.nx, e.ny)/e.e_charge/yunitquantity;
+					if (n_p > 0) rho_p_data.add(len, n_p);
+					else rho_p_data.add(len, Double.NaN);
+				} else {
+					double n_n = Utils.bilinearinterp(e.rho_n, x, y, e.nx, e.ny)/e.e_charge/yunitquantity;
+					rho_n_data.add(len, n_n);
+					double n_p = Utils.bilinearinterp(e.rho_p, x, y, e.nx, e.ny)/e.e_charge/yunitquantity;
+					rho_p_data.add(len, n_p);
+				}
 			}
 
 			rho_n_data.setNotify(true);

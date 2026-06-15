@@ -61,6 +61,15 @@ public class Utils {
 		//return (x-y)/Math.log(x/y);
 	}
 	
+	// Compute (1-exp(-x))/x
+	public static double onemexpmx_xm1(double x) {
+		if (Math.abs(x) < 0.2) {
+			return 1-0.5*x+0.1666666666666666*x*x-0.0416666666666667*x*x*x;
+		} else {
+			return (1-FastExp.exp(-x))/x;
+		}
+	}
+	
 	public static double length(double x, double y) {
 		return Math.sqrt(x*x+y*y);
 	}
@@ -237,7 +246,7 @@ public class Utils {
 		return f/denom;*/
 	}
 	
-	public static double bilinearinterp_geometric_extrap(double[][] array, double x, double y, int nx, int ny) {
+	public static double bilinearinterp_charge(double[][] array, double x, double y, int nx, int ny) {
 		int xfloor = (int)Math.floor(x);
 		int yfloor = (int)Math.floor(y);
 		double fx = x - xfloor;

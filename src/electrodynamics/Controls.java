@@ -438,6 +438,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				e.opts.gui_paused.setSelected(true);
 		}
 		
+		if (pressing_right) {
+			e.canvas.requestFocus();
+			if (Brush.isMaterialModifyingBrush(brush))
+				e.opts.gui_paused.setSelected(true);
+		}
+		
 		e.opts.gui_stepsizelbl.setText("Timestep: " + e.units.toString(e.dt, Quantity.TIME));
 		e.opts.gui_stepslbl.setText("Sim steps/frame: " + e.opts.gui_simspeed_2.getValue());
 
