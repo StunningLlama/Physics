@@ -31,13 +31,16 @@ public class LinePath extends Path {
 
 	@Override
 	public void draw(Renderer r) {
-		r.setalphaFG(1.0);
-		r.setColorFloat(1.0f, 1.0f, 1.0f);
-		r.drawPixelRectangle((int)x1-1, (int)y1-1, 3, 3);
-		r.drawPixelRectangle((int)x2-1, (int)y2-1, 3, 3);
-		
+		r.setalphaBG(0.5);
 		r.setalphaFG(1.0);
 		r.setColorFloat(1.0f, 1.0f, 1.0f);
 		r.drawPixelLine((int)x1, (int)y1, (int)x2, (int)y2);
+
+		r.setalphaBG(0.0);
+		r.setalphaFG(1.0);
+		r.setColorFloat(0.7f, 0.7f, 0.7f);
+		r.drawPixelRectangle((int)x1-1, (int)y1-1, 3, 3);
+		r.setColorFloat(1.0f, 1.0f, 1.0f);
+		r.drawPixelRectangle((int)x2-1, (int)y2-1, 3, 3);
 	}
 }

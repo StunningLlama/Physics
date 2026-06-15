@@ -129,10 +129,13 @@ public class Simulation extends PeriodicTask {
 		frame = 0;
 		numerical_overflow = false;
 		sign_violation_timer = 0;
+		instability_timer = 0;
 	}
 
 	public double error_detection_threshold = 1e-3;
+	public double big_error_detection_threshold = 1;
 	public int sign_violation_timer;
+	public int instability_timer;
 	public boolean numerical_overflow;
 	public String CFL_text = "";
 	
@@ -216,6 +219,7 @@ public class Simulation extends PeriodicTask {
 	public double dielectric_eps_r;
 	public double ferromagnet_mu_r;
 	public double staticcharge_density;
+	public double switch_open_mobility;
 	public double max_EMF;
 	public double max_current;
 	public double default_AC_freq;
@@ -296,6 +300,7 @@ public class Simulation extends PeriodicTask {
 		max_EMF = 5e5;
 		max_current = 5e7;
 		default_AC_freq = 1e13;
+		switch_open_mobility = 0.000001;
 		
 		default_flashlight_strength = 1e31;
 
@@ -1115,22 +1120,32 @@ public class Simulation extends PeriodicTask {
 						if (i >= i_min && i <= i_max) {
 							for (int j = 1; j < ny-1; j++)
 							{
-								double emf_phase = ac_x[i][j]*AC_amplitude+(1-ac_x[i][j]);
-								Fnx[i][j] = emf_phase*emfx[i][j] + cmfx_n[i][j]/q_n + Ex[i][j];
-								Fpx[i][j] = emf_phase*emfx[i][j] + cmfx_p[i][j]/q_p + Ex[i][j];
+								if (conducting_x[i][j] == 1) {
+									double emf_phase = ac_x[i][j]*AC_amplitude+(1-ac_x[i][j]);
+									Fnx[i][j] = emf_phase*emfx[i][j] + cmfx_n[i][j]/q_n + Ex[i][j];
+									Fpx[i][j] = emf_phase*emfx[i][j] + cmfx_p[i][j]/q_p + Ex[i][j];
+								} else {
+									Fnx[i][j] = Ex[i][j];
+									Fpx[i][j] = Ex[i][j];
+								}
 							}
 						}
 					}
-					
+
 
 					for (int i = 1; i < nx-1; i++)
 					{
 						if (i >= i_min && i <= i_max) {
 							for (int j = 0; j < ny-1; j++)
 							{
-								double emf_phase = ac_y[i][j]*AC_amplitude+(1-ac_y[i][j]);
-								Fny[i][j] = emf_phase*emfy[i][j] + cmfy_n[i][j]/q_n + Ey[i][j];
-								Fpy[i][j] = emf_phase*emfy[i][j] + cmfy_p[i][j]/q_p + Ey[i][j];
+								if (conducting_y[i][j] == 1) {
+									double emf_phase = ac_y[i][j]*AC_amplitude+(1-ac_y[i][j]);
+									Fny[i][j] = emf_phase*emfy[i][j] + cmfy_n[i][j]/q_n + Ey[i][j];
+									Fpy[i][j] = emf_phase*emfy[i][j] + cmfy_p[i][j]/q_p + Ey[i][j];
+								} else {
+									Fny[i][j] = Ey[i][j];
+									Fpy[i][j] = Ey[i][j];
+								}
 							}
 						}
 					}
@@ -1348,7 +1363,6 @@ public class Simulation extends PeriodicTask {
 						if (i >= i_min && i <= i_max) {
 							for (int j = 1; j < ny-1; j++)
 							{
-								double recomb_rate = 0;
 								if (conducting[i][j] == 1) {
 									double n = rho_n[i][j]/q_n;
 									double p = rho_p[i][j]/q_p;
@@ -1356,13 +1370,13 @@ public class Simulation extends PeriodicTask {
 									double rate_const = (k_aug_n[i][j]*n+k_aug_p[i][j]*p)
 										+ (k_SRH_n[i][j]*k_SRH_p[i][j])/(k_SRH_n[i][j]*(n+ni) + k_SRH_p[i][j]*(p+ni) + Double.MIN_VALUE) // Avoid divide by zero
 										+ k_rad[i][j];
-									recomb_rate = rate_const*(n*p - ni*ni) - L[i][j];
+									double recomb_rate = rate_const*(n*p - ni*ni) - L[i][j];
+
+									rho_n[i][j] = rho_n[i][j] - (Jx_n[i][j]-Jx_n[i-1][j] + Jy_n[i][j]-Jy_n[i][j-1])*dt/ds - dt*q_n*recomb_rate;
+									rho_p[i][j] = rho_p[i][j] - (Jx_p[i][j]-Jx_p[i-1][j] + Jy_p[i][j]-Jy_p[i][j-1])*dt/ds - dt*q_p*recomb_rate;
 								}
-
-								rho_n[i][j] = rho_n[i][j] - (Jx_n[i][j]-Jx_n[i-1][j] + Jy_n[i][j]-Jy_n[i][j-1])*dt/ds - dt*q_n*recomb_rate;
-								rho_p[i][j] = rho_p[i][j] - (Jx_p[i][j]-Jx_p[i-1][j] + Jy_p[i][j]-Jy_p[i][j-1])*dt/ds - dt*q_p*recomb_rate;
+								
 								rho_abs[i][j] = rho_abs[i][j] - (Jx_abs[i][j]-Jx_abs[i-1][j] + Jy_abs[i][j]-Jy_abs[i][j-1])*dt/ds;
-
 								rho_free[i][j] = rho_abs[i][j]+rho_n[i][j]+rho_p[i][j]+rho_back[i][j];
 							}
 						}
@@ -1448,6 +1462,10 @@ public class Simulation extends PeriodicTask {
 
 				if (rho_n[i][j] > error_detection_threshold || rho_p[i][j] < -error_detection_threshold) {
 					sign_violation_timer = 20;
+				}
+
+				if (rho_n[i][j] > big_error_detection_threshold || rho_p[i][j] < -big_error_detection_threshold) {
+					instability_timer = 20;
 				}
 
 				if (rho_n[i][j] > 0 || rho_p[i][j] < -0) {
@@ -2089,10 +2107,17 @@ public class Simulation extends PeriodicTask {
 				k_SRH_p[i][j] = materials[i][j].k_SRH_p;
 				k_aug_n[i][j] = materials[i][j].k_aug_n;
 				k_aug_p[i][j] = materials[i][j].k_aug_p;
-				D_n[i][j] = materials[i][j].D_n * ((materials[i][j].activated==1)? 1:0.00001);
-				D_p[i][j] = materials[i][j].D_p * ((materials[i][j].activated==1)? 1:0.00001);
+				D_n[i][j] = materials[i][j].D_n;
+				D_p[i][j] = materials[i][j].D_p;
 				v_sat_n[i][j] = materials[i][j].v_sat_n;
 				v_sat_p[i][j] = materials[i][j].v_sat_p;
+				
+				if (materials[i][j].type == MaterialType.SWITCH) {
+					if (materials[i][j].activated == 0) {
+						D_n[i][j] *= switch_open_mobility;
+						D_p[i][j] *= switch_open_mobility;
+					}
+				}
 			}
 		}
 		for (int i = 0; i < nx-1; i++)
@@ -2126,7 +2151,7 @@ public class Simulation extends PeriodicTask {
 		{
 			for (int j = 0; j < ny; j++)
 			{
-				if (n_i[i][j] > 0 || materials[i][j].type == MaterialType.SWITCH) {
+				if (n_i[i][j] > 0) {
 					if (updateRho || (rho_n[i][j] == 0 && rho_p[i][j] == 0)) {
 						rho_n[i][j] = calcEquilibriumElectronCharge(rho_back[i][j], n_i[i][j]*n_i[i][j]);
 						rho_p[i][j] = calcEquilibriumHoleCharge(rho_back[i][j], n_i[i][j]*n_i[i][j]);
@@ -2705,7 +2730,6 @@ public class Simulation extends PeriodicTask {
 		
 		int mx = controls.mx;
 		int my = controls.my;
-		Material mat = materials[mx][my];
 		
 		String str = "";
 		str += "Mouse\n";
@@ -2738,14 +2762,6 @@ public class Simulation extends PeriodicTask {
 		str += ("EMF\t"  					+	units.toString(Utils.bilinearinterp_length(emfx, emfy, mx, my, nx, ny), Quantity.ELECTRIC_FIELD) + "\n");
 		str += ("Electron vel.\t"  			+	units.toString(Utils.bilinearinterp_length(Jx_n, Jy_n, mx, my, nx, ny)/rho_n[mx][my], Quantity.VELOCITY) + "\n");
 		str += ("Hole vel.\t"  				+	units.toString(Utils.bilinearinterp_length(Jx_p, Jy_p, mx, my, nx, ny)/rho_p[mx][my], Quantity.VELOCITY) + "\n");
-		str += "\nMaterial properties\n";
-		str += ("Type\t"  					+	mat.type.name + "\n");
-		str += ("\u2130\t"  				+	units.toString(mat.emf, Quantity.ELECTRIC_FIELD) + "\n");
-		str += ("\u03b5/\u03b5\u2080\t" 	+	units.toString(mat.eps_r, Quantity.DIMENSIONLESS) + "\n");
-		str += ("\u03bc/\u03bc\u2080\t"  	+	units.toString(mat.mu_r, Quantity.DIMENSIONLESS) + "\n");
-		str += ("Absorptivity\t"  			+	units.toString(mat.absorptivity, Quantity.DIMENSIONLESS) + "\n");
-		str += ("Conducting\t"  			+	mat.conducting + "\n");
-		str += ("Semicond.\t"  				+	mat.semiconducting + "\n");
 		str += "\nNumerical stability ratios\n";
 		str += CFL_text;
 		

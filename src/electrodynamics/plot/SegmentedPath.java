@@ -46,20 +46,29 @@ public class SegmentedPath extends Path {
 	public void draw(Renderer r) {
 		assert(vx.size() == vy.size());
 		if (vx.size() > 0) {
-			r.setalphaFG(1.0);
-			r.setColorFloat(1.0f, 1.0f, 1.0f);
-			r.drawPixelRectangle((int)vx.get(0)-1, (int)vy.get(0)-1, 3, 3);
-			r.drawPixelRectangle((int)vx.get(vx.size()-1)-1, (int)vy.get(vy.size()-1)-1, 3, 3);
-
+			r.setalphaBG(0.5);
 			r.setalphaFG(1.0);
 			r.setColorFloat(1.0f, 1.0f, 1.0f);
 			for (int i = 0; i < vx.size() - 1; i++) {
 				r.drawPixelLine((int)vx.get(i), (int)vy.get(i), (int)vx.get(i+1), (int)vy.get(i+1));
 			}
+
+			r.setalphaBG(0);
+			r.setalphaFG(1.0);
+			r.setColorFloat(0.7f, 0.7f, 0.7f);
+			r.drawPixelRectangle((int)vx.get(0)-1, (int)vy.get(0)-1, 3, 3);
+			r.setColorFloat(1.0f, 1.0f, 1.0f);
+			r.drawPixelRectangle((int)vx.get(vx.size()-1)-1, (int)vy.get(vy.size()-1)-1, 3, 3);
 		}
 	}
 
 	public void addNewJoint(int x, int y) {
+		if (vx.size() > 0) {
+			if (vx.get(vx.size()-1) == x && vy.get(vy.size()-1) == y) {
+				completed = true;
+				return;
+			}
+		}
 		vx.add(x);
 		vy.add(y);
 		computeArc();

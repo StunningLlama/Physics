@@ -18,6 +18,7 @@ public class Ruler extends LineProbe {
 
 	@Override
 	public void draw(Renderer r) {
+		r.setalphaBG(1);
 		r.setalphaFG(1.0);
 		r.setColorFloat(1.0f, 0.8f, 0.5f);
 		r.drawPixelRectangle(x1-1, y1-1, 3, 3);

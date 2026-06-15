@@ -1101,21 +1101,21 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 		case BANDS:
 			createPath();
-			if (releasing_left && !shift_down) {
+			if (plotpath != null && plotpath.completed) {
 				e.bandplot.createPlot(e, plotpath);
 				plotpath = null;
 			}
 			break;
 		case SCALARPLOT:
 			createPath();
-			if (releasing_left && !shift_down) {
+			if (plotpath != null && plotpath.completed) {
 				e.scalarplot.createPlot(e, plotpath);
 				plotpath = null;
 			}
 			break;
 		case CARRIERPLOT:
 			createPath();
-			if (releasing_left && !shift_down) {
+			if (plotpath != null && plotpath.completed) {
 				e.carrierplot.createPlot(e, plotpath);
 				plotpath = null;
 			}
@@ -1153,25 +1153,29 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	public void createPath() {
 		if (plotpath == null) {
-			if (pressing_left) {
-				if (shift_down) {
-					plotpath = new SegmentedPath();
-					((SegmentedPath) plotpath).addNewJoint(mx_start, my_start);
-				} else {
+			if (mouse_pressed_left) {
+				if (mx_start != mx || my_start != my) {
 					plotpath = new LinePath();
 					((LinePath) plotpath).x1 = mx_start;
 					((LinePath) plotpath).y1 = my_start;
-					((LinePath) plotpath).x2 = mx_start;
-					((LinePath) plotpath).y2 = my_start;
+					((LinePath) plotpath).x2 = mx;
+					((LinePath) plotpath).y2 = my;
+				}
+			} else if (releasing_left) {
+				if (mx_start == mx && my_start == my) {
+					plotpath = new SegmentedPath();
+					((SegmentedPath) plotpath).addNewJoint(mx_start, my_start);
 				}
 			}
 		} else if (plotpath instanceof LinePath) {
 			if (mouse_pressed_left) {
 				((LinePath) plotpath).x2 = mx;
 				((LinePath) plotpath).y2 = my;
+			} else if (releasing_left) {
+				plotpath.completed = true;
 			}
 		} else if (plotpath instanceof SegmentedPath) {
-			if (pressing_left) {
+			if (releasing_left) {
 				((SegmentedPath) plotpath).addNewJoint(mx, my);
 			}
 		}
@@ -1562,7 +1566,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			ContextMenu menu = new ContextMenu();
 			menu.show(ev.getComponent(), ev.getX(), ev.getY());
 		}
-
 	}
 
 	@Override

@@ -1088,7 +1088,11 @@ public class Renderer extends PeriodicTask {
 			}
 			if (e.sign_violation_timer > 0) {
 				e.sign_violation_timer--;
-				drawString("Warning: Numerical instability detected. Please decrease timestep or increase junction smoothing.", hoffset, voffset + line*vspacing, g); line++;
+				drawString("Warning: Negative density detected.", hoffset, voffset + line*vspacing, g); line++;
+			}
+			if (e.instability_timer > 0) {
+				e.instability_timer--;
+				drawString("Warning: Numerical instability detected.", hoffset, voffset + line*vspacing, g); line++;
 			}
 		}
 		

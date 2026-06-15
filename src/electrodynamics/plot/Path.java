@@ -11,4 +11,5 @@ public abstract class Path {
 	public abstract double getY(double t);
 	public abstract double getArclength();
 	public abstract void draw(Renderer r);
+	public boolean completed = false;
 }

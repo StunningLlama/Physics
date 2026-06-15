@@ -62,7 +62,13 @@ public abstract class Plot implements ActionListener {
 		logaxis.setLog10TickLabelsFlag(true);
 		logaxis.setStrictValuesFlag(false);
 		logaxis.setAllowNegativesFlag(true);
+		logaxis.setLabelFont(boldfont);
+		logaxis.setTickLabelFont(boldfont);
+		
 		linaxis = new NumberAxis("");
+		linaxis.setAutoRangeIncludesZero(false);
+		linaxis.setLabelFont(boldfont);
+		linaxis.setTickLabelFont(boldfont);
 
 		frame = new JFrame("");
 		frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);

@@ -103,6 +103,7 @@ public class PointProbe extends Probe {
 
 	@Override
 	public void draw(Renderer r) {
+		r.setalphaBG(1);
 		r.setalphaFG(1.0);
 		r.setColorFloat(0.5f, 1.0f, 1.0f);
 		r.drawPixelRectangle(x-1, y-1, 3, 3);

@@ -699,6 +699,16 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		eps_r_metal.setBounds(574, 138, 98, 26);
 		metal.add(eps_r_metal);
 		addEnterKey(other);
+		
+		lblOpenSwitchMobility = new JLabel("Switch open mobility");
+		lblOpenSwitchMobility.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblOpenSwitchMobility.setBounds(6, 242, 208, 16);
+		other.add(lblOpenSwitchMobility);
+		
+		switch_mobility = new JTextField();
+		switch_mobility.setColumns(10);
+		switch_mobility.setBounds(226, 237, 98, 26);
+		other.add(switch_mobility);
 		addEnterKey(sim);
 	}
 	
@@ -784,6 +794,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	private JTextField v_sat_n_metal;
 	private JTextField v_sat_p_metal;
 	private JTextField eps_r_metal;
+	private JLabel lblOpenSwitchMobility;
+	private JTextField switch_mobility;
 
 	public void storeAdvancedSettings() {
 		width				.setText(Utils.formatDouble(e.default_width				));
@@ -840,6 +852,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		max_EMF	.setText(Utils.formatDouble(e.max_EMF	));
 		max_current	.setText(Utils.formatDouble(e.max_current	));
 		default_AC_freq	.setText(Utils.formatDouble(e.default_AC_freq	));
+		switch_mobility	.setText(Utils.formatDouble(e.switch_open_mobility	));
 
 		d_crit_n		.setText(Utils.formatDouble(e.d_crit_n));
 		d_crit_p		.setText(Utils.formatDouble(e.d_crit_p));
@@ -937,6 +950,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			e.max_EMF	= Double.valueOf(max_EMF	.getText());
 			e.max_current	= Double.valueOf(max_current	.getText());
 			e.default_AC_freq	= Double.valueOf(default_AC_freq	.getText());
+			e.switch_open_mobility	= Double.valueOf(switch_mobility	.getText());
 
 			
 			e.d_crit_n = Double.valueOf(d_crit_n	.getText());
@@ -1012,6 +1026,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		advsettings.addProperty("max_EMF", e.max_EMF	);
 		advsettings.addProperty("max_current", e.max_current	);
 		advsettings.addProperty("default_AC_freq", e.default_AC_freq	);
+		advsettings.addProperty("switch_open_mobility", e.switch_open_mobility	);
 
 		advsettings.addProperty("a_factor_n", e.d_crit_n	);
 		advsettings.addProperty("a_factor_p", e.d_crit_p	);
@@ -1083,6 +1098,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 			case "max_EMF": e.max_EMF	= fstr.nextDouble(); break;
 			case "max_current": e.max_current	= fstr.nextDouble(); break;
 			case "default_AC_freq": e.default_AC_freq	= fstr.nextDouble(); break;
+			case "switch_open_mobility": e.switch_open_mobility	= fstr.nextDouble(); break;
 
 			case "a_factor_n": e.d_crit_n	= fstr.nextDouble(); break;
 			case "a_factor_p": e.d_crit_p	= fstr.nextDouble(); break;

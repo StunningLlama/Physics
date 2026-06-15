@@ -20,7 +20,6 @@ public class BandPlot extends Plot {
 	public void initialize() {
 		super.initialize();
         fig.xlabel("Position");
-        fig.ylabel("Energy (eV)");
         frame.setTitle("Band diagram");
 	}
 	
@@ -35,6 +34,7 @@ public class BandPlot extends Plot {
 	@Override
 	public void updatePlot(Simulation e) {
 		if (frame.isVisible() && e.frame%10 == 0) {
+	        fig.ylabel("Energy (eV)");
 	        setxunitsfixed(e.units, Quantity.LENGTH, 1e-6);
 	        
 			E_n_data.setNotify(false);
