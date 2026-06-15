@@ -112,7 +112,7 @@ public class Renderer extends PeriodicTask {
 		this.e = e;
 	}
 	
-	public void setResolution(int resolution) {
+	public void setResolution() {
 		scalarfield = new double[e.nx][e.ny];
 		gradscalarfield = new double[e.nx][e.ny];
 		image_r = new float[e.nx][e.ny];
@@ -131,8 +131,9 @@ public class Renderer extends PeriodicTask {
 	public void setCanvasSize() {
 		int min_canvas_size = Math.min(e.canvas.getWidth(), e.canvas.getHeight());
 		
-		scalefactor = (int)((double)min_canvas_size/e.ny);
-		scalefactor_real = (double)min_canvas_size/e.ny;
+		int max_dimension = Math.max(e.nx, e.ny);
+		scalefactor = (int)((double)min_canvas_size/max_dimension);
+		scalefactor_real = (double)min_canvas_size/max_dimension;
 		if (scalefactor < 1) scalefactor = 1;
 
 		int imgwidth_new = (int)Math.ceil(scalefactor*e.nx);	
@@ -799,9 +800,9 @@ public class Renderer extends PeriodicTask {
 							ci = (e.nx-i)%3;
 							cj = ((e.nx-i)*2/3+j)%4;
 						} else if (dir ==  3) {
-							ci = (e.nx-j)%3;
-							cj = ((e.nx-j)*2/3+i)%4;
-						}
+							ci = (e.ny-j)%3;
+							cj = ((e.ny-j)*2/3+i)%4;
+						}//TODO
 						shading = (ci == 0 && cj != 3) || (ci == 1 && cj == 1)? -1 : 1;
 					}
 					
@@ -1156,7 +1157,8 @@ public class Renderer extends PeriodicTask {
 						double vectorscalingconstant = 0;
 
 
-						int density = 75;
+						int density_x = 25*scalefactor*e.nx/256;
+						int density_y = 25*scalefactor*e.ny/256;
 
 						double randomness = 0;
 
@@ -1184,14 +1186,13 @@ public class Renderer extends PeriodicTask {
 						if (synchronized_vector_display_mode == VectorMode.LINES) {
 							vectorscalingconstant = 0.01*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/5.0)/e.controls.vectorview.getOption().scale;
 							rand.setSeed(n_thread);
-							density = 75;
-							for (int i = lower(density); i < upper(density); i++) {
-								for (int j = 0; j < density; j++) {
+							for (int i = lower(density_x); i < upper(density_x); i++) {
+								for (int j = 0; j < density_y; j++) {
 
 									//double x = (e.nx-1)*(i+0.5)/50;
 									//double y = (e.ny-1)*(j+0.5)/50;
-									double x = e.nx*(i+randomness*(rand.nextFloat()-0.5))/density;
-									double y = e.ny*(j+randomness*(rand.nextFloat()-0.5))/density;
+									double x = e.nx*(i+randomness*(rand.nextFloat()-0.5))/density_x;
+									double y = e.ny*(j+randomness*(rand.nextFloat()-0.5))/density_y;
 									for (int sign = -1; sign <= 1; sign += 2) {
 
 										double prevx = x;
@@ -1229,13 +1230,13 @@ public class Renderer extends PeriodicTask {
 						} else if (synchronized_vector_display_mode == VectorMode.ARROWS) {
 							vectorscalingconstant = 0.01*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/5.0)/e.controls.vectorview.getOption().scale;
 							rand.setSeed(n_thread);
-							for (int i = lower(density); i < upper(density); i++) {
-								for (int j = 0; j < density; j++) {
+							for (int i = lower(density_x); i < upper(density_x); i++) {
+								for (int j = 0; j < density_y; j++) {
 
 									//double x = (e.nx-1)*(i+0.5)/50;
 									//double y = (e.ny-1)*(j+0.5)/50;
-									double x = e.nx*(i+randomness*(rand.nextFloat()-0.5))/density;
-									double y = e.ny*(j+randomness*(rand.nextFloat()-0.5))/density;
+									double x = e.nx*(i+randomness*(rand.nextFloat()-0.5))/density_x;
+									double y = e.ny*(j+randomness*(rand.nextFloat()-0.5))/density_y;
 									ctr.x = x+0.5;
 									ctr.y = y+0.5;
 

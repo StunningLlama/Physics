@@ -24,7 +24,7 @@ public enum Preset {
 		
 		switch(this) {
 		case SILICON_300K:
-			e.default_width = 2*2.56e-6;
+			e.ds = 2e-8;
 			e.mu0 = 1e5*1.257e-6;
 			e.T = 300;
 			
@@ -56,7 +56,7 @@ public enum Preset {
 			semi_name = "silicon";
 			break;
 		case GERMANIUM_300K:
-			e.default_width = 2*2.56e-6;
+			e.ds = 2e-8;
 			e.mu0 = 2e4*1.257e-6;
 			e.T = 300;
 
@@ -88,7 +88,7 @@ public enum Preset {
 			semi_name = "germanium";
 			break;
 		case GAAS_300K:
-			e.default_width = 2*2.56e-6;
+			e.ds = 2e-8;
 			e.mu0 = 0.4e4*1.257e-6;
 			e.T = 300;
 			
@@ -128,7 +128,7 @@ public enum Preset {
 			semi_name = "GaAs";
 			break;
 		case GAN_300K:
-			e.default_width = 2*2.56e-6;
+			e.ds = 2e-8;
 			e.mu0 = 0.5e5*1.257e-6;
 			e.T = 300;
 

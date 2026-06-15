@@ -145,8 +145,11 @@ public class SaveManager {
 					while (fstr.hasNext()) {
 						String name = fstr.nextName();
 						switch (name){
-						case "resolution": e.default_resolution = fstr.nextInt(); break;
-						case "width": e.default_width = fstr.nextDouble(); break;
+						case "resolution": e.default_resolution_x = fstr.nextInt(); e.default_resolution_y = e.default_resolution_x; break;
+						case "width": e.ds = fstr.nextDouble()/e.default_resolution_x; break;
+						case "nx": e.ds = e.default_resolution_x = fstr.nextInt(); break;
+						case "ny": e.ds = e.default_resolution_y = fstr.nextInt(); break;
+						case "ds": e.ds = e.ds = fstr.nextDouble(); break;
 						case "time": e.time = fstr.nextDouble(); break;
 						case "phase": e.AC_phase = fstr.nextDouble(); break;
 						case "description": e.description = fstr.nextString(); break;
@@ -468,8 +471,9 @@ public class SaveManager {
 				dialog.setVisible(true);
 
 				JsonObject header = new JsonObject();
-				header.addProperty("resolution", e.default_resolution);
-				header.addProperty("width", e.default_width);
+				header.addProperty("nx", e.default_resolution_x);
+				header.addProperty("ny", e.default_resolution_y);
+				header.addProperty("ds", e.ds);
 				header.addProperty("time", e.time);
 				header.addProperty("phase", e.AC_phase);
 				

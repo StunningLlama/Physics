@@ -441,7 +441,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 
 		gui_parameter2 = new JScrollBar();
 		gui_parameter2.setOrientation(Adjustable.HORIZONTAL);
-		gui_parameter2.setMaximum(34);
+		gui_parameter2.setMaximum(33);
 		gui_parameter2.setBounds(202, 261, 171, 17);
 		panel.add(gui_parameter2);
 

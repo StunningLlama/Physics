@@ -97,13 +97,11 @@ public class Simulation extends PeriodicTask {
 	
 	/* Domain parameters */
 
-	public int default_resolution;
-	public double default_width;
+	public int default_resolution_x;
+	public int default_resolution_y;
 	
-	public int resolution;
 	public int nx;						// Number of grid points in x-dimension
 	public int ny;						// Number of grid points in y-dimension
-	public double width;				// Width, in SI
 	public double ds;					// Spatial discretization
 	public double dt;					// Timestep
 	public double depth;				// Extent of circuit in z-dimension, only used to get reasonable values for current probe
@@ -238,8 +236,9 @@ public class Simulation extends PeriodicTask {
 
 	public void setDefaultParameters() {
 		if (!lock_resolution) {
-			default_resolution = 256;
-			default_width = 2.56e-5;
+			default_resolution_x = 256;
+			default_resolution_y = 256;
+			ds = 1e-7;
 		}
 		depth = 1e-3;
 
@@ -715,12 +714,11 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 
-		ds = width/default_resolution;
 		dt_maximum = 0.9*Math.min(Math.min(ds/(Math.sqrt(2)*c), 4*eps0/sigma_epsr_max), Math.min(ds*ds/(4*D_electron_semi), ds*ds/(4*D_hole_semi)));
 		
 		Hz_dissipation = 0.01*ds*ds/dt_maximum;
-		absorber_width = (int)Math.ceil(0.045*nx);
-		absorbing_coeff = 50*c/(ds*nx);
+		absorber_width = (int)Math.ceil(0.045*Math.min(nx, ny));
+		absorbing_coeff = 50*c/(ds*Math.min(nx, ny));
 		boundary_stretch_factor = 10;
 		renderer.tau = 5000*dt_maximum;
 		renderer.tau_events = renderer.tau*0.2;
@@ -746,28 +744,37 @@ public class Simulation extends PeriodicTask {
 			materialmanager.resetMaterialList();
 		}
 
-		boolean size_changed = (default_resolution != this.resolution);
-		this.resolution = default_resolution;
+		boolean size_changed = (default_resolution_x != nx || default_resolution_y != ny);
 		
 		// Simulation and graphics threads should not be active when variables are initialized
 		rwLock.writeLock().lock();
 		try {
 			if (size_changed) {
-				System.out.println("Initializing simulation grid with resolution " + resolution);
-				if(resolution < 4) {
-					resolution = 4;
+				nx = default_resolution_x;
+				ny = default_resolution_y;
+				
+				if(nx < 4) {
+					nx = 4;
+				}
+				if(ny < 4) {
+					ny = 4;
 				}
 
-				log2_resolution = (int) Math.round(Math.log(resolution)/Math.log(2));
-				if(1 << log2_resolution != resolution) {
-					resolution = 1 << log2_resolution;
+				int log2_nx = (int) Math.round(Math.log(nx)/Math.log(2));
+				if(1 << log2_nx != nx) {
+					nx = 1 << log2_nx;
 				}
 
-				nx = resolution;
-				ny = resolution;
+				int log2_ny = (int) Math.round(Math.log(ny)/Math.log(2));
+				if(1 << log2_ny != ny) {
+					ny = 1 << log2_ny;
+				}
+
+				System.out.println("Initializing simulation grid with resolution " + default_resolution_x + "*" + default_resolution_y);
+
+				int min_res = Math.min(nx, ny);
+				log2_resolution = (int) Math.round(Math.log(min_res)/Math.log(2));
 			}
-			
-			this.width = default_width;
 			
 			calculateMaxTimestep();
 
@@ -855,8 +862,8 @@ public class Simulation extends PeriodicTask {
 
 				opts.setVisible(true);
 
-				controls.setResolution(resolution);
-				renderer.setResolution(resolution);
+				controls.setResolution();
+				renderer.setResolution();
 			}
 
 			resetTime();
@@ -1051,8 +1058,8 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 
-
-		for (int d = 1; d < nx; d++) {
+		int dmax = Math.max(nx, ny);
+		for (int d = 1; d < dmax; d++) {
 			for (int i = 0; i < nx; i++)
 			{
 				for (int j = 0; j < ny; j++)
@@ -1095,7 +1102,7 @@ public class Simulation extends PeriodicTask {
 		int i_max;
 		int n_thread;
 
-		public SimulationThread(int n, int n_threads, int nx) {
+		public SimulationThread(int n, int n_threads) {
 			n_thread = n;
 			System.out.println("Simulation thread " + n_thread + ": " + i_min + " < i <= " + i_max + " initialized.");
 		}
@@ -2512,12 +2519,12 @@ public class Simulation extends PeriodicTask {
 			downscale(MG_rho0, MG_rho, log2_resolution);
 
 			for (int fineness = 2; fineness <= log2_resolution; fineness++) {
-				int nx_tmp = (1 << fineness);
-				int ny_tmp = (1 << fineness);
-				double gridsize = width/(1 << fineness);
+				int scalefactor = 1 << (log2_resolution-fineness);
+				int nx_tmp = nx/scalefactor;
+				int ny_tmp = ny/scalefactor;
 
 				int poissonsteps = stepsarray[(fineness > 8)? 8 : fineness];
-				double alpha = (gridsize*gridsize);
+				double alpha = ds*ds*scalefactor*scalefactor;
 
 				JacobiIteration(poissonsteps, nx_tmp, ny_tmp, alpha, fineness, computePhi);
 
@@ -2532,7 +2539,7 @@ public class Simulation extends PeriodicTask {
 
 				for (int i = 0; i < nx_tmp; i++)
 				{
-					for (int j = 0; j < nx_tmp; j++) {
+					for (int j = 0; j < ny_tmp; j++) {
 						MG_phi1[2*i][2*j] = MG_phi2[i][j];
 						MG_phi1[2*i+1][2*j] = MG_phi2[i][j];
 						MG_phi1[2*i][2*j+1] = MG_phi2[i][j];

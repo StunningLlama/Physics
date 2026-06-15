@@ -45,8 +45,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	Simulation e;
 	HashMap<MaterialType, String> modified_names_tmp;
 	private JPanel sim;
-	public JTextField width;
-	public JTextField resolution;
+	public JTextField ds;
+	public JTextField resolution_x;
 	public JTextField depth;
 	public JTextField mu_electron_semi;
 	public JTextField mu_hole_semi;
@@ -139,58 +139,58 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 
 		setContentPane(panel);
 		
-		JLabel lblNewLabel = new JLabel("Sim. region width [m]");
+		JLabel lblNewLabel = new JLabel("Grid spacing [m]");
 		lblNewLabel.setToolTipText("Width of simulation domain");
 		lblNewLabel.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel.setBounds(45, 11, 168, 16);
 		sim.add(lblNewLabel);
 		
-		width = new JTextField();
-		width.setBounds(225, 6, 98, 26);
-		sim.add(width);
-		width.setColumns(10);
+		ds = new JTextField();
+		ds.setBounds(225, 6, 98, 26);
+		sim.add(ds);
+		ds.setColumns(10);
 		
-		JLabel lblNewLabel_1 = new JLabel("Resolution (Num. grid points)");
+		JLabel lblNewLabel_1 = new JLabel("Grid size x");
 		lblNewLabel_1.setToolTipText("Number of grid points in x or y direction. Must be power of 2");
 		lblNewLabel_1.setHorizontalAlignment(SwingConstants.TRAILING);
 		lblNewLabel_1.setBounds(27, 44, 186, 16);
 		sim.add(lblNewLabel_1);
 		
-		resolution = new JTextField();
-		resolution.setColumns(10);
-		resolution.setBounds(225, 39, 98, 26);
-		sim.add(resolution);
+		resolution_x = new JTextField();
+		resolution_x.setColumns(10);
+		resolution_x.setBounds(225, 39, 98, 26);
+		sim.add(resolution_x);
 		
 		JLabel lblNewLabel_2 = new JLabel("Depth [m]");
 		lblNewLabel_2.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblNewLabel_2.setBounds(45, 77, 168, 16);
+		lblNewLabel_2.setBounds(45, 110, 168, 16);
 		sim.add(lblNewLabel_2);
 		
 		depth = new JTextField();
 		depth.setColumns(10);
-		depth.setBounds(225, 72, 98, 26);
+		depth.setBounds(225, 105, 98, 26);
 		sim.add(depth);
 		
 		lblNewLabel_7 = new JLabel("Junction smoothing [px]");
 		lblNewLabel_7.setToolTipText("Smooths junction between materials with different chemical potential (ie. metal-semiconductor junctions)");
 		lblNewLabel_7.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblNewLabel_7.setBounds(45, 110, 168, 16);
+		lblNewLabel_7.setBounds(45, 143, 168, 16);
 		sim.add(lblNewLabel_7);
 		
 		junction_size = new JTextField();
 		junction_size.setColumns(10);
-		junction_size.setBounds(225, 105, 98, 26);
+		junction_size.setBounds(225, 138, 98, 26);
 		sim.add(junction_size);
 		
 		lblNewLabel_8 = new JLabel("Dopant smoothing [px]");
 		lblNewLabel_8.setToolTipText("Smooths dopant density, use when modelling non abrupt PN junctions.");
 		lblNewLabel_8.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblNewLabel_8.setBounds(45, 143, 168, 16);
+		lblNewLabel_8.setBounds(45, 176, 168, 16);
 		sim.add(lblNewLabel_8);
 		
 		dopant_smoothing_distance = new JTextField();
 		dopant_smoothing_distance.setColumns(10);
-		dopant_smoothing_distance.setBounds(225, 138, 98, 26);
+		dopant_smoothing_distance.setBounds(225, 171, 98, 26);
 		sim.add(dopant_smoothing_distance);
 		
 		JLabel lblNimetal = new JLabel("Effective DOS [1/m^3]");
@@ -710,6 +710,17 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		switch_mobility.setBounds(226, 237, 98, 26);
 		other.add(switch_mobility);
 		addEnterKey(sim);
+		
+		lblNewLabel_5 = new JLabel("Grid size y");
+		lblNewLabel_5.setToolTipText("Number of grid points in x or y direction. Must be power of 2");
+		lblNewLabel_5.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblNewLabel_5.setBounds(27, 77, 186, 16);
+		sim.add(lblNewLabel_5);
+		
+		resolution_y = new JTextField();
+		resolution_y.setColumns(10);
+		resolution_y.setBounds(225, 72, 98, 26);
+		sim.add(resolution_y);
 	}
 	
 	public void initialize() {
@@ -796,10 +807,13 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	private JTextField eps_r_metal;
 	private JLabel lblOpenSwitchMobility;
 	private JTextField switch_mobility;
+	private JLabel lblNewLabel_5;
+	private JTextField resolution_y;
 
 	public void storeAdvancedSettings() {
-		width				.setText(Utils.formatDouble(e.default_width				));
-		resolution			.setText(Integer.toString(e.default_resolution		));
+		ds				.setText(Utils.formatDouble(e.ds				));
+		resolution_x			.setText(Integer.toString(e.default_resolution_x		));
+		resolution_y			.setText(Integer.toString(e.default_resolution_y		));
 		depth				.setText(Utils.formatDouble(e.depth						));
 		junction_size		.setText(Integer.toString(e.junction_size			));
 		dopant_smoothing_distance		.setText(Integer.toString(e.dopant_smoothing_distance			));
@@ -864,29 +878,44 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 	public boolean loadAdvancedSettings(boolean show_warning) {
 
 		try {
-			int resolution_tmp			= Integer.valueOf(resolution			.getText());
+			int resolution_tmp_x			= Integer.valueOf(resolution_x			.getText());
+			int resolution_tmp_y			= Integer.valueOf(resolution_y			.getText());
 
-			if (resolution_tmp != e.resolution) {
+			if (resolution_tmp_x != e.nx || resolution_tmp_y != e.ny) {
 				int result = JOptionPane.showConfirmDialog(this, "Changing the resolution will delete all materials. Proceed?", "Message", JOptionPane.YES_NO_OPTION);
 				if (result != JOptionPane.OK_OPTION)
 				{
 					return false;
 				}
 				
-				if(resolution_tmp < 4) {
-					JOptionPane.showMessageDialog(this, "Resolution will be set to the minimum of 4.", "Message", JOptionPane.OK_OPTION);
-					resolution_tmp = 4;
-					resolution.setText(Integer.toString(resolution_tmp));
-				}
-
-				int log2_resolution = (int) Math.round(Math.log(resolution_tmp)/Math.log(2));
-				if(1 << log2_resolution != resolution_tmp) {
-					JOptionPane.showMessageDialog(this, "Resolution will be rounded to the nearest power of 2.", "Message", JOptionPane.OK_OPTION);
-					resolution_tmp = 1 << log2_resolution;
-					resolution.setText(Integer.toString(resolution_tmp));
+				if(resolution_tmp_x < 4) {
+					JOptionPane.showMessageDialog(this, "X resolution will be set to the minimum of 4.", "Message", JOptionPane.OK_OPTION);
+					resolution_tmp_x = 4;
+					resolution_x.setText(Integer.toString(resolution_tmp_x));
 				}
 				
-				double memory_estimate = 400.0*8.0*(double)resolution_tmp*(double)resolution_tmp;
+				if(resolution_tmp_y < 4) {
+					JOptionPane.showMessageDialog(this, "Y resolution will be set to the minimum of 4.", "Message", JOptionPane.OK_OPTION);
+					resolution_tmp_y = 4;
+					resolution_y.setText(Integer.toString(resolution_tmp_y));
+				}
+
+				int log2_resolution_x = (int) Math.round(Math.log(resolution_tmp_x)/Math.log(2));
+				if(1 << log2_resolution_x != resolution_tmp_x) {
+					JOptionPane.showMessageDialog(this, "X resolution will be rounded to the nearest power of 2.", "Message", JOptionPane.OK_OPTION);
+					resolution_tmp_x = 1 << log2_resolution_x;
+					resolution_x.setText(Integer.toString(resolution_tmp_x));
+				}
+				
+
+				int log2_resolution_y = (int) Math.round(Math.log(resolution_tmp_y)/Math.log(2));
+				if(1 << log2_resolution_y != resolution_tmp_y) {
+					JOptionPane.showMessageDialog(this, "Y resolution will be rounded to the nearest power of 2.", "Message", JOptionPane.OK_OPTION);
+					resolution_tmp_y = 1 << log2_resolution_y;
+					resolution_y.setText(Integer.toString(resolution_tmp_y));
+				}
+				
+				double memory_estimate = 400.0*8.0*(double)resolution_tmp_x*(double)resolution_tmp_y;
 				if (memory_estimate > 1e9) {
 					int result2 = JOptionPane.showConfirmDialog(this, "Warning: This resolution will use approximately " + Units.SI.toString(memory_estimate, Quantity.INFORMATION) + " of memory. Proceed?", "Message", JOptionPane.YES_NO_OPTION);
 					if (result2 != JOptionPane.OK_OPTION)
@@ -896,8 +925,9 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 				}
 			}
 
-			e.default_width				= Double.valueOf(width				.getText());	
-			e.default_resolution = resolution_tmp;
+			e.ds				= Double.valueOf(ds				.getText());	
+			e.default_resolution_x = resolution_tmp_x;
+			e.default_resolution_y = resolution_tmp_y;
 
 			e.depth						= Double.valueOf(depth				.getText());
 			e.junction_size				= Integer.valueOf(junction_size		.getText());

@@ -45,7 +45,7 @@ public class SemiSim {
 		sim = new Simulation();
 		
 		for (int i = 0; i < n_threads; i++) {
-			sim_threads.add(sim.new SimulationThread(i, n_threads, sim.nx));
+			sim_threads.add(sim.new SimulationThread(i, n_threads));
 		}
 
 		for (int i = 0; i < n_threads; i++) {

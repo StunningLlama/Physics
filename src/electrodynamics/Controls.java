@@ -207,7 +207,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		this.e = e;
 	}
 	
-	void setResolution(int resolution) {
+	void setResolution() {
 		selection = new Clipboard(e);
 		clipboard = new Clipboard(e);
 
