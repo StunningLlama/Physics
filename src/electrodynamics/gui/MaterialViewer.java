@@ -171,6 +171,12 @@ public class MaterialViewer extends JFrame implements ActionListener, ListSelect
 			str += "Hole saturation velocity: <b>" + e.units.toString(mat.v_sat_p, Quantity.VELOCITY) + "</b><br>";
 			str += "Hole saturation field: <b>" + e.units.toString(mat.v_sat_p/(mat.D_p*e.beta*e.e_charge), Quantity.ELECTRIC_FIELD) + "</b><br>";
 			str += "<br>";
+			str += "Radiative recombination rate coefficient: <b>" + e.units.toString(mat.k_rad, Quantity.RATE_DENSITY) + "</b><br>";
+			str += "SRH rate coefficient n: <b>" + e.units.toString(mat.k_SRH_n, Quantity.RATE) + "</b><br>";
+			str += "SRH rate coefficient p: <b>" + e.units.toString(mat.k_SRH_p, Quantity.RATE) + "</b><br>";
+			str += "Auger rate coefficient n: <b>" + e.units.toString(mat.k_aug_n, Quantity.RATE_DENSITY_SQUARED) + "</b><br>";
+			str += "Auger rate coefficient p: <b>" + e.units.toString(mat.k_aug_p, Quantity.RATE_DENSITY_SQUARED) + "</b><br>";
+			str += "<br>";
 			str += "Excess electron lifetime: <b>" + e.units.toString(n_time, Quantity.TIME) + "</b><br>";
 			str += "Electron diffusion length: <b>" + e.units.toString(Math.sqrt(n_time*mat.D_n), Quantity.LENGTH) + "</b><br>";
 			str += "Excess hole lifetime: <b>" + e.units.toString(p_time, Quantity.TIME) + "</b><br>";

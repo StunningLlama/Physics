@@ -25,7 +25,7 @@ public class UndoRedo {
 	public List<Snapshot> prev_states = new ArrayList<Snapshot>();
 	public int undoredo_pointer = 0;
 	public int history_size = 0;
-	public boolean tracksettings = true;
+	public boolean tracksettings = false;
 	
 	public UndoRedo(int history_size) {
 		this.history_size = history_size;

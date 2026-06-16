@@ -33,10 +33,13 @@ import electrodynamics.plot.Plot;
 import electrodynamics.plot.ProbePlot;
 import electrodynamics.plot.ScalarPlot;
 import electrodynamics.plot.XYPlot;
+import electrodynamics.probe.AreaProbe;
 import electrodynamics.probe.ChargeProbe;
 import electrodynamics.probe.CurrentProbe;
 import electrodynamics.probe.FluxProbe;
 import electrodynamics.probe.Ground;
+import electrodynamics.probe.LineProbe;
+import electrodynamics.probe.PointProbe;
 import electrodynamics.probe.Probe;
 import electrodynamics.probe.Ruler;
 import electrodynamics.probe.VoltageProbe;
@@ -410,6 +413,8 @@ public class Simulation extends PeriodicTask {
 	public boolean updateMiscFields = false;
 	public boolean store_diff_drift = false;
 	public boolean need_diff_drift = false;
+	public boolean need_heat = false;
+	public boolean need_entropy = false;
 	public double[][] debug;
 
 	
@@ -714,7 +719,7 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 
-		dt_maximum = 0.9*Math.min(Math.min(ds/(Math.sqrt(2)*c), 4*eps0/sigma_epsr_max), Math.min(ds*ds/(4*D_electron_semi), ds*ds/(4*D_hole_semi)));
+		dt_maximum = 0.9*Math.min(Math.min(ds/(Math.sqrt(2)*c), 4*eps0/sigma_epsr_max), Math.min(ds*ds/(4*D_electron_max), ds*ds/(4*D_hole_max)));
 		
 		Hz_dissipation = 0.01*ds*ds/dt_maximum;
 		absorber_width = (int)Math.ceil(0.045*Math.min(nx, ny));
@@ -1415,12 +1420,12 @@ public class Simulation extends PeriodicTask {
 	}
 	
 	public void calcMiscFields(boolean updatePhi) {
-		ScalarView view_scalar = controls.scalarview.getOption();
-		VectorView view_vector = controls.vectorview.getOption();
-
+		
 		if (updatePhi)
 			multigridSolve(false, true);
 
+		deduceRequiredComputations();
+		
 		t8.start();
 
 		//sign_violation = 0;
@@ -1522,7 +1527,7 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 
-		if (view_scalar == ScalarView.HEAT) {
+		if (need_heat) {
 			for (int i = 0; i < nx-1; i++)
 			{
 				for (int j = 1; j < ny-1; j++)
@@ -1560,7 +1565,7 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 
-		if (view_scalar == ScalarView.ENTROPY) {
+		if (need_entropy) {
 			for (int i = 0; i < nx-1; i++)
 			{
 				for (int j = 1; j < ny-1; j++)
@@ -1598,13 +1603,8 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 		
-		if (view_scalar == ScalarView.ELECTRON_VEL || view_scalar == ScalarView.HOLE_VEL
-			|| view_vector == VectorView.ELECTRON_DIFFUSION || view_vector == VectorView.ELECTRON_DRIFT || view_vector == VectorView.ELECTRON_VELOCITY
-			|| view_vector == VectorView.HOLE_DIFFUSION || view_vector == VectorView.HOLE_DRIFT || view_vector == VectorView.HOLE_VELOCITY
-			|| (opts.gui_carriers.isSelected() && opts.menu_carrier_diffusion.isSelected()))
-		{
-			need_diff_drift = true;
-			
+		if (need_diff_drift)
+		{	
 			for (int i = 1; i < nx-1; i++)
 			{
 				for (int j = 1; j < ny-1; j++)
@@ -1624,13 +1624,47 @@ public class Simulation extends PeriodicTask {
 					}
 				}
 			}
-		} else {
-			need_diff_drift = false;
 		}
 		
 		updateMiscFields = false;
 
 		t8.stop();
+	}
+	
+	public void deduceRequiredComputations() {
+		ScalarView view_scalar = controls.scalarview.getOption();
+		VectorView view_vector = controls.vectorview.getOption();
+		
+		need_diff_drift = false;
+		need_diff_drift |= (view_scalar == ScalarView.ELECTRON_VEL || view_scalar == ScalarView.HOLE_VEL);
+		need_diff_drift |= (view_vector == VectorView.ELECTRON_DIFFUSION || view_vector == VectorView.ELECTRON_DRIFT || view_vector == VectorView.ELECTRON_VELOCITY
+			|| view_vector == VectorView.HOLE_DIFFUSION || view_vector == VectorView.HOLE_DRIFT || view_vector == VectorView.HOLE_VELOCITY);
+		need_diff_drift |= (opts.gui_carriers.isSelected() && opts.menu_carrier_diffusion.isSelected());
+		
+		need_heat = false;
+		need_heat |= (view_scalar == ScalarView.HEAT);
+
+		need_entropy = false;
+		need_entropy |= (view_scalar == ScalarView.ENTROPY);
+		
+		for (Probe p : probes) {
+			ScalarView probe_scalar = null;
+			VectorView probe_vector = null;
+			if (p instanceof AreaProbe) {
+				probe_scalar = ((AreaProbe)p).scalarname;
+			} else if (p instanceof LineProbe) {
+				probe_vector = ((LineProbe)p).vectorname;
+			} else if (p instanceof PointProbe) {
+				probe_scalar = ((PointProbe)p).scalarname;
+			}
+			
+			need_diff_drift |= (probe_scalar == ScalarView.ELECTRON_VEL || probe_scalar == ScalarView.HOLE_VEL);
+			need_diff_drift |= (probe_vector == VectorView.ELECTRON_DIFFUSION || probe_vector == VectorView.ELECTRON_DRIFT || probe_vector == VectorView.ELECTRON_VELOCITY
+				|| probe_vector == VectorView.HOLE_DIFFUSION || probe_vector == VectorView.HOLE_DRIFT || probe_vector == VectorView.HOLE_VELOCITY);
+			need_diff_drift |= (opts.gui_carriers.isSelected() && opts.menu_carrier_diffusion.isSelected());
+			need_heat |= (probe_scalar == ScalarView.HEAT);
+			need_entropy |= (probe_scalar == ScalarView.ENTROPY);
+		}
 	}
 	
 	public void performProbeMeasurements() {

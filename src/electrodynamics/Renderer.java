@@ -86,6 +86,7 @@ public class Renderer extends PeriodicTask {
 	private float scalingconstant;
 	private float scalar_offset;
 	public boolean display_relative_voltage = false;
+	public boolean disp_mat_name = false;
 
 	/* Multithreading */
 	
@@ -802,11 +803,9 @@ public class Renderer extends PeriodicTask {
 						} else if (dir ==  3) {
 							ci = (e.ny-j)%3;
 							cj = ((e.ny-j)*2/3+i)%4;
-						}//TODO
+						}
 						shading = (ci == 0 && cj != 3) || (ci == 1 && cj == 1)? -1 : 1;
 					}
-					
-					//int shading2 = 2*((i+j)%2)-1;
 
 					setalphaBG(0.25);
 					setalphaFG(0.75);
@@ -879,7 +878,7 @@ public class Renderer extends PeriodicTask {
 		setalphaFG(1);
 		setColorFloat(0.7f, 0.7f, 0.7f);
 
-		if (Brush.drawLine(brush) && e.controls.mouse_pressed_prev_left) {
+		if (Brush.drawLine(brush) && (e.controls.mouse_pressed_prev_left || e.controls.mouse_pressed_prev_right)) {
 			drawPixelLine(e.controls.mx_start, e.controls.my_start, e.controls.mx, e.controls.my);
 		}
 
@@ -965,7 +964,10 @@ public class Renderer extends PeriodicTask {
 
 		if (e.opts.menu_probes.isSelected()) {
 			for (Probe p: e.probes) {
-				drawMonospacedStringSimCoords(p.getText(e.units), p.labelcoord.x, p.labelcoord.y, g);
+				Text text = drawStringSimCoords(p.getText(e.units), p.labelcoord.x, p.labelcoord.y, g);
+				text.isMonospaced = true;
+				text.isHorizontalCentered = true;
+				text.isVerticalCentered = true;
 			}
 
 			drawStrings(g);
@@ -982,8 +984,8 @@ public class Renderer extends PeriodicTask {
 				int i1 = (int) (e.nx*0.85);
 				int i2 = (int) (e.nx*0.92);
 
-				int j1 = (int) (e.ny*0.82);
-				int j2 = (int) (e.ny*0.95);
+				int j1 = (int) (e.ny*0.81);
+				int j2 = (int) (e.ny*0.93);
 
 				double tmin = 0;
 				double tmax = 1;
@@ -994,17 +996,22 @@ public class Renderer extends PeriodicTask {
 					tmax = 2*(tmax-0.5);
 				}
 				if (scalarview == ScalarView.LIGHT) {
-					drawMonospacedStringSimCoords("≥ " + e.units.toString(400e-9, Quantity.LENGTH), (i1+i2)/2, j2, g);
-					texts.get(texts.size()-1).isHorizontalCentered = true;
-					drawMonospacedStringSimCoords("≤ " + e.units.toString(650e-9, Quantity.LENGTH), (i1+i2)/2, j1, g);
-					texts.get(texts.size()-1).isHorizontalCentered = true;
+					Text text = drawStringSimCoords("≥ " + e.units.toString(400e-9, Quantity.LENGTH), (i1+i2)/2, j2, g);
+					text.isMonospaced = true;
+					text.isHorizontalCentered = true;
+					text = drawStringSimCoords("≤ " + e.units.toString(650e-9, Quantity.LENGTH), (i1+i2)/2, j1, g);
+					text.isMonospaced = true;
+					text.isHorizontalCentered = true;
+					text.isBottomJustified = true;
 				} else {
-					drawMonospacedStringSimCoords(e.units.toString(tmin/scalingconstant+scalar_offset, scalarview.unit), (i1+i2)/2, j2, g);
-					texts.get(texts.size()-1).isHorizontalCentered = true;
-					drawMonospacedStringSimCoords(e.units.toString(tmax/scalingconstant+scalar_offset, scalarview.unit), (i1+i2)/2, j1, g);
-					texts.get(texts.size()-1).isHorizontalCentered = true;
+					Text text = drawStringSimCoords(e.units.toString(tmin/scalingconstant+scalar_offset, scalarview.unit), (i1+i2)/2, j2, g);
+					text.isMonospaced = true;
+					text.isHorizontalCentered = true;
+					text = drawStringSimCoords(e.units.toString(tmax/scalingconstant+scalar_offset, scalarview.unit), (i1+i2)/2, j1, g);
+					text.isMonospaced = true;
+					text.isHorizontalCentered = true;
+					text.isBottomJustified = true;
 				}
-				texts.get(texts.size()-1).isBottomJustified = true;
 			}
 		}
 
@@ -1039,8 +1046,15 @@ public class Renderer extends PeriodicTask {
 			}
 
 			if (e.opts.menu_materialname.isSelected()) {
-				String name = "Material: " + mat.getDisplayName();
-				this.drawBigString(name, hoffset, voffset + 1*vspacing, g);
+				if (disp_mat_name) {
+					String name = "Material: " + mat.getDisplayName();
+					Text text = drawString(name, hoffset, voffset, g);
+					text.isBig = true;
+				} else {
+					String name = mat.getDisplayName();
+					Text text = drawString(name, e.canvas.getWidth(), 0, g);
+					text.isRightJustified = true;
+				}
 			}
 
 			if (e.opts.menu_tooltip.isSelected()) {
@@ -1071,9 +1085,9 @@ public class Renderer extends PeriodicTask {
 		}
 
 		int vspacing = Text.fontsize+1;
-		int voffset = 3;
-		int hoffset = 5;
-		int line = 1;
+		int voffset = 0;
+		int hoffset = 6;
+		int line = 0;
 		
 		if (e.opts.menu_time.isSelected()) {
 			drawString("Time: " + e.units.toString(e.time, Quantity.TIME), hoffset, voffset + line*vspacing, g); line++;
@@ -1111,10 +1125,12 @@ public class Renderer extends PeriodicTask {
 			drawString(e.simFPStimer.getName() + " " + e.units.toString(1/e.simFPStimer.getAverageTime(), Quantity.FREQUENCY), hoffset, voffset + line*vspacing, g); line++;
 		}
 		if (carrier_diffusion_warning_timer > 0) {
-			drawError("Error: Metal cannot touch simulation boundary when carrier diffusion view is enabled.", hoffset, voffset + line*vspacing, g); line ++;
+			Text text = drawString("Error: Metal cannot touch simulation boundary when carrier diffusion view is enabled.", hoffset, voffset + line*vspacing, g); line ++;
+			text.isError = true;
 		}
 		if (e.numerical_overflow) {
-			drawError("Error: Numerical overflow detected. Please reset simulation.", hoffset, voffset + line*vspacing, g); line ++;
+			Text text = drawString("Error: Numerical overflow detected. Please reset simulation.", hoffset, voffset + line*vspacing, g); line ++;
+			text.isError = true;
 		}
 
 		if (probetexttimer > 0) {
@@ -1544,17 +1560,17 @@ public class Renderer extends PeriodicTask {
 
 		for (Text text : texts) {
 			text.computeDimensions(g);
-			if (text.isRightJustified) text.x -= (text.width-4);
-			if (text.isBottomJustified) text.y -= (text.height-4);
-			if (text.isHorizontalCentered) text.x -= (text.width/2-2);
-			if (text.isVerticalCentered) text.y -= (text.height/2-2);
+			if (text.isRightJustified) text.x -= (text.width);
+			if (text.isBottomJustified) text.y -= (text.height+5);
+			if (text.isHorizontalCentered) text.x -= (text.width/2-3);
+			if (text.isVerticalCentered) text.y -= (text.height/2+2);
 		}
 		
 		for (Text text : texts) {
 			if (text.hasBackground && (dodraw || text.isError)) {
 				g.setFont(text.getFont());
 				int x = text.x-3;
-				int y = text.y-text.height+6;
+				int y = text.y+3;
 
 				g.setColor(Color.GRAY);
 				g.fillRect(x-2, y-2, text.width+4, text.height+4);
@@ -1566,7 +1582,7 @@ public class Renderer extends PeriodicTask {
 				g.setFont(text.getFont());
 
 				int x = text.x-3;
-				int y = text.y-text.height+6;
+				int y = text.y+3;
 
 				g.setColor(Color.BLACK);
 				if (text.isError)
@@ -1583,9 +1599,9 @@ public class Renderer extends PeriodicTask {
 				g.setFont(text.getFont());
 
 				g.setColor(Color.DARK_GRAY);
-				g.drawString(text.text, text.x+1, text.y+1);
+				g.drawString(text.text, text.x+1, text.y+text.height-2);
 				g.setColor(Color.WHITE);
-				g.drawString(text.text, text.x, text.y);
+				g.drawString(text.text, text.x, text.y+text.height-3);
 			}
 		}
 	}
@@ -1594,41 +1610,24 @@ public class Renderer extends PeriodicTask {
 		texts.clear();
 	}
 
-	public void drawString(String str1, int x, int y, Graphics g) {
+	public Text drawString(String str1, int x, int y, Graphics g) {
 		Text t = new Text(str1, x, y);
 		texts.add(t);
+		return t;
 	}
 	
-	public void drawMonospacedString(String str1, int x, int y, Graphics g) {
-		Text t = new Text(str1, x, y);
-		t.monospaced = true;
-		texts.add(t);
-	}
-
-	public void drawMonospacedStringSimCoords(String str1, int x, int y, Graphics g) {
-
+	public Text drawStringSimCoords(String str1, int x, int y, Graphics g) {
 		double sf_x = (double)e.canvas.zoom_bound_x/(e.controls.zoom_i2-e.controls.zoom_i1+1);
 		double sf_y = (double)e.canvas.zoom_bound_y/(e.controls.zoom_j2-e.controls.zoom_j1+1);
 
-		drawMonospacedString(str1, (int) ((x-e.controls.zoom_i1+0.5)*sf_x+e.canvas.offset_x), (int) ((y-e.controls.zoom_j1+0.5)*sf_y+e.canvas.offset_y), g);
-	}
-
-	public void drawError(String str1, int x, int y, Graphics g) {
-		Text t = new Text(str1, x, y);
-		t.isError = true;
-		texts.add(t);
-	}
-
-	public void drawBigString(String str1, int x, int y, Graphics g) {
-		Text t = new Text(str1, x, y);
-		t.big = true;
-		texts.add(t);
+		Text text = drawString(str1, (int) ((x-e.controls.zoom_i1+0.5)*sf_x+e.canvas.offset_x), (int) ((y-e.controls.zoom_j1+0.5)*sf_y+e.canvas.offset_y), g);
+		return text;
 	}
 
 	public void drawTwoColumnString(String str1, String str2, int x, int y, Graphics g) {
 		drawString(String.format("%-10s", str1), x, y, g);
-		drawString(str2, x+40, y, g);
-		texts.get(texts.size()-1).minwidth = 80;
+		Text text = drawString(str2, x+40, y, g);
+		text.minwidth = 80;
 	}
 	
 	public static class Text {
@@ -1652,9 +1651,9 @@ public class Renderer extends PeriodicTask {
 		int width = 0;
 		int height = 0;
 		
-		boolean big = false;
+		boolean isBig = false;
 		boolean hasBackground = true;
-		boolean monospaced = false;
+		boolean isMonospaced = false;
 		boolean isError = false;
 		boolean isRightJustified = false;
 		boolean isBottomJustified = false;
@@ -1669,9 +1668,9 @@ public class Renderer extends PeriodicTask {
 		}
 		
 		public Font getFont() {
-			if (big)
+			if (isBig)
 				return bigfont;
-			else if (monospaced)
+			else if (isMonospaced)
 				return monospacefont;
 			else
 				return regularfont;
@@ -1685,10 +1684,12 @@ public class Renderer extends PeriodicTask {
 		
 		public static Font getMonospacedFont() {
 			Font f = Font.decode("Consolas-PLAIN-" + fontsize);
-			if (f.getFamily() == "Dialog")
+			String specialstring = "\u03c1\u2099\u209A\u2080\u03d5";
+			if (f.getFamily() == "Dialog" || f.canDisplayUpTo(specialstring) != -1)
 				f = Font.decode("Andale Mono-PLAIN-" + fontsize);
-			if (f.getFamily() == "Dialog")
+			if (f.getFamily() == "Dialog" || f.canDisplayUpTo(specialstring) != -1)
 				f = new Font(Font.MONOSPACED, Font.PLAIN, fontsize);
+			System.out.println(f.getName());
 			return f;
 		}
 	}

@@ -47,6 +47,7 @@ public class EMU extends UnitSystem {
 		case POWER_DENSITY: return "erg/(cm^3 s)";
 		case ENTROPY_DENSITY_RATE: return "erg/(K s cm^3)";
 		case INTENSITY: return "erg/(cm^2 s)";
+		case RATE_DENSITY_SQUARED: return "1/(cm^6 s)";
 
 		case CONDUCTIVITY: return "abA/(abV cm)";
 		case RESISTIVITY: return "(abV cm)/abA";

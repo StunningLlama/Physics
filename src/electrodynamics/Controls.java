@@ -9,8 +9,11 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.KeyboardFocusManager;
 import java.awt.MouseInfo;
+import java.awt.Point;
 import java.awt.PointerInfo;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
@@ -25,11 +28,14 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
 
 import javax.swing.AbstractAction;
@@ -134,6 +140,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public boolean dragging_selection = false;
 	public boolean brush_changed = false;
 	public boolean changesmade = false;
+	public boolean undocaptureneeded = false;
 
 	//public int mousebutton = 0;
 	public int mx_screen = 0;
@@ -189,6 +196,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	private Cursor HAND_CURSOR = new Cursor(Cursor.HAND_CURSOR);
 	private Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
+	private Cursor CROSSHAIR_CURSOR = new Cursor(Cursor.CROSSHAIR_CURSOR);
+	private Cursor TEXT_CURSOR = new Cursor(Cursor.TEXT_CURSOR);
+
+	private BufferedImage blankImage = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+	private Cursor BLANK_CURSOR = Toolkit.getDefaultToolkit().createCustomCursor(blankImage, new Point(0, 0), "blank cursor");
+	private Cursor currentCursor = null;
 	
 	public MenuCheckList<Brush, JRadioButtonMenuItem> brushes = new MenuCheckList<Brush, JRadioButtonMenuItem>();
 	public MenuCheckList<ScalarView, CustJRadioButtonMenuItem> scalarview = new MenuCheckList<ScalarView, CustJRadioButtonMenuItem>();
@@ -431,6 +444,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	
 	public void makeUIchanges() {
 		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
+		currentCursor = DEFAULT_CURSOR;
 		
 		if (pressing_left) {
 			e.canvas.requestFocus();
@@ -463,6 +477,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.opts.gui_brush_highlight.setVisible(true);
 			e.opts.gui_brushsize.setVisible(true);
 			e.opts.lblBrushSize.setVisible(true);
+			currentCursor = BLANK_CURSOR;
 		} else {
 			e.opts.gui_brush_1.setVisible(false);
 			e.opts.gui_brush_highlight.setVisible(false);
@@ -512,6 +527,28 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		
 		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
 		BrushShape brushshape = (BrushShape) e.opts.gui_brush_1.getSelectedItem();
+
+		if (Keyboard.isKeyPressed(KeyEvent.VK_SHIFT) && !shift_down) {
+			shift_down = true;
+
+			if ((Brush) e.opts.gui_brush.getSelectedItem() == Brush.DRAW) {
+				shift_draw_override = true;
+				e.opts.gui_brush.setSelectedItem(Brush.LINE);
+			}
+		} else if (!Keyboard.isKeyPressed(KeyEvent.VK_SHIFT) && shift_down) {
+			shift_down = false;
+
+			if (shift_draw_override) {
+				shift_draw_override = false;
+				if ((Brush) e.opts.gui_brush.getSelectedItem() == Brush.LINE) {
+					e.opts.gui_brush.setSelectedItem(Brush.DRAW);
+				}
+			}
+		}
+		
+		shift_down = Keyboard.isKeyPressed(KeyEvent.VK_SHIFT);
+		alt_down = Keyboard.isKeyPressed(KeyEvent.VK_ALT);
+		ctrl_down = Keyboard.isKeyPressed(KeyEvent.VK_CONTROL) || Keyboard.isKeyPressed(KeyEvent.VK_META);
 		
 		switch(brush) {
 		case DRAW:
@@ -565,7 +602,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 
 
-			if (mouse_pressed_right|| brush == Brush.ERASE)
+			if (mouse_pressed_right || releasing_right || brush == Brush.ERASE)
 				mat = GeneralMaterialType.EMPTY;
 
 			
@@ -576,6 +613,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						flagChanges(true);
 					}
 				} else if (brush == Brush.FILL) {
+					currentCursor = this.CROSSHAIR_CURSOR;
 					if (pressing_left) {
 						GeneralMaterialType old_mat = new GeneralMaterialType(e.materials[mx][my]);
 						GeneralMaterialType new_mat = mat;
@@ -666,9 +704,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 		case INTERACT:
 			if (e.materials[mx][my].type.isInteractable())
-				e.canvas.setCursor(HAND_CURSOR);
-			else
-				e.canvas.setCursor(DEFAULT_CURSOR);
+				currentCursor = HAND_CURSOR;
 
 			if (pressing_left) {
 				boolean turn_on_EMF = !selected_EMF[mx][my];
@@ -1015,12 +1051,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 			break;
 		case DELETEPROBE:
-			e.canvas.setCursor(DEFAULT_CURSOR);
 			int i = 0;
 			while(i < e.probes.size()) {
 				Probe p = e.probes.get(i);
 				if (p.isMouseHovering(mx, my)) {
-					e.canvas.setCursor(HAND_CURSOR);
+					currentCursor = HAND_CURSOR;
 					if (pressing_left) {
 						e.removeProbe(p);
 						flagChanges(false);
@@ -1047,21 +1082,20 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				labelcoord = null;
 				flagChanges(false);
 			} else {
-				e.canvas.setCursor(DEFAULT_CURSOR);
 				Probe.LabelCoord coord = null;
 				for (Probe p : e.probes)
 					coord = selectLabel(p.labelcoord, coord);
 				
 				if (coord != null)
-					e.canvas.setCursor(HAND_CURSOR);
+					currentCursor = HAND_CURSOR;
 			}
 			break;
 		case TEXT:
-			e.canvas.setCursor(HAND_CURSOR);
+			currentCursor = TEXT_CURSOR;
 			if (mouse_pressed_left) {
 				startTextInput();
 				text_x = mx;
-				text_y = my;
+				text_y = my-3;
 			}
 			break;
 		case GROUND:
@@ -1129,6 +1163,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			endTextInput();
 		}
 		
+		if (e.canvas.getCursor() != currentCursor) {
+			e.canvas.setCursor(currentCursor);
+		}
+		
 		SwingUtilities.invokeLater(() -> { //TODO
 			for (Plot p : e.plots) {
 				p.updatePlot(e);
@@ -1137,14 +1175,21 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 		setEMFs();
 		
+		if ((BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary)
+			updatematerials = true;
+		
 		prev_boundary = (BoundaryCondition)e.opts.gui_bc.getSelectedItem();
 		
 		if (updatematerials) {
-			undoredo.captureState(e);
 			e.updateAllMaterials(false);
 			e.multigridSolve(true, false);
 			
 			updatematerials = false;
+		}
+		
+		if (undocaptureneeded) {
+			undoredo.captureState(e);
+			undocaptureneeded = false;
 		}
 
 		mxp = mx;
@@ -1185,6 +1230,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	
 	public void flagChanges(boolean updateMaterials) {
 		changesmade = true;
+		undocaptureneeded = true;
 		if (!e.opts.getTitle().endsWith("*"))
 			e.opts.setTitle(e.opts.getTitle() + " *");
 		
@@ -1193,7 +1239,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	
 	public Probe.LabelCoord selectLabel(Probe.LabelCoord c_in, Probe.LabelCoord c_opt) {
 		if (c_opt == null) {
-			if (Math.abs(c_in.x + 10 - mx) < 10 && Math.abs(c_in.y - 2 - my) < 4) {
+			if (Math.abs(c_in.x - mx) < 15 && Math.abs(c_in.y - my) < 4) {
 				return c_in;
 			} else {
 				return null;
@@ -1653,43 +1699,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     
     boolean shift_draw_override = false;
 
-    private Action key_shift = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		shift_down = true;
-    		
-    		if ((Brush) e.opts.gui_brush.getSelectedItem() == Brush.DRAW) {
-    			shift_draw_override = true;
-    			e.opts.gui_brush.setSelectedItem(Brush.LINE);
-    		}
-        }
-    };
-    private Action key_shift_up = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		shift_down = false;
-    		
-    		if (shift_draw_override) {
-    			shift_draw_override = false;
-        		if ((Brush) e.opts.gui_brush.getSelectedItem() == Brush.LINE) {
-        			e.opts.gui_brush.setSelectedItem(Brush.DRAW);
-        		}
-    		}
-        }
-    };
-    private Action key_ctrl = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		ctrl_down = true;
-        }
-    };
-    private Action key_ctrl_up = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		ctrl_down = false;
-        }
-    };
-
     private Action key_cut = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1793,20 +1802,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		@Override
         public void actionPerformed(ActionEvent ev) {
     		e.opts.menu_text_bg.setSelected(!e.opts.menu_text_bg.isSelected());
-        }
-    };
-
-    private Action key_alt = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		alt_down = true;
-        }
-    };
-
-    private Action key_alt_up = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-			alt_down = false;
         }
     };
 
@@ -1930,11 +1925,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				e.opts.gui_brush.setSelectedIndex(e.opts.gui_brush.getSelectedIndex()+1);
         }
     };
-
-
+    
     public void addKeyBinds(JPanel contentPane) {
     	InputMap map = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-    	InputMap map2 = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
     	
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_P, 0), key_pause);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), key_pause);
@@ -1948,26 +1941,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Q, 0), key_changebrush);
     	contentPane.getActionMap().put(key_changebrush, key_changebrush);
-
-    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, InputEvent.SHIFT_DOWN_MASK), key_shift);
-    	contentPane.getActionMap().put(key_shift, key_shift);
-
-    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, 0, true), key_shift_up);
-    	contentPane.getActionMap().put(key_shift_up, key_shift_up);
-
-    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, InputEvent.SHIFT_DOWN_MASK | InputEvent.ALT_DOWN_MASK), key_shift);
-    	contentPane.getActionMap().put(key_shift, key_shift);
-
-    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, InputEvent.ALT_DOWN_MASK, true), key_shift_up);
-    	contentPane.getActionMap().put(key_shift_up, key_shift_up);
-
-    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, InputEvent.CTRL_DOWN_MASK), key_ctrl);
-    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_META, InputEvent.META_DOWN_MASK), key_ctrl);
-    	contentPane.getActionMap().put(key_ctrl, key_ctrl);
-
-    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_CONTROL, 0, true), key_ctrl_up);
-    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_META, 0, true), key_ctrl_up);
-    	contentPane.getActionMap().put(key_ctrl_up, key_ctrl_up);
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK), key_cut);
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.META_DOWN_MASK), key_cut);
@@ -2043,18 +2016,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, 0), key_textbg);
     	contentPane.getActionMap().put(key_textbg, key_textbg);
-
-    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, InputEvent.ALT_DOWN_MASK), key_alt);
-    	contentPane.getActionMap().put(key_alt, key_alt);
-
-    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, 0, true), key_alt_up);
-    	contentPane.getActionMap().put(key_alt_up, key_alt_up);
-
-    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT, InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_alt);
-    	contentPane.getActionMap().put(key_alt, key_alt);
-
-    	map2.put(KeyStroke.getKeyStroke(KeyEvent.VK_ALT,  InputEvent.SHIFT_DOWN_MASK, true), key_alt_up);
-    	contentPane.getActionMap().put(key_alt_up, key_alt_up);
 
     	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, 0), key_logdata);
     	contentPane.getActionMap().put(key_logdata, key_logdata);
@@ -2147,7 +2108,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	}
 
 	@Override
-	public void keyReleased(KeyEvent e) {}
+	public void keyReleased(KeyEvent ev) {}
 	
 	class FloodFillCoordinate {
 		int i;
@@ -2472,4 +2433,23 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 		}
 	}
+}
+
+class Keyboard {
+
+    private static final Map<Integer, Boolean> pressedKeys = new HashMap<>();
+
+    static {
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(event -> {
+            synchronized (Keyboard.class) {
+                if (event.getID() == KeyEvent.KEY_PRESSED) pressedKeys.put(event.getKeyCode(), true);
+                else if (event.getID() == KeyEvent.KEY_RELEASED) pressedKeys.put(event.getKeyCode(), false);
+                return false;
+            }
+        });
+    }
+
+    public static boolean isKeyPressed(int keyCode) { // Any key code from the KeyEvent class
+        return pressedKeys.getOrDefault(keyCode, false);
+    }
 }

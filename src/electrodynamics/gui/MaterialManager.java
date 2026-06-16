@@ -29,7 +29,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
@@ -360,7 +359,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	}
 	
 	public void addmat() {
-		Material mat = new Material();
+		Material mat = null;
 		
 		GeneralMaterialType[] arr = makelist();
 		
@@ -368,8 +367,6 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 
         JList<GeneralMaterialType> tmplist = new JList<>(arr);
 
-        // Optional settings
-        tmplist.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tmplist.setVisibleRowCount(5);
 
         JScrollPane scrollPane = new JScrollPane(tmplist);
@@ -388,25 +385,26 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
         String new_name = "New material";
 
         if (result == JOptionPane.OK_OPTION) {
-        	GeneralMaterialType selected = tmplist.getSelectedValue();
-
-            if (selected != null) {
+        	for (GeneralMaterialType selected: tmplist.getSelectedValuesList()) {
+        		mat = new Material();
+        		
             	if (selected.cust_id == -1)
             		e.initializeMaterial(mat, selected.type);
             	else
                     mat.copyFrom(mat_map.get(selected.cust_id));
             	
             	new_name = selected.toString() + " copy";
-            }
+            	
+                mat.type = MaterialType.CUSTOM;
+        		mat.name = new_name;
+        		mat.cust_id = id_counter;
+        		mat_map.put(mat.cust_id, mat);
+        		id_counter++;
+        	}
         } else {
         	return;
         }
 		
-        mat.type = MaterialType.CUSTOM;
-		mat.name = new_name;
-		mat.cust_id = id_counter;
-		mat_map.put(mat.cust_id, mat);
-		id_counter++;
 		updateUI();
 		e.initializeAllMaterials();
 		e.updateAllMaterials(true);

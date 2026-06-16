@@ -38,6 +38,7 @@ public enum Quantity {
 	CURRENT_DENSITY("Current density", "J",				-1, -2, 0, 1, 0),
 	NUMBER_DENSITY("Number density", "n",				0, -3, 0, 0, 0, true),
 	RATE_DENSITY("Rate density", "r",					-1, -3, 0, 0, 0, true),
+	RATE_DENSITY_SQUARED("Rate coefficient", "r",		-1, -6, 0, 0, 0, true),
 	ENERGY_DENSITY("Energy density", "ρ", 				-2, -1, 1, 0, 0),
 	POWER_DENSITY("Power density", "ρ",					-3, -1, 1, 0, 0),
 	ENTROPY_DENSITY_RATE("Entropy density rate", "σ", 	-3, -1, 1, 0, -1),

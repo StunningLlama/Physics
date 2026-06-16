@@ -58,6 +58,7 @@ public class Preferences extends JFrame implements ActionListener {
 	private JLabel lblFontSize;
 	private JSpinner spinner_font;
 	private JButton btn_cancel;
+	private JCheckBox chkbox_matname;
 
 	public Preferences(Simulation e) {
 		setResizable(false);
@@ -95,24 +96,24 @@ public class Preferences extends JFrame implements ActionListener {
 		chkbox_undo.setHorizontalAlignment(SwingConstants.TRAILING);
 		chkbox_undo.setSelected(true);
 		chkbox_undo.setHorizontalTextPosition(SwingConstants.LEADING);
-		chkbox_undo.setBounds(334, 43, 224, 23);
+		chkbox_undo.setBounds(338, 13, 224, 23);
 		contentPane.add(chkbox_undo);
 		
 		chkbox_potential = new JCheckBox("Display potential relative to ground");
 		chkbox_potential.setHorizontalAlignment(SwingConstants.TRAILING);
 		chkbox_potential.setSelected(true);
 		chkbox_potential.setHorizontalTextPosition(SwingConstants.LEADING);
-		chkbox_potential.setBounds(303, 72, 255, 23);
+		chkbox_potential.setBounds(307, 42, 255, 23);
 		contentPane.add(chkbox_potential);
 		
 		JLabel lblUnitSystem = new JLabel("Unit system");
 		lblUnitSystem.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblUnitSystem.setBounds(288, 105, 116, 16);
+		lblUnitSystem.setBounds(288, 106, 116, 16);
 		contentPane.add(lblUnitSystem);
 		
 		gui_units = new JComboBox<>();
 		gui_units.setModel(new DefaultComboBoxModel<>(Units.values()));
-		gui_units.setBounds(416, 101, 146, 27);
+		gui_units.setBounds(416, 102, 146, 27);
 		contentPane.add(gui_units);
 		
 		JLabel lblDisplayHeightpx = new JLabel("Display height [px]");
@@ -138,12 +139,12 @@ public class Preferences extends JFrame implements ActionListener {
 		lblUndoHistorySize_2 = new JLabel("Undo history size");
 		lblUndoHistorySize_2.setToolTipText("Warning: uses memory");
 		lblUndoHistorySize_2.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblUndoHistorySize_2.setBounds(303, 18, 138, 16);
+		lblUndoHistorySize_2.setBounds(17, 135, 138, 16);
 		contentPane.add(lblUndoHistorySize_2);
 		
 		spinner_undosize = new JSpinner();
 		spinner_undosize.setModel(new SpinnerNumberModel(4, 2, 100, 1));
-		spinner_undosize.setBounds(453, 13, 109, 26);
+		spinner_undosize.setBounds(167, 130, 109, 26);
 		contentPane.add(spinner_undosize);
 		
 		lblFontSize = new JLabel("Font size [px]");
@@ -159,6 +160,12 @@ public class Preferences extends JFrame implements ActionListener {
 		btn_cancel = new JButton("Cancel");
 		btn_cancel.setBounds(456, 196, 128, 29);
 		contentPane.add(btn_cancel);
+		
+		chkbox_matname = new JCheckBox("Show material name next to cursor");
+		chkbox_matname.setHorizontalTextPosition(SwingConstants.LEADING);
+		chkbox_matname.setHorizontalAlignment(SwingConstants.TRAILING);
+		chkbox_matname.setBounds(307, 71, 255, 23);
+		contentPane.add(chkbox_matname);
 		
 		resetPrefs();
 	}
@@ -183,6 +190,7 @@ public class Preferences extends JFrame implements ActionListener {
 		chkbox_potential.setSelected(e.renderer.display_relative_voltage);
 		spinner_font.setValue(Text.fontsize);
 		gui_units.setSelectedItem(e.units);
+		chkbox_matname.setSelected(e.renderer.disp_mat_name);
 	}
 
 	public void applyPrefs() {
@@ -197,6 +205,7 @@ public class Preferences extends JFrame implements ActionListener {
 		Text.setFontSize((int) spinner_font.getValue());
 
 		e.units = (Units) gui_units.getSelectedItem();
+		e.renderer.disp_mat_name = chkbox_matname.isSelected();
 		
 		int x = (int)(spinner_imgx.getValue());
 		int y = (int)(spinner_imgy.getValue());
@@ -209,7 +218,7 @@ public class Preferences extends JFrame implements ActionListener {
 		int opt_height = 256*(int)Math.floor(0.8*screenSize.getHeight()/256);
 		spinner_imgx.setValue(opt_height);
 		spinner_imgy.setValue(opt_height);
-		chkbox_undo.setSelected(true);
+		chkbox_undo.setSelected(false);
 		chkbox_potential.setSelected(true);
 		gui_units.setSelectedItem(Units.SI);
 		spinner_undosize.setValue(4);
@@ -255,6 +264,7 @@ public class Preferences extends JFrame implements ActionListener {
 						case "fps": this.spinner_fps.setValue(fstr.nextInt()); break;
 						case "fontsize": this.spinner_font.setValue(fstr.nextInt()); break;
 						case "undosize": this.spinner_undosize.setValue(fstr.nextInt()); break;
+						case "matname": this.chkbox_matname.setSelected(fstr.nextBoolean()); break;
 						default: fstr.skipValue();
 						}
 					}
@@ -290,6 +300,7 @@ public class Preferences extends JFrame implements ActionListener {
 				header.addProperty("fps", (int)spinner_fps.getValue());
 				header.addProperty("fontsize", (int)spinner_font.getValue());
 				header.addProperty("undosize", (int)spinner_undosize.getValue());
+				header.addProperty("matname", chkbox_matname.isSelected());
 
 				// Version should always be first
 				JsonObject save = new JsonObject();

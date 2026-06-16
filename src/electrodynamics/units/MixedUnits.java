@@ -55,6 +55,7 @@ public class MixedUnits extends UnitSystem {
 		case ENTROPY_RATE: return "J/(K s)";
 		case POWER: return "W";
 		case RATE: return "/s";
+		case RATE_DENSITY_SQUARED: return "1/(cm^6 s)";
 		}
 
 		return "(" + q.name + ")";
