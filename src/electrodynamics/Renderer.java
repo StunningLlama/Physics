@@ -130,11 +130,8 @@ public class Renderer extends PeriodicTask {
 	}
 	
 	public void setCanvasSize() {
-		int min_canvas_size = Math.min(e.canvas.getWidth(), e.canvas.getHeight());
-		
-		int max_dimension = Math.max(e.nx, e.ny);
-		scalefactor = (int)((double)min_canvas_size/max_dimension);
-		scalefactor_real = (double)min_canvas_size/max_dimension;
+		scalefactor_real = Math.min(e.canvas.getWidth()/e.nx, e.canvas.getHeight()/e.ny);
+		scalefactor = (int)scalefactor_real;
 		if (scalefactor < 1) scalefactor = 1;
 
 		int imgwidth_new = (int)Math.ceil(scalefactor*e.nx);	
@@ -1091,7 +1088,8 @@ public class Renderer extends PeriodicTask {
 		
 		if (e.opts.menu_time.isSelected()) {
 			drawString("Time: " + e.units.toString(e.time, Quantity.TIME), hoffset, voffset + line*vspacing, g); line++;
-			drawString("Steps/s: " + e.units.toString(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), Quantity.DIMENSIONLESS), hoffset, voffset + line*vspacing, g); line++;
+			double pct = 100/(e.simFPStimer.getAverageTime()*e.renderer.targetframerate);
+			drawString("Steps/s: " + e.units.toString(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), Quantity.DIMENSIONLESS) + " (" + String.format("%.0f", pct) + "%)", hoffset, voffset + line*vspacing, g); line++;
 
 			String sv_a = e.controls.scalarmode.getOption() != ScalarMode.NONE? (e.controls.scalarmode.getOption().shorthand + ": " + e.controls.scalarview.getOption().shorthand) : "";
 			String sv_b = e.controls.vectormode.getOption() != VectorMode.NONE? (e.controls.vectormode.getOption().shorthand + ": " + e.controls.vectorview.getOption().shorthand) : "";
@@ -1171,7 +1169,6 @@ public class Renderer extends PeriodicTask {
 						double arrowlength = 10.0/scalefactor;
 
 						double vectorscalingconstant = 0;
-
 
 						int density_x = 25*scalefactor*e.nx/256;
 						int density_y = 25*scalefactor*e.ny/256;

@@ -136,7 +136,7 @@ public class MaterialViewer extends JFrame implements ActionListener, ListSelect
 
 			double n = rho_n/e.q_n;
 			double p = rho_p/e.q_p;
-			double ni = n*p;
+			double ni = Math.sqrt(n*p);
 			double rate_const = (mat.k_aug_n*n+mat.k_aug_p*p)
 				+ (mat.k_SRH_n*mat.k_SRH_p)/(mat.k_SRH_n*(n+ni) + mat.k_SRH_p*(p+ni) + Double.MIN_VALUE)
 				+ mat.k_rad;

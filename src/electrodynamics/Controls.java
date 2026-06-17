@@ -291,7 +291,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		mx_start = (int)Math.round(zoom_i1 + (mx_start_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
 		my_start = (int)Math.round(zoom_j1 + (my_start_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
 		
-		if (alt_down && (mouse_pressed_left || releasing_left))
+		if (alt_down && (mouse_pressed_left || releasing_left || mouse_pressed_right || releasing_right))
 			snapToCardinals(mx, my);
 
 		if (mx < 0) mx = 0;
@@ -609,7 +609,23 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (!(mouse_pressed_middle || pick_material)) {
 				if (brush == Brush.LINE) {
 					if (releasing_left || releasing_right) {
-						drawMaterialLine(mx_start, my_start, mx, my, brush, brushshape, mat, brushsize, angle);
+						GeneralMaterialType final_mat = mat;
+						double final_angle = angle;
+						applyBrush(mx_start, my_start, mx, my, brushshape, brushsize, new BrushAction() {
+							@Override
+							public void perform(int i, int j, boolean in_bounds) {
+								if (in_bounds) {
+									if (final_mat.type == MaterialType.VACUUM) {
+										e.eraseMaterial(i, j);
+									} else if (e.materials[i][j].type == MaterialType.VACUUM ^ brush == Brush.REPLACE) {
+										e.eraseMaterial(i, j);
+										e.initializeMaterial(i, j, final_mat);
+										if (final_mat.type.hasEMF()) e.materials[i][j].emf_direction = final_angle;
+									}
+								}
+							}
+							
+						});
 						flagChanges(true);
 					}
 				} else if (brush == Brush.FILL) {
@@ -637,26 +653,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					}
 				} else if (brush == Brush.LIGHT) {
 					if (mouse_pressed_left) {
-						for (int i = 0; i < e.nx; i++)
-						{
-							for (int j = 0; j < e.ny; j++)
-							{
-								double cx = 0;
-								double cy = 0;
-								cx = i;
-								cy = j;
-
-								double px = (cx-mx);
-								double py = (cy-my);
-								double r = 0;
-
-								if (brushshape == BrushShape.CIRCLE)
-									r = Math.sqrt(px*px+py*py);
-								else if (brushshape == BrushShape.SQUARE)
-									r = Math.max(Math.abs(px), Math.abs(py));
-								e.L[i][j] = (r <= brushsize)? flashlight_strength : 0;
+						applyBrush(mxp, myp, mx, my, brushshape, brushsize, new BrushAction() {
+							@Override
+							public void perform(int i, int j, boolean in_bounds) {
+								e.L[i][j] = in_bounds? flashlight_strength : 0;
 							}
-						}
+						});
 					} else if (releasing_left) {
 
 						for (int i = 0; i < e.nx; i++)
@@ -670,7 +672,23 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 				else {
 					if (mouse_pressed_left || mouse_pressed_right) {
-						drawMaterialLine(mxp, myp, mx, my, brush, brushshape, mat, brushsize, angle);
+						GeneralMaterialType final_mat = mat;
+						double final_angle = angle;
+						applyBrush(mxp, myp, mx, my, brushshape, brushsize, new BrushAction() {
+							@Override
+							public void perform(int i, int j, boolean in_bounds) {
+								if (in_bounds) {
+									if (final_mat.type == MaterialType.VACUUM) {
+										e.eraseMaterial(i, j);
+									} else if (e.materials[i][j].type == MaterialType.VACUUM ^ brush == Brush.REPLACE) {
+										e.eraseMaterial(i, j);
+										e.initializeMaterial(i, j, final_mat);
+										if (final_mat.type.hasEMF()) e.materials[i][j].emf_direction = final_angle;
+									}
+								}
+							}
+							
+						});
 					} else if (releasing_left || releasing_right) {
 						flagChanges(true);
 					}
@@ -678,26 +696,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 
 			if (Brush.isBrushShapeImportant(brush)) {
-				for (int i = 0; i < e.nx; i++)
-				{
-					for (int j = 0; j < e.ny; j++)
-					{
-						double cx = 0;
-						double cy = 0;
-						cx = i;
-						cy = j;
-
-						double px = cx-mx;
-						double py = cy-my;
-						double r = 0;
-
-						if (brushshape == BrushShape.CIRCLE)
-							r = Math.sqrt(px*px+py*py);
-						else if (brushshape == BrushShape.SQUARE)
-							r = Math.max(Math.abs(px), Math.abs(py));
-						under_brush[i][j] = (r <= brushsize);
+				applyBrush(mxp, myp, mx, my, brushshape, brushsize, new BrushAction() {
+					@Override
+					public void perform(int i, int j, boolean in_bounds) {
+						under_brush[i][j] = in_bounds;
 					}
-				}
+					
+				});
 			}
 
 			break;
@@ -1279,8 +1284,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			texting = false;
 		}
 	}
-	
-	public void drawMaterialLine(double x1, double y1, double x2, double y2, Brush brush, BrushShape brushshape, GeneralMaterialType mat, double brushsize, double EMF_angle) {
+
+	public void applyBrush(double x1, double y1, double x2, double y2, BrushShape brushshape, double brushsize, BrushAction action) {
 		Vector a = new Vector(0, 0);
 		Vector b = new Vector(0, 0);
 		Vector p = new Vector(0, 0);
@@ -1308,21 +1313,19 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				ab.scalarmult(t);
 				p.addmult(ab, -1);
 				double r = 0;
+				
 				if (brushshape == BrushShape.CIRCLE)
 					r = Math.sqrt(p.dot(p));
 				else if (brushshape == BrushShape.SQUARE)
 					r = Math.max(Math.abs(p.x), Math.abs(p.y));
-				if (r <= brushsize) {
-					if (mat.type == MaterialType.VACUUM) {
-						e.eraseMaterial(i, j);
-					} else if (e.materials[i][j].type == MaterialType.VACUUM ^ brush == Brush.REPLACE) {
-						e.eraseMaterial(i, j);
-						e.initializeMaterial(i, j, mat);
-						if (mat.type.hasEMF()) e.materials[i][j].emf_direction = EMF_angle;
-					}
-				}
+				
+				action.perform(i, j, r <= brushsize);
 			}
 		}
+	}
+	
+	public interface BrushAction {
+		public void perform(int i, int j, boolean in_bounds);
 	}
 	
 	public void setEMFs() {
@@ -1659,21 +1662,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			this.my = my_start + yc[imin];
 		}
 	}
-
-	private Action key_pause = new AbstractAction(null) {
-		@Override
-		public void actionPerformed(ActionEvent ev) {
-			e.opts.gui_paused.setSelected(!e.opts.gui_paused.isSelected());
-		}
-	};
-
-    private Action key_frame = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-			advanceframe = true;
-        }
-    };
-
+    
+    boolean shift_draw_override = false;
+    ScalarMode prev_scalar_mode = ScalarMode.NONE;
+    VectorMode prev_vector_mode = VectorMode.NONE;
     private Action key_dbg = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
@@ -1689,366 +1681,244 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				e.opts.menu_debug.setSelected(debugging);
         }
     };
-
-    private Action key_changebrush = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		e.opts.gui_brush_1.setSelectedIndex((e.opts.gui_brush_1.getSelectedIndex()+1)%2);
-        }
-    };
-    
-    boolean shift_draw_override = false;
-
-    private Action key_cut = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		cut = true;
-        }
-    };
-
-    private Action key_copy = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		copy = true;
-        }
-    };
-
-    private Action key_undo = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		undo = true;
-        }
-    };
-    
-    private Action key_redo = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		redo = true;
-        }
-    };
-
-    private Action key_paste = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		paste = true;
-        }
-    };
-    
-    private Action key_selectall = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		selectall = true;
-        }
-    };
-    
-    private Action key_deselectall = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		deselectall = true;
-        }
-    };
-
-    private Action key_delete = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		delete = true;
-        }
-    };
-
-    private Action key_color = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		e.opts.menu_elem_colors.setSelected(!e.opts.menu_elem_colors.isSelected());
-        }
-    };
-
-    ScalarMode prev_scalar_mode = ScalarMode.NONE;
-    VectorMode prev_vector_mode = VectorMode.NONE;
-
-    private Action key_scalar_view = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		if (e.controls.scalarmode.getOption() == ScalarMode.NONE)
-    			e.controls.scalarmode.setOption(prev_scalar_mode);
-    		else
-    		{
-    			prev_scalar_mode = e.controls.scalarmode.getOption();
-    			e.controls.scalarmode.setOption(ScalarMode.NONE);
-    		}
-        }
-    };
-
-    private Action key_vector_view = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		if (e.controls.vectormode.getOption()  == VectorMode.NONE)
-    			e.controls.vectormode.setOption(prev_vector_mode);
-    		else
-    		{
-    			prev_vector_mode = e.controls.vectormode.getOption();
-    			e.controls.vectormode.setOption(VectorMode.NONE);
-    		}
-        }
-    };
-
-    private Action key_tooltip = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		e.opts.menu_tooltip.setSelected(!e.opts.menu_tooltip.isSelected());
-        }
-    };
-
-    private Action key_textbg = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		e.opts.menu_text_bg.setSelected(!e.opts.menu_text_bg.isSelected());
-        }
-    };
-
-    private Action key_logdata = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-			logdata = true;
-        }
-    };
-
-    private Action key_rendertext = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-			e.opts.menu_interface.setSelected(!e.opts.menu_interface.isSelected());
-        }
-    };
-    
-    private Action key_save = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		save = true;
-        }
-    };
-    
-    private Action key_saveas = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		saveas = true;
-        }
-    };
-    
-    private Action key_open = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		load = true;
-        }
-    };
-    
-    private Action key_new = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		reset = true;
-        }
-    };
-    
-    private Action key_rotate = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		rotate_selection = true;
-        }
-    };
-    
-    private Action key_flip_v = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		flip_v_selection = true;
-        }
-    };
-    
-    private Action key_flip_h = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		flip_h_selection = true;
-        }
-    };
-    
-    private Action key_1 = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		e.opts.gui_brush.setSelectedItem(Brush.INTERACT);
-        }
-    };
-    
-    private Action key_2 = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		e.opts.gui_brush.setSelectedItem(Brush.DRAW);
-        }
-    };
-    
-    private Action key_3 = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		e.opts.gui_brush.setSelectedItem(Brush.LINE);
-        }
-    };
-    
-    private Action key_4 = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		e.opts.gui_brush.setSelectedItem(Brush.FILL);
-        }
-    };
-    
-    private Action key_5 = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		e.opts.gui_brush.setSelectedItem(Brush.SELECT);
-        }
-    };
-    
-    private Action key_6 = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-    		e.opts.gui_brush.setSelectedItem(Brush.ZOOM);
-        }
-    };
-    
-    private Action key_prevtool = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-			if (e.opts.gui_brush.getSelectedIndex() > 0)
-				e.opts.gui_brush.setSelectedIndex(e.opts.gui_brush.getSelectedIndex()-1);
-        }
-    };
-    
-    private Action key_nexttool = new AbstractAction(null) {
-		@Override
-        public void actionPerformed(ActionEvent ev) {
-			if (e.opts.gui_brush.getSelectedIndex() < e.opts.gui_brush.getItemCount()-1)
-				e.opts.gui_brush.setSelectedIndex(e.opts.gui_brush.getSelectedIndex()+1);
-        }
-    };
     
     public void addKeyBinds(JPanel contentPane) {
+    	addKeyBinds(contentPane, KeyEvent.VK_P, KeyEvent.VK_SPACE, new AbstractAction(null) {
+    		@Override
+    		public void actionPerformed(ActionEvent ev) {
+    			e.opts.gui_paused.setSelected(!e.opts.gui_paused.isSelected());
+    		}
+    	});
+    	addKeyBind(contentPane, KeyEvent.VK_F, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+    			advanceframe = true;
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_D, 0, key_dbg);
+    	addKeyBind(contentPane, KeyEvent.VK_Q, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		e.opts.gui_brush_1.setSelectedIndex((e.opts.gui_brush_1.getSelectedIndex()+1)%2);
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_X, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		cut = true;
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_C, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		copy = true;
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_V, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		paste = true;
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_Z, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		undo = true;
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_Z, InputEvent.SHIFT_DOWN_MASK, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		redo = true;
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_S, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		save = true;
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_S, InputEvent.SHIFT_DOWN_MASK, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		saveas = true;
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_O, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		load = true;
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_N, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		reset = true;
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_R, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		rotate_selection = true;
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_G, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		flip_v_selection = true;
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_F, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		flip_h_selection = true;
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_A, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		selectall = true;
+            }
+        });
+    	addKeyBindCtrl(contentPane, KeyEvent.VK_D, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		deselectall = true;
+            }
+        });
+    	addKeyBinds(contentPane, KeyEvent.VK_BACK_SPACE, KeyEvent.VK_DELETE, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		delete = true;
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_C, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		e.opts.menu_elem_colors.setSelected(!e.opts.menu_elem_colors.isSelected());
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_S, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		if (e.controls.scalarmode.getOption() == ScalarMode.NONE)
+        			e.controls.scalarmode.setOption(prev_scalar_mode);
+        		else
+        		{
+        			prev_scalar_mode = e.controls.scalarmode.getOption();
+        			e.controls.scalarmode.setOption(ScalarMode.NONE);
+        		}
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_V, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		if (e.controls.vectormode.getOption()  == VectorMode.NONE)
+        			e.controls.vectormode.setOption(prev_vector_mode);
+        		else
+        		{
+        			prev_vector_mode = e.controls.vectormode.getOption();
+        			e.controls.vectormode.setOption(VectorMode.NONE);
+        		}
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_T, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		e.opts.menu_tooltip.setSelected(!e.opts.menu_tooltip.isSelected());
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_G, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		e.opts.menu_text_bg.setSelected(!e.opts.menu_text_bg.isSelected());
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_R, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+    			logdata = true;
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_H, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+    			e.opts.menu_interface.setSelected(!e.opts.menu_interface.isSelected());
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_1, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		e.opts.gui_brush.setSelectedItem(Brush.INTERACT);
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_2, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		e.opts.gui_brush.setSelectedItem(Brush.DRAW);
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_3, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		e.opts.gui_brush.setSelectedItem(Brush.LINE);
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_4, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		e.opts.gui_brush.setSelectedItem(Brush.FILL);
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_5, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		e.opts.gui_brush.setSelectedItem(Brush.SELECT);
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_6, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		e.opts.gui_brush.setSelectedItem(Brush.ZOOM);
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_OPEN_BRACKET, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+    			if (e.opts.gui_brush.getSelectedIndex() > 0)
+    				e.opts.gui_brush.setSelectedIndex(e.opts.gui_brush.getSelectedIndex()-1);
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_CLOSE_BRACKET, 0, new AbstractAction(null) {
+    		@Override
+    		public void actionPerformed(ActionEvent ev) {
+    			if (e.opts.gui_brush.getSelectedIndex() < e.opts.gui_brush.getItemCount()-1)
+    				e.opts.gui_brush.setSelectedIndex(e.opts.gui_brush.getSelectedIndex()+1);
+    		}
+    	});
+    }
+
+    public void addKeyBind(JPanel contentPane, int keyCode, int modifiers, Action action) {
     	InputMap map = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-    	
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_P, 0), key_pause);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), key_pause);
-    	contentPane.getActionMap().put(key_pause, key_pause);
+    	map.put(KeyStroke.getKeyStroke(keyCode, modifiers), action);
+    	contentPane.getActionMap().put(action, action);
+    }
 
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, 0), key_frame);
-    	contentPane.getActionMap().put(key_frame, key_frame);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0), key_dbg);
-    	contentPane.getActionMap().put(key_dbg, key_dbg);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Q, 0), key_changebrush);
-    	contentPane.getActionMap().put(key_changebrush, key_changebrush);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK), key_cut);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.META_DOWN_MASK), key_cut);
-    	contentPane.getActionMap().put(key_cut, key_cut);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK), key_copy);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.META_DOWN_MASK), key_copy);
-    	contentPane.getActionMap().put(key_copy, key_copy);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK), key_paste);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.META_DOWN_MASK), key_paste);
-    	contentPane.getActionMap().put(key_paste, key_paste);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK), key_undo);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.META_DOWN_MASK), key_undo);
-    	contentPane.getActionMap().put(key_undo, key_undo);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_redo);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.META_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_redo);
-    	contentPane.getActionMap().put(key_redo, key_redo);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), key_save);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.META_DOWN_MASK), key_save);
-    	contentPane.getActionMap().put(key_save, key_save);
-    	
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_saveas);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.META_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), key_saveas);
-    	contentPane.getActionMap().put(key_saveas, key_saveas);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK), key_open);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.META_DOWN_MASK), key_open);
-    	contentPane.getActionMap().put(key_open, key_open);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), key_new);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.META_DOWN_MASK), key_new);
-    	contentPane.getActionMap().put(key_new, key_new);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK), key_rotate);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.META_DOWN_MASK), key_rotate);
-    	contentPane.getActionMap().put(key_rotate, key_rotate);
-    	
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK), key_flip_v);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.META_DOWN_MASK), key_flip_v);
-    	contentPane.getActionMap().put(key_flip_v, key_flip_v);
-    	
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), key_flip_h);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK), key_flip_h);
-    	contentPane.getActionMap().put(key_flip_h, key_flip_h);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK), key_selectall);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.META_DOWN_MASK), key_selectall);
-    	contentPane.getActionMap().put(key_selectall, key_selectall);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK), key_deselectall);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.META_DOWN_MASK), key_deselectall);
-    	contentPane.getActionMap().put(key_deselectall, key_deselectall);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), key_delete);
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), key_delete);
-    	contentPane.getActionMap().put(key_delete, key_delete);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_C, 0), key_color);
-    	contentPane.getActionMap().put(key_color, key_color);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, 0), key_scalar_view);
-    	contentPane.getActionMap().put(key_scalar_view, key_scalar_view);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_V, 0), key_vector_view);
-    	contentPane.getActionMap().put(key_vector_view, key_vector_view);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_T, 0), key_tooltip);
-    	contentPane.getActionMap().put(key_tooltip, key_tooltip);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, 0), key_textbg);
-    	contentPane.getActionMap().put(key_textbg, key_textbg);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, 0), key_logdata);
-    	contentPane.getActionMap().put(key_logdata, key_logdata);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_H, 0), key_rendertext);
-    	contentPane.getActionMap().put(key_rendertext, key_rendertext);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_1, 0), key_1);
-    	contentPane.getActionMap().put(key_1, key_1);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_2, 0), key_2);
-    	contentPane.getActionMap().put(key_2, key_2);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_3, 0), key_3);
-    	contentPane.getActionMap().put(key_3, key_3);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_4, 0), key_4);
-    	contentPane.getActionMap().put(key_4, key_4);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_5, 0), key_5);
-    	contentPane.getActionMap().put(key_5, key_5);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_6, 0), key_6);
-    	contentPane.getActionMap().put(key_6, key_6);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, 0), key_prevtool);
-    	contentPane.getActionMap().put(key_prevtool, key_prevtool);
-
-    	map.put(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET, 0), key_nexttool);
-    	contentPane.getActionMap().put(key_nexttool, key_nexttool);
-
+    public void addKeyBindCtrl(JPanel contentPane, int keyCode, int modifiers, Action action) {
+    	InputMap map = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    	map.put(KeyStroke.getKeyStroke(keyCode, modifiers | InputEvent.CTRL_DOWN_MASK), action);
+    	map.put(KeyStroke.getKeyStroke(keyCode, modifiers | InputEvent.META_DOWN_MASK), action);
+    	contentPane.getActionMap().put(action, action);
     }
     
+    public void addKeyBinds(JPanel contentPane, int keyCode1, int keyCode2, Action action) {
+    	InputMap map = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    	map.put(KeyStroke.getKeyStroke(keyCode1, 0), action);
+    	map.put(KeyStroke.getKeyStroke(keyCode2, 0), action);
+    	contentPane.getActionMap().put(action, action);
+
+    }
+
 
     public void removeKeyBinds(JPanel contentPane) {
     	InputMap map = contentPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);

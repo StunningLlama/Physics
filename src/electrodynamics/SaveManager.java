@@ -36,6 +36,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.google.gson.Strictness;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
@@ -115,6 +116,7 @@ public class SaveManager {
 			
 			try {
 				JsonReader fstr = new JsonReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(infile))));
+				fstr.setStrictness(Strictness.LENIENT);
 				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
 				Gson gson_probe = new GsonBuilder().serializeSpecialFloatingPointValues().registerTypeHierarchyAdapter(Probe.class, new ProbeAdapter()).create();
 
