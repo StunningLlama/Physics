@@ -9,6 +9,7 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Graphics2D;
 import java.awt.KeyboardFocusManager;
 import java.awt.MouseInfo;
 import java.awt.Point;
@@ -33,11 +34,14 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 
+import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.InputMap;
@@ -1419,7 +1423,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 		case "menu_help":
 			try {
-				File helpfile = new File("README.html");
+				File helpfile = SemiSim.getRootFile("README.html");
 				java.awt.Desktop.getDesktop().browse(helpfile.toURI());
 			} catch (IOException ex) {
 				ex.printStackTrace();
@@ -1572,6 +1576,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case "menu_view_materials":
 			e.materialviewer.updateUI();
 			e.materialviewer.setVisible(true);
+			break;
+		case "menu_workshop":
+			Steam.createWorkshopItem();
+			break;
+		case "menu_load_workshop":
+			Steam.loadUGC();
 			break;
 		}
 
@@ -1896,6 +1906,47 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     				e.opts.gui_brush.setSelectedIndex(e.opts.gui_brush.getSelectedIndex()+1);
     		}
     	});
+    	addKeyBind(contentPane, KeyEvent.VK_F12, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		takeScreenshot();
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_I, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		Steam.setAchievement("TEST");
+            }
+        });
+    }
+
+    public void takeScreenshot() {
+    	try {
+    		LocalDate date = LocalDate.now();
+    		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    		String datetext = date.format(formatter);
+    		int id = 1;
+    		File outputfile = SemiSim.getUserFile("screenshots/" + datetext + ".png");
+    		while (outputfile.exists()) {
+    			outputfile = SemiSim.getUserFile("screenshots/" + datetext + "_" + id + ".png");
+    			id++;
+    		}
+
+    		outputfile.createNewFile();
+
+    		BufferedImage screenshot = (BufferedImage)e.opts.createImage(e.renderer.img_back.getWidth(), e.renderer.img_back.getHeight());
+    		Graphics2D g = screenshot.createGraphics();
+    	    e.canvas.draw(g);
+    	    g.dispose();
+    	    
+    		ImageIO.write(screenshot, "png", outputfile);
+    		e.renderer.screenshot_name = "Screenshot added: " + outputfile.getAbsolutePath();
+    		e.renderer.screenshot_timer = 60;
+    		
+    		Steam.addSteamScreenshot(outputfile.getAbsolutePath(), e.renderer.img_front.getWidth(), e.renderer.img_front.getHeight());
+    	} catch (IOException e) {
+    		e.printStackTrace();
+    	}
     }
 
     public void addKeyBind(JPanel contentPane, int keyCode, int modifiers, Action action) {

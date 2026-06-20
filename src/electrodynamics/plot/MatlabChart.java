@@ -24,6 +24,8 @@ import org.jfree.chart.ui.RectangleEdge;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
+import electrodynamics.SemiSim;
+
 
 public class MatlabChart {
 
@@ -190,7 +192,7 @@ public class MatlabChart {
 
     public void saveas(String fileName, int width, int height) {
         CheckExists();
-        File file = new File(fileName);
+        File file = SemiSim.getUserFile(fileName);
         try {
             ChartUtils.saveChartAsJPEG(file,this.chart,width,height);
         } catch (IOException e) {

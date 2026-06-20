@@ -29,6 +29,22 @@
 			<artifactId>gson</artifactId>
 			<version>2.13.1</version>
 		</dependency>
+		<dependency>
+    		<groupId>com.badlogicgames.gdx</groupId>
+    		<artifactId>gdx</artifactId>
+    		<version>1.14.2</version>
+    		<scope>compile</scope>
+		</dependency>
+		<dependency>
+    		<groupId>com.code-disaster.steamworks4j</groupId>
+    		<artifactId>steamworks4j</artifactId>
+    		<version>1.10.0</version>
+  		</dependency>
+  		<dependency>
+    		<groupId>com.code-disaster.steamworks4j</groupId>
+    		<artifactId>steamworks4j-gdx</artifactId>
+    		<version>1.10.0</version>
+  		</dependency>
 	</dependencies>
 	<build>
 		<sourceDirectory>src</sourceDirectory>

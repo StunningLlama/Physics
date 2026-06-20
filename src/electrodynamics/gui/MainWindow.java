@@ -154,6 +154,9 @@ public class MainWindow extends JFrame implements ComponentListener {
 	public JComboBox<CustProbeType> gui_probetype;
 	public JMenu menu_edit;
 	public JMenu menu_file;
+	private JMenuItem menu_workshop;
+	private JSeparator separator_6;
+	private JMenuItem menu_load_workshop;
 
 	/**
 	 * Create the frame.
@@ -194,6 +197,15 @@ public class MainWindow extends JFrame implements ComponentListener {
 
 		separator_1 = new JSeparator();
 		menu_file.add(separator_1);
+		
+		menu_load_workshop = new JMenuItem("Load workshop item...");
+		menu_file.add(menu_load_workshop);
+		
+		menu_workshop = new JMenuItem("Upload to workshop...");
+		menu_file.add(menu_workshop);
+		
+		separator_6 = new JSeparator();
+		menu_file.add(separator_6);
 
 		menu_exit = new JMenuItem("Exit");
 		menu_file.add(menu_exit);
@@ -687,6 +699,8 @@ public class MainWindow extends JFrame implements ComponentListener {
 		menu_report.addActionListener(e.controls);
 		menu_cust_material.addActionListener(e.controls);
 		menu_view_materials.addActionListener(e.controls);
+		menu_workshop.addActionListener(e.controls);
+		menu_load_workshop.addActionListener(e.controls);
 
 		gui_reset				.setActionCommand("gui_reset");
 		gui_brush				.setActionCommand("gui_brush");
@@ -719,6 +733,8 @@ public class MainWindow extends JFrame implements ComponentListener {
 		menu_report				.setActionCommand("menu_report");
 		menu_cust_material		.setActionCommand("menu_cust_material");
 		menu_view_materials		.setActionCommand("menu_view_materials");
+		menu_workshop			.setActionCommand("menu_workshop");
+		menu_load_workshop			.setActionCommand("menu_load_workshop");
 
 		removeKeyListeners(gui_brush);
 		removeKeyListeners(gui_bc);
@@ -790,7 +806,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 		e.controls.scalarmode.buttonmap.get(ScalarMode.NONE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, 0));
 		e.controls.vectormode.buttonmap.get(VectorMode.NONE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, 0));
 		
-		MenuBuilder.addDirectoryToMenu(menu_examples, new File("examples"), e.savemanager.fileextension, (File f) -> e.savemanager.readfile(f));
+		MenuBuilder.addDirectoryToMenu(menu_examples, SemiSim.getRootFile("examples"), e.savemanager.fileextension, (File f) -> e.savemanager.readfile(f));
 
 		//gui_material.removeItem(MaterialType.ABSORBER);
 		e.controls.scalarview.removeOption(ScalarView.DEBUG);
@@ -814,7 +830,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 		//setLocationRelativeTo(null);
 
 		try {
-			BufferedImage icon = ImageIO.read(new File("images/icon.png"));
+			BufferedImage icon = ImageIO.read(SemiSim.getRootFile("images/icon.png"));
 			if (icon != null) {
 				setIconImage(icon);
 			}

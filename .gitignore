@@ -1,8 +1,13 @@
 bin/
-build/
+build/output_mac/
+build/output_win/
+build/output_linux/
 .DS_store
 probedata.txt
 /target/
 error_log.txt
 preferences.json
 /test
+steam_appid.txt
+/build/steam
+hs_err_pid*

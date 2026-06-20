@@ -13,6 +13,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -44,6 +45,7 @@ import com.google.gson.stream.JsonReader;
 import electrodynamics.GeneralMaterialType;
 import electrodynamics.Material;
 import electrodynamics.MaterialType;
+import electrodynamics.SemiSim;
 import electrodynamics.Simulation;
 import electrodynamics.util.Utils;
 
@@ -109,6 +111,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 
 	public MaterialManager(Simulation e) {
 		this.e = e;
+		startingpath = SemiSim.userdir;
 		setResizable(false);
 		setTitle("Material editor");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -606,7 +609,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 
 	public int current_material_saveversion = 1;
 	public String fileextension = ".material";
-	public String startingpath = ".";
+	public Path startingpath;
 	JTextField gv;
 	private JLabel lbl_gv;
 	private JButton btn_calc;
@@ -614,13 +617,13 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	public void readFile()
 	{
 		SwingUtilities.invokeLater(() -> {
-			File testfile = new File(startingpath);
+			File testfile = startingpath.toFile();
 			if (!testfile.canRead()) {
 				JOptionPane.showMessageDialog(this,
 				"Error: Java does not have access to this folder. Please see instructions to fix this issue.");
 			}
 
-			JFileChooser fd = new JFileChooser(startingpath);
+			JFileChooser fd = new JFileChooser(startingpath.toFile());
 			fd.setDialogTitle("Import material(s)");
 			fd.setMultiSelectionEnabled(true);
 			fd.setFileFilter(new FileFilter(){
@@ -636,7 +639,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 			});
 			fd.setVisible(true);
 			int result = fd.showOpenDialog(this);
-			startingpath = fd.getCurrentDirectory().getPath();
+			startingpath = fd.getCurrentDirectory().toPath();
 
 			if (result == JFileChooser.APPROVE_OPTION) {
 				File[] files = fd.getSelectedFiles();
@@ -705,14 +708,14 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 				return;
 			}
 			
-			File testfile = new File(startingpath);
+			File testfile = startingpath.toFile();
 			if (!testfile.canWrite()) {
 				JOptionPane.showMessageDialog(this,
 				"Error: Java does not have access to this folder. Please see instructions to fix this issue.");
 				return;
 			}
 			
-			JFileChooser fd = new JFileChooser(startingpath);
+			JFileChooser fd = new JFileChooser(startingpath.toFile());
 			fd.setSelectedFile(new File(list.getSelectedValue().toString() + ".material"));
 			fd.setDialogTitle("Export material(s)");
 			fd.setFileFilter(new FileFilter(){
@@ -727,7 +730,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 				}
 			});
 			int result = fd.showSaveDialog(this);
-			startingpath = fd.getCurrentDirectory().getPath();
+			startingpath = fd.getCurrentDirectory().toPath();
 
 			File outfile = null;
 			

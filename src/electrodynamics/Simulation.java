@@ -20,6 +20,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+
+import com.codedisaster.steamworks.SteamAPI;
+
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorView;
 import electrodynamics.gui.AdvancedOptions;
@@ -518,7 +521,7 @@ public class Simulation extends PeriodicTask {
 		adv_opts = new AdvancedOptions(this);
 		materialmanager = new MaterialManager(this);
 		materialviewer = new MaterialViewer(this);
-		datafile = new File(datafilename);
+		datafile = SemiSim.getUserFile(datafilename);
 
 		bandplot = new BandPlot(); plots.add(bandplot);
 		scalarplot = new ScalarPlot(); plots.add(scalarplot);
@@ -541,6 +544,7 @@ public class Simulation extends PeriodicTask {
 		prefs.initialize();
 		materialmanager.initialize();
 		materialviewer.initialize();
+		Steam.e = this;
 
 		try {
 			datastream = new PrintWriter(new FileOutputStream(datafile));
@@ -562,7 +566,7 @@ public class Simulation extends PeriodicTask {
     				});
     				controls.clear = false;
     			}
-
+    			
     			if (controls.reset) {
     				SwingUtilities.invokeLater(() -> {
         				int result = JOptionPane.showConfirmDialog(opts, "Do you wish to reset the entire simulation?", "Message", JOptionPane.YES_NO_OPTION);
@@ -663,6 +667,10 @@ public class Simulation extends PeriodicTask {
             rwLock.readLock().unlock();
         }
 
+		if (SteamAPI.isSteamRunning()) {
+			SteamAPI.runCallbacks();
+		}
+		
         SemiSim.instance.threadPool.schedule(this, nextDelay(renderer.frameduration), TimeUnit.MILLISECONDS);
 	}
 

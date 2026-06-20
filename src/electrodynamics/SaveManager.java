@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.lang.reflect.Type;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -59,24 +60,25 @@ public class SaveManager {
 	public static File currentfile;
 	public int current_saveversion = 4;
 	public String fileextension = ".semisim";
-	public String startingpath = ".";
+	public Path startingpath;
 
 	public String defaultsettings;
 	
 	public SaveManager(Simulation e) {
 		this.e = e;
+		startingpath = SemiSim.getUserFile("simulations").toPath();
 	}
 
 	public void readFile()
 	{
 		SwingUtilities.invokeLater(() -> {
-			File testfile = new File(startingpath);
+			File testfile = startingpath.toFile();
 			if (!testfile.canRead()) {
 				JOptionPane.showMessageDialog(e.opts,
 				"Error: Java does not have access to this folder. Please see instructions to fix this issue.");
 			}
 
-			JFileChooser fd = new JFileChooser(startingpath);
+			JFileChooser fd = new JFileChooser(startingpath.toFile());
 			fd.setFileFilter(new FileFilter(){
 				@Override
 				public boolean accept(File f) {
@@ -90,7 +92,7 @@ public class SaveManager {
 			});
 			fd.setVisible(true);
 			int result = fd.showOpenDialog(e.opts);
-			startingpath = fd.getCurrentDirectory().getPath();
+			startingpath = fd.getCurrentDirectory().toPath();
 
 			if (result == JFileChooser.APPROVE_OPTION)
 				infile = fd.getSelectedFile();
@@ -105,6 +107,7 @@ public class SaveManager {
 	public void readfile(File infile) {
 		e.rwLock.writeLock().lock();
 		try {
+			System.out.println("Attempting to load " + infile.getAbsolutePath());
 			if (infile == null || !infile.exists()) return;
 			
 			if (e.controls.changesmade) {
@@ -411,16 +414,18 @@ public class SaveManager {
 		SwingUtilities.invokeLater(() -> {
 			if (!saveas && currentfile != null && currentfile.exists()) {
 				writeFile(currentfile);
+				e.opts.setTitle(SemiSim.name + " - " + outfile.getName());
+				e.controls.changesmade = false;
 				return;
 			}
 			
-			File testfile = new File(startingpath);
+			File testfile = startingpath.toFile();
 			if (!testfile.canWrite()) {
 				JOptionPane.showMessageDialog(e.opts,
 				"Error: Java does not have access to this folder. Please see instructions to fix this issue.");
 			}
 
-			JFileChooser fd = new JFileChooser(startingpath);
+			JFileChooser fd = new JFileChooser(startingpath.toFile());
 			fd.setFileFilter(new FileFilter(){
 				@Override
 				public boolean accept(File f) {
@@ -433,7 +438,7 @@ public class SaveManager {
 				}
 			});
 			int result = fd.showSaveDialog(e.opts);
-			startingpath = fd.getCurrentDirectory().getPath();
+			startingpath = fd.getCurrentDirectory().toPath();
 
 			if (result == JFileChooser.APPROVE_OPTION)
 				outfile = fd.getSelectedFile();
@@ -453,10 +458,14 @@ public class SaveManager {
 			}
 			
 			writeFile(outfile);
+
+			e.opts.setTitle(SemiSim.name + " - " + outfile.getName());
+			e.controls.changesmade = false;
+			currentfile = outfile;
 		});
 	}
 
-	public void writeFile(File outfile)
+	public boolean writeFile(File outfile)
 	{
 		e.rwLock.writeLock().lock();
 		try {
@@ -526,16 +535,13 @@ public class SaveManager {
 				fstr.close();
 
 				dialog.dispose();
-				e.opts.setTitle(SemiSim.name + " - " + outfile.getName());
-				e.controls.changesmade = false;
-				currentfile = outfile;
 			} catch (FileNotFoundException e) {
-				return;
+				return false;
 			} catch (IOException e) {
 				e.printStackTrace();
-				return;
+				return false;
 			}
-			return;
+			return true;
 		} finally {
 			e.rwLock.writeLock().unlock();
 		}

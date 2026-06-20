@@ -33,6 +33,7 @@ import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
 
 import electrodynamics.Renderer.Text;
+import electrodynamics.SemiSim;
 import electrodynamics.Simulation;
 import electrodynamics.units.Units;
 import javax.swing.SpinnerNumberModel;
@@ -63,7 +64,7 @@ public class Preferences extends JFrame implements ActionListener {
 	public Preferences(Simulation e) {
 		setResizable(false);
 		this.e = e;
-		preferences_file = new File("preferences.json");
+		preferences_file = SemiSim.getUserFile("preferences.json");
 		
 		setTitle("Preferences");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -178,6 +179,11 @@ public class Preferences extends JFrame implements ActionListener {
 		setVisible(false);
 		
 		readfile(preferences_file);
+		
+		if (!preferences_file.exists()) {
+			writeFile(preferences_file);
+		}
+		
 		applyPrefs();
 	}
 	

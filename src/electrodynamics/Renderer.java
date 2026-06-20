@@ -87,6 +87,10 @@ public class Renderer extends PeriodicTask {
 	private float scalar_offset;
 	public boolean display_relative_voltage = false;
 	public boolean disp_mat_name = false;
+	public String achievement_name = "";
+	public int achievement_timer = 0;
+	public String screenshot_name = "";
+	public int screenshot_timer = 0;
 
 	/* Multithreading */
 	
@@ -501,6 +505,8 @@ public class Renderer extends PeriodicTask {
 			drawPixels();
 			drawOverlay();
 			//drawText();
+			//Graphics2D g = img_back.createGraphics();
+			//drawText(g);
 			copyImage(img_back, img_front);
 			e.canvas.repaint();
 			t5.stop();
@@ -1124,17 +1130,33 @@ public class Renderer extends PeriodicTask {
 		}
 		if (carrier_diffusion_warning_timer > 0) {
 			Text text = drawString("Error: Metal cannot touch simulation boundary when carrier diffusion view is enabled.", hoffset, voffset + line*vspacing, g); line ++;
-			text.isError = true;
+			text.bgcolor = Color.RED;
 		}
 		if (e.numerical_overflow) {
 			Text text = drawString("Error: Numerical overflow detected. Please reset simulation.", hoffset, voffset + line*vspacing, g); line ++;
-			text.isError = true;
+			text.bgcolor = Color.RED;
 		}
 
 		if (probetexttimer > 0) {
 			drawString("Data saved to " + e.datafilename, hoffset, voffset + line*vspacing, g); line++;
 			probetexttimer--;
 		}
+		
+		line = 0;
+		if (achievement_timer > 0) {
+			achievement_timer--;
+			Text text = drawString("Achievement unlocked: " + achievement_name, e.canvas.getWidth(), e.canvas.getHeight() - line*vspacing, g); line --;
+			text.isBottomJustified = true;
+			text.isRightJustified = true;
+			text.bgcolor = Color.GREEN;
+		}
+		if (screenshot_timer > 0) {
+			screenshot_timer--;
+			Text text = drawString(screenshot_name, e.canvas.getWidth(), e.canvas.getHeight()- line*vspacing, g);
+			text.isBottomJustified = true;
+			text.isRightJustified = true;
+		}
+		
 
 		drawStrings(g);
 	}
@@ -1564,7 +1586,7 @@ public class Renderer extends PeriodicTask {
 		}
 		
 		for (Text text : texts) {
-			if (text.hasBackground && (dodraw || text.isError)) {
+			if (text.hasBackground && (dodraw || text.bgcolor != null)) {
 				g.setFont(text.getFont());
 				int x = text.x-3;
 				int y = text.y+3;
@@ -1575,15 +1597,16 @@ public class Renderer extends PeriodicTask {
 		}
 
 		for (Text text : texts) {
-			if (text.hasBackground && (dodraw || text.isError)) {
+			if (text.hasBackground && (dodraw || text.bgcolor != null)) {
 				g.setFont(text.getFont());
 
 				int x = text.x-3;
 				int y = text.y+3;
 
-				g.setColor(Color.BLACK);
-				if (text.isError)
-					g.setColor(Color.RED);
+				if (text.bgcolor != null)
+					g.setColor(text.bgcolor);
+				else
+					g.setColor(Color.BLACK);
 				
 				g.fillRect(x, y, text.width, text.height);
 			}
@@ -1592,7 +1615,7 @@ public class Renderer extends PeriodicTask {
 		dodraw = e.opts.menu_interface.isSelected();
 
 		for (Text text : texts) {
-			if (dodraw || text.isError) {
+			if (dodraw || text.bgcolor != null) {
 				g.setFont(text.getFont());
 
 				g.setColor(Color.DARK_GRAY);
@@ -1651,11 +1674,11 @@ public class Renderer extends PeriodicTask {
 		boolean isBig = false;
 		boolean hasBackground = true;
 		boolean isMonospaced = false;
-		boolean isError = false;
 		boolean isRightJustified = false;
 		boolean isBottomJustified = false;
 		boolean isHorizontalCentered = false;
 		boolean isVerticalCentered = false;
+		Color bgcolor = null;
 
 		public Text(String text, int x, int y) {
 			this.text = text;
@@ -1866,15 +1889,20 @@ public class Renderer extends PeriodicTask {
 		public int offset_y = 0;
 
 		Simulation e;
+
 		@Override
 		public void paintComponent(Graphics real) {
-			Graphics2D g = ((Graphics2D)real);
+			draw((Graphics2D)real);
+		}
+
+		public void draw(Graphics2D g) {
 			g.setBackground(Color.BLACK);
-			g.clearRect(0, 0, g.getClipBounds().width, g.getClipBounds().height);
+			//g.get
+			//g.clearRect(0, 0, g.getClipBounds().width, g.getClipBounds().height);
 
 			int canvas_x = this.getWidth();
 			int canvas_y = this.getHeight();
-			
+
 			int xw = e.controls.zoom_i2 - e.controls.zoom_i1 + 1;
 			int yw = e.controls.zoom_j2 - e.controls.zoom_j1 + 1;
 			
