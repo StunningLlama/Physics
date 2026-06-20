@@ -115,7 +115,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		setResizable(false);
 		setTitle("Material editor");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		setBounds(100, 100, 905, 422);
+		setBounds(100, 100, 920, 422);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -129,16 +129,16 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		scrollPane.setViewportView(list);
 		
 		btn_add = new JButton("New material");
-		btn_add.setBounds(6, 359, 117, 29);
+		btn_add.setBounds(6, 359, 117, 23);
 		contentPane.add(btn_add);
 		
 		btn_delete = new JButton("Delete");
-		btn_delete.setBounds(124, 359, 117, 29);
+		btn_delete.setBounds(124, 359, 117, 23);
 		contentPane.add(btn_delete);
 
 		mu_electron = new JTextField();
 		mu_electron.setColumns(10);
-		mu_electron.setBounds(477, 264, 98, 26);
+		mu_electron.setBounds(476, 265, 98, 23);
 		contentPane.add(mu_electron);
 		
 		lbl_mu_electron = new JLabel("Electron mobility [m^2/(V s)]");
@@ -153,7 +153,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		mu_hole = new JTextField();
 		mu_hole.setColumns(10);
-		mu_hole.setBounds(477, 297, 98, 26);
+		mu_hole.setBounds(476, 298, 98, 23);
 		contentPane.add(mu_hole);
 		
 		lbl_ni = new JLabel("Cond. band eff. DOS [1/m^3]");
@@ -163,7 +163,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		gc = new JTextField();
 		gc.setColumns(10);
-		gc.setBounds(477, 198, 98, 26);
+		gc.setBounds(476, 199, 98, 23);
 		contentPane.add(gc);
 		
 		lbl_W = new JLabel("Conduction band energy [eV]");
@@ -173,7 +173,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		Ec = new JTextField();
 		Ec.setColumns(10);
-		Ec.setBounds(477, 132, 98, 26);
+		Ec.setBounds(476, 133, 98, 23);
 		contentPane.add(Ec);
 		
 		lbl_Eb = new JLabel("Valence band energy [eV]");
@@ -183,7 +183,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		Ev = new JTextField();
 		Ev.setColumns(10);
-		Ev.setBounds(477, 165, 98, 26);
+		Ev.setBounds(476, 166, 98, 23);
 		contentPane.add(Ev);
 		
 		lbl_k_rad = new JLabel("Radiative recomb. rate [m^3/s]");
@@ -193,7 +193,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		k_rad = new JTextField();
 		k_rad.setColumns(10);
-		k_rad.setBounds(801, 165, 98, 26);
+		k_rad.setBounds(800, 166, 98, 23);
 		contentPane.add(k_rad);
 		
 		lbl_v_sat_n = new JLabel("Electron sat. velocity [m/s]");
@@ -203,7 +203,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		v_sat_n = new JTextField();
 		v_sat_n.setColumns(10);
-		v_sat_n.setBounds(801, 99, 98, 26);
+		v_sat_n.setBounds(800, 100, 98, 23);
 		contentPane.add(v_sat_n);
 		
 		lbl_v_sat_p = new JLabel("Hole sat. velocity [m/s]");
@@ -213,7 +213,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		v_sat_p = new JTextField();
 		v_sat_p.setColumns(10);
-		v_sat_p.setBounds(801, 132, 98, 26);
+		v_sat_p.setBounds(800, 133, 98, 23);
 		contentPane.add(v_sat_p);
 		
 		lbl_k_SRH_n = new JLabel("SRH recomb. rate n [1/s]");
@@ -223,7 +223,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		k_SRH_n = new JTextField();
 		k_SRH_n.setColumns(10);
-		k_SRH_n.setBounds(801, 198, 98, 26);
+		k_SRH_n.setBounds(800, 199, 98, 23);
 		contentPane.add(k_SRH_n);
 		
 		lbl_k_SRH_p = new JLabel("SRH recomb. rate p [1/s]");
@@ -233,7 +233,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		k_SRH_p = new JTextField();
 		k_SRH_p.setColumns(10);
-		k_SRH_p.setBounds(801, 231, 98, 26);
+		k_SRH_p.setBounds(800, 232, 98, 23);
 		contentPane.add(k_SRH_p);
 		
 		lbl_k_aug_n = new JLabel("Auger recomb. rate n [m^6/s]");
@@ -243,7 +243,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		k_aug_n = new JTextField();
 		k_aug_n.setColumns(10);
-		k_aug_n.setBounds(801, 264, 98, 26);
+		k_aug_n.setBounds(800, 265, 98, 23);
 		contentPane.add(k_aug_n);
 		
 		lbl_k_aug_p = new JLabel("Auger recomb. rate p [m^6/s]");
@@ -253,7 +253,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		k_aug_p = new JTextField();
 		k_aug_p.setColumns(10);
-		k_aug_p.setBounds(801, 297, 98, 26);
+		k_aug_p.setBounds(800, 298, 98, 23);
 		contentPane.add(k_aug_p);
 		
 		lbl_eps_r = new JLabel("Dielectric constant");
@@ -263,7 +263,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		eps_r = new JTextField();
 		eps_r.setColumns(10);
-		eps_r.setBounds(477, 66, 98, 26);
+		eps_r.setBounds(476, 67, 98, 23);
 		contentPane.add(eps_r);
 		
 		lbl_mu_r = new JLabel("Relative permeability");
@@ -273,7 +273,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		mu_r = new JTextField();
 		mu_r.setColumns(10);
-		mu_r.setBounds(477, 99, 98, 26);
+		mu_r.setBounds(476, 100, 98, 23);
 		contentPane.add(mu_r);
 		
 		lbl_rho_back = new JLabel("Dopant charge density [C/m^3]");
@@ -283,7 +283,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		rho_back = new JTextField();
 		rho_back.setColumns(10);
-		rho_back.setBounds(801, 66, 98, 26);
+		rho_back.setBounds(800, 67, 98, 23);
 		contentPane.add(rho_back);
 		
 		lblNewLabel = new JLabel("Name");
@@ -293,12 +293,12 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		name = new JTextField();
 		name.setColumns(10);
-		name.setBounds(373, 0, 202, 26);
+		name.setBounds(372, 3, 202, 23);
 		contentPane.add(name);
 		
 		type = new JComboBox<>();
 		type.setModel(new DefaultComboBoxModel<>(MaterialClass.values()));
-		type.setBounds(373, 34, 202, 27);
+		type.setBounds(372, 35, 202, 23);
 		contentPane.add(type);
 		
 		lblType = new JLabel("Type");
@@ -307,19 +307,19 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		contentPane.add(lblType);
 		
 		btn_apply = new JButton("Apply");
-		btn_apply.setBounds(651, 359, 124, 29);
+		btn_apply.setBounds(651, 359, 124, 23);
 		contentPane.add(btn_apply);
 		
 		btn_cancel = new JButton("Cancel");
-		btn_cancel.setBounds(775, 359, 124, 29);
+		btn_cancel.setBounds(775, 359, 124, 23);
 		contentPane.add(btn_cancel);
 		
 		btn_import = new JButton("Import");
-		btn_import.setBounds(244, 359, 117, 29);
+		btn_import.setBounds(244, 359, 117, 23);
 		contentPane.add(btn_import);
 		
 		btn_export = new JButton("Export");
-		btn_export.setBounds(363, 359, 124, 29);
+		btn_export.setBounds(363, 359, 124, 23);
 		contentPane.add(btn_export);
 		
 		lbl_gv = new JLabel("Valence band eff. DOS [1/m^3]");
@@ -329,11 +329,11 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		
 		gv = new JTextField();
 		gv.setColumns(10);
-		gv.setBounds(477, 231, 98, 26);
+		gv.setBounds(476, 232, 98, 23);
 		contentPane.add(gv);
 		
 		btn_calc = new JButton("Band and DOS calculator");
-		btn_calc.setBounds(651, 33, 212, 29);
+		btn_calc.setBounds(650, 34, 212, 23);
 		contentPane.add(btn_calc);
 	}
 	

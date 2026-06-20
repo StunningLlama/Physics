@@ -1897,8 +1897,9 @@ public class Renderer extends PeriodicTask {
 
 		public void draw(Graphics2D g) {
 			g.setBackground(Color.BLACK);
-			//g.get
-			//g.clearRect(0, 0, g.getClipBounds().width, g.getClipBounds().height);
+			
+			if (g.getClipBounds() != null)
+				g.clearRect(0, 0, g.getClipBounds().width, g.getClipBounds().height);
 
 			int canvas_x = this.getWidth();
 			int canvas_y = this.getHeight();

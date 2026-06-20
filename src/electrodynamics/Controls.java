@@ -1676,23 +1676,23 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     boolean shift_draw_override = false;
     ScalarMode prev_scalar_mode = ScalarMode.NONE;
     VectorMode prev_vector_mode = VectorMode.NONE;
-    private Action key_dbg = new AbstractAction(null) {
+    
+    @SuppressWarnings("serial")
+	private Action key_dbg = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
 			debugging = !debugging;
 			
-			if (debugging) {
-				e.controls.scalarview.addOption(ScalarView.DEBUG);
-			} else {
+			if (!debugging) {
 				e.opts.textPane.setText(e.description);
-				e.controls.scalarview.removeOption(ScalarView.DEBUG);
 			}
 			if (ev != null)
 				e.opts.menu_debug.setSelected(debugging);
         }
     };
     
-    public void addKeyBinds(JPanel contentPane) {
+    @SuppressWarnings("serial")
+	public void addKeyBinds(JPanel contentPane) {
     	addKeyBinds(contentPane, KeyEvent.VK_P, KeyEvent.VK_SPACE, new AbstractAction(null) {
     		@Override
     		public void actionPerformed(ActionEvent ev) {

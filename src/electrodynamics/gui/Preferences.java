@@ -81,16 +81,16 @@ public class Preferences extends JFrame implements ActionListener {
 		contentPane.add(lblNewLabel);
 		
 		btn_apply = new JButton("Apply");
-		btn_apply.setBounds(321, 196, 128, 29);
+		btn_apply.setBounds(317, 196, 128, 23);
 		contentPane.add(btn_apply);
 		
 		btn_reset = new JButton("Reset to defaults");
-		btn_reset.setBounds(17, 196, 136, 29);
+		btn_reset.setBounds(10, 196, 136, 23);
 		contentPane.add(btn_reset);
 		
 		spinner_imgx = new JSpinner();
 		spinner_imgx.setModel(new SpinnerNumberModel(768, 1, 10000, 1));
-		spinner_imgx.setBounds(167, 13, 109, 26);
+		spinner_imgx.setBounds(167, 15, 109, 23);
 		contentPane.add(spinner_imgx);
 		
 		chkbox_undo = new JCheckBox("Undo tracks settings");
@@ -114,7 +114,7 @@ public class Preferences extends JFrame implements ActionListener {
 		
 		gui_units = new JComboBox<>();
 		gui_units.setModel(new DefaultComboBoxModel<>(Units.values()));
-		gui_units.setBounds(416, 102, 146, 27);
+		gui_units.setBounds(416, 104, 146, 23);
 		contentPane.add(gui_units);
 		
 		JLabel lblDisplayHeightpx = new JLabel("Display height [px]");
@@ -124,7 +124,7 @@ public class Preferences extends JFrame implements ActionListener {
 		
 		spinner_imgy = new JSpinner();
 		spinner_imgy.setModel(new SpinnerNumberModel(768, 1, 10000, 1));
-		spinner_imgy.setBounds(167, 41, 109, 26);
+		spinner_imgy.setBounds(167, 43, 109, 23);
 		contentPane.add(spinner_imgy);
 		
 		JLabel lblUndoHistorySize = new JLabel("Target FPS");
@@ -134,7 +134,7 @@ public class Preferences extends JFrame implements ActionListener {
 		
 		spinner_fps = new JSpinner();
 		spinner_fps.setModel(new SpinnerNumberModel(60, 1, 1000, 1));
-		spinner_fps.setBounds(167, 99, 109, 26);
+		spinner_fps.setBounds(167, 101, 109, 23);
 		contentPane.add(spinner_fps);
 		
 		lblUndoHistorySize_2 = new JLabel("Undo history size");
@@ -145,7 +145,7 @@ public class Preferences extends JFrame implements ActionListener {
 		
 		spinner_undosize = new JSpinner();
 		spinner_undosize.setModel(new SpinnerNumberModel(4, 2, 100, 1));
-		spinner_undosize.setBounds(167, 130, 109, 26);
+		spinner_undosize.setBounds(167, 132, 109, 23);
 		contentPane.add(spinner_undosize);
 		
 		lblFontSize = new JLabel("Font size [px]");
@@ -155,11 +155,11 @@ public class Preferences extends JFrame implements ActionListener {
 		
 		spinner_font = new JSpinner();
 		spinner_font.setModel(new SpinnerNumberModel(12, 1, 100, 1));
-		spinner_font.setBounds(167, 70, 109, 26);
+		spinner_font.setBounds(167, 72, 109, 23);
 		contentPane.add(spinner_font);
 		
 		btn_cancel = new JButton("Cancel");
-		btn_cancel.setBounds(456, 196, 128, 29);
+		btn_cancel.setBounds(445, 196, 128, 23);
 		contentPane.add(btn_cancel);
 		
 		chkbox_matname = new JCheckBox("Show material name next to cursor");

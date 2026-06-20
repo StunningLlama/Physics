@@ -16,8 +16,10 @@ import electrodynamics.Steam;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.Font;
 
 public class SteamUploadUI extends JFrame implements ActionListener {
+	private static final long serialVersionUID = -5574535390957201856L;
 	public JTextField text_title;
 	public JTextArea desc;
 	public JButton btn_upload;
@@ -25,7 +27,7 @@ public class SteamUploadUI extends JFrame implements ActionListener {
 	public int result = 0;
 	private JPanel contentPane;
 	public SteamUploadUI() {
-		setBounds(100, 100, 423, 465);
+		setBounds(100, 100, 438, 467);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 
@@ -43,6 +45,7 @@ public class SteamUploadUI extends JFrame implements ActionListener {
 		getContentPane().add(scrollPane);
 		
 		desc = new JTextArea();
+		desc.setFont(new Font("SansSerif", Font.PLAIN, 11));
 		scrollPane.setViewportView(desc);
 		
 		JLabel lblNewLabel = new JLabel("Description");
@@ -50,18 +53,19 @@ public class SteamUploadUI extends JFrame implements ActionListener {
 		getContentPane().add(lblNewLabel);
 		
 		btn_upload = new JButton("Upload");
-		btn_upload.setBounds(192, 402, 117, 29);
+		btn_upload.setBounds(182, 402, 117, 23);
 		getContentPane().add(btn_upload);
 		
 		btn_cancel = new JButton("Cancel");
-		btn_cancel.setBounds(299, 402, 117, 29);
+		btn_cancel.setBounds(299, 402, 117, 23);
 		getContentPane().add(btn_cancel);
 		
 		JScrollPane scrollPane_1 = new JScrollPane();
-		scrollPane_1.setBounds(6, 344, 410, 57);
+		scrollPane_1.setBounds(6, 339, 410, 57);
 		getContentPane().add(scrollPane_1);
 		
 		JTextPane txtpnbySubmittingThis = new JTextPane();
+		txtpnbySubmittingThis.setEditable(false);
 		txtpnbySubmittingThis.setContentType("text/html");
 		txtpnbySubmittingThis.setText("<html>By submitting this item, you agree to the <a href=\"http://steamcommunity.com/sharedfiles/workshoplegalagreement\">workshop terms of service.</a></html>");
 		scrollPane_1.setViewportView(txtpnbySubmittingThis);

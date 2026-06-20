@@ -1,21 +1,10 @@
 package electrodynamics;
 
 import java.awt.Dimension;
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBuffer;
-import java.awt.image.DataBufferByte;
-import java.awt.image.DataBufferInt;
-import java.awt.image.DataBufferShort;
-import java.awt.image.DataBufferUShort;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
-import java.nio.ShortBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,7 +19,6 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 
 import com.codedisaster.steamworks.SteamAPI;
-import com.codedisaster.steamworks.SteamAPICall;
 import com.codedisaster.steamworks.SteamException;
 import com.codedisaster.steamworks.SteamFriends;
 import com.codedisaster.steamworks.SteamFriendsCallback;
@@ -39,16 +27,13 @@ import com.codedisaster.steamworks.SteamLibraryLoaderGdx;
 import com.codedisaster.steamworks.SteamNativeHandle;
 import com.codedisaster.steamworks.SteamPublishedFileID;
 import com.codedisaster.steamworks.SteamRemoteStorage.PublishedFileVisibility;
-import com.codedisaster.steamworks.SteamRemoteStorage.WorkshopFileType;
 import com.codedisaster.steamworks.SteamResult;
-import com.codedisaster.steamworks.SteamScreenshotHandle;
 import com.codedisaster.steamworks.SteamScreenshots;
 import com.codedisaster.steamworks.SteamScreenshotsCallback;
 import com.codedisaster.steamworks.SteamUGC;
 import com.codedisaster.steamworks.SteamUGC.ItemInstallInfo;
 import com.codedisaster.steamworks.SteamUGCCallback;
 import com.codedisaster.steamworks.SteamUGCDetails;
-import com.codedisaster.steamworks.SteamUGCHandle;
 import com.codedisaster.steamworks.SteamUGCQuery;
 import com.codedisaster.steamworks.SteamUGCUpdateHandle;
 import com.codedisaster.steamworks.SteamUserStats;
@@ -75,6 +60,9 @@ public class Steam {
 	private static SteamUploadUI uploadui;
 	
 	public static void initialize() {
+		if (!BuildFlags.steam_enabled)
+			return;
+		
 		try {
 		    SteamLibraryLoader loader = new SteamLibraryLoaderGdx();
 		    //SteamLibraryLoader loader = new SteamLibraryLoaderLwjgl3();
@@ -83,12 +71,14 @@ public class Steam {
 		    	System.out.println("SteamAPI.loadLibraries failed");
 			    return;
 		    }
-		    
-		    if (SteamAPI.restartAppIfNecessary(4864110)) {
-		    	System.out.println("Restarting through steam");
-		    	System.exit(0);
+
+		    if (!BuildFlags.steam_debugging) {
+		    	if (SteamAPI.restartAppIfNecessary(BuildFlags.steam_app_id)) {
+		    		System.out.println("Restarting through steam");
+		    		System.exit(0);
+		    	}
 		    }
-		    
+
 		    if (!SteamAPI.init()) {
 		    	System.out.println("Steam API did not initialize correctly.");
 			    return;

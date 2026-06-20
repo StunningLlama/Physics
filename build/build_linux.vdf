@@ -1,0 +1,23 @@
+"AppBuild"
+{
+	"AppID" "4864110"
+	"Desc" "Linux build"
+	"verbose" "0"
+	"preview" "0"
+
+	"ContentRoot" "output_linux"
+	"BuildOutput" "steam/output"
+
+	"Depots"
+	{
+		"4864113"
+		{
+			"FileMapping"
+			{
+				"LocalPath" "*"
+				"DepotPath" "."
+				"recursive" "1"
+			}
+		}
+	}
+}

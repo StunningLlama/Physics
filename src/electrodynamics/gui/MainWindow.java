@@ -47,6 +47,7 @@ import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
 
+import electrodynamics.BuildFlags;
 import electrodynamics.Controls;
 import electrodynamics.Controls.Brush;
 import electrodynamics.Controls.BrushShape;
@@ -191,19 +192,19 @@ public class MainWindow extends JFrame implements ComponentListener {
 
 		menu_editdesc = new JMenuItem("Edit description...");
 		menu_file.add(menu_editdesc);
-		
-				menu_pref = new JMenuItem("Preferences");
-				menu_file.add(menu_pref);
+
+		menu_pref = new JMenuItem("Preferences");
+		menu_file.add(menu_pref);
 
 		separator_1 = new JSeparator();
 		menu_file.add(separator_1);
-		
+
 		menu_load_workshop = new JMenuItem("Load workshop item...");
 		menu_file.add(menu_load_workshop);
-		
+
 		menu_workshop = new JMenuItem("Upload to workshop...");
 		menu_file.add(menu_workshop);
-		
+
 		separator_6 = new JSeparator();
 		menu_file.add(separator_6);
 
@@ -743,6 +744,11 @@ public class MainWindow extends JFrame implements ComponentListener {
 		
 		gui_brush.addItemListener(e.controls);
 		
+		if (!BuildFlags.steam_enabled) {
+			menu_file.remove(menu_load_workshop);
+			menu_file.remove(menu_workshop);
+			menu_file.remove(separator_6);
+		}
 		
 		e.controls.brushes.initialize(Controls.Brush.values(), menu_tools, e.controls, Controls.Brush.INTERACT, new Controls.Brush[] {Controls.Brush.DRAW, Controls.Brush.VOLTAGE, Controls.Brush.BANDS}, () -> new JRadioButtonMenuItem());
 
@@ -809,7 +815,9 @@ public class MainWindow extends JFrame implements ComponentListener {
 		MenuBuilder.addDirectoryToMenu(menu_examples, SemiSim.getRootFile("examples"), e.savemanager.fileextension, (File f) -> e.savemanager.readfile(f));
 
 		//gui_material.removeItem(MaterialType.ABSORBER);
-		e.controls.scalarview.removeOption(ScalarView.DEBUG);
+		if (!BuildFlags.debugging)
+			e.controls.scalarview.removeOption(ScalarView.DEBUG);
+		
 		e.controls.scalarview.removeOption(ScalarView.NONE);
 		e.controls.vectorview.removeOption(VectorView.NONE);
 

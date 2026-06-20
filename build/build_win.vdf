@@ -1,0 +1,23 @@
+"AppBuild"
+{
+	"AppID" "4864110"
+	"Desc" "Windows build"
+	"verbose" "0"
+	"preview" "0"
+
+	"ContentRoot" "output_win/SemiSim/"
+	"BuildOutput" "steam/output"
+
+	"Depots"
+	{
+		"4864112"
+		{
+			"FileMapping"
+			{
+				"LocalPath" "*"
+				"DepotPath" "."
+				"recursive" "1"
+			}
+		}
+	}
+}

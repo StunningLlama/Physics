@@ -10,3 +10,5 @@ jpackage --type app-image \
 	--dest output_mac \
 	--main-class electrodynamics.SemiSim \
 	--main-jar SemiSim-$version.jar
+
+sh steam/ContentBuilder/scripts/build_mac.sh

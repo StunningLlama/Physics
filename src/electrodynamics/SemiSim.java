@@ -19,6 +19,7 @@ import java.util.Timer;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -122,8 +123,21 @@ public class SemiSim {
 			e1.printStackTrace();
 		}
 
-		userdir = FileSystemView.getFileSystemView().getDefaultDirectory().toPath().resolve(Paths.get("Documents/SemiSim"));
+		userdir = new JFileChooser().getFileSystemView().getDefaultDirectory().toPath();
 		System.out.println(FileSystemView.getFileSystemView().getDefaultDirectory().toPath().toString());
+		
+		String os = System.getProperty("os.version").toLowerCase();
+		
+		if (os.contains("windows")) {
+			userdir = userdir.resolve(Paths.get("SemiSim"));
+		} else if (os.contains("mac")) {
+			userdir = userdir.resolve(Paths.get("Documents/SemiSim"));
+		} else if (os.contains("linux")) {
+			userdir = userdir.resolve(Paths.get("SemiSim"));
+		} else {
+			userdir = userdir.resolve(Paths.get("SemiSim"));
+		}
+		
 		if (!userdir.toFile().exists()) {
 			userdir.toFile().mkdir();
 		}
@@ -153,19 +167,23 @@ public class SemiSim {
 			e.printStackTrace();
 		}
 	}
-
-	public static void main(String[] args)
-	{
-		setDirectory();
-		
-		Steam.initialize();
-		
+	
+	public static void setLookAndFeel() {
 		try {
 			UIManager.setLookAndFeel(
 					UIManager.getSystemLookAndFeelClassName());
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public static void main(String[] args)
+	{
+		setDirectory();
+		
+		setLookAndFeel();
+		
+		Steam.initialize();
 		
 		SwingUtilities.invokeLater(() -> {
 			instance = new SemiSim();

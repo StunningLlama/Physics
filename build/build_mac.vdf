@@ -1,22 +1,22 @@
 "AppBuild"
 {
-	"AppID" "4864110" // your AppID
-	"Desc" "This is a simple build script" // internal description for this build
-	"verbose" "0" // spew more build details in console
-	"preview" "0" // make this a preview build only, nothing is uploaded
+	"AppID" "4864110"
+	"Desc" "Mac build"
+	"verbose" "0"
+	"preview" "0"
 
-	"ContentRoot" "output_mac" // root content folder, relative to location of this file
-	"BuildOutput" "steam/output" // build output folder for build logs and build cache files
+	"ContentRoot" "output_mac"
+	"BuildOutput" "steam/output"
 
 	"Depots"
 	{
-		"4864111" // your DepotID
+		"4864111"
 		{
 			"FileMapping"
 			{
-				"LocalPath" "*" // all files from contentroot folder
-				"DepotPath" "." // mapped into the root of the depot
-				"recursive" "1" // include all subfolders
+				"LocalPath" "*"
+				"DepotPath" "."
+				"recursive" "1"
 			}
 		}
 	}

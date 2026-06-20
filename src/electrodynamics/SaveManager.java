@@ -107,8 +107,9 @@ public class SaveManager {
 	public void readfile(File infile) {
 		e.rwLock.writeLock().lock();
 		try {
-			System.out.println("Attempting to load " + infile.getAbsolutePath());
 			if (infile == null || !infile.exists()) return;
+			
+			System.out.println("Attempting to load " + infile.getAbsolutePath());
 			
 			if (e.controls.changesmade) {
 				String[] options = {"Yes", "No"};
