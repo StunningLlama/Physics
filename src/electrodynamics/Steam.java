@@ -1,6 +1,6 @@
 package electrodynamics;
 
-import java.awt.Dimension;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -12,10 +12,8 @@ import java.util.Collection;
 import java.util.List;
 
 import javax.imageio.ImageIO;
-import javax.swing.JList;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JOptionPane;
-import javax.swing.JScrollPane;
-import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 
 import com.codedisaster.steamworks.SteamAPI;
@@ -41,13 +39,10 @@ import com.codedisaster.steamworks.SteamUserStatsCallback;
 import com.codedisaster.steamworks.SteamUtils;
 import com.codedisaster.steamworks.SteamUtilsCallback;
 
+import electrodynamics.gui.SteamDownloadUI;
 import electrodynamics.gui.SteamUploadUI;
 
 public class Steam {
-	//TODO add achievements
-	//TODO better upload UI
-	//TODO icons
-	
 	public static SteamUGC UGC;
 	public static SteamScreenshots Screenshots;
 	public static SteamUtils Utils;
@@ -58,6 +53,7 @@ public class Steam {
 	public static String ws_title = "";
 	public static String ws_description = "";
 	private static SteamUploadUI uploadui;
+	private static SteamDownloadUI downloadui;
 	
 	public static void initialize() {
 		if (!BuildFlags.steam_enabled)
@@ -128,6 +124,7 @@ public class Steam {
 		    		SemiSim.getUserFile("_tmp/image.png").delete();
 					SemiSim.getUserFile("_tmp").delete();
 					if (result == SteamResult.OK) {
+						Steam.setAchievement("WORKSHOP");
 						JOptionPane.showMessageDialog(e.opts, "Workshop item successfully uploaded! Redirecting to workshop page...");
 
 						try {
@@ -162,31 +159,9 @@ public class Steam {
 					
 					UGC.releaseQueryUserUGCRequest(query);
 					
-
-					JList<Object> tmplist = new JList<>(names.toArray());
-
-					tmplist.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-					tmplist.setVisibleRowCount(5);
-					tmplist.setSelectedValue(Preset.DEFAULT, true);
-
-					JScrollPane scrollPane = new JScrollPane(tmplist);
-			        scrollPane.setPreferredSize(new Dimension(300, 250));
-
-					int result2 = JOptionPane.showConfirmDialog(null, scrollPane, "Load workshop item", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-					if (result2 == JOptionPane.OK_OPTION) {
-						int selected = tmplist.getSelectedIndex();
-
-						if (selected != -1) {
-							SteamPublishedFileID id = list.get(selected).getPublishedFileID();
-							ItemInstallInfo info = new ItemInstallInfo();
-							UGC.getItemInstallInfo(id, info);
-							File file = Paths.get(info.getFolder(), "workshop_item.semisim").toFile();
-							SwingUtilities.invokeLater(() -> {
-								e.savemanager.readfile(file);
-							});
-						}
-					}
+					downloadui.list.setModel(new DefaultComboBoxModel<>(names.toArray(new String[] {})));
+					downloadui.details = list;
+					downloadui.setVisible(true);
 				}
 			});
 		    
@@ -210,6 +185,9 @@ public class Steam {
 			
 			uploadui = new SteamUploadUI();
 			uploadui.setVisible(false);
+
+			downloadui = new SteamDownloadUI();
+			downloadui.setVisible(false);
 			
 			System.out.println("Overlay " + Utils.isOverlayEnabled());
 			System.out.println(Friends.getPersonaName());
@@ -219,7 +197,7 @@ public class Steam {
 		}
 	}
 	
-	public static void loadUGC() {
+	public static void loadUGCs() {
 		if (SteamAPI.isSteamRunning()) {
 			SteamPublishedFileID[] ids = new SteamPublishedFileID[UGC.getNumSubscribedItems(false)];
 			UGC.getSubscribedItems(ids, false);
@@ -228,6 +206,31 @@ public class Steam {
 			SteamUGCQuery query = UGC.createQueryUGCDetailsRequest(list);
 			UGC.sendQueryUGCRequest(query);
 		}
+	}
+
+	public static void openUGC(SteamPublishedFileID id) {
+		if (SteamAPI.isSteamRunning()) {
+			ItemInstallInfo info = new ItemInstallInfo();
+			UGC.getItemInstallInfo(id, info);
+			File file = Paths.get(info.getFolder(), "workshop_item.semisim").toFile();
+			SwingUtilities.invokeLater(() -> {
+				e.savemanager.readfile(file);
+			});
+		}
+	}
+
+
+	public static BufferedImage loadThumbnail(SteamPublishedFileID id) {
+		if (SteamAPI.isSteamRunning()) {
+			ItemInstallInfo info = new ItemInstallInfo();
+			UGC.getItemInstallInfo(id, info);
+			File file = Paths.get(info.getFolder(), "image.png").toFile();
+			try {
+				return ImageIO.read(file);
+			} catch (IOException e) {}
+		}
+
+		return null;
 	}
 
 	public static void setAchievement(String ID) {

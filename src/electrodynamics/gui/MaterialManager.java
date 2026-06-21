@@ -47,6 +47,7 @@ import electrodynamics.Material;
 import electrodynamics.MaterialType;
 import electrodynamics.SemiSim;
 import electrodynamics.Simulation;
+import electrodynamics.Steam;
 import electrodynamics.util.Utils;
 
 public class MaterialManager extends JFrame implements ActionListener, ListSelectionListener, ItemListener {
@@ -412,6 +413,8 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		e.initializeAllMaterials();
 		e.updateAllMaterials(true);
 		list.setSelectedValue(mat, true);
+
+		Steam.setAchievement("NEW_MATERIAL");
 	}
 	
 	public void delete() {

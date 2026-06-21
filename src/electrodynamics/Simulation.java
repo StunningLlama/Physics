@@ -1486,6 +1486,7 @@ public class Simulation extends PeriodicTask {
 
 				if (rho_n[i][j] > big_error_detection_threshold || rho_p[i][j] < -big_error_detection_threshold) {
 					instability_timer = 20;
+					Steam.setAchievement("CRASH");
 				}
 
 				if (rho_n[i][j] > 0 || rho_p[i][j] < -0) {

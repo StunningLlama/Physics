@@ -6,6 +6,7 @@ jpackage --type app-image `
 	--app-version $version `
 	--copyright "Brandon Li ($year)" `
 	--name SemiSim `
+	--icon ../images/icon.ico `
 	--input ..\\target\\ `
 	--dest output_win\\ `
 	--main-class electrodynamics.SemiSim `

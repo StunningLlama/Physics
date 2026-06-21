@@ -1425,6 +1425,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			try {
 				File helpfile = SemiSim.getRootFile("README.html");
 				java.awt.Desktop.getDesktop().browse(helpfile.toURI());
+				Steam.setAchievement("MANUAL");
 			} catch (IOException ex) {
 				ex.printStackTrace();
 			}
@@ -1581,7 +1582,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			Steam.createWorkshopItem();
 			break;
 		case "menu_load_workshop":
-			Steam.loadUGC();
+			Steam.loadUGCs();
 			break;
 		}
 
