@@ -9,6 +9,9 @@ import javax.swing.JPanel;
 import javax.swing.JButton;
 import javax.swing.JTextPane;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkEvent.EventType;
+import javax.swing.event.HyperlinkListener;
 
 import com.codedisaster.steamworks.SteamRemoteStorage.WorkshopFileType;
 
@@ -16,9 +19,12 @@ import electrodynamics.Steam;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.awt.Font;
 
-public class SteamUploadUI extends JFrame implements ActionListener {
+public class SteamUploadUI extends JFrame implements ActionListener, HyperlinkListener {
 	private static final long serialVersionUID = -5574535390957201856L;
 	public JTextField text_title;
 	public JTextArea desc;
@@ -69,6 +75,7 @@ public class SteamUploadUI extends JFrame implements ActionListener {
 		txtpnbySubmittingThis.setContentType("text/html");
 		txtpnbySubmittingThis.setText("<html>By submitting this item, you agree to the <a href=\"http://steamcommunity.com/sharedfiles/workshoplegalagreement\">workshop terms of service.</a></html>");
 		scrollPane_1.setViewportView(txtpnbySubmittingThis);
+		txtpnbySubmittingThis.addHyperlinkListener(this);
 		
 		btn_upload.addActionListener(this);
 		btn_cancel.addActionListener(this);
@@ -80,6 +87,7 @@ public class SteamUploadUI extends JFrame implements ActionListener {
 			Steam.ws_title = text_title.getText();
 			Steam.ws_description = desc.getText();
 			Steam.UGC.createItem(Steam.Utils.getAppID(), WorkshopFileType.Community);
+			this.setVisible(false);
 			
 			result = 1;
 		} else if (e.getSource() == btn_cancel) {
@@ -91,5 +99,15 @@ public class SteamUploadUI extends JFrame implements ActionListener {
 		/*synchronized(this) {
 		    this.notify();
 		}*/
+	}
+	@Override
+	public void hyperlinkUpdate(HyperlinkEvent ev) {
+		if (ev.getEventType() == EventType.ACTIVATED) {
+			try {
+				java.awt.Desktop.getDesktop().browse(new URI("http://steamcommunity.com/sharedfiles/workshoplegalagreement"));
+			} catch (IOException | URISyntaxException ex) {
+				ex.printStackTrace();
+			}
+		}
 	}
 }

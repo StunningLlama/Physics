@@ -44,10 +44,10 @@ import com.codedisaster.steamworks.SteamUtilsCallback;
 import electrodynamics.gui.SteamUploadUI;
 
 public class Steam {
-	//Cloud
-	//Workshop
-	//Achievements
-	//Screenshot
+	//TODO add achievements
+	//TODO better upload UI
+	//TODO icons
+	
 	public static SteamUGC UGC;
 	public static SteamScreenshots Screenshots;
 	public static SteamUtils Utils;
@@ -218,7 +218,7 @@ public class Steam {
 			e.printStackTrace();
 		}
 	}
-
+	
 	public static void loadUGC() {
 		if (SteamAPI.isSteamRunning()) {
 			SteamPublishedFileID[] ids = new SteamPublishedFileID[UGC.getNumSubscribedItems(false)];
@@ -264,6 +264,17 @@ public class Steam {
 	public static void addSteamScreenshot(String path, int width, int height) {
 		if (SteamAPI.isSteamRunning()) {
 			Steam.Screenshots.addScreenshotToLibrary(path, "", width, height);
+		}
+	}
+
+	public static void shutdown() {
+		if (SteamAPI.isSteamRunning()) {
+			UGC.dispose();
+			Screenshots.dispose();
+			Utils.dispose();
+			UserStats.dispose();
+			Friends.dispose();
+			SteamAPI.shutdown();
 		}
 	}
 }

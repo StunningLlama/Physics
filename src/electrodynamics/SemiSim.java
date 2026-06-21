@@ -185,6 +185,10 @@ public class SemiSim {
 		
 		Steam.initialize();
 		
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+		    public void run() { Steam.shutdown(); }
+		});
+		
 		SwingUtilities.invokeLater(() -> {
 			instance = new SemiSim();
 		});
