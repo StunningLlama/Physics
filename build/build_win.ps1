@@ -1,6 +1,5 @@
 $version="2.0"
 $year=2026
-dir .
 del output_win -Recurse -Force
 jpackage --type app-image `
 	--app-version $version `

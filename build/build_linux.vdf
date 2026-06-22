@@ -5,7 +5,7 @@
 	"verbose" "0"
 	"preview" "0"
 
-	"ContentRoot" "output_linux"
+	"ContentRoot" "output_linux/SemiSim"
 	"BuildOutput" "steam/output"
 
 	"Depots"

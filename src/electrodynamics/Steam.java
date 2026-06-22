@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -54,6 +55,16 @@ public class Steam {
 	public static String ws_description = "";
 	private static SteamUploadUI uploadui;
 	private static SteamDownloadUI downloadui;
+	
+	private static HashMap<String, String> ach_names = new HashMap<String, String>();
+	static
+	{
+		ach_names.put("NEW_MATERIAL", "Material master");
+		ach_names.put("WORKSHOP", "Content creator");
+		ach_names.put("CRASH", "Party crasher");
+		ach_names.put("MANUAL", "Manual labor");
+		ach_names.put("LAG", "Halting problem");
+	}
 	
 	public static void initialize() {
 		if (!BuildFlags.steam_enabled)
@@ -237,7 +248,7 @@ public class Steam {
 		if (SteamAPI.isSteamRunning()) {
 			if (!UserStats.isAchieved(ID, false)) {
 				UserStats.setAchievement(ID);
-				e.renderer.achievement_name = ID;
+				e.renderer.achievement_name = ach_names.get(ID);
 				e.renderer.achievement_timer = 180;
 			} else {
 				//System.out.println("Already achieved");

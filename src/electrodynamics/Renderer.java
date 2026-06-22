@@ -1129,8 +1129,9 @@ public class Renderer extends PeriodicTask {
 			drawString(e.simFPStimer.getName() + " " + e.units.toString(1/e.simFPStimer.getAverageTime(), Quantity.FREQUENCY), hoffset, voffset + line*vspacing, g); line++;
 		}
 		
-		if (FPStimer.getAverageTime() > 1 || e.simFPStimer.getAverageTime() > 1);
+		if ((FPStimer.getAverageTime() > 0.67 || e.simFPStimer.getAverageTime() > 0.67) && e.frame > 60) {
 			Steam.setAchievement("LAG");
+		}
 		
 		if (carrier_diffusion_warning_timer > 0) {
 			Text text = drawString("Error: Metal cannot touch simulation boundary when carrier diffusion view is enabled.", hoffset, voffset + line*vspacing, g); line ++;
