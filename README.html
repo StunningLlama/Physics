@@ -218,7 +218,7 @@ The brightness and density of lines indicates the magnitude of the field. <figur
 <table>
     <tr><td>Interact</td><td>Allows user to control voltage sources and turn switches on and off by clicking.</td></tr>
     <tr><td>Flashlight</td><td>Shines a light on the region under the cursor, creating pairs of electrons and holes.</td></tr>
-    <tr><td>Zoom and Pan</td><td>Click and drag to zoom into a region. Click to zoom out. Hold shift to pan.</td></tr>
+    <tr><td>Zoom and Pan</td><td>Click and drag to zoom into a region. Click to zoom out. Hold shift (or middle mouse) to pan.</td></tr>
     <tr><td>Draw</td><td>Adds material to the field.</td></tr>
     <tr><td>Replace</td><td>Similar to the draw tool, but overwrites occupied areas.</td></tr>
     <tr><td>Line <br><small></small></td><td>Draws a line of material.</td></tr>
@@ -232,14 +232,16 @@ The brightness and density of lines indicates the magnitude of the field. <figur
     <tr><td>Charge probe</td><td>Click and drag to add a charge probe that measures electrical charge within a given region.</td></tr>
     <tr><td>Magnetic flux probe</td><td>Click and drag to add a probe that measures magnetic flux.</td></tr>
     <tr><td>Ground</td><td>Specifies the point relative to which probes measure voltage (optional).</td></tr>
+	<tr><td>Custom probe</td><td>Can measure any scalar, vector, or volumetric quantity.</td></tr>
     <tr><td>Delete probe</td><td>Click to delete a probe.</td></tr>
     <tr><td>Move label</td><td>Moves labels attached to probes.</td></tr>
-    <tr><td>Plot bands</td><td>Click and drag to plot energy bands along a line.
+	<tr><td>Ruler</td><td>Measures euclidean length.</td></tr>
+    <tr><td>Plot bands</td><td>Click and drag to plot energy bands along a line (click multiple times to make a segmented path, double click to finish).
       The plot contains the conduction and valence energy band edges as well as the quasi-Fermi levels of electrons and holes.  <figure><img src="images/bandplot.png" alt="Band plot" style="max-width:70%"><figcaption>Valence and conduction band energies shown as solid lines. Quasi-Fermi levels are dashed lines.</figcaption></figure></td></tr>
     <tr><td>Plot scalar field</td><td>Click and drag to make a plot of the currently selected scalar field.</td></tr>
     <tr><td>Plot carriers</td><td>Click an drag to make a logarithmic plot of the number density of electrons and holes.</td></tr>
     <tr><td>Plot probe data</td><td>Selecting this will create a plot of probe measurements over time, similar to an oscilloscope.</td></tr>
-    <tr><td>Ruler</td><td>Measures euclidean length.</td></tr>
+	<tr><td>Plot XY</td><td>Creates a plot where the x and y axes can be any pair of probe measurements.</td></tr>
 </table>
 
 <h2>Extra keyboard/mouse controls</h2>
@@ -318,17 +320,22 @@ $$
 \mu(E) = \frac{\mu(0)}{\sqrt{(E/E_\text{sat})^2 + 1}}\\
 E_\text{sat} = \frac{v_\text{sat}}{\beta e D}
 $$
-Here \(E_\text{sat}\) and \(v_\text{sat}\) denote the saturation field and velocity, which are proportional to each other. This equation is a special case of the power law relationship that is typically used to describe saturation. The simulation is unable to handle more complicated functional relationships at the moment, such as in the case of Gallium Arsenide.
+Here \(E_\text{sat}\) and \(v_\text{sat}\) denote the saturation field and velocity, which are proportional to each other. This equation is a special case of the power law relationship that is typically used to describe saturation. The simulation is unable to handle more complicated functional relationships, such as in the case of Gallium Arsenide, because it would incur a large performance cost.
 <h2>Doping dependent mobility</h2>
 Charge carrier mobility in a semiconductor depends on the level of doping. The more dopant atoms there are, the more electrons get scattered. The simulation models this dependency with the following equation:
 $$
 \mu = \frac{\mu_0}{(n/n_c)^{1/2}+1}
 $$
 where \(\mu_0\) is the mobility of electrons or holes in undoped semiconductor, \(n\) is the doping density, and \(n_c\) is the doping density at which mobility drops to \(1/2\) of its original value.
+<h2>Recombination</h2>
+The recombination rate is given by a sum of contributions from three processes: Radiative, Shockley-Read-Hall, and Auger recombiation. The mathematical expression for the net recombination rate is
+$$
+r = (np - n_i^2) \left(k_\text{rad} + \frac{k_\text{SRH,n}\cdot k_\text{SRH,p}}{k_\text{SRH,n}(n+n_i)+k_\text{SRH,p}(p+n_i)} + k_\text{Aug,n}\cdot n + k_\text{Aug,p}\cdot p\right)
+$$
 <h2>Performance/Benchmarking</h2>
 SemiSim requires a couple hundred MB of RAM at the default resolution. The amount of memory needed is proportional to the number of grid points, which is the square of the resolution. Resolutions greater than 512 require a huge amount of memory.
 <p>
-The speed of simulation depends slightly on the fraction of area filled with conducuctive material. I like to use the file "realistic BJT.semisim" as a benchmark since it covers the majority of the area with semiconductor. Running this setup on an M2 macbook pro, I get around 1000 steps/s.
+The speed of simulation depends slightly on the fraction of area filled with conducuctive material. I like to use the file "realistic BJT.semisim" as a benchmark since it covers the majority of the area with semiconductor. Running this setup on my M2 macbook pro, I get around 1000 steps/s.
 </p>
 <h1>Miscellaneous questions and answers</h1>
 <h2>Why does this simulation exist?</h2>
@@ -355,6 +362,9 @@ Because the simulation is in 2D, circuits actually extend infinitely in the z-di
 If you recall from E&amp;M class, the magnetic field within an infinitely long solenoid is entirely contained within it. This is certainly a point of departure from how we expect circuits to behave. It means that each current loop has its own inductance,
 and trying to create "inductors" that behave like their 3D counterparts is quite tricky.
 
+<h2>Why does the electric field change instantly when I add or remove charges?</h2>
+According to Maxwell's equations, EM fields cannot propagate faster than the speed of light. This is automatically the case as long as charge is conserved. When charge is added or removed,
+the simulation has to recompute the electric field to make sure Gauss's law is satisfied.
 
 <h1>Build Instructions</h1>
 
@@ -366,7 +376,7 @@ Note: Building requires JRE 1.8 and Maven for dependency management.
 
 <h2>Eclipse</h2>
 <ol>
-<li>Go to File → Import → Existing Maven Projects</li>
+<li>Go to File/Import/Existing Maven Projects</li>
 <li>Select the cloned repository folder</li>
 <li>Click Finish</li>
 </ol>

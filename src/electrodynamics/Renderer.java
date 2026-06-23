@@ -628,7 +628,7 @@ public class Renderer extends PeriodicTask {
 		ScalarView scalarview = e.controls.scalarview.getOption();
 		ScalarMode scalarmode = e.controls.scalarmode.getOption();
 
-		scalingconstant = (float) (10.0*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/scalarview.scale);
+		scalingconstant = (float) (10*Math.pow(10.0, e.opts.gui_brightness.getValue()/10.0)/scalarview.getScalingConstant(e));
 		scalar_offset = 0;
 
 		if (scalarview != ScalarView.NONE && scalarmode != ScalarMode.NONE) {
@@ -640,6 +640,7 @@ public class Renderer extends PeriodicTask {
 			case ELECTRON_VOLTAGE:
 			case HOLE_VOLTAGE:
 				scalar_offset = (float) e.global_voltage_offset;
+				break;
 			default:
 				break;
 			}
@@ -1192,39 +1193,27 @@ public class Renderer extends PeriodicTask {
 				while (true) {
 					graphics_start_barrier.await();
 
-					if (synchronized_vector_display_mode != VectorMode.NONE && synchronized_vector_view != VectorView.NONE) {
+					if (synchronized_vector_display_mode != VectorMode.NONE && synchronized_vector_view != VectorView.NONE)
+					{
 						double arrowlength = 10.0/scalefactor;
-
-						double vectorscalingconstant = 0;
-
+						double vectorscalingconstant = 10*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/10.0)/e.controls.vectorview.getOption().getScalingConstant(e);
 						int density_x = 25*scalefactor*e.nx/256;
 						int density_y = 25*scalefactor*e.ny/256;
+						boolean conductors_only = synchronized_vector_view.isConductorOnly();
 
 						double randomness = 0;
-
 						if (synchronized_vector_display_mode == VectorMode.ARROWS) {
 							randomness = 0.5;
 						} else if (synchronized_vector_display_mode == VectorMode.LINES) {
 							randomness = 0.75;
 						}
-
-						
-						boolean conductors_only = synchronized_vector_view.isConductorOnly();
 						
 						double[][][] vf = {null, null};
 						e.computeVectorField(vf, synchronized_vector_view);
 						double[][] vf_x = vf[0];
 						double[][] vf_y = vf[1];
 
-						Vector ctr = new Vector(0,0);
-						Vector arrow = new Vector(0,0);
-						Vector tip1 = new Vector(0,0);
-						Vector tip2 = new Vector(0,0);
-						Vector body1 = new Vector(0,0);
-						Vector body2 = new Vector(0,0);
-
 						if (synchronized_vector_display_mode == VectorMode.LINES) {
-							vectorscalingconstant = 0.01*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/5.0)/e.controls.vectorview.getOption().scale;
 							rand.setSeed(n_thread);
 							for (int i = lower(density_x); i < upper(density_x); i++) {
 								for (int j = 0; j < density_y; j++) {
@@ -1268,8 +1257,15 @@ public class Renderer extends PeriodicTask {
 
 							}
 						} else if (synchronized_vector_display_mode == VectorMode.ARROWS) {
-							vectorscalingconstant = 0.01*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/5.0)/e.controls.vectorview.getOption().scale;
 							rand.setSeed(n_thread);
+							
+							Vector ctr = new Vector(0,0);
+							Vector arrow = new Vector(0,0);
+							Vector tip1 = new Vector(0,0);
+							Vector tip2 = new Vector(0,0);
+							Vector body1 = new Vector(0,0);
+							Vector body2 = new Vector(0,0);
+							
 							for (int i = lower(density_x); i < upper(density_x); i++) {
 								for (int j = 0; j < density_y; j++) {
 
@@ -1283,7 +1279,7 @@ public class Renderer extends PeriodicTask {
 									arrow.x = Utils.bilinearinterp(vf_x,x-0.5, y, e.nx, e.ny);
 									arrow.y = Utils.bilinearinterp(vf_y,x, y-0.5, e.nx, e.ny);
 
-									double fieldmagnitude = Math.max(0.1, vectorscalingconstant*Math.sqrt(arrow.dot(arrow)));
+									double fieldmagnitude = Math.max(0.1, 10*vectorscalingconstant*Math.sqrt(arrow.dot(arrow)));
 									arrow.normalize();
 									tip1.copy(arrow);
 									tip2.copy(arrow);
@@ -1310,7 +1306,6 @@ public class Renderer extends PeriodicTask {
 						} else if (synchronized_vector_display_mode == VectorMode.DOTS) {
 							boolean paused = e.opts.gui_paused.isSelected();
 
-							vectorscalingconstant = Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/10.0)/e.controls.vectorview.getOption().scale;
 							int lower = lower(dots.size());
 							int upper = upper(dots.size());
 							for (int i = lower; i < upper; i++) {
@@ -1338,8 +1333,8 @@ public class Renderer extends PeriodicTask {
 
 									if (!paused) {
 										for (int k = 0; k < steps; k++) {
-											dx = Utils.bilinearinterp(vf_x,d.x-0.5, d.y, e.nx, e.ny)*5e-7*vectorscalingconstant/steps;
-											dy = Utils.bilinearinterp(vf_y,d.x, d.y-0.5, e.nx, e.ny)*5e-7*vectorscalingconstant/steps;
+											dx = Utils.bilinearinterp(vf_x,d.x-0.5, d.y, e.nx, e.ny)*vectorscalingconstant/steps;
+											dy = Utils.bilinearinterp(vf_y,d.x, d.y-0.5, e.nx, e.ny)*vectorscalingconstant/steps;
 											double maxspeed = 0.5;
 											double factor = Math.min(1, maxspeed/Math.sqrt(dx*dx+dy*dy));
 											d.x += dx*factor;
@@ -1720,36 +1715,36 @@ public class Renderer extends PeriodicTask {
 	}
 
 	public enum ScalarView {
-		NONE("No scalar overlay",															"None",		Quantity.DIMENSIONLESS,				ColorScheme.OTHER,			1),
-		E_FIELD("View: E field magnitude",													"E",		Quantity.ELECTRIC_FIELD,			ColorScheme.GREEN,			1e5),
-		B_FIELD("View: B field",															"B",		Quantity.MAGNETIC_FLUX_DENSITY,		ColorScheme.CYAN_YELLOW,	1e-5),
-		H_FIELD("View H field",																"H",		Quantity.MAGNETIC_FIELD_STRENGTH,	ColorScheme.CYAN_YELLOW,	1e-5/1.257e-6),
-		POTENTIAL("View \u03d5: Electric scalar potential", 								"\u03d5",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
-		ENERGY("View u: Electromagnetic energy density",									"u",		Quantity.ENERGY_DENSITY,			ColorScheme.GREEN,			1),
-		CURRENT("View J: Total current magnitude",											"J",		Quantity.CURRENT_DENSITY,			ColorScheme.GREEN,			1e7),
-		CHARGE("View \u03c1: Net charge density",											"\u03c1",	Quantity.CHARGE_DENSITY,			ColorScheme.OTHER,			1e1),
-		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density",						"\u03c1\u2099",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE,		1e1),
-		HOLE_CHARGE("View \u03c1\u209A: Hole charge density",								"\u03c1\u209A",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE,		1e1),
-		BACKGROUND_CHARGE("View \u03c1\u2080: Static charge density (doping)",				"\u03c1\u2080",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE,		1e1),
-		COMBINED_CHARGE("View: Combined electron+hole charge density",						"\u03c1\u2099 and \u03c1\u209A",	Quantity.DIMENSIONLESS,	ColorScheme.OTHER,			1),
-		HEAT("View Q: Heat dissipation",													"q",		Quantity.POWER_DENSITY,				ColorScheme.RED_BLUE,		1e12),
-		ENTROPY("View s: Entropy generation rate",											"s",		Quantity.ENTROPY_DENSITY_RATE,		ColorScheme.RED_BLUE,		3.33e9),
-		ELECTRON_POTENTIAL("View F\u2099: Electron quasi Fermi level",						"μ\u2099",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
-		HOLE_POTENTIAL("View F\u209A: Hole quasi Fermi level",								"μ\u209A",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE, 		1),
-		AVERAGE_POTENTIAL("View V: Voltage",												"V",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
-		GENERATION("View G: Carrier generation rate (net)",									"G",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
-		RECOMBINATION("View R: Carrier recombination rate (net)",							"R",		Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
-		LIGHT("View: Emitted light",														"Light",	Quantity.DIMENSIONLESS,				ColorScheme.OTHER,			1e30),
-		ELECTRON_DENSITY("View n\u2099: Electron density",									"n\u2099",	Quantity.NUMBER_DENSITY,			ColorScheme.GREEN,			1e23),
-		HOLE_DENSITY("View n\u209A: Hole density",											"n\u209A",	Quantity.NUMBER_DENSITY,			ColorScheme.GREEN,			1e23),
-		ELECTRON_VOLTAGE("View V\u2099: Electron voltage",									"V\u2099",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
-		HOLE_VOLTAGE("View V\u209A: Hole voltage",											"V\u209A",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE,		1),
-		ELECTRON_VEL("View v\u2099: Electron drift velocity",								"v\u2099",	Quantity.VELOCITY,					ColorScheme.GREEN,			1e6),
-		HOLE_VEL("View v\u209A: Hole drift velocity",										"v\u209A",	Quantity.VELOCITY,					ColorScheme.GREEN,			1e6),
-		RECOMB_RAD("View: Radiative recombination rate",									"R (rad)",	Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
-		RECOMB_SRH("View: SRH recombination rate",											"R (SRG)",	Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
-		RECOMB_AUGER("View: Auger recombination rate",										"R (aug)",	Quantity.RATE_DENSITY,				ColorScheme.GREEN,			1e31),
-		DEBUG("Debug",																		"Debug",	Quantity.DIMENSIONLESS,				ColorScheme.RED_BLUE,		1e-3);
+		NONE("No scalar overlay",															"None",		Quantity.DIMENSIONLESS,				ColorScheme.OTHER			),
+		E_FIELD("View: E field magnitude",													"E",		Quantity.ELECTRIC_FIELD,			ColorScheme.GREEN			),
+		B_FIELD("View: B field",															"B",		Quantity.MAGNETIC_FLUX_DENSITY,		ColorScheme.CYAN_YELLOW		),
+		H_FIELD("View H field",																"H",		Quantity.MAGNETIC_FIELD_STRENGTH,	ColorScheme.CYAN_YELLOW		),
+		POTENTIAL("View \u03d5: Electric scalar potential", 								"\u03d5",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE		),
+		ENERGY("View u: Electromagnetic energy density",									"u",		Quantity.ENERGY_DENSITY,			ColorScheme.GREEN			),
+		CURRENT("View J: Total current magnitude",											"J",		Quantity.CURRENT_DENSITY,			ColorScheme.GREEN			),
+		CHARGE("View \u03c1: Net charge density",											"\u03c1",	Quantity.CHARGE_DENSITY,			ColorScheme.OTHER			),
+		ELECTRON_CHARGE("View \u03c1\u2099: Electron charge density",						"\u03c1\u2099",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE		),
+		HOLE_CHARGE("View \u03c1\u209A: Hole charge density",								"\u03c1\u209A",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE		),
+		BACKGROUND_CHARGE("View \u03c1\u2080: Static charge density (doping)",				"\u03c1\u2080",	Quantity.CHARGE_DENSITY,		ColorScheme.RED_BLUE		),
+		COMBINED_CHARGE("View: Combined electron+hole charge density",						"\u03c1\u2099 and \u03c1\u209A",	Quantity.DIMENSIONLESS,	ColorScheme.OTHER	),
+		HEAT("View Q: Heat dissipation",													"q",		Quantity.POWER_DENSITY,				ColorScheme.RED_BLUE		),
+		ENTROPY("View s: Entropy generation rate",											"s",		Quantity.ENTROPY_DENSITY_RATE,		ColorScheme.RED_BLUE		),
+		ELECTRON_POTENTIAL("View F\u2099: Electron quasi Fermi level",						"µ\u2099",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE 		),
+		HOLE_POTENTIAL("View F\u209A: Hole quasi Fermi level",								"µ\u209A",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE 		),
+		AVERAGE_POTENTIAL("View V: Voltage",												"V",		Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE		),
+		GENERATION("View G: Carrier generation rate (net)",									"G",		Quantity.RATE_DENSITY,				ColorScheme.GREEN			),
+		RECOMBINATION("View R: Carrier recombination rate (net)",							"R",		Quantity.RATE_DENSITY,				ColorScheme.GREEN			),
+		LIGHT("View: Emitted light",														"Light",	Quantity.DIMENSIONLESS,				ColorScheme.OTHER			),
+		ELECTRON_DENSITY("View n\u2099: Electron density",									"n\u2099",	Quantity.NUMBER_DENSITY,			ColorScheme.GREEN			),
+		HOLE_DENSITY("View n\u209A: Hole density",											"n\u209A",	Quantity.NUMBER_DENSITY,			ColorScheme.GREEN			),
+		ELECTRON_VOLTAGE("View V\u2099: Electron voltage",									"V\u2099",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE		),
+		HOLE_VOLTAGE("View V\u209A: Hole voltage",											"V\u209A",	Quantity.ELECTRIC_POTENTIAL,		ColorScheme.RED_BLUE		),
+		ELECTRON_VEL("View v\u2099: Electron drift velocity",								"v\u2099",	Quantity.VELOCITY,					ColorScheme.GREEN			),
+		HOLE_VEL("View v\u209A: Hole drift velocity",										"v\u209A",	Quantity.VELOCITY,					ColorScheme.GREEN			),
+		RECOMB_RAD("View: Radiative recombination rate",									"R (rad)",	Quantity.RATE_DENSITY,				ColorScheme.GREEN			),
+		RECOMB_SRH("View: SRH recombination rate",											"R (SRG)",	Quantity.RATE_DENSITY,				ColorScheme.GREEN			),
+		RECOMB_AUGER("View: Auger recombination rate",										"R (aug)",	Quantity.RATE_DENSITY,				ColorScheme.GREEN			),
+		DEBUG("Debug",																		"Debug",	Quantity.DIMENSIONLESS,				ColorScheme.RED_BLUE		);
 	
 		enum ColorScheme {
 			RED_BLUE, CYAN_YELLOW, GREEN, WHITE, OTHER;
@@ -1759,50 +1754,94 @@ public class Renderer extends PeriodicTask {
 		public Quantity unit;
 		public String shorthand;
 		public ColorScheme colorscheme;
-		public double scale; //Typical order of magnitude of the quantity
 	
-		ScalarView(String name, String shorthand, Quantity unit, ColorScheme colorScheme, double scale)
+		ScalarView(String name, String shorthand, Quantity unit, ColorScheme colorScheme)
 		{
 			this.name = name;
 			this.shorthand = shorthand;
 			this.unit = unit;
 			this.colorscheme = colorScheme;
-			this.scale = scale;
 		}
 	
 		@Override
 		public String toString() {
 			return name;
 		}
+
+		public double getScalingConstant(Simulation e) {
+			double voltage = e.Eg_semi/e.e_charge;
+			double number_density = e.n_default_doping_concentration;
+			double charge_density = e.n_default_doping_concentration*e.e_charge;
+			double length = Math.sqrt(e.eps_r_semi*e.eps0*voltage/charge_density);
+			double electric_field = voltage/length;
+			double velocity = electric_field*e.mu_electron_semi;
+			double conductivity = charge_density*e.mu_electron_semi;
+			double current_density = conductivity*electric_field;
+			double rate_density = number_density*(e.k_SRH_n_semi+e.k_SRH_p_semi)
+					+ number_density*number_density*e.k_rad_semi
+					+ number_density*number_density*number_density*(e.k_aug_n_semi + e.k_aug_p_semi);
+			
+			switch (this) {
+			case NONE: return 1;
+			case E_FIELD: return electric_field;
+			case B_FIELD: return e.mu0*current_density*length;
+			case H_FIELD: return current_density*length;
+			case POTENTIAL: return voltage;
+			case ENERGY: return e.eps0*electric_field*electric_field;
+			case CURRENT: return current_density;
+			case CHARGE: return charge_density;
+			case ELECTRON_CHARGE: return charge_density;
+			case HOLE_CHARGE: return charge_density;
+			case BACKGROUND_CHARGE: return charge_density;
+			case COMBINED_CHARGE: return 0.1*charge_density;
+			case HEAT: return current_density*electric_field;
+			case ENTROPY: return current_density*electric_field/e.T;
+			case ELECTRON_POTENTIAL: return voltage;
+			case HOLE_POTENTIAL:  return voltage;
+			case AVERAGE_POTENTIAL: return voltage;
+			case GENERATION: return rate_density;
+			case RECOMBINATION: return rate_density;
+			case LIGHT: return rate_density;
+			case ELECTRON_DENSITY: return number_density;
+			case HOLE_DENSITY: return number_density;
+			case ELECTRON_VOLTAGE: return voltage;
+			case HOLE_VOLTAGE: return voltage;
+			case ELECTRON_VEL: return velocity;
+			case HOLE_VEL: return velocity;
+			case RECOMB_RAD: return rate_density;
+			case RECOMB_SRH: return rate_density;
+			case RECOMB_AUGER: return rate_density;
+			case DEBUG: return 1;
+			}
+			return 1;
+		}
 	}
 
 	public enum VectorView {
-		NONE("No vector overlay",								"None",				Quantity.DIMENSIONLESS,			1),
-		E_FIELD("View E: Electric field",						"E",				Quantity.ELECTRIC_FIELD,		10),
-		D_FIELD("View D: Displacement field",					"D",				Quantity.ELECTRIC_FLUX_DENSITY,	10*8.85e-12),
-		ELECTRON_CURRENT("View J\u2099: Electron current",		"J\u2099",			Quantity.CURRENT_DENSITY,		1),
-		HOLE_CURRENT("View J\u209A: Hole current",				"J\u209A",			Quantity.CURRENT_DENSITY,		1),
-		TOTAL_CURRENT("View J: Total current",					"J",				Quantity.CURRENT_DENSITY,		1),
-		EMF("View \u2130: External electromotive force",		"\u2130",			Quantity.ELECTRIC_FIELD,		1),
-		POYNTING("View S: Poynting vector",						"S",				Quantity.INTENSITY,				1),
-		ELECTRON_DRIFT("View: Electron drift current",			"J\u2099 (drift)",		Quantity.CURRENT_DENSITY,		1),
-		ELECTRON_DIFFUSION("View: Electron diffusion current",	"J\u2099 (diffusion)",	Quantity.CURRENT_DENSITY,		1),
-		ELECTRON_VELOCITY("View: Electron drift velocity",		"v\u2099",				Quantity.VELOCITY,				1),
-		HOLE_DRIFT("View: Hole drift current",					"J\u209A (drift)",		Quantity.CURRENT_DENSITY,		1),
-		HOLE_DIFFUSION("View: Hole diffusion current",			"J\u209A (diffusion)",	Quantity.CURRENT_DENSITY,		1),
-		HOLE_VELOCITY("View: Hole drift velocity",				"v\u209A",				Quantity.VELOCITY,				1);
+		NONE("No vector overlay",								"None",				Quantity.DIMENSIONLESS			),
+		E_FIELD("View E: Electric field",						"E",				Quantity.ELECTRIC_FIELD			),
+		D_FIELD("View D: Displacement field",					"D",				Quantity.ELECTRIC_FLUX_DENSITY	),
+		ELECTRON_CURRENT("View J\u2099: Electron current",		"J\u2099",			Quantity.CURRENT_DENSITY		),
+		HOLE_CURRENT("View J\u209A: Hole current",				"J\u209A",			Quantity.CURRENT_DENSITY		),
+		TOTAL_CURRENT("View J: Total current",					"J",				Quantity.CURRENT_DENSITY		),
+		EMF("View \u2130: External electromotive force",		"\u2130",			Quantity.ELECTRIC_FIELD			),
+		POYNTING("View S: Poynting vector",						"S",				Quantity.INTENSITY				),
+		ELECTRON_DRIFT("View: Electron drift current",			"J\u2099 (drift)",		Quantity.CURRENT_DENSITY	),
+		ELECTRON_DIFFUSION("View: Electron diffusion current",	"J\u2099 (diffusion)",	Quantity.CURRENT_DENSITY	),
+		ELECTRON_VELOCITY("View: Electron drift velocity",		"v\u2099",				Quantity.VELOCITY			),
+		HOLE_DRIFT("View: Hole drift current",					"J\u209A (drift)",		Quantity.CURRENT_DENSITY	),
+		HOLE_DIFFUSION("View: Hole diffusion current",			"J\u209A (diffusion)",	Quantity.CURRENT_DENSITY	),
+		HOLE_VELOCITY("View: Hole drift velocity",				"v\u209A",				Quantity.VELOCITY			);
 	
 		public String name;
 		public Quantity unit;
 		public String shorthand;
-		public double scale;
-	
-		VectorView(String name, String shorthand, Quantity unit, double scale)
+
+		VectorView(String name, String shorthand, Quantity unit)
 		{
 			this.name = name;
 			this.shorthand = shorthand;
 			this.unit = unit;
-			this.scale = scale;
 		}
 	
 		@Override
@@ -1812,6 +1851,35 @@ public class Renderer extends PeriodicTask {
 		
 		public boolean isConductorOnly() {
 			return (!(this == E_FIELD || this == D_FIELD || this == POYNTING));
+		}
+		
+
+		public double getScalingConstant(Simulation e) {
+			double voltage = e.Eg_semi/e.e_charge;
+			double charge_density = e.n_default_doping_concentration*e.e_charge;
+			double length = Math.sqrt(e.eps_r_semi*e.eps0*voltage/charge_density);
+			double electric_field = voltage/length;
+			double velocity = electric_field*e.mu_electron_semi;
+			double conductivity = charge_density*e.mu_electron_semi;
+			double current_density = conductivity*electric_field;
+			
+			switch (this) {
+			case NONE: return 1;
+			case E_FIELD: return electric_field;
+			case D_FIELD: return e.eps0*electric_field;
+			case ELECTRON_CURRENT: return current_density;
+			case HOLE_CURRENT: return current_density;
+			case TOTAL_CURRENT: return current_density;
+			case EMF: return electric_field;
+			case POYNTING: return electric_field*current_density*length;
+			case ELECTRON_DRIFT: return current_density;
+			case ELECTRON_DIFFUSION: return current_density;
+			case ELECTRON_VELOCITY: return velocity;
+			case HOLE_DRIFT: return current_density;
+			case HOLE_DIFFUSION: return current_density;
+			case HOLE_VELOCITY: return velocity;
+			}
+			return 1;
 		}
 	}
 

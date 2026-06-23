@@ -56,6 +56,8 @@ public class SteamUploadUI extends JFrame implements ActionListener, HyperlinkLi
 		panel.add(scrollPane);
 		
 		desc = new JTextArea();
+		desc.setWrapStyleWord(true);
+		desc.setLineWrap(true);
 		desc.setFont(new Font("SansSerif", Font.PLAIN, 13));
 		scrollPane.setViewportView(desc);
 		

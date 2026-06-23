@@ -406,10 +406,10 @@ public class MainWindow extends JFrame implements ComponentListener {
 		panel.add(gui_simspeed);
 
 		gui_brightness = new JScrollBar();
-		gui_brightness.setValue(-20);
+		gui_brightness.setValue(10);
 		gui_brightness.setBlockIncrement(1);
 		gui_brightness.setMinimum(-45);
-		gui_brightness.setMaximum(45);
+		gui_brightness.setMaximum(55);
 		gui_brightness.setOrientation(Adjustable.HORIZONTAL);
 		gui_brightness.setBounds(10, 211, 171, 17);
 		panel.add(gui_brightness);
@@ -463,12 +463,12 @@ public class MainWindow extends JFrame implements ComponentListener {
 		panel.add(lblVectorBrightness);
 
 		gui_brightness_vec = new JScrollBar();
-		gui_brightness_vec.setValue(-10);
+		gui_brightness_vec.setValue(10);
 		gui_brightness_vec.setOrientation(Adjustable.HORIZONTAL);
 		gui_brightness_vec.setMinimum(-45);
-		gui_brightness_vec.setMaximum(45);
+		gui_brightness_vec.setMaximum(55);
 		gui_brightness_vec.setBlockIncrement(1);
-		gui_brightness_vec.setBounds(11, 261, 171, 17);
+		gui_brightness_vec.setBounds(10, 261, 171, 17);
 		panel.add(gui_brightness_vec);
 
 		gui_brush_1 = new JComboBox<>();
@@ -636,8 +636,8 @@ public class MainWindow extends JFrame implements ComponentListener {
 
 		gui_simspeed.setValue(20);
 		gui_simspeed_2.setValue(25);
-		gui_brightness.setValue(-15);
-		gui_brightness_vec.setValue(-8);
+		gui_brightness.setValue(0);
+		gui_brightness_vec.setValue(0);
 		gui_carrier_density.setValue(10);
 		gui_parameter1.setValue(0);
 		

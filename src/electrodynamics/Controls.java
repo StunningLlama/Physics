@@ -774,12 +774,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 			break;
 		case ZOOM:
-			if (pressing_left && shift_down) {
+			if (pressing_left && shift_down || pressing_middle) {
 				zoom_i1_pan = zoom_i1;
 				zoom_j1_pan = zoom_j1;
 				zoom_i2_pan = zoom_i2;
 				zoom_j2_pan = zoom_j2;
-			} else if (mouse_pressed_left && shift_down) {
+			} else if (mouse_pressed_left && shift_down || mouse_pressed_middle) {
 				double sf_x = (zoom_i2_pan-zoom_i1_pan+1)/(double)e.canvas.zoom_bound_x;
 				double sf_y = (zoom_j2_pan-zoom_j1_pan+1)/(double)e.canvas.zoom_bound_y;
 
@@ -793,7 +793,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				zoom_j1 = zoom_j1_pan - (my_tmp - my_start_tmp);
 				zoom_i2 = zoom_i2_pan - (mx_tmp - mx_start_tmp);
 				zoom_j2 = zoom_j2_pan - (my_tmp - my_start_tmp);
-			} else if (releasing_left && !shift_down) {
+			}
+			
+			if (releasing_left && !shift_down) {
 				if (mx == mx_start && my == my_start) {
 					resetZoom();
 				} else {

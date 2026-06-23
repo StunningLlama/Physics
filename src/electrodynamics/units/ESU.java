@@ -47,7 +47,7 @@ public class ESU extends UnitSystem {
 		case POWER_DENSITY: return "erg/(cm^3 s)";
 		case ENTROPY_DENSITY_RATE: return "erg/(K s cm^3)";
 		case INTENSITY: return "erg/(cm^2 s)";
-		case RATE_DENSITY_SQUARED: return "1/(cm^6 s)";
+		case RATE_DENSITY_SQUARED: return "/(cm^6 s)";
 
 		case CONDUCTIVITY: return "statA/(statV cm)";
 		case RESISTIVITY: return "(statV cm)*statA";

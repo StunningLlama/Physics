@@ -58,7 +58,7 @@ public class SaveManager {
 	public static File infile;
 	public static File outfile;
 	public static File currentfile;
-	public int current_saveversion = 4;
+	public int saveversion = 4;
 	public String fileextension = ".semisim";
 	public Path startingpath;
 
@@ -131,7 +131,7 @@ public class SaveManager {
 				
 				System.out.println("Loading " + infile.getName() + ", version = " + version);
 
-				if (version > current_saveversion) {
+				if (version > saveversion) {
 					fstr.close();
 					throw new IllegalArgumentException("The file was created in a newer version of SemiSim.");
 				}
@@ -342,6 +342,13 @@ public class SaveManager {
 				}
 
 				dialog.dispose();
+				
+				if (version < 4) {
+					e.opts.gui_brightness.setValue(0);
+					e.opts.gui_brightness_vec.setValue(0);
+					//JOptionPane.showMessageDialog(e.opts, "This file was made in a previous version of semisim. The brightness setting may be different from the original.\n");
+				}
+				
 				e.opts.setTitle(SemiSim.name + " - " + infile.getName());
 				e.controls.changesmade = false;
 				currentfile = infile;
@@ -524,7 +531,7 @@ public class SaveManager {
 
 				// Version should always be first
 				JsonObject save = new JsonObject();
-				save.addProperty("version", current_saveversion);
+				save.addProperty("version", saveversion);
 				save.add("header", header);
 				save.add("data", data);
 				save.add("advsettings", advsettings);
