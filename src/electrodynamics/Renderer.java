@@ -1965,17 +1965,17 @@ public class Renderer extends PeriodicTask {
 
 		@Override
 		public void paintComponent(Graphics real) {
-			draw((Graphics2D)real);
+			draw((Graphics2D)real, getWidth(), getHeight());
 		}
 
-		public void draw(Graphics2D g) {
+		public void draw(Graphics2D g, int width, int height) {
 			g.setBackground(Color.BLACK);
 			
 			if (g.getClipBounds() != null)
-				g.clearRect(0, 0, g.getClipBounds().width, g.getClipBounds().height);
+				g.clearRect(0, 0, width, height);
 
-			int canvas_x = this.getWidth();
-			int canvas_y = this.getHeight();
+			int canvas_x = width;
+			int canvas_y = height;
 
 			int xw = e.controls.zoom_i2 - e.controls.zoom_i1 + 1;
 			int yw = e.controls.zoom_j2 - e.controls.zoom_j1 + 1;

@@ -126,7 +126,7 @@ public class SemiSim {
 		userdir = new JFileChooser().getFileSystemView().getDefaultDirectory().toPath();
 		System.out.println(FileSystemView.getFileSystemView().getDefaultDirectory().toPath().toString());
 		
-		String os = System.getProperty("os.version").toLowerCase();
+		String os = System.getProperty("os.name").toLowerCase();
 		
 		if (os.contains("windows")) {
 			userdir = userdir.resolve(Paths.get("SemiSim"));

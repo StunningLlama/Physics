@@ -1939,7 +1939,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
     		BufferedImage screenshot = (BufferedImage)e.opts.createImage(e.renderer.img_back.getWidth(), e.renderer.img_back.getHeight());
     		Graphics2D g = screenshot.createGraphics();
-    	    e.canvas.draw(g);
+    	    e.canvas.draw(g, screenshot.getWidth(), screenshot.getHeight());
     	    g.dispose();
     	    
     		ImageIO.write(screenshot, "png", outputfile);
