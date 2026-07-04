@@ -96,28 +96,10 @@ public class UndoRedo {
 }
 
 class Snapshot {
-	int resolution;
-	double width;
 	double time;
 	
 	HashMap<AbstractButton, Boolean> boolean_values;
 	HashMap<Adjustable, Integer> integer_values;
-	
-	boolean gui_paused;
-	boolean gui_tooltip;
-	boolean gui_text_bg;
-	boolean gui_elem_colors;
-	boolean gui_interface;
-	boolean gui_carriers;
-	boolean gui_hide_carriers_metal;
-	boolean gui_carrier_diffusion;
-	boolean gui_gen_recomb;
-	boolean gui_border;
-	int gui_simspeed;
-	int gui_simspeed_2;
-	int gui_brightness;
-	int gui_brightness_vec;
-	int gui_carrier_number;
 	
 	String description;
 	ScalarView gui_view;
