@@ -90,6 +90,10 @@ public class Steam {
 		    	System.out.println("Steam API did not initialize correctly.");
 			    return;
 		    }
+		    
+		    Runtime.getRuntime().addShutdownHook(new Thread() {
+			    public void run() { shutdown(); }
+			});
 
 		    UGC = new SteamUGC(new SteamUGCCallback () {
 				@Override

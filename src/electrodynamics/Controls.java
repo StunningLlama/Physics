@@ -66,6 +66,7 @@ import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
 import electrodynamics.Renderer.VectorView;
+import electrodynamics.SemiSim.OS;
 import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.gui.CustJMenuItem;
 import electrodynamics.gui.CustJRadioButtonMenuItem;
@@ -288,12 +289,14 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 		double sf_x = (zoom_i2-zoom_i1+1)/(double)e.canvas.zoom_bound_x;
 		double sf_y = (zoom_j2-zoom_j1+1)/(double)e.canvas.zoom_bound_y;
+		
+		int y_extra_offset = (SemiSim.os == OS.MAC)? -1 : 0;
 
 		mx = (int)Math.round(zoom_i1 + (mx_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
-		my = (int)Math.round(zoom_j1 + (my_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
+		my = (int)Math.round(zoom_j1 + (my_screen-e.canvas.offset_y - 1 + y_extra_offset)*sf_y - 0.5);
 
 		mx_start = (int)Math.round(zoom_i1 + (mx_start_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
-		my_start = (int)Math.round(zoom_j1 + (my_start_screen-e.canvas.offset_y - 2)*sf_y - 0.5);
+		my_start = (int)Math.round(zoom_j1 + (my_start_screen-e.canvas.offset_y - 1 + y_extra_offset)*sf_y - 0.5);
 		
 		if (alt_down && (mouse_pressed_left || releasing_left || mouse_pressed_right || releasing_right))
 			snapToCardinals(mx, my);
@@ -1680,8 +1683,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     ScalarMode prev_scalar_mode = ScalarMode.NONE;
     VectorMode prev_vector_mode = VectorMode.NONE;
     
-    @SuppressWarnings("serial")
-	private Action key_dbg = new AbstractAction(null) {
+    private Action key_dbg = new AbstractAction(null) {
 		@Override
         public void actionPerformed(ActionEvent ev) {
 			debugging = !debugging;
@@ -1694,8 +1696,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         }
     };
     
-    @SuppressWarnings("serial")
-	public void addKeyBinds(JPanel contentPane) {
+    public void addKeyBinds(JPanel contentPane) {
     	addKeyBinds(contentPane, KeyEvent.VK_P, KeyEvent.VK_SPACE, new AbstractAction(null) {
     		@Override
     		public void actionPerformed(ActionEvent ev) {
@@ -1913,12 +1914,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     		@Override
             public void actionPerformed(ActionEvent ev) {
         		takeScreenshot();
-            }
-        });
-    	addKeyBind(contentPane, KeyEvent.VK_I, 0, new AbstractAction(null) {
-    		@Override
-            public void actionPerformed(ActionEvent ev) {
-        		Steam.setAchievement("TEST");
             }
         });
     }

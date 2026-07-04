@@ -150,6 +150,7 @@ This table includes keyboard commands that do not have corresponding menu option
 | R   | Record probe data (saves to probedata.txt) |
 | \[  | Previous tool |
 | \]  | Next tool |
+| F12  | Take screenshot |
 
 Notes: Cut/copy commands must be used after selecting a region. Flip command only works after paste.
 
@@ -242,7 +243,7 @@ According to Maxwell's equations, EM fields cannot propagate faster than the spe
 # Build Instructions
 
 Clone the repository using `bash git clone https://github.com/StunningLlama/SemiSim.git`  
-Note: Building requires JRE 1.8 and Maven for dependency management.
+Note: Building requires Java 25 and Maven for dependency management. You may need to update your IDE.
 
 ## Eclipse
 

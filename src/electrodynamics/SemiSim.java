@@ -43,6 +43,7 @@ public class SemiSim {
 
 	public static Path rootdir = Paths.get(".");
 	public static Path userdir = Paths.get(".");
+	public static OS os;
 	ArrayList<SimulationThread> sim_threads = new ArrayList<>();
 	ArrayList<Renderer.GraphicsThread> graphics_threads = new ArrayList<>();
 	Timer master_timer = new Timer();
@@ -70,9 +71,6 @@ public class SemiSim {
 		threadPool.schedule(sim, 0, TimeUnit.MILLISECONDS);
 		threadPool.schedule(sim.renderer, 0, TimeUnit.MILLISECONDS);
 		threadPool.schedule(sim.potentialSolver, 0, TimeUnit.MILLISECONDS);
-		//master_timer.schedule(sim, 0, sim.renderer.frameduration);
-		//graphics_timer.schedule(sim.renderer, 0, sim.renderer.frameduration);
-		//misc_timer.schedule(sim.potentialSolver, 0, sim.renderer.frameduration);
 	}
 	
 	public static File getRootFile(String path) {
@@ -115,6 +113,20 @@ public class SemiSim {
 			}
 		}
 	}
+	
+	public static void detectOS() {
+		String osname = System.getProperty("os.name").toLowerCase();
+		
+		if (osname.contains("windows")) {
+			os = OS.WINDOWS;
+		} else if (osname.contains("mac")) {
+			os = OS.MAC;
+		} else if (osname.contains("linux")) {
+			os = OS.LINUX;
+		} else {
+			os = OS.UNKNOWN;
+		}
+	}
 
 	public static void setDirectory() {
 		try {
@@ -126,13 +138,11 @@ public class SemiSim {
 		userdir = new JFileChooser().getFileSystemView().getDefaultDirectory().toPath();
 		System.out.println(FileSystemView.getFileSystemView().getDefaultDirectory().toPath().toString());
 		
-		String os = System.getProperty("os.name").toLowerCase();
-		
-		if (os.contains("windows")) {
+		if (os == OS.WINDOWS) {
 			userdir = userdir.resolve(Paths.get("SemiSim"));
-		} else if (os.contains("mac")) {
+		} else if (os == OS.MAC) {
 			userdir = userdir.resolve(Paths.get("Documents/SemiSim"));
-		} else if (os.contains("linux")) {
+		} else if (os == OS.LINUX) {
 			userdir = userdir.resolve(Paths.get("SemiSim"));
 		} else {
 			userdir = userdir.resolve(Paths.get("SemiSim"));
@@ -179,18 +189,20 @@ public class SemiSim {
 
 	public static void main(String[] args)
 	{
+		detectOS();
+		
 		setDirectory();
 		
 		setLookAndFeel();
 		
 		Steam.initialize();
 		
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-		    public void run() { Steam.shutdown(); }
-		});
-		
 		SwingUtilities.invokeLater(() -> {
 			instance = new SemiSim();
 		});
+	}
+	
+	public enum OS {
+		WINDOWS, MAC, LINUX, UNKNOWN;
 	}
 }

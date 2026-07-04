@@ -53,6 +53,10 @@ public class EMU extends UnitSystem {
 		case RESISTIVITY: return "(abV cm)/abA";
 		case DIFFUSIVITY: return "(cm^2/s)";
 		case ELECTRIC_MOBILITY: return "(cm^2/(abV s))";
+
+		case ENTROPY_RATE: return "erg/(K s)";
+		case POWER: return "erg/s";
+		case RATE: return "/s";
 		}
 		
 		return "(" + q.name + ")";
