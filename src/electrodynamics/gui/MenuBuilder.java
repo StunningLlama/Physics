@@ -32,7 +32,7 @@ public class MenuBuilder {
             } else {
                 JMenuItem item = new JMenuItem(entry.getName().split("\\" + extension)[0]);
 
-                item.addActionListener(_ -> {
+                item.addActionListener((ev) -> {
             		SwingUtilities.invokeLater(() -> {
             			readfileFunc.accept(entry);
             		});
