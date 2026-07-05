@@ -510,6 +510,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		if (brush == Brush.PROBEPLOT) {
 			e.opts.gui_plotinterval.setVisible(true);
 			e.opts.gui_plotinterval_text.setVisible(true);
+			plotinterval = e.opts.gui_plotinterval.getValue();
+			e.opts.gui_plotinterval_text.setText("Time resolution: " + e.units.toString(plotinterval*e.dt*e.iteration_multiplier, Quantity.TIME));
 		} else {
 			e.opts.gui_plotinterval.setVisible(false);
 			e.opts.gui_plotinterval_text.setVisible(false);
@@ -1452,9 +1454,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
 
 			if (brush == Brush.PROBEPLOT) {
-				plotinterval = e.opts.gui_plotinterval.getValue();
-				e.opts.gui_plotinterval_text.setText("Time resolution: " + e.units.toString(plotinterval*e.dt*e.iteration_multiplier, Quantity.TIME));
-
 				for (int i = e.plots.size()-1; i >= 0; i--) {
 					Plot p = e.plots.get(i);
 					if (p instanceof ProbePlot) {

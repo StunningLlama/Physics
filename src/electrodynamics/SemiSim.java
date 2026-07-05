@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.LookAndFeel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
@@ -30,9 +31,12 @@ import javax.swing.filechooser.FileSystemView;
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
-
+import com.formdev.flatlaf.intellijthemes.FlatHighContrastIJTheme;
+import com.formdev.flatlaf.intellijthemes.FlatSolarizedLightIJTheme;
+import com.formdev.flatlaf.intellijthemes.materialthemeuilite.FlatMTMaterialDarkerIJTheme;
 import electrodynamics.Simulation.SimulationThread;
 import electrodynamics.gui.Preferences.Theme;
+import electrodynamics.plot.Plot;
 
 public class SemiSim {
 	
@@ -192,10 +196,19 @@ public class SemiSim {
 			e.printStackTrace();
 		}
 		
-	 	FlatLaf.installLafInfo(new FlatLightLaf().getName(), FlatLightLaf.class);
-	 	FlatLaf.installLafInfo(new FlatDarkLaf().getName(), FlatDarkLaf.class);
+		installLaf(new FlatLightLaf());
+		installLaf(new FlatDarkLaf());
+		installLaf(new FlatSolarizedLightIJTheme());
+		//installLaf(new FlatSolarizedDarkIJTheme());
+		//installLaf(new FlatMTMaterialLighterIJTheme());
+		installLaf(new FlatMTMaterialDarkerIJTheme());
+		installLaf(new FlatHighContrastIJTheme());
 		
 		Theme.initThemes();
+	}
+	
+	public static <T extends LookAndFeel> void installLaf(T t) {
+		FlatLaf.installLafInfo(t.getName(), t.getClass());
 	}
 	
 
@@ -208,6 +221,8 @@ public class SemiSim {
 			SwingUtilities.updateComponentTreeUI(sim.materialmanager);
 			SwingUtilities.updateComponentTreeUI(sim.materialviewer);
 			SwingUtilities.updateComponentTreeUI(sim.prefs);
+
+			for (Plot p : sim.plots) SwingUtilities.updateComponentTreeUI(p.frame);
 			
 			if (Steam.downloadui != null) SwingUtilities.updateComponentTreeUI(Steam.downloadui);
 			if (Steam.uploadui != null) SwingUtilities.updateComponentTreeUI(Steam.uploadui);
