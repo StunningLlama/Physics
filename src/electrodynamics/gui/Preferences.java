@@ -233,12 +233,12 @@ public class Preferences extends JFrame implements ActionListener {
 		e.units = (Units) gui_units.getSelectedItem();
 		e.renderer.disp_mat_name = chkbox_matname.isSelected();
 		
+		SemiSim.changeLookAndFeel(e, ((Theme)gui_lookfeel.getSelectedItem()).info);
+		
 		int x = (int)(spinner_imgx.getValue());
 		int y = (int)(spinner_imgy.getValue());
 		e.canvas.setPreferredSize(new Dimension(x, y));
 		e.opts.pack();
-		
-		SemiSim.changeLookAndFeel(e, ((Theme)gui_lookfeel.getSelectedItem()).info);
 	}
 	
 	public void resetPrefs() {
