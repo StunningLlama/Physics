@@ -18,6 +18,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import java.awt.Dimension;
 
 public class Calculator extends JDialog implements ActionListener {
 
@@ -46,6 +47,7 @@ public class Calculator extends JDialog implements ActionListener {
 	 * Create the dialog.
 	 */
 	public Calculator(MaterialManager parent) {
+		getContentPane().setPreferredSize(new Dimension(450, 270));
 		setTitle("Band structure calculator");
 		this.parent = parent;
 		setBounds(100, 100, 505, 349);
@@ -258,6 +260,8 @@ public class Calculator extends JDialog implements ActionListener {
 				buttonPane.add(cancelButton);
 			}
 		}
+		
+		pack();
 	}
 
 	@Override

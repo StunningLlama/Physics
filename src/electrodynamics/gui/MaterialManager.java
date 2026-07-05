@@ -116,8 +116,9 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		setResizable(false);
 		setTitle("Material editor");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		setBounds(100, 100, 920, 422);
+		setBounds(100, 100, 920, 426);
 		contentPane = new JPanel();
+		contentPane.setPreferredSize(new Dimension(903, 389));
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
 		contentPane.setLayout(null);
@@ -336,6 +337,8 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 		btn_calc = new JButton("Band and DOS calculator");
 		btn_calc.setBounds(650, 34, 212, 23);
 		contentPane.add(btn_calc);
+
+		pack();
 	}
 	
 	public void initialize() {

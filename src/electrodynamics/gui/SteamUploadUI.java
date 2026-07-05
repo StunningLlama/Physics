@@ -42,6 +42,7 @@ public class SteamUploadUI extends JFrame implements ActionListener, HyperlinkLi
 	public SteamUploadUI() {
 		setBounds(100, 100, 438, 467);
 		contentPane = new JPanel();
+		contentPane.setPreferredSize(new Dimension(400, 400));
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 
 		setContentPane(contentPane);
@@ -65,7 +66,7 @@ public class SteamUploadUI extends JFrame implements ActionListener, HyperlinkLi
 		panel.add(lblNewLabel, BorderLayout.NORTH);
 		
 		panel_1 = new JPanel();
-		panel_1.setBorder(new EmptyBorder(0, 5, 5, 5));
+		panel_1.setBorder(new EmptyBorder(0, 5, 0, 5));
 		contentPane.add(panel_1, BorderLayout.SOUTH);
 		panel_1.setLayout(new BorderLayout(0, 0));
 		
@@ -103,6 +104,8 @@ public class SteamUploadUI extends JFrame implements ActionListener, HyperlinkLi
 		
 		btn_upload.addActionListener(this);
 		txtpnbySubmittingThis.addHyperlinkListener(this);
+		
+		pack();
 	}
 	@Override
 	public void actionPerformed(ActionEvent e) {

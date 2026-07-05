@@ -53,8 +53,8 @@ public class Steam {
 	
 	public static String ws_title = "";
 	public static String ws_description = "";
-	private static SteamUploadUI uploadui;
-	private static SteamDownloadUI downloadui;
+	public static SteamUploadUI uploadui;
+	public static SteamDownloadUI downloadui;
 	
 	private static HashMap<String, String> ach_names = new HashMap<String, String>();
 	static

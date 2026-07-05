@@ -118,6 +118,7 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		setBounds(100, 100, 699, 439);
 
 		panel = new JPanel();
+		panel.setPreferredSize(new Dimension(680, 402));
 		panel.setLayout(null);
 
 		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
@@ -721,6 +722,8 @@ public class AdvancedOptions extends JFrame implements ActionListener {
 		resolution_y.setColumns(10);
 		resolution_y.setBounds(225, 73, 98, 23);
 		sim.add(resolution_y);
+
+		pack();
 	}
 	
 	public void initialize() {

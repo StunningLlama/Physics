@@ -60,6 +60,7 @@ public class SteamDownloadUI extends JFrame implements ActionListener, ListSelec
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		setBounds(100, 100, 705, 595);
 		contentPane = new JPanel();
+		contentPane.setPreferredSize(new Dimension(650, 500));
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
 		contentPane.setLayout(new BorderLayout(0, 0));
@@ -107,6 +108,8 @@ public class SteamDownloadUI extends JFrame implements ActionListener, ListSelec
 		
 		btn_cancel = new JButton("Cancel");
 		panel_2.add(btn_cancel);
+		
+		pack();
 		
 		initialize();
 	}

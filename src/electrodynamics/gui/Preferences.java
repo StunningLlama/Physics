@@ -15,6 +15,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -23,6 +24,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SwingConstants;
+import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.border.EmptyBorder;
 
 import com.google.gson.Gson;
@@ -60,6 +63,7 @@ public class Preferences extends JFrame implements ActionListener {
 	private JSpinner spinner_font;
 	private JButton btn_cancel;
 	private JCheckBox chkbox_matname;
+	private JComboBox<Theme> gui_lookfeel;
 
 	public Preferences(Simulation e) {
 		setResizable(false);
@@ -68,8 +72,9 @@ public class Preferences extends JFrame implements ActionListener {
 		
 		setTitle("Preferences");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		setBounds(100, 100, 590, 259);
+		setBounds(100, 100, 595, 264);
 		contentPane = new JPanel();
+		contentPane.setPreferredSize(new Dimension(581, 225));
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 
 		setContentPane(contentPane);
@@ -168,6 +173,19 @@ public class Preferences extends JFrame implements ActionListener {
 		chkbox_matname.setBounds(307, 71, 255, 23);
 		contentPane.add(chkbox_matname);
 		
+		gui_lookfeel = new JComboBox<>();
+		gui_lookfeel.setBounds(416, 132, 146, 23);
+		contentPane.add(gui_lookfeel);
+		
+		JLabel lblUiTheme = new JLabel("UI theme");
+		lblUiTheme.setHorizontalAlignment(SwingConstants.TRAILING);
+		lblUiTheme.setBounds(288, 136, 116, 16);
+		contentPane.add(lblUiTheme);
+
+		gui_lookfeel.setModel(new DefaultComboBoxModel<Theme>(Theme.values));
+		
+		pack();
+		
 		resetPrefs();
 	}
 	
@@ -175,6 +193,7 @@ public class Preferences extends JFrame implements ActionListener {
 		btn_apply.addActionListener(this);
 		btn_reset.addActionListener(this);
 		btn_cancel.addActionListener(this);
+		
 		setLocationRelativeTo(null);
 		setVisible(false);
 		
@@ -197,6 +216,7 @@ public class Preferences extends JFrame implements ActionListener {
 		spinner_font.setValue(Text.fontsize);
 		gui_units.setSelectedItem(e.units);
 		chkbox_matname.setSelected(e.renderer.disp_mat_name);
+		gui_lookfeel.setSelectedItem(new Theme(UIManager.getLookAndFeel().getClass().getName()));
 	}
 
 	public void applyPrefs() {
@@ -217,6 +237,8 @@ public class Preferences extends JFrame implements ActionListener {
 		int y = (int)(spinner_imgy.getValue());
 		e.canvas.setPreferredSize(new Dimension(x, y));
 		e.opts.pack();
+		
+		SemiSim.changeLookAndFeel(e, ((Theme)gui_lookfeel.getSelectedItem()).info);
 	}
 	
 	public void resetPrefs() {
@@ -230,6 +252,7 @@ public class Preferences extends JFrame implements ActionListener {
 		spinner_undosize.setValue(4);
 		spinner_fps.setValue(60);
 		spinner_font.setValue(12);
+		gui_lookfeel.setSelectedItem(Theme.system);
 	}
 
 	public void readfile(File infile) {
@@ -271,6 +294,7 @@ public class Preferences extends JFrame implements ActionListener {
 						case "fontsize": this.spinner_font.setValue(fstr.nextInt()); break;
 						case "undosize": this.spinner_undosize.setValue(fstr.nextInt()); break;
 						case "matname": this.chkbox_matname.setSelected(fstr.nextBoolean()); break;
+						case "theme": gui_lookfeel.setSelectedItem(new Theme(fstr.nextString())); break;
 						default: fstr.skipValue();
 						}
 					}
@@ -307,6 +331,7 @@ public class Preferences extends JFrame implements ActionListener {
 				header.addProperty("fontsize", (int)spinner_font.getValue());
 				header.addProperty("undosize", (int)spinner_undosize.getValue());
 				header.addProperty("matname", chkbox_matname.isSelected());
+				header.addProperty("theme", ((Theme) gui_lookfeel.getSelectedItem()).info.getClassName());
 
 				// Version should always be first
 				JsonObject save = new JsonObject();
@@ -347,6 +372,44 @@ public class Preferences extends JFrame implements ActionListener {
 			resetPrefs();
 		} else if (ev.getSource() == btn_cancel) {
 			this.setVisible(false);
+		}
+	}
+	
+	public static class Theme {
+		public static Theme[] values;
+		public static Theme system;
+		public static void initThemes() {
+			ArrayList<Theme> themes = new ArrayList<Theme>(UIManager.getInstalledLookAndFeels().length);
+			system = null;
+			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+				themes.add(new Theme(info));
+				if (info.getClassName() == UIManager.getSystemLookAndFeelClassName()) system = new Theme(info);
+			}
+			values = themes.toArray(new Theme[0]);
+		}
+		
+		LookAndFeelInfo info;
+		
+		public Theme(LookAndFeelInfo info) {
+			this.info = info;
+		}
+		
+		public Theme(String classname) {
+			for (Theme theme : values) {
+				if (theme.info.getClassName().equals(classname)) {
+					info = theme.info;
+				}
+			}
+		}
+		
+		public String toString() {
+			return info.getName();
+		}
+		
+		@Override
+		public boolean equals(Object other) {
+			if (!(other instanceof Theme)) return false;
+			return info.getClassName().equals(((Theme) other).info.getClassName());
 		}
 	}
 }

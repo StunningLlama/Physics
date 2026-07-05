@@ -23,10 +23,16 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.filechooser.FileSystemView;
 
+import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLaf;
+import com.formdev.flatlaf.FlatLightLaf;
+
 import electrodynamics.Simulation.SimulationThread;
+import electrodynamics.gui.Preferences.Theme;
 
 public class SemiSim {
 	
@@ -178,10 +184,33 @@ public class SemiSim {
 		}
 	}
 	
-	public static void setLookAndFeel() {
+	public static void initializeLookAndFeel() {
 		try {
 			UIManager.setLookAndFeel(
 					UIManager.getSystemLookAndFeelClassName());
+		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+			e.printStackTrace();
+		}
+		
+	 	FlatLaf.installLafInfo​(new FlatLightLaf().getName(), FlatLightLaf.class);
+	 	FlatLaf.installLafInfo​(new FlatDarkLaf().getName(), FlatDarkLaf.class);
+		
+		Theme.initThemes();
+	}
+	
+
+	public static void changeLookAndFeel(Simulation sim, LookAndFeelInfo info) {
+		if (UIManager.getLookAndFeel().getClass().getName().equals(info.getClassName())) return;
+		try {
+			UIManager.setLookAndFeel(info.getClassName());
+			SwingUtilities.updateComponentTreeUI(sim.opts);
+			SwingUtilities.updateComponentTreeUI(sim.adv_opts);
+			SwingUtilities.updateComponentTreeUI(sim.materialmanager);
+			SwingUtilities.updateComponentTreeUI(sim.materialviewer);
+			SwingUtilities.updateComponentTreeUI(sim.prefs);
+			
+			if (Steam.downloadui != null) SwingUtilities.updateComponentTreeUI(Steam.downloadui);
+			if (Steam.uploadui != null) SwingUtilities.updateComponentTreeUI(Steam.uploadui);
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
 			e.printStackTrace();
 		}
@@ -193,7 +222,7 @@ public class SemiSim {
 		
 		setDirectory();
 		
-		setLookAndFeel();
+		initializeLookAndFeel();
 		
 		Steam.initialize();
 		
