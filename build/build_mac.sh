@@ -1,4 +1,4 @@
-version="2.0"
+version="2.0.1"
 year="2026"
 rm -rf output_mac/SemiSim.app
 jpackage --type app-image \
