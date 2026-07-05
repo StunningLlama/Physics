@@ -192,8 +192,8 @@ public class SemiSim {
 			e.printStackTrace();
 		}
 		
-	 	FlatLaf.installLafInfo​(new FlatLightLaf().getName(), FlatLightLaf.class);
-	 	FlatLaf.installLafInfo​(new FlatDarkLaf().getName(), FlatDarkLaf.class);
+	 	FlatLaf.installLafInfo(new FlatLightLaf().getName(), FlatLightLaf.class);
+	 	FlatLaf.installLafInfo(new FlatDarkLaf().getName(), FlatDarkLaf.class);
 		
 		Theme.initThemes();
 	}
