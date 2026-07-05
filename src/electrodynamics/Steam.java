@@ -127,6 +127,7 @@ public class Steam {
 						UGC.setItemPreview(handle, outputimgfile.getAbsolutePath());
 						UGC.setItemDescription(handle, ws_description);
 						UGC.submitItemUpdate(handle, "");
+						JOptionPane.showMessageDialog(e.opts, "Upload is starting. Please wait for upload to finish.");
 					} else {
 						SemiSim.displayErrorMessage(new Exception("Steam was not able to create the workshop item."));
 					}
