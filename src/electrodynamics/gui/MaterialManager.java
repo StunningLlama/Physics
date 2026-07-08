@@ -622,7 +622,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	
 	public void readFile()
 	{
-		new Thread(() -> {
+		SwingUtilities.invokeLater(() -> {
 			File testfile = startingpath.toFile();
 			if (!testfile.canRead()) {
 				JOptionPane.showMessageDialog(this,
@@ -652,7 +652,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 				for (File infile : files)
 					readfile(infile);
 			}
-		}).start();
+		});
 	}
 
 	public void readfile(File infile) {
@@ -709,7 +709,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 
 	public void writeFile()
 	{
-		new Thread(() -> {
+		SwingUtilities.invokeLater(() -> {
 			if (list.getSelectedValue() == null) {
 				JOptionPane.showMessageDialog(this,
 				"Please select a material to save.");
@@ -758,7 +758,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 			}
 			
 			writeFile(outfile);
-		}).start();
+		});
 	}
 
 	public void writeFile(File outfile)

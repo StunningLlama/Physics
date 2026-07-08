@@ -72,7 +72,7 @@ public class SaveManager {
 
 	public void readFile()
 	{
-		new Thread(() -> {
+		SwingUtilities.invokeLater(() -> {
 			File testfile = startingpath.toFile();
 			if (!testfile.canRead()) {
 				JOptionPane.showMessageDialog(e.opts,
@@ -101,7 +101,7 @@ public class SaveManager {
 				infile = null;
 			
 			readfile(infile);
-		}).start();
+		});
 	}
 
 	public void readfile(File infile) {
@@ -426,7 +426,7 @@ public class SaveManager {
 
 	public void writeFile(boolean saveas)
 	{
-		new Thread(() -> {
+		SwingUtilities.invokeLater(() -> {
 			if (!saveas && currentfile != null && currentfile.exists()) {
 				writeFile(currentfile);
 				e.opts.setTitle(SemiSim.name + " - " + currentfile.getName());
@@ -477,7 +477,7 @@ public class SaveManager {
 			e.opts.setTitle(SemiSim.name + " - " + outfile.getName());
 			e.controls.changesmade = false;
 			currentfile = outfile;
-		}).start();
+		});
 	}
 	
 	public void writeFile(File outfile) {

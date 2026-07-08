@@ -5,12 +5,10 @@
 package electrodynamics;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.KeyboardFocusManager;
 import java.awt.MouseInfo;
@@ -50,8 +48,6 @@ import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
-import javax.swing.JEditorPane;
-import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -65,9 +61,6 @@ import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
-import javax.swing.event.HyperlinkEvent;
-import javax.swing.event.HyperlinkListener;
-import javax.swing.event.HyperlinkEvent.EventType;
 
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
@@ -77,6 +70,7 @@ import electrodynamics.SemiSim.OS;
 import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.gui.CustJMenuItem;
 import electrodynamics.gui.CustJRadioButtonMenuItem;
+import electrodynamics.gui.LinkBox;
 import electrodynamics.gui.MenuCheckList;
 import electrodynamics.plot.LinePath;
 import electrodynamics.plot.Path;
@@ -1585,9 +1579,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 		case "menu_report":
 			if (BuildFlags.steam_enabled) {
-				showLinkBox("<p style='width: 300px;'>Please contact Brandon at brandonli.lex@gmail.com or create a discussion on <a href=\"https://steamcommunity.com/app/4864110/discussions/\">steam</a>.</p>", "Report a bug");
+				showLinkBox("<div style='width: 300px;'>Please contact Brandon at brandonli.lex@gmail.com or create a discussion on <a href=\"https://steamcommunity.com/app/4864110/discussions/\">steam</a>.</div>", "Report a bug");
 			} else {
-				showLinkBox("<p style='width: 300px;'>Please contact Brandon at brandonli.lex@gmail.com or go to <a href=\"https://github.com/StunningLlama/SemiSim/issues\">github</a>.</p>", "Report a bug");
+				showLinkBox("<div style='width: 300px;'>Please contact Brandon at brandonli.lex@gmail.com or go to <a href=\"https://github.com/StunningLlama/SemiSim/issues\">github</a>.</div>", "Report a bug");
 			}
 			break;
 		case "menu_pref":
@@ -1623,35 +1617,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	}
 	
 	public void showLinkBox(String text, String title) {
-	    JLabel label = new JLabel();
-	    Font font = label.getFont();
-        Color color = label.getBackground();
-        
-	    StringBuffer style = new StringBuffer("font-family:" + font.getFamily() + ";");
-	    style.append("font-weight:" + (font.isBold() ? "bold" : "normal") + ";");
-	    style.append("font-size:" + font.getSize() + "pt;");
-        style.append("background-color: rgb("+color.getRed()+","+color.getGreen()+","+color.getBlue()+");");
-	    
-		JEditorPane pane = new JEditorPane();
-		pane.setEditable(false);
-		pane.setContentType("text/html");
-		pane.setText("<html><body style=\"" + style + "\">" + text + "</body></html>");
-		pane.setBorder(null);
 		
-		pane.addHyperlinkListener(new HyperlinkListener() {
-			@Override
-			public void hyperlinkUpdate(HyperlinkEvent ev) {
-				if (ev.getEventType() == EventType.ACTIVATED) {
-					try {
-						java.awt.Desktop.getDesktop().browse(ev.getURL().toURI());
-					} catch (IOException | URISyntaxException ex) {
-						ex.printStackTrace();
-					}
-				}
-			}
-		});
-		
-		JOptionPane.showMessageDialog(e.opts, pane, title, JOptionPane.INFORMATION_MESSAGE);
+		JOptionPane.showMessageDialog(e.opts, new LinkBox(text), title, JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	@Override

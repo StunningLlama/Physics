@@ -21,7 +21,6 @@ import electrodynamics.Steam;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.awt.Font;
 import java.awt.BorderLayout;
@@ -123,16 +122,12 @@ public class SteamUploadUI extends JFrame implements ActionListener, HyperlinkLi
 			
 			result = 0;
 		}
-		
-		/*synchronized(this) {
-		    this.notify();
-		}*/
 	}
 	@Override
 	public void hyperlinkUpdate(HyperlinkEvent ev) {
 		if (ev.getEventType() == EventType.ACTIVATED) {
 			try {
-				java.awt.Desktop.getDesktop().browse(new URI("http://steamcommunity.com/sharedfiles/workshoplegalagreement"));
+				java.awt.Desktop.getDesktop().browse(ev.getURL().toURI());
 			} catch (IOException | URISyntaxException ex) {
 				ex.printStackTrace();
 			}
