@@ -116,38 +116,48 @@ public class Renderer extends PeriodicTask {
 	public Renderer(Simulation e) {
 		this.e = e;
 	}
-	
+
 	public void setResolution() {
-		scalarfield = new double[e.nx][e.ny];
-		gradscalarfield = new double[e.nx][e.ny];
-		image_r = new float[e.nx][e.ny];
-		image_g = new float[e.nx][e.ny];
-		image_b = new float[e.nx][e.ny];
+		e.rwLock.writeLock().lock();
+		try {
+			scalarfield = new double[e.nx][e.ny];
+			gradscalarfield = new double[e.nx][e.ny];
+			image_r = new float[e.nx][e.ny];
+			image_g = new float[e.nx][e.ny];
+			image_b = new float[e.nx][e.ny];
 
-		rho_p_dist.init(e.nx, e.ny);
-		rho_n_dist.init(e.nx, e.ny);
-		rho_G_dist.init(e.nx, e.ny);
-		
-		setCanvasSize();
-		
-		resetChargeDots();
+			rho_p_dist.init(e.nx, e.ny);
+			rho_n_dist.init(e.nx, e.ny);
+			rho_G_dist.init(e.nx, e.ny);
+
+			setCanvasSize();
+
+			resetChargeDots();
+		} finally {
+			e.rwLock.writeLock().unlock();
+		}
 	}
-	
-	public void setCanvasSize() {
-		scalefactor_real = Math.min(e.canvas.getWidth()/e.nx, e.canvas.getHeight()/e.ny);
-		scalefactor = (int)scalefactor_real;
-		if (scalefactor < 1) scalefactor = 1;
 
-		int imgwidth_new = (int)Math.ceil(scalefactor*e.nx);	
-		int imgheight_new = (int)Math.ceil(scalefactor*e.ny);
-		
-		if (imgwidth_new != imgwidth || imgheight_new != imgheight) {
-			imgwidth = imgwidth_new;
-			imgheight = imgheight_new;
-			img_back = (BufferedImage) e.opts.createImage(imgwidth, imgheight);
-			img_front = (BufferedImage) e.opts.createImage(imgwidth, imgheight);
-			imgData = ((DataBufferInt)img_back.getRaster().getDataBuffer()).getData();
-			depth_buf = new int[imgData.length];
+	public void setCanvasSize() {
+		e.rwLock.writeLock().lock();
+		try {
+			scalefactor_real = Math.min((double) e.canvas.getWidth()/e.nx, (double) e.canvas.getHeight()/e.ny);
+			scalefactor = (int)Math.round(scalefactor_real);
+			if (scalefactor < 1) scalefactor = 1;
+
+			int imgwidth_new = (int)Math.ceil(scalefactor*e.nx);	
+			int imgheight_new = (int)Math.ceil(scalefactor*e.ny);
+
+			if (imgwidth_new != imgwidth || imgheight_new != imgheight) {
+				imgwidth = imgwidth_new;
+				imgheight = imgheight_new;
+				img_back = (BufferedImage) e.opts.createImage(imgwidth, imgheight);
+				img_front = (BufferedImage) e.opts.createImage(imgwidth, imgheight);
+				imgData = ((DataBufferInt)img_back.getRaster().getDataBuffer()).getData();
+				depth_buf = new int[imgData.length];
+			}
+		} finally {
+			e.rwLock.writeLock().unlock();
 		}
 	}
 	
@@ -202,7 +212,7 @@ public class Renderer extends PeriodicTask {
 		col_b = (float)(interp(lambda_b, (lambda-400)/5)*intensity);
 	}
 	
-	public double interp(double[] y, double x) {
+	private double interp(double[] y, double x) {
 		int i = (int) x;
 		double f = x - i;
 		if (i < 0 || x < 0)
@@ -456,35 +466,35 @@ public class Renderer extends PeriodicTask {
 		}
 	}
 
-	public float max(float x, float y, float z) {
+	/*private float max(float x, float y, float z) {
 		return Math.max(Math.max(x, y), z);
-	}
+	}*/
 
-	public float max(float x, float y, float z, float w) {
+	private float max(float x, float y, float z, float w) {
 		return Math.max(Math.max(Math.max(x, y), z), w);
 	}
 
-	public float min(float x, float y, float z) {
+	/*private float min(float x, float y, float z) {
 		return Math.min(Math.min(x, y), z);
 	}
 
-	public float min(float x, float y, float z, float w) {
+	private float min(float x, float y, float z, float w) {
 		return Math.min(Math.min(Math.min(x, y), z), w);
-	}
+	}*/
 
-	public int clamp(int val, int min, int max) {
+	private int clamp(int val, int min, int max) {
 		if (val < min) return min;
 		if (val > max) return max;
 		return val;
 	}
 
-	public double clamp(double val, double min, double max) {
+	private double clamp(double val, double min, double max) {
 		if ((val != val) || (val < min)) return min;
 		if (val > max) return max;
 		return val;
 	}
 
-	public double bump(double x, double w) {
+	private double bump(double x, double w) {
 		if (x <= 0 || x >= 1) return 0;
 		if (x <= (1-w) && x >= w) return 1;
 
@@ -523,7 +533,7 @@ public class Renderer extends PeriodicTask {
         SemiSim.instance.threadPool.schedule(this, nextDelay(frameduration), TimeUnit.MILLISECONDS);
 	}
 	
-	BufferedImage copyImage(BufferedImage src, BufferedImage dst) {
+	private BufferedImage copyImage(BufferedImage src, BufferedImage dst) {
 	    if (src.getType() != dst.getType() || 
 	        src.getWidth() != dst.getWidth() || 
 	        src.getHeight() != dst.getHeight()) {
@@ -545,7 +555,7 @@ public class Renderer extends PeriodicTask {
 	    return dst;
 	}
 	
-	void drawPixels() {
+	private void drawPixels() {
 
 		for (int i = 0; i < e.nx; i++) {
 			for (int j = 0; j < e.ny; j++) {
@@ -937,7 +947,7 @@ public class Renderer extends PeriodicTask {
 
 	}
 	
-	void drawOverlay() {
+	private void drawOverlay() {
 		delta_t = e.time - t_prev;
 		t_prev = e.time;
 
@@ -958,7 +968,7 @@ public class Renderer extends PeriodicTask {
 		}
 	}
 	
-	void drawText(Graphics2D g) {
+	private void drawText(Graphics2D g) {
 		clearStrings();
 
 		//Graphics2D g = (Graphics2D) img_back.getGraphics();
@@ -1969,35 +1979,40 @@ public class Renderer extends PeriodicTask {
 		}
 
 		public void draw(Graphics2D g, int width, int height) {
-			g.setBackground(Color.BLACK);
-			
-			if (g.getClipBounds() != null)
-				g.clearRect(0, 0, width, height);
+			e.rwLock.readLock().lock();
+			try {
+				g.setBackground(Color.BLACK);
 
-			int canvas_x = width;
-			int canvas_y = height;
+				if (g.getClipBounds() != null)
+					g.clearRect(0, 0, width, height);
 
-			int xw = e.controls.zoom_i2 - e.controls.zoom_i1 + 1;
-			int yw = e.controls.zoom_j2 - e.controls.zoom_j1 + 1;
-			
-			if (xw/(double)yw >= canvas_x/(double) canvas_y) {
-				int dim2 = (int) (canvas_x*yw/(double)xw);
-				zoom_bound_x = canvas_x - 1;
-				zoom_bound_y = dim2 - 1;
-				offset_x = 0;
-				offset_y = (canvas_y - dim2)/2;
-			} else {
-				int dim2 = (int) (canvas_y*xw/(double)yw);
-				zoom_bound_x = dim2 - 1;
-				zoom_bound_y = canvas_y - 1;
-				offset_x = (canvas_x - dim2)/2;
-				offset_y = 0;
-			}
-			
-			g.drawImage(e.renderer.img_front, offset_x, offset_y, zoom_bound_x+1+offset_x, zoom_bound_y+1+offset_y, 
-				e.controls.zoom_i1*e.renderer.scalefactor, e.controls.zoom_j1*e.renderer.scalefactor, (e.controls.zoom_i2+1)*e.renderer.scalefactor, (e.controls.zoom_j2+1)*e.renderer.scalefactor, e.opts);
+				int canvas_x = width;
+				int canvas_y = height;
 
-			e.renderer.drawText((Graphics2D)g);
+				int xw = e.controls.zoom_i2 - e.controls.zoom_i1 + 1;
+				int yw = e.controls.zoom_j2 - e.controls.zoom_j1 + 1;
+
+				if (xw/(double)yw >= canvas_x/(double) canvas_y) {
+					int dim2 = (int) (canvas_x*yw/(double)xw);
+					zoom_bound_x = canvas_x - 1;
+					zoom_bound_y = dim2 - 1;
+					offset_x = 0;
+					offset_y = (canvas_y - dim2)/2;
+				} else {
+					int dim2 = (int) (canvas_y*xw/(double)yw);
+					zoom_bound_x = dim2 - 1;
+					zoom_bound_y = canvas_y - 1;
+					offset_x = (canvas_x - dim2)/2;
+					offset_y = 0;
+				}
+
+				g.drawImage(e.renderer.img_front, offset_x, offset_y, zoom_bound_x+1+offset_x, zoom_bound_y+1+offset_y, 
+						e.controls.zoom_i1*e.renderer.scalefactor, e.controls.zoom_j1*e.renderer.scalefactor, (e.controls.zoom_i2+1)*e.renderer.scalefactor, (e.controls.zoom_j2+1)*e.renderer.scalefactor, e.opts);
+
+				e.renderer.drawText((Graphics2D)g);
+			} finally {
+	        	e.rwLock.readLock().unlock();
+	        }
 		}
 
 		public RenderCanvas(Simulation w) {

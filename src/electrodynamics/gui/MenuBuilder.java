@@ -33,9 +33,7 @@ public class MenuBuilder {
                 JMenuItem item = new JMenuItem(entry.getName().split("\\" + extension)[0]);
 
                 item.addActionListener((ev) -> {
-            		SwingUtilities.invokeLater(() -> {
-            			readfileFunc.accept(entry);
-            		});
+            		new Thread(() -> readfileFunc.accept(entry)).start();
                 });
 
                 menu.add(item);

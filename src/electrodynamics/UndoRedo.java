@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.AbstractButton;
+import javax.swing.SwingUtilities;
 
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
@@ -168,61 +169,62 @@ class Snapshot {
 
 
 	public void load(Simulation e) {
+		SwingUtilities.invokeLater(() -> {
+			e.rwLock.writeLock().lock();
+			try {
+				e.time = time;
 
-		e.rwLock.writeLock().lock();
-		try {
-			e.time = time;
+				if (e.controls.undoredo.tracksettings) {
+					e.description = description;
+					e.controls.scalarview.setOption(gui_view);
+					e.controls.vectorview.setOption(gui_view_vec);
+					e.controls.scalarmode.setOption(gui_scalar_mode);
+					e.controls.vectormode.setOption(gui_view_vec_mode);
+					e.opts.gui_bc.setSelectedItem(gui_bc);
 
-			if (e.controls.undoredo.tracksettings) {
-				e.description = description;
-				e.controls.scalarview.setOption(gui_view);
-				e.controls.vectorview.setOption(gui_view_vec);
-				e.controls.scalarmode.setOption(gui_scalar_mode);
-				e.controls.vectormode.setOption(gui_view_vec_mode);
-				e.opts.gui_bc.setSelectedItem(gui_bc);
+					for (AbstractButton item : boolean_values.keySet()) {
+						item.setSelected(boolean_values.get(item));
+					}
 
-				for (AbstractButton item : boolean_values.keySet()) {
-					item.setSelected(boolean_values.get(item));
+					for (Adjustable item : integer_values.keySet()) {
+						item.setValue(integer_values.get(item));
+					}
+
+					e.opts.setRedundantOptions();
 				}
 
-				for (Adjustable item : integer_values.keySet()) {
-					item.setValue(integer_values.get(item));
-				}
+				e.Ex = copy(ex); 
+				e.Ey = copy(ey);
+				e.Hz = copy(hz);
 
-				e.opts.setRedundantOptions();
+				e.rho_abs = copy(rho_c);
+				e.rho_n = copy(rho_n);
+				e.rho_p = copy(rho_p);
+				e.rho_back = copy(rho_back);
+				e.rho_free = copy(rho_free);
+
+				e.Jx_abs = copy(jx_c);
+				e.Jy_abs = copy(jy_c);
+				e.Jx_n = copy(jx_n);
+				e.Jy_n = copy(jy_n);
+				e.Jx_p = copy(jx_p);
+				e.Jy_p = copy(jy_p);
+
+				e.materials = copy(materials);
+				e.probes = Utils.cloneList(probes, Probe::clone);
+
+				e.opts.textPane.setText(e.description);
+				e.opts.textPane.setEditable(false);
+				e.opts.textPane.setCaretPosition(0);
+				e.updateAllMaterials(false);
+				e.calcMiscFields(true);
 			}
-
-			e.Ex = copy(ex); 
-			e.Ey = copy(ey);
-			e.Hz = copy(hz);
-
-			e.rho_abs = copy(rho_c);
-			e.rho_n = copy(rho_n);
-			e.rho_p = copy(rho_p);
-			e.rho_back = copy(rho_back);
-			e.rho_free = copy(rho_free);
-
-			e.Jx_abs = copy(jx_c);
-			e.Jy_abs = copy(jy_c);
-			e.Jx_n = copy(jx_n);
-			e.Jy_n = copy(jy_n);
-			e.Jx_p = copy(jx_p);
-			e.Jy_p = copy(jy_p);
-
-			e.materials = copy(materials);
-			e.probes = Utils.cloneList(probes, Probe::clone);
-
-			e.opts.textPane.setText(e.description);
-			e.opts.textPane.setEditable(false);
-			e.opts.textPane.setCaretPosition(0);
-			e.updateAllMaterials(false);
-			e.calcMiscFields(true);
-		}
-		finally {
-			e.rwLock.writeLock().unlock();
-		}
+			finally {
+				e.rwLock.writeLock().unlock();
+			}
+		});
 	}
-	
+
 	public static double[][] copy(double[][] arr) {
 	    if (arr == null) {
 	        return null;

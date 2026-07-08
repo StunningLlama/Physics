@@ -106,6 +106,7 @@ public class SteamUploadUI extends JFrame implements ActionListener, HyperlinkLi
 		txtpnbySubmittingThis.addHyperlinkListener(this);
 		
 		pack();
+		setLocationRelativeTo(null);
 	}
 	@Override
 	public void actionPerformed(ActionEvent e) {

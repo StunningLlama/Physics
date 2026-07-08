@@ -836,6 +836,9 @@ public class MainWindow extends JFrame implements ComponentListener {
 		setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 		addWindowListener(e.controls);
 		//setLocationRelativeTo(null);
+		
+		if (BuildFlags.steam_enabled)
+			menu_github.setText("Steam");
 
 		try {
 			BufferedImage icon = ImageIO.read(SemiSim.getRootFile("images/icon.png"));

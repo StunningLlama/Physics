@@ -622,7 +622,7 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 	
 	public void readFile()
 	{
-		SwingUtilities.invokeLater(() -> {
+		new Thread(() -> {
 			File testfile = startingpath.toFile();
 			if (!testfile.canRead()) {
 				JOptionPane.showMessageDialog(this,
@@ -652,62 +652,64 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 				for (File infile : files)
 					readfile(infile);
 			}
-		});
+		}).start();
 	}
 
 	public void readfile(File infile) {
-		e.rwLock.writeLock().lock();
-		try {
-			if (infile == null || !infile.exists()) return;
-			
+		SwingUtilities.invokeLater(() -> {
+			e.rwLock.writeLock().lock();
 			try {
-				JsonReader fstr = new JsonReader(new InputStreamReader(new FileInputStream(infile)));
-				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+				if (infile == null || !infile.exists()) return;
 
-				fstr.beginObject();
+				try {
+					JsonReader fstr = new JsonReader(new InputStreamReader(new FileInputStream(infile)));
+					Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
 
-				assertNextObject(fstr, "version");
-				int version = fstr.nextInt();
-				
-				System.out.println("Loading " + infile.getName() + ", version = " + version);
+					fstr.beginObject();
 
-				if (version > current_material_saveversion) {
-					fstr.close();
-					throw new IllegalArgumentException("The file was created in a newer version of SemiSim.");
-				}
+					assertNextObject(fstr, "version");
+					int version = fstr.nextInt();
 
-				if (version == current_material_saveversion) {
-					assertNextObject(fstr, "materials");
-					Material[] mats = (Material[]) gson.fromJson(fstr, Material[].class);
+					System.out.println("Loading " + infile.getName() + ", version = " + version);
 
-					for (Material mat : mats) {
-						mat.cust_id = id_counter;
-						mat_map.put(mat.cust_id, mat);
-						id_counter++;
-						updateUI();
-						list.setSelectedValue(mat, true);
+					if (version > current_material_saveversion) {
+						fstr.close();
+						throw new IllegalArgumentException("The file was created in a newer version of SemiSim.");
 					}
 
-					fstr.close();
+					if (version == current_material_saveversion) {
+						assertNextObject(fstr, "materials");
+						Material[] mats = (Material[]) gson.fromJson(fstr, Material[].class);
 
+						for (Material mat : mats) {
+							mat.cust_id = id_counter;
+							mat_map.put(mat.cust_id, mat);
+							id_counter++;
+							updateUI();
+							list.setSelectedValue(mat, true);
+						}
+
+						fstr.close();
+
+					}
+				} catch (FileNotFoundException ex) {
+					return;
+				} catch (IOException | IllegalArgumentException ex) {
+					JOptionPane.showMessageDialog(this,
+							"Unable to load file.\n" + ex.getMessage());
+					ex.printStackTrace();
+					return;
 				}
-			} catch (FileNotFoundException ex) {
 				return;
-			} catch (IOException | IllegalArgumentException ex) {
-				JOptionPane.showMessageDialog(this,
-				"Unable to load file.\n" + ex.getMessage());
-				ex.printStackTrace();
-				return;
+			} finally {
+				e.rwLock.writeLock().unlock();
 			}
-			return;
-		} finally {
-			e.rwLock.writeLock().unlock();
-		}
+		});
 	}
-	
+
 	public void writeFile()
 	{
-		SwingUtilities.invokeLater(() -> {
+		new Thread(() -> {
 			if (list.getSelectedValue() == null) {
 				JOptionPane.showMessageDialog(this,
 				"Please select a material to save.");
@@ -756,36 +758,38 @@ public class MaterialManager extends JFrame implements ActionListener, ListSelec
 			}
 			
 			writeFile(outfile);
-		});
+		}).start();
 	}
 
 	public void writeFile(File outfile)
 	{
-		e.rwLock.writeLock().lock();
-		try {
+		SwingUtilities.invokeLater(() -> {
+			e.rwLock.writeLock().lock();
 			try {
-				PrintWriter fstr = new PrintWriter(new FileOutputStream(outfile));
+				try {
+					PrintWriter fstr = new PrintWriter(new FileOutputStream(outfile));
 
-				Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
+					Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
 
-				JsonObject save = new JsonObject();
-				save.addProperty("version", current_material_saveversion);
-				Material[] mats = list.getSelectedValuesList().toArray(new Material[0]);
-				save.add("materials", gson.toJsonTree(mats));
-				String json = gson.toJson(save);
+					JsonObject save = new JsonObject();
+					save.addProperty("version", current_material_saveversion);
+					Material[] mats = list.getSelectedValuesList().toArray(new Material[0]);
+					save.add("materials", gson.toJsonTree(mats));
+					String json = gson.toJson(save);
 
-				fstr.print(json);
-				fstr.flush();
-				fstr.close();
+					fstr.print(json);
+					fstr.flush();
+					fstr.close();
 
-				JOptionPane.showMessageDialog(this, "Material(s) saved successfully.");
-			} catch (FileNotFoundException e) {
+					JOptionPane.showMessageDialog(this, "Material(s) saved successfully.");
+				} catch (FileNotFoundException e) {
+					return;
+				}
 				return;
+			} finally {
+				e.rwLock.writeLock().unlock();
 			}
-			return;
-		} finally {
-			e.rwLock.writeLock().unlock();
-		}
+		});
 	}
 	
 

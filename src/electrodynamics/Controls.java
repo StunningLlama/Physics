@@ -5,10 +5,12 @@
 package electrodynamics;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.KeyboardFocusManager;
 import java.awt.MouseInfo;
@@ -48,6 +50,8 @@ import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
+import javax.swing.JEditorPane;
+import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -61,6 +65,9 @@ import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
+import javax.swing.event.HyperlinkEvent.EventType;
 
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
@@ -177,7 +184,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public boolean EMF_selected = false;
 
 	public double brushsize = 0;
-	public int prev_EMF_setting = 0;
+	public double prev_EMF_setting = 0;
+	public double new_EMF_setting = 0;
+	public double new_EMF = 0;
+	public double angle = 0;
 	public BoundaryCondition prev_boundary = BoundaryCondition.DISSIPATIVE;
 
 	public boolean[][] under_brush;
@@ -224,28 +234,34 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public Controls(Simulation e) {
 		this.e = e;
 	}
-	
-	void setResolution() {
-		selection = new Clipboard(e);
-		clipboard = new Clipboard(e);
 
-		under_brush = new boolean[e.nx][e.ny];
-		selected = new boolean[e.nx][e.ny];
-		selected_EMF = new boolean[e.nx][e.ny];
-		
-		text_x = 0;
-		text_y = 0;
-		endTextInput();
+	void setResolution() {
+		e.rwLock.writeLock().lock();
+		try {
+			selection = new Clipboard(e);
+			clipboard = new Clipboard(e);
+
+			under_brush = new boolean[e.nx][e.ny];
+			selected = new boolean[e.nx][e.ny];
+			selected_EMF = new boolean[e.nx][e.ny];
+
+			text_x = 0;
+			text_y = 0;
+			endTextInput();
+		} finally {
+			e.rwLock.writeLock().unlock();
+		}
 	}
 
 	public void handleMouseInput() {
 		transformMouseCoords();
 		processKeyboardCommands();
-		makeUIchanges();
+		getUIinputs();
+		SwingUtilities.invokeLater(() -> makeUIchanges());
 		applyTool();
 	}
-	
-	public void transformMouseCoords() {
+
+	private void transformMouseCoords() {
 		pressing_left = false;
 		releasing_left = false;
 		if (mouse_pressed_left) {
@@ -313,7 +329,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	}
 
 	
-	public void processKeyboardCommands() {
+	private void processKeyboardCommands() {
 		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
 		
 		if (brush_changed) {
@@ -437,7 +453,38 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		for (Probe p : e.probes)
 			if (p.selected)
 				selectionempty = false;
+	}
+	
+	private void getUIinputs() {
+		brushsize = Math.pow(10.0, 2*e.opts.gui_brushsize.getValue()/(50.0*10.0) - 0.75) + e.opts.gui_brushsize.getValue()/10.0 + 0.5;
+
+		int directionval = e.opts.gui_parameter2.getValue()/6;
+		if (directionval == 0) {
+			angle = -Math.PI/2;
+		}
+		if (directionval == 1) {
+			angle = 0;
+		}
+		if (directionval == 2) {
+			angle = Math.PI/2;
+		}
+		if (directionval == 3) {
+			angle = Math.PI;
+		}
+
+		new_EMF_setting = e.opts.gui_parameter3.getValue();
+		if (!iscurrentselected) {
+			new_EMF = e.max_EMF*new_EMF_setting/50.0;
+		} else {
+			new_EMF = (e.max_current/e.currentsource_sigma)*new_EMF_setting/50.0;
+		}
+
+		flashlight_strength = e.default_flashlight_strength*Math.pow(10, e.opts.gui_light.getValue()/10.0);
 		
+		e.AC_freq = e.default_AC_freq*Math.pow(10, e.opts.gui_parameter1.getValue()/10.0);
+	}
+	
+	private void makeUIchanges() {
 		e.opts.menu_cut.setEnabled(!selectionempty);
 		e.opts.menu_copy.setEnabled(!selectionempty);
 		e.opts.menu_paste.setEnabled(!clipboardempty);
@@ -447,9 +494,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		e.opts.menu_undo.setEnabled(undoredo.canUndo());
 		e.opts.menu_redo.setEnabled(undoredo.canRedo());
 		e.opts.menu_deselectall.setEnabled(!selectionempty);
-	}
-	
-	public void makeUIchanges() {
+		
 		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
 		currentCursor = DEFAULT_CURSOR;
 		
@@ -467,8 +512,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		
 		e.opts.gui_stepsizelbl.setText("Timestep: " + e.units.toString(e.dt, Quantity.TIME));
 		e.opts.gui_stepslbl.setText("Sim steps/frame: " + e.opts.gui_simspeed_2.getValue());
-
-		brushsize = Math.pow(10.0, 2*e.opts.gui_brushsize.getValue()/(50.0*10.0) - 0.75) + e.opts.gui_brushsize.getValue()/10.0 + 0.5;
 		e.opts.lblBrushSize.setText("Brush size: " + (int)Math.ceil(brushsize));
 
 		if (!Brush.isMaterialModifyingBrush(brush))
@@ -530,13 +573,61 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		} else {
 			e.opts.gui_probetype.setVisible(false);
 		}
-	}
-	
-	public void applyTool() {
 		
-		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
-		BrushShape brushshape = (BrushShape) e.opts.gui_brush_1.getSelectedItem();
+		GeneralMaterialType mat = (GeneralMaterialType) e.opts.gui_material.getSelectedItem();
 
+		if (Brush.isMaterialModifyingBrush(brush) && mat.type.hasEMF() && brush != Brush.LIGHT) {
+			e.opts.gui_parameter2.setVisible(true);
+			e.opts.gui_parameter2_text.setVisible(true);
+
+			int directionval = e.opts.gui_parameter2.getValue()/6;
+			if (directionval == 0) {
+				e.opts.gui_parameter2_text.setText("Direction: Up");
+			}
+			if (directionval == 1) {
+				e.opts.gui_parameter2_text.setText("Direction: Right");
+			}
+			if (directionval == 2) {
+				e.opts.gui_parameter2_text.setText("Direction: Down");
+			}
+			if (directionval == 3) {
+				e.opts.gui_parameter2_text.setText("Direction: Left");
+			}
+		} else {
+			e.opts.gui_parameter2.setVisible(false);
+			e.opts.gui_parameter2_text.setVisible(false);
+			e.opts.gui_parameter2_text.setText("");
+		}
+		
+		if (brush == Brush.LIGHT) {
+			e.opts.gui_light_text.setText("Light: " + e.units.toString(flashlight_strength*e.Eg_semi*e.depth, Quantity.INTENSITY));
+		}
+		
+		if (e.opts.gui_brush.getSelectedItem() == Brush.INTERACT && EMF_selected) {
+			e.opts.gui_parameter3.setVisible(true);
+			e.opts.gui_parameter3_text.setVisible(true);
+			if (!iscurrentselected)
+				e.opts.gui_parameter3_text.setText("EMF: " + e.units.toString(new_EMF, Quantity.ELECTRIC_FIELD));
+			else
+				e.opts.gui_parameter3_text.setText("J: " + e.units.toString(new_EMF*e.currentsource_sigma, Quantity.CURRENT_DENSITY));
+		} else {
+			e.opts.gui_parameter3.setVisible(false);
+			e.opts.gui_parameter3_text.setVisible(false);
+			e.opts.gui_parameter3_text.setText("");
+		}
+
+		e.opts.gui_parameter1_text.setText("AC Freq: " + e.units.toString(e.AC_freq, Quantity.FREQUENCY));
+		
+		if (e.AC_source_exists) {
+			e.opts.gui_parameter1.setEnabled(true);
+			e.opts.gui_parameter1.setVisible(true);
+			e.opts.gui_parameter1_text.setVisible(true);
+		} else {
+			e.opts.gui_parameter1.setEnabled(false);
+			e.opts.gui_parameter1.setVisible(false);
+			e.opts.gui_parameter1_text.setVisible(false);
+		}
+		
 		if (Keyboard.isKeyPressed(KeyEvent.VK_SHIFT) && !shift_down) {
 			shift_down = true;
 
@@ -554,6 +645,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 			}
 		}
+	}
+	
+	private void applyTool() {
+		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
+		BrushShape brushshape = (BrushShape) e.opts.gui_brush_1.getSelectedItem();
 		
 		shift_down = Keyboard.isKeyPressed(KeyEvent.VK_SHIFT);
 		alt_down = Keyboard.isKeyPressed(KeyEvent.VK_ALT);
@@ -572,44 +668,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (releasing_middle || (pick_material && releasing_left)) {
 				e.opts.gui_material.setSelectedItem(new GeneralMaterialType(e.materials[mx][my]));
 			}
-
-			double angle = 0;
-			GeneralMaterialType mat = (GeneralMaterialType) e.opts.gui_material.getSelectedItem();
-
-			if (mat.type.hasEMF() && brush != Brush.LIGHT) {
-				e.opts.gui_parameter2.setVisible(true);
-				e.opts.gui_parameter2_text.setVisible(true);
-
-				int directionval = e.opts.gui_parameter2.getValue()/6;
-				if (directionval == 0) {
-					e.opts.gui_parameter2_text.setText("Direction: Up");
-					angle = -Math.PI/2;
-				}
-				if (directionval == 1) {
-					e.opts.gui_parameter2_text.setText("Direction: Right");
-					angle = 0;
-				}
-				if (directionval == 2) {
-					e.opts.gui_parameter2_text.setText("Direction: Down");
-					angle = Math.PI/2;
-				}
-				if (directionval == 3) {
-					e.opts.gui_parameter2_text.setText("Direction: Left");
-					angle = Math.PI;
-				}
-				//e.opts.gui_parameter2_text.setText("Brush orientation: " + directionval*(360/24) + " deg");
-				//angle = Math.PI * directionval/12.0;
-			} else {
-				e.opts.gui_parameter2.setVisible(false);
-				e.opts.gui_parameter2_text.setVisible(false);
-				e.opts.gui_parameter2_text.setText("");
-			}
 			
-			if (brush == Brush.LIGHT) {
-				flashlight_strength = e.default_flashlight_strength*Math.pow(10, e.opts.gui_light.getValue()/10.0);
-				e.opts.gui_light_text.setText("Light: " + e.units.toString(flashlight_strength*e.Eg_semi*e.depth, Quantity.INTENSITY));
-			}
-
+			GeneralMaterialType mat = (GeneralMaterialType) e.opts.gui_material.getSelectedItem();
 
 			if (mouse_pressed_right || releasing_right || brush == Brush.ERASE)
 				mat = GeneralMaterialType.EMPTY;
@@ -757,6 +817,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					
 					e.opts.gui_parameter3.setValue(setting);
 					prev_EMF_setting = setting;
+					new_EMF_setting = setting;
 				}
 
 				if (e.materials[mx][my].type == MaterialType.SWITCH) {
@@ -1189,7 +1250,21 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 		});
 
-		setEMFs();
+		if (new_EMF_setting != prev_EMF_setting && EMF_selected) {
+			for (int i = 0; i < e.nx; i++)
+			{
+				for (int j = 0; j < e.ny; j++)
+				{
+					if (e.materials[i][j].type.hasEMF() && selected_EMF[i][j]) {
+						e.materials[i][j].emf = new_EMF;
+					}
+				}
+			}
+
+			e.updateJustEMFs();
+		}
+
+		prev_EMF_setting = new_EMF_setting;
 		
 		if ((BoundaryCondition)e.opts.gui_bc.getSelectedItem() != prev_boundary)
 			updatematerials = true;
@@ -1212,7 +1287,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		myp = my;
 	}
 
-	public void createPath() {
+	private void createPath() {
 		if (plotpath == null) {
 			if (mouse_pressed_left) {
 				if (mx_start != mx || my_start != my) {
@@ -1253,7 +1328,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		updatematerials = updatematerials || updateMaterials;
 	}
 	
-	public Probe.LabelCoord selectLabel(Probe.LabelCoord c_in, Probe.LabelCoord c_opt) {
+	private Probe.LabelCoord selectLabel(Probe.LabelCoord c_in, Probe.LabelCoord c_opt) {
 		if (c_opt == null) {
 			if (Math.abs(c_in.x - mx) < 15 && Math.abs(c_in.y - my) < 4) {
 				return c_in;
@@ -1338,61 +1413,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public interface BrushAction {
 		public void perform(int i, int j, boolean in_bounds);
 	}
-	
-	public void setEMFs() {
-		int EMF_setting = e.opts.gui_parameter3.getValue();
-		
-		double new_EMF = 0;
-		if (!iscurrentselected) {
-			new_EMF = e.max_EMF*EMF_setting/50.0;
-		} else {
-			new_EMF = (e.max_current/e.currentsource_sigma)*EMF_setting/50.0;
-		}
-
-		if (e.opts.gui_brush.getSelectedItem() == Brush.INTERACT && EMF_selected) {
-			e.opts.gui_parameter3.setVisible(true);
-			e.opts.gui_parameter3_text.setVisible(true);
-			if (!iscurrentselected)
-				e.opts.gui_parameter3_text.setText("EMF: " + e.units.toString(new_EMF, Quantity.ELECTRIC_FIELD));
-			else
-				e.opts.gui_parameter3_text.setText("J: " + e.units.toString(new_EMF*e.currentsource_sigma, Quantity.CURRENT_DENSITY));
-		} else {
-			e.opts.gui_parameter3.setVisible(false);
-			e.opts.gui_parameter3_text.setVisible(false);
-			e.opts.gui_parameter3_text.setText("");
-		}
-
-		if (EMF_setting != prev_EMF_setting && EMF_selected) {
-			for (int i = 0; i < e.nx; i++)
-			{
-				for (int j = 0; j < e.ny; j++)
-				{
-					if (e.materials[i][j].type.hasEMF() && selected_EMF[i][j]) {
-						e.materials[i][j].emf = new_EMF;
-					}
-				}
-			}
-
-			e.updateJustEMFs();
-		}
-
-		prev_EMF_setting = EMF_setting;
-		
-
-		e.AC_freq = e.default_AC_freq*Math.pow(10, e.opts.gui_parameter1.getValue()/10.0);
-		if (e.AC_source_exists) {
-			e.opts.gui_parameter1.setEnabled(true);
-			e.opts.gui_parameter1.setVisible(true);
-			e.opts.gui_parameter1_text.setVisible(true);
-		} else {
-			e.opts.gui_parameter1.setEnabled(false);
-			e.opts.gui_parameter1.setVisible(false);
-			e.opts.gui_parameter1_text.setVisible(false);
-		}
-		
-		e.opts.gui_parameter1_text.setText("AC Freq: " + e.units.toString(e.AC_freq, Quantity.FREQUENCY));
-
-	}
 
 	public void floodFill(int i, int j, FloodFillFunc f) {
 		Queue<FloodFillCoordinate> queue = new LinkedList<>();
@@ -1439,15 +1459,17 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 		case "menu_github":
 			try {
-				java.awt.Desktop.getDesktop().browse(new URI("https://github.com/StunningLlama/SemiSim/tree/SemiSim"));
+				if (BuildFlags.steam_enabled) {
+					java.awt.Desktop.getDesktop().browse(new URI("https://store.steampowered.com/app/4864110/Brandons_Semiconductor_Simulator/"));
+				} else {
+					java.awt.Desktop.getDesktop().browse(new URI("https://github.com/StunningLlama/SemiSim/tree/SemiSim"));
+				}
 			} catch (IOException | URISyntaxException ex) {
 				ex.printStackTrace();
 			}
 			break;
 		case "menu_editdesc":
-			SwingUtilities.invokeLater(() -> {
-				new DescDialog();
-			});
+			new DescDialog();
 			break;
 		case "gui_brush":
 
@@ -1562,7 +1584,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			JOptionPane.showMessageDialog(e.opts, SemiSim.about, "About", JOptionPane.INFORMATION_MESSAGE);
 			break;
 		case "menu_report":
-			JOptionPane.showMessageDialog(e.opts, "<html><body><p style='width: 300px;'>Please contact Brandon at brandonli.lex@gmail.com or go to https://github.com/StunningLlama/SemiSim/issues.</p></body></html>", "Report a bug", JOptionPane.INFORMATION_MESSAGE);
+			if (BuildFlags.steam_enabled) {
+				showLinkBox("<p style='width: 300px;'>Please contact Brandon at brandonli.lex@gmail.com or create a discussion on <a href=\"https://steamcommunity.com/app/4864110/discussions/\">steam</a>.</p>", "Report a bug");
+			} else {
+				showLinkBox("<p style='width: 300px;'>Please contact Brandon at brandonli.lex@gmail.com or go to <a href=\"https://github.com/StunningLlama/SemiSim/issues\">github</a>.</p>", "Report a bug");
+			}
 			break;
 		case "menu_pref":
 			e.prefs.getPrefs();
@@ -1594,6 +1620,38 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.updateMiscFields = true;
 		if (ev.getActionCommand() == Brush.class.getName())
 			e.opts.gui_brush.setSelectedItem(brushes.getOption());
+	}
+	
+	public void showLinkBox(String text, String title) {
+	    JLabel label = new JLabel();
+	    Font font = label.getFont();
+        Color color = label.getBackground();
+        
+	    StringBuffer style = new StringBuffer("font-family:" + font.getFamily() + ";");
+	    style.append("font-weight:" + (font.isBold() ? "bold" : "normal") + ";");
+	    style.append("font-size:" + font.getSize() + "pt;");
+        style.append("background-color: rgb("+color.getRed()+","+color.getGreen()+","+color.getBlue()+");");
+	    
+		JEditorPane pane = new JEditorPane();
+		pane.setEditable(false);
+		pane.setContentType("text/html");
+		pane.setText("<html><body style=\"" + style + "\">" + text + "</body></html>");
+		pane.setBorder(null);
+		
+		pane.addHyperlinkListener(new HyperlinkListener() {
+			@Override
+			public void hyperlinkUpdate(HyperlinkEvent ev) {
+				if (ev.getEventType() == EventType.ACTIVATED) {
+					try {
+						java.awt.Desktop.getDesktop().browse(ev.getURL().toURI());
+					} catch (IOException | URISyntaxException ex) {
+						ex.printStackTrace();
+					}
+				}
+			}
+		});
+		
+		JOptionPane.showMessageDialog(e.opts, pane, title, JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	@Override
@@ -1655,7 +1713,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		my_screen = arg0.getY();
 	}
 	
-	public void snapToCardinals(int mx, int my) {
+	private void snapToCardinals(int mx, int my) {
 		int dx = mx - mx_start;
 		int dy = my - my_start;
 		int min = Math.abs(dx) > Math.abs(dy)? dx : dy;
@@ -2178,6 +2236,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					dispose();
 				}
 			});
+			
+			setLocationRelativeTo(null);
 			setVisible(true);
 		}
 	}
@@ -2192,6 +2252,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	@Override
 	public void windowClosing(WindowEvent ev) {
+		e.prefs.getPrefs();
+		e.prefs.writeFile(e.prefs.preferences_file);
 		if (e.controls.changesmade) {
 			String[] options = {"Yes", "No"};
 			int result = JOptionPane.showOptionDialog(e.opts, "There are unsaved changes. Do you still wish to quit?", "Message", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[1]);

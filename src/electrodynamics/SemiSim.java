@@ -9,7 +9,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -44,7 +43,7 @@ public class SemiSim {
 	public static int n_threads = Runtime.getRuntime().availableProcessors();
 	public static String name = "Brandon's semiconductor simulator";
 	public static String about = "<html><body><p style='width: 250px;'>Brandon's Semiconductor Simulator / SemiSim.<br>"
-									+ "Version 2.0.1<br>"
+									+ "Version 2.0.2<br>"
 									+ "(c) 2026 Brandon Li<br><br>"
 									+ "Thanks to Paul Falstad, Ariel Baksh, and retconaway for providing help, feedback, and suggestions.<br><br>"
 									+ "Data taken from:<br>"
@@ -90,26 +89,22 @@ public class SemiSim {
 	public static File getUserFile(String path) {
 		return userdir.resolve(Paths.get(path)).toFile();
 	}
-	
+
 	public static void displayErrorMessage(Exception e) {
 		if (instance == null) return;
-		try {
-			SwingUtilities.invokeAndWait(() -> {
-				JOptionPane.showMessageDialog(instance.sim.opts, e.toString(), "Error", JOptionPane.OK_OPTION);
-				e.printStackTrace();
-				try {
-					PrintWriter pw = new PrintWriter(new FileOutputStream("error_log.txt"));
-				    e.printStackTrace(pw);
-				    pw.flush();
-				    pw.close();
-				} catch (FileNotFoundException e1) {
-					System.exit(-1);
-				}     
+		SwingUtilities.invokeLater(() -> {
+			JOptionPane.showMessageDialog(instance.sim.opts, e.toString(), "Error", JOptionPane.OK_OPTION);
+			e.printStackTrace();
+			try {
+				PrintWriter pw = new PrintWriter(new FileOutputStream("error_log.txt"));
+				e.printStackTrace(pw);
+				pw.flush();
+				pw.close();
+			} catch (FileNotFoundException e1) {
 				System.exit(-1);
-			});
-		} catch (InvocationTargetException | InterruptedException e1) {
+			}     
 			System.exit(-1);
-		}
+		});
 	}
 
 	public static void detect64Bit() {

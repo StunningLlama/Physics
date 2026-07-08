@@ -295,6 +295,7 @@ public class Preferences extends JFrame implements ActionListener {
 						case "undosize": this.spinner_undosize.setValue(fstr.nextInt()); break;
 						case "matname": this.chkbox_matname.setSelected(fstr.nextBoolean()); break;
 						case "theme": gui_lookfeel.setSelectedItem(new Theme(fstr.nextString())); break;
+						case "windowstate": e.opts.setExtendedState(fstr.nextInt()); break;
 						default: fstr.skipValue();
 						}
 					}
@@ -332,6 +333,7 @@ public class Preferences extends JFrame implements ActionListener {
 				header.addProperty("undosize", (int)spinner_undosize.getValue());
 				header.addProperty("matname", chkbox_matname.isSelected());
 				header.addProperty("theme", ((Theme) gui_lookfeel.getSelectedItem()).info.getClassName());
+				header.addProperty("windowstate", e.opts.getExtendedState());
 
 				// Version should always be first
 				JsonObject save = new JsonObject();

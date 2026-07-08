@@ -1,4 +1,4 @@
-$version="2.0.1"
+$version="2.0.2"
 $year=2026
 del output_win -Recurse -Force
 jpackage --type app-image `

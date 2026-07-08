@@ -15,8 +15,6 @@ import java.util.List;
 import javax.imageio.ImageIO;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
-
 import com.codedisaster.steamworks.SteamAPI;
 import com.codedisaster.steamworks.SteamException;
 import com.codedisaster.steamworks.SteamFriends;
@@ -107,11 +105,8 @@ public class Steam {
 						if (!folder.exists()) {
 							folder.mkdir();
 						}
-
-						File newfile = SemiSim.getUserFile("_tmp/workshop_item.semisim");
-						e.savemanager.writeFile(newfile);
-
-			    		File outputimgfile = SemiSim.getUserFile("_tmp/image.png");
+						
+						File outputimgfile = SemiSim.getUserFile("_tmp/image.png");
 				    	try {
 				    		if (!outputimgfile.exists())
 				    			outputimgfile.createNewFile();
@@ -119,15 +114,18 @@ public class Steam {
 				    	} catch (IOException e) {
 				    		e.printStackTrace();
 				    	}
-
-						SteamUGCUpdateHandle handle = UGC.startItemUpdate(Utils.getAppID(), publishedFileID);
-						UGC.setItemVisibility(handle, PublishedFileVisibility.Public);
-						UGC.setItemTitle(handle, ws_title);
-						UGC.setItemContent(handle, folder.getAbsolutePath());
-						UGC.setItemPreview(handle, outputimgfile.getAbsolutePath());
-						UGC.setItemDescription(handle, ws_description);
-						UGC.submitItemUpdate(handle, "");
-						JOptionPane.showMessageDialog(e.opts, "Upload is starting. Please wait for upload to finish.");
+				    	
+						File newfile = SemiSim.getUserFile("_tmp/workshop_item.semisim");
+						e.savemanager.writeFile(newfile, () -> {
+							SteamUGCUpdateHandle handle = UGC.startItemUpdate(Utils.getAppID(), publishedFileID);
+							UGC.setItemVisibility(handle, PublishedFileVisibility.Public);
+							UGC.setItemTitle(handle, ws_title);
+							UGC.setItemContent(handle, folder.getAbsolutePath());
+							UGC.setItemPreview(handle, outputimgfile.getAbsolutePath());
+							UGC.setItemDescription(handle, ws_description);
+							UGC.submitItemUpdate(handle, "");
+							JOptionPane.showMessageDialog(e.opts, "Upload is starting. Please wait for upload to finish.");
+						});
 					} else {
 						SemiSim.displayErrorMessage(new Exception("Steam was not able to create the workshop item."));
 					}
@@ -229,9 +227,9 @@ public class Steam {
 			ItemInstallInfo info = new ItemInstallInfo();
 			UGC.getItemInstallInfo(id, info);
 			File file = Paths.get(info.getFolder(), "workshop_item.semisim").toFile();
-			SwingUtilities.invokeLater(() -> {
+			new Thread(() -> {
 				e.savemanager.readfile(file);
-			});
+			}).start();
 		}
 	}
 

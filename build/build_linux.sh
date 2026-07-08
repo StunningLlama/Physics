@@ -1,4 +1,4 @@
-version="2.0.1"
+version="2.0.2"
 year="2026"
 rm -rf output_linux
 jpackage --type app-image \

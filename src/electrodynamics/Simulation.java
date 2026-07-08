@@ -561,9 +561,9 @@ public class Simulation extends PeriodicTask {
     			iteration_multiplier = opts.gui_simspeed_2.getValue();
 
     			if (controls.clear) {
-    				SwingUtilities.invokeLater(() -> {
+    				new Thread(() -> {
     					reset(false, null);
-    				});
+    				}).start();
     				controls.clear = false;
     			}
     			
@@ -582,17 +582,9 @@ public class Simulation extends PeriodicTask {
     			}
 
     			if (controls.updateimagesize) {
-
-    				SwingUtilities.invokeLater(() -> {
-    					rwLock.writeLock().lock();
-    					try {
-    						renderer.setCanvasSize();
-    						//opts.pack();
-    					}
-    					finally {
-    						rwLock.writeLock().unlock();
-    					}
-    				});
+    				new Thread(() -> {
+    					renderer.setCanvasSize();
+    				}).start();
     				controls.updateimagesize = false;
     			}
 
@@ -600,19 +592,15 @@ public class Simulation extends PeriodicTask {
     			dt = dt_maximum*(lastsimspeed/20.0);
 
     			if (controls.undo) {
-    				SwingUtilities.invokeLater(() -> {
-    					controls.undoredo.undo(this);
-    				});
+    				controls.undoredo.undo(this);
     				controls.undo = false;
     			}
 
     			if (controls.redo) {
-    				SwingUtilities.invokeLater(() -> {
-    					controls.undoredo.redo(this);
-    				});
+    				controls.undoredo.redo(this);
     				controls.redo = false;
     			}
-    			
+
     			controls.handleMouseInput();
 
     			if (!opts.gui_paused.isSelected() || controls.advanceframe) {
@@ -632,7 +620,6 @@ public class Simulation extends PeriodicTask {
     			
     			if (numerical_overflow)
     				opts.gui_paused.setSelected(true);
-
 
     			if (controls.save) {
     				savemanager.writeFile(false);
@@ -992,6 +979,7 @@ public class Simulation extends PeriodicTask {
 			controls.selection.clear();
 			controls.clipboard.clear();
 			
+			//TODO
 			if (resetall || size_changed) {
 				controls.EMF_selected = false;
 				controls.changesmade = false;
@@ -1180,7 +1168,7 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 		
-		public void calcFx() {
+		private void calcFx() {
 			for (int i = 0; i < nx-1; i++)
 			{
 				if (i >= i_min && i <= i_max) {
@@ -1199,7 +1187,7 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 
-		public void calcFy() {
+		private void calcFy() {
 			for (int i = 1; i < nx-1; i++)
 			{
 				if (i >= i_min && i <= i_max) {
@@ -1218,7 +1206,7 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 		
-		public void updateEx() {
+		private void updateEx() {
 			/* Update E field and currents */
 			for (int i = 0; i < nx-1; i++)
 			{
@@ -1288,7 +1276,7 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 		
-		public void updateEy() {
+		private void updateEy() {
 			for (int i = 1; i < nx-1; i++)
 			{
 				if (i >= i_min && i <= i_max) {
@@ -1356,7 +1344,7 @@ public class Simulation extends PeriodicTask {
 		}
 		
 		
-		public void storeDDx() {
+		private void storeDDx() {
 			/* Update E field and currents */
 			for (int i = 0; i < nx-1; i++)
 			{
@@ -1412,7 +1400,7 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 		
-		public void storeDDy() {
+		private void storeDDy() {
 			for (int i = 1; i < nx-1; i++)
 			{
 				if (i >= i_min && i <= i_max) {
@@ -1468,7 +1456,7 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 
-		public void storeDeff() {
+		private void storeDeff() {
 			for (int i = 1; i < nx-1; i++)
 			{
 				if (i >= i_min && i <= i_max) {
@@ -1492,7 +1480,7 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 
-		public void updateHlap() {
+		private void updateHlap() {
 			/* Interior B field & charge */
 			for (int i = 1; i < nx-2; i++)
 			{
@@ -1505,7 +1493,7 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 		
-		public void updateH() {
+		private void updateH() {
 			for (int i = 0; i < nx-1; i++)
 			{
 				if (i >= i_min && i <= i_max) {
@@ -1524,7 +1512,7 @@ public class Simulation extends PeriodicTask {
 			}
 		}
 		
-		public void updateRho() {
+		private void updateRho() {
 			/* Update charge carriers */
 			for (int i = 1; i < nx-1; i++)
 			{
