@@ -127,7 +127,7 @@ public class Steam {
 							JOptionPane.showMessageDialog(e.opts, "Upload is starting. Please wait for upload to finish.");
 						});
 					} else {
-						SemiSim.displayErrorMessage(new Exception("Steam was not able to create the workshop item."));
+						SemiSim.displayWarningMessage("Error!", "Steam was not able to create the workshop item.");
 					}
 				}
 				
@@ -148,7 +148,7 @@ public class Steam {
 						}
 					}
 					else {
-						SemiSim.displayErrorMessage(new Exception("Steam was not able to update the workshop item."));
+						SemiSim.displayWarningMessage("Error!", "Steam was not able to update the workshop item.");
 					}
 				}
 

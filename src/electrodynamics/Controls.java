@@ -621,6 +621,11 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.opts.gui_parameter1.setVisible(false);
 			e.opts.gui_parameter1_text.setVisible(false);
 		}
+	}
+	
+	private void applyTool() {
+		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
+		BrushShape brushshape = (BrushShape) e.opts.gui_brush_1.getSelectedItem();
 		
 		if (Keyboard.isKeyPressed(KeyEvent.VK_SHIFT) && !shift_down) {
 			shift_down = true;
@@ -639,11 +644,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 			}
 		}
-	}
-	
-	private void applyTool() {
-		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
-		BrushShape brushshape = (BrushShape) e.opts.gui_brush_1.getSelectedItem();
 		
 		shift_down = Keyboard.isKeyPressed(KeyEvent.VK_SHIFT);
 		alt_down = Keyboard.isKeyPressed(KeyEvent.VK_ALT);

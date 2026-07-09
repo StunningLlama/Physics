@@ -2204,12 +2204,14 @@ public class Simulation extends PeriodicTask {
 
 					for (int di = -smoothing_radius; di <= smoothing_radius; di++) {
 						for (int dj = -smoothing_radius; dj <= smoothing_radius; dj++) {
-							if (i+di >= 0 && j+dj >= 0 && i+di < nx && j+dj < ny && conducting[i+di][j+dj] == 1 && visited[i+di][j+dj]) {
-								sum += smooth_arr[i+di][j+dj];
-								neighbors += 1;
+							if (i+di >= 0 && j+dj >= 0 && i+di < nx && j+dj < ny) {
+								if (conducting[i+di][j+dj] == 1 && visited[i+di][j+dj]) {
+									sum += smooth_arr[i+di][j+dj];
+									neighbors += 1;
+								}
+								distance[i+di][j+dj] = Integer.MAX_VALUE;
+								visited[i+di][j+dj] = false;
 							}
-							distance[i+di][j+dj] = Integer.MAX_VALUE;
-							visited[i+di][j+dj] = false;
 						}
 					}
 

@@ -9,6 +9,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -92,19 +93,46 @@ public class SemiSim {
 
 	public static void displayErrorMessage(Exception e) {
 		if (instance == null) return;
-		SwingUtilities.invokeLater(() -> {
-			JOptionPane.showMessageDialog(instance.sim.opts, e.toString(), "Error", JOptionPane.OK_OPTION);
-			e.printStackTrace();
-			try {
-				PrintWriter pw = new PrintWriter(new FileOutputStream("error_log.txt"));
-				e.printStackTrace(pw);
-				pw.flush();
-				pw.close();
-			} catch (FileNotFoundException e1) {
+		try {
+			Runnable r = () -> {
+				JOptionPane.showMessageDialog(instance.sim.opts, e.toString(), "Fatal error!", JOptionPane.OK_OPTION);
+				e.printStackTrace();
+				try {
+					PrintWriter pw = new PrintWriter(new FileOutputStream(getUserFile("error_log.txt")));
+					e.printStackTrace(pw);
+					pw.flush();
+					pw.close();
+				} catch (FileNotFoundException e1) {
+					System.exit(-1);
+				}     
 				System.exit(-1);
-			}     
-			System.exit(-1);
-		});
+			};
+
+			if (SwingUtilities.isEventDispatchThread()) {
+				r.run();
+			} else {
+				SwingUtilities.invokeAndWait(r);
+			}
+		} catch (InvocationTargetException | InterruptedException e1) {
+			e1.printStackTrace();
+		}
+	}
+	
+	public static void displayWarningMessage(String title, String description) {
+		if (instance == null) return;
+		try {
+			Runnable r = () -> {
+				JOptionPane.showMessageDialog(instance.sim.opts, description, title, JOptionPane.OK_OPTION);
+			};
+
+			if (SwingUtilities.isEventDispatchThread()) {
+				r.run();
+			} else {
+				SwingUtilities.invokeAndWait(r);
+			}
+		} catch (InvocationTargetException | InterruptedException e1) {
+			e1.printStackTrace();
+		}
 	}
 
 	public static void detect64Bit() {
