@@ -674,21 +674,17 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					if (releasing_left || releasing_right) {
 						GeneralMaterialType final_mat = mat;
 						double final_angle = angle;
-						applyBrush(mx_start, my_start, mx, my, brushshape, brushsize, new BrushAction() {
-							@Override
-							public void perform(int i, int j, boolean in_bounds) {
-								if (in_bounds) {
-									if (final_mat.type == MaterialType.VACUUM) {
-										e.eraseMaterial(i, j);
-									} else if (e.materials[i][j].type == MaterialType.VACUUM ^ brush == Brush.REPLACE) {
-										e.eraseMaterial(i, j);
-										e.initializeMaterial(i, j, final_mat);
-										if (final_mat.type.hasEMF()) e.materials[i][j].emf_direction = final_angle;
-									}
+						applyBrush(mx_start, my_start, mx, my, brushshape, brushsize, (i, j, in_bounds) -> {
+							if (in_bounds) {
+								if (final_mat.type == MaterialType.VACUUM) {
+									e.eraseMaterial(i, j);
+								} else if (e.materials[i][j].type == MaterialType.VACUUM ^ brush == Brush.REPLACE) {
+									e.eraseMaterial(i, j);
+									e.initializeMaterial(i, j, final_mat);
+									if (final_mat.type.hasEMF()) e.materials[i][j].emf_direction = final_angle;
 								}
-							}
-							
-						});
+							}}
+						);
 						flagChanges(true);
 					}
 				} else if (brush == Brush.FILL) {
@@ -716,12 +712,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					}
 				} else if (brush == Brush.LIGHT) {
 					if (mouse_pressed_left) {
-						applyBrush(mxp, myp, mx, my, brushshape, brushsize, new BrushAction() {
-							@Override
-							public void perform(int i, int j, boolean in_bounds) {
-								e.L[i][j] = in_bounds? flashlight_strength : 0;
-							}
-						});
+						applyBrush(mxp, myp, mx, my, brushshape, brushsize, (i, j, in_bounds) -> e.L[i][j] = in_bounds? flashlight_strength : 0);
 					} else if (releasing_left) {
 
 						for (int i = 0; i < e.nx; i++)
@@ -737,20 +728,16 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					if (mouse_pressed_left || mouse_pressed_right) {
 						GeneralMaterialType final_mat = mat;
 						double final_angle = angle;
-						applyBrush(mxp, myp, mx, my, brushshape, brushsize, new BrushAction() {
-							@Override
-							public void perform(int i, int j, boolean in_bounds) {
-								if (in_bounds) {
-									if (final_mat.type == MaterialType.VACUUM) {
-										e.eraseMaterial(i, j);
-									} else if (e.materials[i][j].type == MaterialType.VACUUM ^ brush == Brush.REPLACE) {
-										e.eraseMaterial(i, j);
-										e.initializeMaterial(i, j, final_mat);
-										if (final_mat.type.hasEMF()) e.materials[i][j].emf_direction = final_angle;
-									}
+						applyBrush(mxp, myp, mx, my, brushshape, brushsize,  (i, j, in_bounds) -> {
+							if (in_bounds) {
+								if (final_mat.type == MaterialType.VACUUM) {
+									e.eraseMaterial(i, j);
+								} else if (e.materials[i][j].type == MaterialType.VACUUM ^ brush == Brush.REPLACE) {
+									e.eraseMaterial(i, j);
+									e.initializeMaterial(i, j, final_mat);
+									if (final_mat.type.hasEMF()) e.materials[i][j].emf_direction = final_angle;
 								}
 							}
-							
 						});
 					} else if (releasing_left || releasing_right) {
 						flagChanges(true);
@@ -759,13 +746,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 
 			if (Brush.isBrushShapeImportant(brush)) {
-				applyBrush(mxp, myp, mx, my, brushshape, brushsize, new BrushAction() {
-					@Override
-					public void perform(int i, int j, boolean in_bounds) {
-						under_brush[i][j] = in_bounds;
-					}
-					
-				});
+				applyBrush(mxp, myp, mx, my, brushshape, brushsize, (i, j, in_bounds) -> under_brush[i][j] = in_bounds);
 			}
 
 			break;

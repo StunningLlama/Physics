@@ -92,6 +92,7 @@ public abstract class Plot implements ActionListener {
 		frame.add(chartPanel);
 		frame.setSize(600, 400);
 		frame.setLocationRelativeTo(null);
+		frame.setAlwaysOnTop(true);
 		frame.setVisible(false);
 	}
 	
