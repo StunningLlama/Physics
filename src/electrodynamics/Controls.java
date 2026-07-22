@@ -836,12 +836,25 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			}
 			break;
 		case ZOOM:
-			if (pressing_left && shift_down || pressing_middle) {
+			if (releasing_left && !shift_down) {
+				if (mx == mx_start && my == my_start) {
+					resetZoom();
+				} else {
+					zoom_i1 = Math.min(mx_start, mx);
+					zoom_j1 = Math.min(my_start, my);
+					zoom_i2 = Math.max(mx_start, mx);
+					zoom_j2 = Math.max(my_start, my);
+					zoomed = true;
+				}
+			}
+			break;
+		case PAN:
+			if (pressing_left) {
 				zoom_i1_pan = zoom_i1;
 				zoom_j1_pan = zoom_j1;
 				zoom_i2_pan = zoom_i2;
 				zoom_j2_pan = zoom_j2;
-			} else if (mouse_pressed_left && shift_down || mouse_pressed_middle) {
+			} else if (mouse_pressed_left) {
 				double sf_x = (zoom_i2_pan-zoom_i1_pan+1)/(double)e.canvas.zoom_bound_x;
 				double sf_y = (zoom_j2_pan-zoom_j1_pan+1)/(double)e.canvas.zoom_bound_y;
 
@@ -855,18 +868,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				zoom_j1 = zoom_j1_pan - (my_tmp - my_start_tmp);
 				zoom_i2 = zoom_i2_pan - (mx_tmp - mx_start_tmp);
 				zoom_j2 = zoom_j2_pan - (my_tmp - my_start_tmp);
-			}
-			
-			if (releasing_left && !shift_down) {
-				if (mx == mx_start && my == my_start) {
-					resetZoom();
-				} else {
-					zoom_i1 = Math.min(mx_start, mx);
-					zoom_j1 = Math.min(my_start, my);
-					zoom_i2 = Math.max(mx_start, mx);
-					zoom_j2 = Math.max(my_start, my);
-					zoomed = true;
-				}
 			}
 			break;
 		case FLOODSELECT:
@@ -1983,7 +1984,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	addKeyBind(contentPane, KeyEvent.VK_6, 0, new AbstractAction(null) {
     		@Override
             public void actionPerformed(ActionEvent ev) {
-        		e.opts.gui_brush.setSelectedItem(Brush.ZOOM);
+        		e.opts.gui_brush.setSelectedItem(Brush.PAN);
             }
         });
     	addKeyBind(contentPane, KeyEvent.VK_OPEN_BRACKET, 0, new AbstractAction(null) {
@@ -2180,7 +2181,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public enum Brush {
 		INTERACT("Interact"),
 		LIGHT("Flashlight"),
-		ZOOM("Zoom and Pan"),
+		ZOOM("Zoom"),
+		PAN("Pan"),
 		DRAW("Draw"),
 		REPLACE("Replace"),
 		LINE("Line"),

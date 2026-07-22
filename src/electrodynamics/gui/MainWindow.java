@@ -832,7 +832,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 		e.controls.brushes.buttonmap.get(Controls.Brush.LINE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_3, 0));
 		e.controls.brushes.buttonmap.get(Controls.Brush.FILL).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_4, 0));
 		e.controls.brushes.buttonmap.get(Controls.Brush.SELECT).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_5, 0));
-		e.controls.brushes.buttonmap.get(Controls.Brush.ZOOM).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_6, 0));
+		e.controls.brushes.buttonmap.get(Controls.Brush.PAN).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_6, 0));
 
 		e.controls.scalarmode.buttonmap.get(ScalarMode.NONE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, 0));
 		e.controls.vectormode.buttonmap.get(VectorMode.NONE).setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, 0));
@@ -869,6 +869,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 		addToolButton(Brush.FILL, 25);
 		addToolButton(Brush.SELECT, 25);
 		addToolButton(Brush.ZOOM, 25);
+		addToolButton(Brush.PAN, 25);
 		
 		if (BuildFlags.steam_enabled)
 			menu_github.setText("Steam");
