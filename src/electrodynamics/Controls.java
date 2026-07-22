@@ -192,6 +192,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public double new_EMF_setting = 0;
 	public double new_EMF = 0;
 	public double angle = 0;
+	public double emf_len;
+	public boolean setvoltage = true;
 	public BoundaryCondition prev_boundary = BoundaryCondition.DISSIPATIVE;
 
 	public boolean[][] under_brush;
@@ -610,10 +612,18 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		if (e.opts.gui_brush.getSelectedItem() == Brush.INTERACT && EMF_selected) {
 			e.opts.gui_parameter3.setVisible(true);
 			e.opts.gui_parameter3_text.setVisible(true);
-			if (!iscurrentselected)
-				e.opts.gui_parameter3_text.setText("EMF: " + e.units.toString(new_EMF, Quantity.ELECTRIC_FIELD));
-			else
-				e.opts.gui_parameter3_text.setText("J: " + e.units.toString(new_EMF*e.currentsource_sigma, Quantity.CURRENT_DENSITY));
+
+			if (setvoltage) {
+				if (!iscurrentselected) 
+					e.opts.gui_parameter3_text.setText("Voltage: " + e.units.toString(emf_len*new_EMF, Quantity.ELECTRIC_POTENTIAL));
+				else
+					e.opts.gui_parameter3_text.setText("Current: " + e.units.toString(e.depth*emf_len*new_EMF*e.currentsource_sigma, Quantity.ELECTRIC_CURRENT));
+			} else {
+				if (!iscurrentselected)
+					e.opts.gui_parameter3_text.setText("EMF: " + e.units.toString(new_EMF, Quantity.ELECTRIC_FIELD));
+				else
+					e.opts.gui_parameter3_text.setText("J: " + e.units.toString(new_EMF*e.currentsource_sigma, Quantity.CURRENT_DENSITY));
+			}
 		} else {
 			e.opts.gui_parameter3.setVisible(false);
 			e.opts.gui_parameter3_text.setVisible(false);
@@ -791,14 +801,16 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					
 					EMF_selected = true;
 					iscurrentselected = e.materials[mx][my].type == MaterialType.CURRENT;
-					
+
 					int setting = 0;
-					if (!iscurrentselected)
+					if (!iscurrentselected) {
 						setting = (int)(Math.round(50*e.materials[mx][my].emf/e.max_EMF));
-					else {
+						getEMFBounds(e.materials[mx][my].emf_direction);
+					} else {
 						setting = (int)(Math.round(50*e.materials[mx][my].emf/(e.max_current/e.currentsource_sigma)));
+						getEMFBounds(e.materials[mx][my].emf_direction + Math.PI/2.0);
 					}
-					
+
 					e.opts.gui_parameter3.setValue(setting);
 					prev_EMF_setting = setting;
 					new_EMF_setting = setting;
@@ -1330,6 +1342,28 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		//} else {
 		//	return c_opt;
 		//}
+	}
+	
+	public void getEMFBounds(double direction) {
+		double dx = Math.cos(direction);
+		double dy = Math.sin(direction);
+		
+		double r_min = Double.MAX_VALUE;
+		double r_max = -Double.MAX_VALUE;
+		
+		for (int i = 0; i < e.nx; i++)
+		{
+			for (int j = 0; j < e.ny; j++)
+			{
+				if (selected_EMF[i][j]) {
+					double r = dx*i + dy*j;
+					if (r > r_max) r_max = r;
+					if (r < r_min) r_min = r;
+				}
+			}
+		}
+		
+		emf_len = (r_max-r_min+1)*e.ds;
 	}
 	
 	public void resetZoom() {

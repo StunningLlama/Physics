@@ -64,6 +64,7 @@ public class Preferences extends JFrame implements ActionListener {
 	private JButton btn_cancel;
 	private JCheckBox chkbox_matname;
 	private JComboBox<Theme> gui_lookfeel;
+	private JCheckBox chkbox_voltage;
 
 	public Preferences(Simulation e) {
 		setResizable(false);
@@ -72,9 +73,9 @@ public class Preferences extends JFrame implements ActionListener {
 		
 		setTitle("Preferences");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		setBounds(100, 100, 595, 264);
+		setBounds(100, 100, 581, 307);
 		contentPane = new JPanel();
-		contentPane.setPreferredSize(new Dimension(581, 225));
+		contentPane.setPreferredSize(new Dimension(581, 250));
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 
 		setContentPane(contentPane);
@@ -86,11 +87,11 @@ public class Preferences extends JFrame implements ActionListener {
 		contentPane.add(lblNewLabel);
 		
 		btn_apply = new JButton("Apply");
-		btn_apply.setBounds(317, 196, 128, 23);
+		btn_apply.setBounds(317, 215, 128, 23);
 		contentPane.add(btn_apply);
 		
 		btn_reset = new JButton("Reset to defaults");
-		btn_reset.setBounds(10, 196, 136, 23);
+		btn_reset.setBounds(10, 215, 136, 23);
 		contentPane.add(btn_reset);
 		
 		spinner_imgx = new JSpinner();
@@ -114,12 +115,12 @@ public class Preferences extends JFrame implements ActionListener {
 		
 		JLabel lblUnitSystem = new JLabel("Unit system");
 		lblUnitSystem.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblUnitSystem.setBounds(288, 106, 116, 16);
+		lblUnitSystem.setBounds(288, 134, 116, 16);
 		contentPane.add(lblUnitSystem);
 		
 		gui_units = new JComboBox<>();
 		gui_units.setModel(new DefaultComboBoxModel<>(Units.values()));
-		gui_units.setBounds(416, 104, 146, 23);
+		gui_units.setBounds(416, 132, 146, 23);
 		contentPane.add(gui_units);
 		
 		JLabel lblDisplayHeightpx = new JLabel("Display height [px]");
@@ -164,7 +165,7 @@ public class Preferences extends JFrame implements ActionListener {
 		contentPane.add(spinner_font);
 		
 		btn_cancel = new JButton("Cancel");
-		btn_cancel.setBounds(445, 196, 128, 23);
+		btn_cancel.setBounds(445, 215, 128, 23);
 		contentPane.add(btn_cancel);
 		
 		chkbox_matname = new JCheckBox("Show material name next to cursor");
@@ -174,15 +175,23 @@ public class Preferences extends JFrame implements ActionListener {
 		contentPane.add(chkbox_matname);
 		
 		gui_lookfeel = new JComboBox<>();
-		gui_lookfeel.setBounds(416, 132, 146, 23);
+		gui_lookfeel.setBounds(416, 161, 146, 23);
 		contentPane.add(gui_lookfeel);
 		
 		JLabel lblUiTheme = new JLabel("UI theme");
 		lblUiTheme.setHorizontalAlignment(SwingConstants.TRAILING);
-		lblUiTheme.setBounds(288, 136, 116, 16);
+		lblUiTheme.setBounds(288, 164, 116, 16);
 		contentPane.add(lblUiTheme);
 
 		gui_lookfeel.setModel(new DefaultComboBoxModel<Theme>(Theme.values));
+		
+		chkbox_voltage = new JCheckBox("Set voltage instead of EMF");
+		chkbox_voltage.setSelected(true);
+		chkbox_voltage.setActionCommand("");
+		chkbox_voltage.setHorizontalTextPosition(SwingConstants.LEADING);
+		chkbox_voltage.setHorizontalAlignment(SwingConstants.TRAILING);
+		chkbox_voltage.setBounds(307, 99, 255, 23);
+		contentPane.add(chkbox_voltage);
 		
 		pack();
 		
@@ -216,6 +225,7 @@ public class Preferences extends JFrame implements ActionListener {
 		spinner_font.setValue(Text.fontsize);
 		gui_units.setSelectedItem(e.units);
 		chkbox_matname.setSelected(e.renderer.disp_mat_name);
+		chkbox_voltage.setSelected(e.controls.setvoltage);
 		gui_lookfeel.setSelectedItem(new Theme(UIManager.getLookAndFeel().getClass().getName()));
 	}
 
@@ -232,6 +242,8 @@ public class Preferences extends JFrame implements ActionListener {
 
 		e.units = (Units) gui_units.getSelectedItem();
 		e.renderer.disp_mat_name = chkbox_matname.isSelected();
+		
+		e.controls.setvoltage = chkbox_voltage.isSelected();
 		
 		SemiSim.changeLookAndFeel(e, ((Theme)gui_lookfeel.getSelectedItem()).info);
 		
@@ -294,6 +306,7 @@ public class Preferences extends JFrame implements ActionListener {
 						case "fontsize": this.spinner_font.setValue(fstr.nextInt()); break;
 						case "undosize": this.spinner_undosize.setValue(fstr.nextInt()); break;
 						case "matname": this.chkbox_matname.setSelected(fstr.nextBoolean()); break;
+						case "voltage": this.chkbox_voltage.setSelected(fstr.nextBoolean()); break;
 						case "theme": gui_lookfeel.setSelectedItem(new Theme(fstr.nextString())); break;
 						case "windowstate": e.opts.setExtendedState(fstr.nextInt()); break;
 						default: fstr.skipValue();
@@ -332,6 +345,7 @@ public class Preferences extends JFrame implements ActionListener {
 				header.addProperty("fontsize", (int)spinner_font.getValue());
 				header.addProperty("undosize", (int)spinner_undosize.getValue());
 				header.addProperty("matname", chkbox_matname.isSelected());
+				header.addProperty("voltage", chkbox_voltage.isSelected());
 				header.addProperty("theme", ((Theme) gui_lookfeel.getSelectedItem()).info.getClassName());
 				header.addProperty("windowstate", e.opts.getExtendedState());
 
