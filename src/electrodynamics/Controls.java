@@ -34,6 +34,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -72,6 +74,7 @@ import electrodynamics.gui.CustJMenuItem;
 import electrodynamics.gui.CustJRadioButtonMenuItem;
 import electrodynamics.gui.LinkBox;
 import electrodynamics.gui.MenuCheckList;
+import electrodynamics.gui.SimpleSwingBrowser;
 import electrodynamics.plot.LinePath;
 import electrodynamics.plot.Path;
 import electrodynamics.plot.Plot;
@@ -92,6 +95,11 @@ import electrodynamics.units.Quantity;
 import electrodynamics.util.Font7x5;
 import electrodynamics.util.Utils;
 import electrodynamics.util.Vector;
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.concurrent.Worker.State;
+import netscape.javascript.JSObject;
 
 public class Controls implements ActionListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener, ItemListener, WindowListener {
 	Simulation e;
@@ -141,6 +149,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public boolean mouse_pressed_prev_right = false;
 	public boolean pressing_right = false;
 	public boolean releasing_right = false;
+	
+	public boolean mouse_in = false;
 	
 	public boolean moving_selection = false;
 	public boolean dragging_selection = false;
@@ -656,7 +666,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case ERASE:
 		case FILL:
 		case LIGHT:
-
 			boolean pick_material = alt_down && mx-mx_start == 0 && my-my_start == 0;
 			
 			if (releasing_middle || (pick_material && releasing_left)) {
@@ -1215,6 +1224,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			endTextInput();
 		}
 		
+		if (!mouse_in)
+			currentCursor = DEFAULT_CURSOR;
+		
 		if (e.canvas.getCursor() != currentCursor) {
 			e.canvas.setCursor(currentCursor);
 		}
@@ -1589,12 +1601,47 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case "menu_load_workshop":
 			Steam.loadUGCs();
 			break;
+		case "menu_browse":
+
+			if (browser == null) {
+				browser = new SimpleSwingBrowser(false);
+				browser.setVisible(true);
+				browser.loadURL(SemiSim.getRootFile("examples.html").toURI().toString());
+
+				Platform.runLater(() -> {
+					browser.engine.getLoadWorker().stateProperty().addListener(
+					new ChangeListener<State>() {  
+						@Override public void changed(ObservableValue<? extends State> ov, State oldState, State newState) {
+							if (newState == State.SUCCEEDED) {
+								JSObject win = (JSObject) browser.engine.executeScript("window");
+								win.setMember("app", browseraction);
+							}
+						}
+					});
+				});
+			} else {
+				browser.setVisible(true);
+			}
+			break;
 		}
 
 		if (ev.getActionCommand() == ScalarView.class.getName() || ev.getActionCommand() == VectorView.class.getName())
 			e.updateMiscFields = true;
 		if (ev.getActionCommand() == Brush.class.getName())
 			e.opts.gui_brush.setSelectedItem(brushes.getOption());
+	}
+	
+	public SimpleSwingBrowser browser;
+	private BrowserAction browseraction = new BrowserAction();
+	
+	public class BrowserAction {
+		public void load(String name) {
+			new Thread(() -> {
+				File file = SemiSim.getRootFile(name);
+				e.savemanager.readfile(file);
+			}).start();
+			browser.setVisible(false);
+		}
 	}
 	
 	public void showLinkBox(String text, String title) {
@@ -1613,10 +1660,14 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public void mouseClicked(MouseEvent arg0) {}
 
 	@Override
-	public void mouseEntered(MouseEvent arg0) {}
+	public void mouseEntered(MouseEvent arg0) {
+		mouse_in = true;
+	}
 
 	@Override
-	public void mouseExited(MouseEvent arg0) {}
+	public void mouseExited(MouseEvent arg0) {
+		mouse_in = false;
+	}
 
 	@Override
 	public void mousePressed(MouseEvent ev) {
@@ -1921,6 +1972,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         		takeScreenshot();
             }
         });
+    	addKeyBind(contentPane, KeyEvent.VK_9, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		makeThumbnail();
+            }
+        });
     }
 
     public void takeScreenshot() {
@@ -1947,6 +2004,32 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     		e.renderer.screenshot_timer = 60;
     		
     		Steam.addSteamScreenshot(outputfile.getAbsolutePath(), e.renderer.img_front.getWidth(), e.renderer.img_front.getHeight());
+    	} catch (IOException e) {
+    		e.printStackTrace();
+    	}
+    }
+    
+    public void makeThumbnail() {
+    	try {
+    		File outputfile = new File(SaveManager.currentfile.toString().replace("examples", "images/thumbnails").replace(".semisim", ".png"));
+    		
+    		try {
+    			Files.createDirectories(outputfile.toPath());
+    		} catch (FileAlreadyExistsException e) {}
+
+    		System.out.println(outputfile.toString());
+    		outputfile.createNewFile();
+
+    		BufferedImage screenshot = (BufferedImage)e.opts.createImage(e.renderer.img_back.getWidth(), e.renderer.img_back.getHeight());
+    		Graphics2D g = screenshot.createGraphics();
+    	    e.canvas.draw(g, screenshot.getWidth(), screenshot.getHeight());
+    	    g.dispose();
+    	    
+    	    screenshot = screenshot.getSubimage((int)(0.1*screenshot.getWidth()), (int)(0.1*screenshot.getHeight()), (int)(0.8*screenshot.getWidth()), (int)(0.8*screenshot.getHeight()));
+    	    
+    		ImageIO.write(screenshot, "png", outputfile);
+    		e.renderer.screenshot_name = "Screenshot added: " + outputfile.getAbsolutePath();
+    		e.renderer.screenshot_timer = 60;
     	} catch (IOException e) {
     		e.printStackTrace();
     	}

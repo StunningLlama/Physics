@@ -164,6 +164,9 @@ public class SemiSim {
 	public static void setDirectory() {
 		try {
 			rootdir = Paths.get(SemiSim.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();
+
+			if (BuildFlags.debugging)
+				rootdir = Paths.get(".");
 		} catch (URISyntaxException e1) {
 			e1.printStackTrace();
 		}
@@ -244,6 +247,7 @@ public class SemiSim {
 			SwingUtilities.updateComponentTreeUI(sim.materialmanager);
 			SwingUtilities.updateComponentTreeUI(sim.materialviewer);
 			SwingUtilities.updateComponentTreeUI(sim.prefs);
+			if (sim.controls.browser != null) SwingUtilities.updateComponentTreeUI(sim.controls.browser);
 
 			for (Plot p : sim.plots) SwingUtilities.updateComponentTreeUI(p.frame);
 			

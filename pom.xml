@@ -50,10 +50,22 @@
     		<artifactId>flatlaf</artifactId>
     		<version>3.7.1</version>
 		</dependency>
-			<dependency>
+		<dependency>
     		<groupId>com.formdev</groupId>
     		<artifactId>flatlaf-intellij-themes</artifactId>
     		<version>3.7.1</version>
+		</dependency>
+		<dependency>
+    		<groupId>org.openjfx</groupId>
+    		<artifactId>javafx-web</artifactId>
+    		<version>26.0.1</version>
+    		<scope>compile</scope>
+		</dependency>
+		<dependency>
+    		<groupId>org.openjfx</groupId>
+    		<artifactId>javafx-swing</artifactId>
+    		<version>26.0.1</version>
+    		<scope>compile</scope>
 		</dependency>
 	</dependencies>
 	<build>
