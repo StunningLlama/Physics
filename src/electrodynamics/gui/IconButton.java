@@ -23,6 +23,8 @@ public class IconButton extends JButton {
 		this.setIcon(new ImageIcon(icon));
 		setPreferredSize(new Dimension(size+8, size+8));
 		setMaximumSize(new Dimension(size+8, size+8));
+		
+		updateUI();
 	}
 
 	@Override
