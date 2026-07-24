@@ -9,6 +9,7 @@ jpackage --type app-image `
 	--input ..\\target\\ `
 	--dest output_win\\ `
 	--main-class electrodynamics.SemiSim `
-	--main-jar SemiSim-$version.jar
+	--main-jar SemiSim-$version.jar `
+	--java-options -XX:-TieredCompilation
 
 steam\\ContentBuilder\\scripts\\build_win.ps1
