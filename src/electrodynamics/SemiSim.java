@@ -44,7 +44,7 @@ public class SemiSim {
 	public static int n_threads = Runtime.getRuntime().availableProcessors();
 	public static String name = "Brandon's semiconductor simulator";
 	public static String about = "<html><body><p style='width: 250px;'>Brandon's Semiconductor Simulator / SemiSim.<br>"
-									+ "Version 2.0.2<br>"
+									+ "Version 2.1<br>"
 									+ "(c) 2026 Brandon Li<br><br>"
 									+ "Thanks to Paul Falstad, Ariel Baksh, and retconaway for providing help, feedback, and suggestions.<br><br>"
 									+ "Data taken from:<br>"

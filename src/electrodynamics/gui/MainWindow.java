@@ -911,9 +911,12 @@ public class MainWindow extends JFrame implements ComponentListener {
 				});
 				
 				panel_4.add(button);
+				toolbuttons.put(brush, button);
 			}
 		} catch (IOException e1) {}
 	}
+	
+	public HashMap<Brush, IconButton> toolbuttons = new HashMap<Brush, IconButton>();
 	
 	public void removeKeyListeners(Component c) {
 		KeyListener[] list = c.getKeyListeners();

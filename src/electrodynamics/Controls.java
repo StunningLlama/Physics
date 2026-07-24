@@ -641,6 +641,10 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.opts.gui_parameter1.setVisible(false);
 			e.opts.gui_parameter1_text.setVisible(false);
 		}
+		
+		for (Brush b : e.opts.toolbuttons.keySet()) {
+			e.opts.toolbuttons.get(b).setHighlighted(brushes.getOption().equals(b));
+		}
 	}
 	
 	private void applyTool() {
@@ -1607,9 +1611,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			break;
 		case "menu_report":
 			if (BuildFlags.steam_enabled) {
-				showLinkBox("<div style='width: 300px;'>Please contact Brandon at brandonli.lex@gmail.com or create a discussion on <a href=\"https://steamcommunity.com/app/4864110/discussions/\">steam</a>.</div>", "Report a bug");
+				showLinkBox("<div style='width: 300px;'>Please contact Brandon at brandon@brandonli.net or create a discussion on <a href=\"https://steamcommunity.com/app/4864110/discussions/\">steam</a>.</div>", "Report a bug");
 			} else {
-				showLinkBox("<div style='width: 300px;'>Please contact Brandon at brandonli.lex@gmail.com or go to <a href=\"https://github.com/StunningLlama/SemiSim/issues\">github</a>.</div>", "Report a bug");
+				showLinkBox("<div style='width: 300px;'>Please contact Brandon at brandon@brandonli.net or go to <a href=\"https://github.com/StunningLlama/SemiSim/issues\">github</a>.</div>", "Report a bug");
 			}
 			break;
 		case "menu_pref":
