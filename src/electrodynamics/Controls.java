@@ -1529,6 +1529,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 			} else if (brush == Brush.XYPLOT) {
 				e.xyplot.createPlot(e, null);
+				e.xyplot.frame.setAlwaysOnTop(false);
 
 				JList<Probe> tmplist = new JList<>(e.probes.toArray(new Probe[0]));
 
@@ -1563,6 +1564,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 						e.xyplot.y = selected;
 					}
 				}
+
+				e.xyplot.frame.setAlwaysOnTop(true);
 			}
 			e.controls.brush_changed = true;
 			break;
