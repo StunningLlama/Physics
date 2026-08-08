@@ -14,7 +14,6 @@ jpackage --type app-image \
 	--main-jar SemiSim-$version.jar \
 	--java-options -XX:-TieredCompilation \
 	--java-options -XX:CompileThresholdScaling=0.25 \
-	--about-url "http://brandonli.net/semisim" \
 	--file-associations semisim.properties
 
 sh steam/ContentBuilder/scripts/build_linux.sh

@@ -1,7 +1,7 @@
 version=$(cat version.txt)
 year=$(cat year.txt)
-rm -rf output_mac_installer/SemiSim.app
-jpackage --type app-image \
+rm -rf output_mac_installer/
+jpackage --type dmg \
 	--app-version $version \
 	--copyright "Brandon Li ($year)" \
 	--description "Brandon's Semiconductor Simulator" \
@@ -13,6 +13,7 @@ jpackage --type app-image \
 	--main-class electrodynamics.SemiSim \
 	--main-jar SemiSim-$version.jar \
 	--java-options -XX:-TieredCompilation \
+	--java-options -XX:CompileThresholdScaling=0.25 \
 	--about-url "https://brandonli.net/semisim" \
 	--file-associations semisim.properties \
 	--license-file ../license.txt
