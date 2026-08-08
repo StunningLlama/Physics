@@ -44,7 +44,7 @@ public class SemiSim {
 	public static int n_threads = Runtime.getRuntime().availableProcessors();
 	public static String name = "Brandon's semiconductor simulator";
 	public static String about = "<html><body><p style='width: 250px;'>Brandon's Semiconductor Simulator / SemiSim.<br>"
-									+ "Version 2.1<br>"
+									+ "Version $version<br>"
 									+ "(c) 2026 Brandon Li<br><br>"
 									+ "Thanks to Paul Falstad, Ariel Baksh, and retconaway for providing help, feedback, and suggestions.<br><br>"
 									+ "Data taken from:<br>"
@@ -260,6 +260,9 @@ public class SemiSim {
 
 	public static void main(String[] args)
 	{
+		String version = SemiSim.class.getPackage().getImplementationVersion();
+		if (version != null) SemiSim.about = SemiSim.about.replace("$version", version);
+		
 		detectOS();
 		
 		setDirectory();
@@ -270,6 +273,15 @@ public class SemiSim {
 		
 		SwingUtilities.invokeLater(() -> {
 			instance = new SemiSim();
+			
+			if (args.length > 0) {
+				String fname = args[0];
+
+				new Thread(() -> {
+					File file = new File(fname);
+					instance.sim.savemanager.readfile(file);
+				}).start();
+			}
 		});
 	}
 	

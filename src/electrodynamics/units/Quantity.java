@@ -88,6 +88,17 @@ public enum Quantity {
 		}
 	}
 	
+
+	public Quantity divideArea() {
+		switch (this) {
+		case ELECTRIC_CURRENT: return CURRENT_DENSITY;
+		case POWER: return INTENSITY;
+		case MAGNETIC_FLUX: return MAGNETIC_FLUX_DENSITY;
+		case CHARGE: return ELECTRIC_FLUX_DENSITY;
+		default: return null;
+		}
+	}
+	
 	public String name;
 	public String shorthand;
 	int time;

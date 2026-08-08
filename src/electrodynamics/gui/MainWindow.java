@@ -153,6 +153,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 	public CustJCheckBoxMenuItem menu_probes;
 	public CustJCheckBoxMenuItem menu_time;
 	public CustJCheckBoxMenuItem menu_colormap;
+	public CustJCheckBoxMenuItem menu_probearrows;
 	public CustJCheckBoxMenuItem menu_debug;
 	public JScrollBar gui_plotinterval;
 	public JLabel gui_plotinterval_text;
@@ -323,6 +324,10 @@ public class MainWindow extends JFrame implements ComponentListener {
 		menu_colormap = new CustJCheckBoxMenuItem("Show color scale");
 		menu_colormap.setSelected(true);
 		menu_graphics.add(menu_colormap);
+
+		menu_probearrows = new CustJCheckBoxMenuItem("Show current probe arrows");
+		menu_probearrows.setSelected(true);
+		menu_graphics.add(menu_probearrows);
 
 		JSeparator separator_4 = new JSeparator();
 		menu_graphics.add(separator_4);
@@ -627,6 +632,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 		boolean_names.put("show_probes", menu_probes);
 		boolean_names.put("show_time", menu_time);
 		boolean_names.put("show_colormap", menu_colormap);
+		boolean_names.put("show_probearrows", menu_probearrows);
 		boolean_names.put("gui_carriers", gui_carriers);
 		boolean_names.put("gui_hide_carriers_metal", menu_hide_carriers_metal);
 		boolean_names.put("show_carrier_diffusion", menu_carrier_diffusion);
@@ -652,6 +658,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 		menu_probes.setSelected(true);
 		menu_time.setSelected(true);
 		menu_colormap.setSelected(false);
+		menu_probearrows.setSelected(false);
 		gui_carriers.setSelected(false);
 		menu_hide_carriers_metal.setSelected(true);
 		menu_carrier_diffusion.setSelected(false);

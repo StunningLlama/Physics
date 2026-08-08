@@ -2,6 +2,10 @@ bin/
 build/output_mac/
 build/output_win/
 build/output_linux/
+build/output_mac_installer/
+build/output_win_installer/
+build/output_linux_installer_deb/
+build/output_linux_installer_rpm/
 .DS_store
 probedata.txt
 /target/

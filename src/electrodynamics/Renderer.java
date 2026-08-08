@@ -26,6 +26,7 @@ import javax.swing.JPanel;
 import electrodynamics.Controls.Brush;
 import electrodynamics.plot.Plot;
 import electrodynamics.probe.Ground;
+import electrodynamics.probe.LineProbe;
 import electrodynamics.probe.Probe;
 import electrodynamics.units.Quantity;
 import electrodynamics.util.DistributionSampler;
@@ -77,6 +78,7 @@ public class Renderer extends PeriodicTask {
 
 	public int probetexttimer = 0;
 	private boolean synchronized_show_carriers;
+	private boolean synchronized_display_current_arrows;
 	private boolean synchronized_update_carriers;
 	private VectorMode synchronized_vector_display_mode;
 	private ScalarMode synchronized_scalar_display_mode;
@@ -952,6 +954,7 @@ public class Renderer extends PeriodicTask {
 		t_prev = e.time;
 
 		synchronized_show_carriers = e.opts.gui_carriers.isSelected();
+		synchronized_display_current_arrows = e.opts.menu_probearrows.isSelected();
 		synchronized_update_carriers = !e.opts.gui_paused.isSelected() || delta_t > 0;
 		synchronized_vector_display_mode = e.controls.vectormode.getOption();
 		synchronized_scalar_display_mode = e.controls.scalarmode.getOption();
@@ -1212,7 +1215,7 @@ public class Renderer extends PeriodicTask {
 						boolean conductors_only = synchronized_vector_view.isConductorOnly();
 
 						double randomness = 0;
-						if (synchronized_vector_display_mode == VectorMode.ARROWS) {
+						if (synchronized_vector_display_mode == VectorMode.ARROWS || synchronized_vector_display_mode == VectorMode.ARROWS_LEN) {
 							randomness = 0.5;
 						} else if (synchronized_vector_display_mode == VectorMode.LINES) {
 							randomness = 0.75;
@@ -1304,6 +1307,55 @@ public class Renderer extends PeriodicTask {
 									tip1.add(body2);
 									tip2.scalarmult(0.35*arrowlength);
 									tip2.add(body2);
+									double alphaFG = (0.1*Math.sqrt(fieldmagnitude));
+									drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true,
+									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip1.x*scalefactor), (int)(tip1.y*scalefactor), false,
+									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip2.x*scalefactor), (int)(tip2.y*scalefactor), false,
+									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+								}
+							}
+						} else if (synchronized_vector_display_mode == VectorMode.ARROWS_LEN) {
+							rand.setSeed(n_thread);
+							
+							Vector ctr = new Vector(0,0);
+							Vector arrow = new Vector(0,0);
+							Vector tip1 = new Vector(0,0);
+							Vector tip2 = new Vector(0,0);
+							Vector body1 = new Vector(0,0);
+							Vector body2 = new Vector(0,0);
+							
+							for (int i = lower(density_x); i < upper(density_x); i++) {
+								for (int j = 0; j < density_y; j++) {
+
+									//double x = (e.nx-1)*(i+0.5)/50;
+									//double y = (e.ny-1)*(j+0.5)/50;
+									double x = e.nx*(i+randomness*(rand.nextFloat()-0.5))/density_x;
+									double y = e.ny*(j+randomness*(rand.nextFloat()-0.5))/density_y;
+									ctr.x = x+0.5;
+									ctr.y = y+0.5;
+
+									arrow.x = Utils.bilinearinterp(vf_x,x-0.5, y, e.nx, e.ny);
+									arrow.y = Utils.bilinearinterp(vf_y,x, y-0.5, e.nx, e.ny);
+
+									double arrowlength_varying = 10*vectorscalingconstant*Math.sqrt(arrow.dot(arrow));
+									arrow.normalize();
+									tip1.copy(arrow);
+									tip2.copy(arrow);
+									tip1.rotate(Math.PI*5.0/6.0);
+									tip2.rotate(Math.PI*7.0/6.0);
+
+									body1.copy(ctr);
+									body1.addmult(arrow, -0.5*arrowlength_varying);
+									body2.copy(ctr);
+									body2.addmult(arrow, 0.5*arrowlength_varying);
+									tip1.scalarmult(0.35*arrowlength_varying);
+									tip1.add(body2);
+									tip2.scalarmult(0.35*arrowlength_varying);
+									tip2.add(body2);
+
+									double fieldmagnitude = Math.max(0.1, arrowlength_varying);
 									double alphaFG = (0.1*Math.sqrt(fieldmagnitude));
 									drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true,
 									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
@@ -1571,6 +1623,61 @@ public class Renderer extends PeriodicTask {
 							carrier_diffusion_warning_timer = 20;
 						}
 					}
+					
+					if (synchronized_display_current_arrows) {
+						graphics_mid_barrier.await();
+						if (n_thread == 0) {
+
+							Vector ctr = new Vector(0,0);
+							Vector arrow = new Vector(0,0);
+							Vector tip1 = new Vector(0,0);
+							Vector tip2 = new Vector(0,0);
+							Vector body1 = new Vector(0,0);
+							Vector body2 = new Vector(0,0);
+
+							for (Probe p : e.probes) {
+								if (p instanceof LineProbe) {
+									LineProbe lp = ((LineProbe) p);
+									//double x = (e.nx-1)*(i+0.5)/50;
+									//double y = (e.ny-1)*(j+0.5)/50;
+									ctr.x = 0.5*(lp.x1 + lp.x2);
+									ctr.y = 0.5*(lp.y1 + lp.y2);
+									
+									double dx_perp = (lp.y2-lp.y1);
+									double dy_perp = -(lp.x2-lp.x1);
+									arrow.x = dx_perp;
+									arrow.y = dy_perp;
+
+
+									double arrowlength_varying = 20*(lp.value/(e.depth*e.ds))/lp.vectorname.getScalingConstant(e);
+									//System.out.println(arrowlength_varying);
+									arrow.normalize();
+									tip1.copy(arrow);
+									tip2.copy(arrow);
+									tip1.rotate(Math.PI*5.0/6.0);
+									tip2.rotate(Math.PI*7.0/6.0);
+
+									body1.copy(ctr);
+									body1.addmult(arrow, -0.5*arrowlength_varying);
+									body2.copy(ctr);
+									body2.addmult(arrow, 0.5*arrowlength_varying);
+									tip1.scalarmult(0.35*arrowlength_varying);
+									tip1.add(body2);
+									tip2.scalarmult(0.35*arrowlength_varying);
+									tip2.add(body2);
+
+									double alphaFG = 1;
+									drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true,
+											1, 0, 1, (float)alphaFG, 0f);
+									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip1.x*scalefactor), (int)(tip1.y*scalefactor), false,
+											1, 0, 1, (float)alphaFG, 0f);
+									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip2.x*scalefactor), (int)(tip2.y*scalefactor), false,
+											1, 0, 1, (float)alphaFG, 0f);
+								}
+							}
+						}
+					}
+
 					graphics_end_barrier.await();
 				}
 			} catch (InterruptedException | BrokenBarrierException e) {
@@ -1915,9 +2022,10 @@ public class Renderer extends PeriodicTask {
 	
 	public enum VectorMode {
 		NONE("Turn off vector overlay", ""),
-		ARROWS("Show vectors", "vectors"),
-		LINES("Show lines", "lines"),
-		DOTS("Show moving dots", "dots");
+		ARROWS("Display arrows (brightness)", "arrows"),
+		ARROWS_LEN("Display arrows (length)", "arrows"),
+		LINES("Display lines", "lines"),
+		DOTS("Display dots", "dots");
 	
 		String name;
 		public String shorthand;
@@ -2006,8 +2114,11 @@ public class Renderer extends PeriodicTask {
 					offset_y = 0;
 				}
 
-				g.drawImage(e.renderer.img_front, offset_x, offset_y, zoom_bound_x+1+offset_x, zoom_bound_y+1+offset_y, 
-						e.controls.zoom_i1*e.renderer.scalefactor, e.controls.zoom_j1*e.renderer.scalefactor, (e.controls.zoom_i2+1)*e.renderer.scalefactor, (e.controls.zoom_j2+1)*e.renderer.scalefactor, e.opts);
+				double sf_x = (double)(e.canvas.zoom_bound_x+1)/(e.controls.zoom_i2-e.controls.zoom_i1+1);
+				double sf_y = (double)(e.canvas.zoom_bound_y+1)/(e.controls.zoom_j2-e.controls.zoom_j1+1);
+
+				g.drawImage(e.renderer.img_front, (int) ((-e.controls.zoom_i1)*sf_x+e.canvas.offset_x), (int) ((-e.controls.zoom_j1)*sf_y+e.canvas.offset_y), (int) ((e.nx+1-e.controls.zoom_i1)*sf_x+e.canvas.offset_x), (int) ((e.ny+1-e.controls.zoom_j1)*sf_y+e.canvas.offset_y), 
+						0, 0, (e.nx+1)*e.renderer.scalefactor-1, (e.ny+1)*e.renderer.scalefactor-1, e.opts);
 
 				e.renderer.drawText((Graphics2D)g);
 			} finally {

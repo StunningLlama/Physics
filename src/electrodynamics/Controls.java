@@ -2106,7 +2106,29 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 	@Override
 	public void mouseWheelMoved(MouseWheelEvent ev) {
-		e.opts.gui_brushsize.setValue(e.opts.gui_brushsize.getValue() - (int)(5*ev.getPreciseWheelRotation()));
+		if (Brush.isBrushShapeImportant(brushes.getOption())) {
+			e.opts.gui_brushsize.setValue(e.opts.gui_brushsize.getValue() - (int)(5*ev.getPreciseWheelRotation()));
+		} else if (brushes.getOption() == Brush.ZOOM || brushes.getOption() == Brush.PAN) {
+			if (ev.getWheelRotation() < 0) {
+				double i_avg = 0.5*(zoom_i1+zoom_i2);
+				double j_avg = 0.5*(zoom_j1+zoom_j2);
+				double di = 0.5*(zoom_i2-zoom_i1);
+				double dj = 0.5*(zoom_j2-zoom_j1);
+				zoom_i1 = (int)(Math.round(i_avg-0.9*di));
+				zoom_i2 = (int)(Math.round(i_avg+0.9*di));
+				zoom_j1 = (int)(Math.round(j_avg-0.9*dj));
+				zoom_j2 = (int)(Math.round(j_avg+0.9*dj));
+			} else if (ev.getWheelRotation() > 0) {
+				double i_avg = 0.5*(zoom_i1+zoom_i2);
+				double j_avg = 0.5*(zoom_j1+zoom_j2);
+				double di = 0.5*(zoom_i2-zoom_i1);
+				double dj = 0.5*(zoom_j2-zoom_j1);
+				zoom_i1 = (int)(Math.round(i_avg-1.1*di));
+				zoom_i2 = (int)(Math.round(i_avg+1.1*di));
+				zoom_j1 = (int)(Math.round(j_avg-1.1*dj));
+				zoom_j2 = (int)(Math.round(j_avg+1.1*dj));
+			}
+		}
 	}
 	
 

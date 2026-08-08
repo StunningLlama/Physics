@@ -245,6 +245,13 @@ According to Maxwell's equations, EM fields cannot propagate faster than the spe
 Clone the repository using `bash git clone https://github.com/StunningLlama/SemiSim.git`  
 Note: Building requires Java 25 and Maven for dependency management. You may need to update your IDE.
 
+The JVM options
+```
+-XX:-TieredCompilation
+-XX:CompileThresholdScaling=0.25
+```
+are required for good performance.
+
 ## Eclipse
 
 1.  Go to File/Import/Existing Maven Projects
