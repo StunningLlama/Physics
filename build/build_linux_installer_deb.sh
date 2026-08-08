@@ -9,7 +9,7 @@ jpackage --type deb \
 	--icon ../images/icon.png \
 	--vendor "Brandon Li" \
 	--input ../target/ \
-	--dest output_linux_installer_rpm \
+	--dest output_linux_installer_deb \
 	--main-class electrodynamics.SemiSim \
 	--main-jar SemiSim-$version.jar \
 	--java-options -XX:-TieredCompilation \

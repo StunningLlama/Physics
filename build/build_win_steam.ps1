@@ -13,7 +13,6 @@ jpackage --type app-image `
 	--main-class electrodynamics.SemiSim `
 	--main-jar SemiSim-$version.jar `
 	--java-options -XX:-TieredCompilation `
-	--java-options -XX:CompileThresholdScaling=0.25 `
-	--file-associations semisim.properties
+	--java-options -XX:CompileThresholdScaling=0.25
 
 steam\\ContentBuilder\\scripts\\build_win.ps1
