@@ -1,22 +1,3 @@
-# Installation Instructions and Troubleshooting
-
-## Installation
-
-1.  Make sure you have the latest version of Java installed. Java can be found [here](https://www.java.com/en/download/manual.jsp).
-2.  Extract the contents of SemiSim.zip into a new folder.
-3.  Double click SemiSim.jar to run it.
-4.  If SemiSim crashes when loading a file:
-    *   Make sure you have a 64-bit version of Java installed.
-
-## Mac OS
-
-1.  If you see "_SemiSim.jar cannot be opened because it is from an unidentified developer_":
-    *   Right click SemiSim.jar and click "Open".
-    *   Click "Open" again on the popup window.
-2.  If you are unable to see and open files:
-    *   Go into System Preferences > Security > Privacy > Full Disk Access.
-    *   Add "/System/Library/CoreServices/Jar Launcher.app" to the list and give it disk access.
-
 # Introduction
 
 Brandon's semiconductor simulator (SemiSim) is an educational tool made with the original purpose of helping its creator understand semiconductor devices. It is fully interactive, letting users draw circuits and create their own devices in a manner similar to painting software. There is a wide variety of different materials to choose from and many ways to visualize the electromagnetic phenomena associated with semiconductors. Users can either load one of the many premade simulations or create their own.
