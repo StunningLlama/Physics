@@ -261,7 +261,12 @@ public class SemiSim {
 	public static void main(String[] args)
 	{
 		String version = SemiSim.class.getPackage().getImplementationVersion();
-		if (version != null) SemiSim.about = SemiSim.about.replace("$version", version);
+		if (version != null) {
+			if (BuildFlags.steam_enabled)
+				SemiSim.about = SemiSim.about.replace("$version", version + " (steam)");
+			else
+				SemiSim.about = SemiSim.about.replace("$version", version);
+		}
 		
 		detectOS();
 		
