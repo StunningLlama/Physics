@@ -11,10 +11,10 @@
 ## Mac OS
 
 1.  If you see "_SemiSim.jar cannot be opened because it is from an unidentified developer_":
-    *   Right click "SemiSim.jar" and click "Open".
+    *   Right click SemiSim.jar and click "Open".
     *   Click "Open" again on the popup window.
 2.  If you are unable to see and open files:
-    *   Go into System Preferences → Security → Privacy → Full Disk Access.
+    *   Go into System Preferences > Security > Privacy > Full Disk Access.
     *   Add "/System/Library/CoreServices/Jar Launcher.app" to the list and give it disk access.
 
 # Introduction
@@ -216,7 +216,7 @@ The recombination rate is given by a sum of contributions from three processes: 
 
 SemiSim requires a couple hundred MB of RAM at the default resolution. The amount of memory needed is proportional to the number of grid points, which is the square of the resolution. Resolutions greater than 512 require a huge amount of memory.
 
-The speed of simulation depends slightly on the fraction of area filled with conducuctive material. I like to use the file "realistic BJT.semisim" as a benchmark since it covers the majority of the area with semiconductor. Running this setup on my M2 macbook pro, I get around 1000 steps/s.
+The speed of simulation depends slightly on the fraction of area filled with conducuctive material. I like to use the file "realistic BJT.semisim" as a benchmark since it covers the majority of the area with semiconductor. Running this setup on my M2 macbook pro, I get around 1100 steps/s.
 
 # Miscellaneous questions and answers
 

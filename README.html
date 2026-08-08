@@ -136,13 +136,13 @@ td:first-child, th:first-child {
 <ol>
   <li>If you see "<i>SemiSim.jar cannot be opened because it is from an unidentified developer</i>":
     <ul>
-      <li>Right click "SemiSim.jar" and click "Open".</li>
+      <li>Right click SemiSim.jar and click "Open".</li>
       <li>Click "Open" again on the popup window.</li>
     </ul>
   </li>
   <li>If you are unable to see and open files:
     <ul>
-      <li>Go into System Preferences → Security → Privacy → Full Disk Access.</li>
+      <li>Go into System Preferences > Security > Privacy > Full Disk Access.</li>
       <li>Add "/System/Library/CoreServices/Jar Launcher.app" to the list and give it disk access.</li>
     </ul>
   </li>
@@ -336,7 +336,7 @@ $$
 <h2>Performance/Benchmarking</h2>
 SemiSim requires a couple hundred MB of RAM at the default resolution. The amount of memory needed is proportional to the number of grid points, which is the square of the resolution. Resolutions greater than 512 require a huge amount of memory.
 <p>
-The speed of simulation depends slightly on the fraction of area filled with conducuctive material. I like to use the file "realistic BJT.semisim" as a benchmark since it covers the majority of the area with semiconductor. Running this setup on my M2 macbook pro, I get around 1000 steps/s.
+The speed of simulation depends slightly on the fraction of area filled with conducuctive material. I like to use the file "realistic BJT.semisim" as a benchmark since it covers the majority of the area with semiconductor. Running this setup on my M2 macbook pro, I get around 1100 steps/s.
 </p>
 <h1>Miscellaneous questions and answers</h1>
 <h2>Why does this simulation exist?</h2>
@@ -374,6 +374,10 @@ Clone the repository using
 git clone https://github.com/StunningLlama/SemiSim.git
 </code><br>
 Note: Building requires Java 25 and Maven for dependency management. You may need to update your IDE.
+<br><br>
+The JVM options
+<code>-XX:-TieredCompilation
+-XX:CompileThresholdScaling=0.25</code> are required for good performance.
 
 <h2>Eclipse</h2>
 <ol>
