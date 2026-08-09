@@ -1623,10 +1623,17 @@ public class Renderer extends PeriodicTask {
 							carrier_diffusion_warning_timer = 20;
 						}
 					}
+
+					graphics_mid_barrier.await();
+
+					if (n_thread == 0 && e.opts.menu_interface.isSelected() && e.opts.menu_probes.isSelected()) {
+
+						for (Probe p : e.probes) {
+							drawLine((int)(p.getXcenter()*scalefactor), (int)(p.getYcenter()*scalefactor), (int)(p.labelcoord.x*scalefactor), (int)(p.labelcoord.y*scalefactor), true,
+								1, 1, 1, 0.1f, 1f);
+						}
 					
-					if (synchronized_display_current_arrows) {
-						graphics_mid_barrier.await();
-						if (n_thread == 0) {
+						if (synchronized_display_current_arrows) {
 
 							Vector ctr = new Vector(0,0);
 							Vector arrow = new Vector(0,0);

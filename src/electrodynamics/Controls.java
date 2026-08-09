@@ -2117,19 +2117,23 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				double j_avg = 0.5*(zoom_j1+zoom_j2);
 				double di = 0.5*(zoom_i2-zoom_i1);
 				double dj = 0.5*(zoom_j2-zoom_j1);
-				zoom_i1 = (int)(Math.round(i_avg-0.9*di));
-				zoom_i2 = (int)(Math.round(i_avg+0.9*di));
-				zoom_j1 = (int)(Math.round(j_avg-0.9*dj));
-				zoom_j2 = (int)(Math.round(j_avg+0.9*dj));
+				di = Math.max(0, Math.min(0.9*di, di-1));
+				dj = Math.max(0, Math.min(0.9*dj, dj-1));
+				zoom_i1 = (int)(Math.round(i_avg-di));
+				zoom_i2 = (int)(Math.round(i_avg+di));
+				zoom_j1 = (int)(Math.round(j_avg-dj));
+				zoom_j2 = (int)(Math.round(j_avg+dj));
 			} else if (ev.getWheelRotation() > 0) {
 				double i_avg = 0.5*(zoom_i1+zoom_i2);
 				double j_avg = 0.5*(zoom_j1+zoom_j2);
 				double di = 0.5*(zoom_i2-zoom_i1);
 				double dj = 0.5*(zoom_j2-zoom_j1);
-				zoom_i1 = (int)(Math.round(i_avg-1.1*di));
-				zoom_i2 = (int)(Math.round(i_avg+1.1*di));
-				zoom_j1 = (int)(Math.round(j_avg-1.1*dj));
-				zoom_j2 = (int)(Math.round(j_avg+1.1*dj));
+				di = Math.max(1.1*di, di+1);
+				dj = Math.max(1.1*dj, dj+1);
+				zoom_i1 = (int)(Math.round(i_avg-di));
+				zoom_i2 = (int)(Math.round(i_avg+di));
+				zoom_j1 = (int)(Math.round(j_avg-dj));
+				zoom_j2 = (int)(Math.round(j_avg+dj));
 			}
 		}
 	}

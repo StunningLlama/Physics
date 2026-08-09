@@ -261,7 +261,7 @@ public class Preferences extends JFrame implements ActionListener {
 		chkbox_undo.setSelected(false);
 		chkbox_potential.setSelected(true);
 		gui_units.setSelectedItem(Units.SI);
-		spinner_undosize.setValue(4);
+		spinner_undosize.setValue(5);
 		spinner_fps.setValue(60);
 		spinner_font.setValue(12);
 		gui_lookfeel.setSelectedItem(Theme.system);

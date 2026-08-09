@@ -37,6 +37,8 @@ public abstract class Probe implements Cloneable {
 	public abstract void flip_v(int j_min, int j_max);
 	public abstract void drag(int mx, int my);
 	public abstract void draw(Renderer r);
+	public abstract double getXcenter();
+	public abstract double getYcenter();
 	public abstract String getText(Units units);
 	
 	@Override

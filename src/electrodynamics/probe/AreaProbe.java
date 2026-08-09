@@ -159,10 +159,16 @@ public class AreaProbe extends Probe {
 		r.drawPixelLine(x2, y1, x2, y2);
 		r.drawPixelLine(x2, y2, x1, y2);
 		r.drawPixelLine(x1, y2, x1, y1);
-		
-		r.setalphaFG(0.1);
-		r.setColorFloat(1.0f, 1.0f, 1.0f);
-		r.drawPixelLine((x1 + x2)/2, (y1+y2)/2, labelcoord.x, labelcoord.y);
+	}
+	
+	@Override
+	public double getXcenter() {
+		return 0.5*(x1+x2);
+	}
+
+	@Override
+	public double getYcenter() {
+		return 0.5*(y1+y2);
 	}
 
 	@Override
