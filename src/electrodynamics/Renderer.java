@@ -273,24 +273,6 @@ public class Renderer extends PeriodicTask {
 		}
 	}
 
-	public void stampPixelData() {
-		e.t9.start();
-		int scansize = e.nx*scalefactor;
-		for (int x = 0; x < e.nx*scalefactor; x++) {
-			for (int y = 0; y < e.ny*scalefactor; y++) {
-				int i = x/scalefactor;
-				int j = y/scalefactor;
-				double scale = 1f/max(image_r[i][j], image_g[i][j], image_b[i][j], 1f);
-				int rgb = clamp((int)(256*image_r[i][j]*scale), 0, 255) << 16
-						| clamp((int)(256*image_g[i][j]*scale), 0, 255) << 8
-						| clamp((int)(256*image_b[i][j]*scale), 0, 255);
-				imgData[x + y*scansize] = rgb;
-			}
-		}
-		Arrays.fill(depth_buf, 0);
-		e.t9.stop();
-	}
-
 	public void drawPixel(int x, int y) {
 		drawPixel(x, y, col_r, col_g, col_b, alphaFG, alphaBG);
 	}
@@ -951,9 +933,6 @@ public class Renderer extends PeriodicTask {
 		if (e.controls.texting) {
 			drawPixelLine(e.controls.text_x, e.controls.text_y, e.controls.text_x, e.controls.text_y+7);
 		}
-
-		stampPixelData();
-
 	}
 	
 	private void drawOverlay() {
@@ -1146,6 +1125,7 @@ public class Renderer extends PeriodicTask {
 			drawString(e.t6.getName() + " " + e.units.toString(e.t6.getAverageTime()*e.opts.gui_simspeed_2.getValue(), Quantity.TIME), hoffset, voffset + line*vspacing, g); line++;
 			drawString(e.t7.getName() + " " + e.units.toString(e.t7.getAverageTime(), Quantity.TIME), hoffset, voffset + line*vspacing, g); line++;
 			drawString(e.t8.getName() + " " + e.units.toString(e.t8.getAverageTime(), Quantity.TIME), hoffset, voffset + line*vspacing, g); line++;
+			drawString(e.t9.getName() + " " + e.units.toString(e.t9.getAverageTime(), Quantity.TIME), hoffset, voffset + line*vspacing, g); line++;
 			drawString(FPStimer.getName() + " " + e.units.toString(1/FPStimer.getAverageTime(), Quantity.FREQUENCY), hoffset, voffset + line*vspacing, g); line++;
 			drawString(e.simFPStimer.getName() + " " + e.units.toString(1/e.simFPStimer.getAverageTime(), Quantity.FREQUENCY), hoffset, voffset + line*vspacing, g); line++;
 		}
@@ -1193,6 +1173,17 @@ public class Renderer extends PeriodicTask {
 		int n_threads;
 		Random rand = new Random();
 
+		double arrowlength;
+		double vectorscalingconstant;
+		int density_x;
+		int density_y;
+		boolean conductors_only;
+
+		double randomness = 0;
+		
+		double[][] vf_x;
+		double[][] vf_y;
+
 		public GraphicsThread(int n, int n_threads) {
 			n_thread = n;
 			this.n_threads = n_threads;
@@ -1212,16 +1203,19 @@ public class Renderer extends PeriodicTask {
 			try {
 				while (true) {
 					graphics_start_barrier.await();
+					
+					stampPixelData();
 
 					if (synchronized_vector_display_mode != VectorMode.NONE && synchronized_vector_view != VectorView.NONE)
 					{
-						double arrowlength = 10.0/scalefactor;
-						double vectorscalingconstant = 10*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/10.0)/e.controls.vectorview.getOption().getScalingConstant(e);
-						int density_x = 25*scalefactor*e.nx/256;
-						int density_y = 25*scalefactor*e.ny/256;
-						boolean conductors_only = synchronized_vector_view.isConductorOnly();
+						graphics_mid_barrier.await();
+						arrowlength = 10.0/scalefactor;
+						vectorscalingconstant = 10*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/10.0)/e.controls.vectorview.getOption().getScalingConstant(e);
+						density_x = 25*scalefactor*e.nx/256;
+						density_y = 25*scalefactor*e.ny/256;
+						conductors_only = synchronized_vector_view.isConductorOnly();
 
-						double randomness = 0;
+						randomness = 0;
 						if (synchronized_vector_display_mode == VectorMode.ARROWS || synchronized_vector_display_mode == VectorMode.ARROWS_LEN) {
 							randomness = 0.5;
 						} else if (synchronized_vector_display_mode == VectorMode.LINES) {
@@ -1230,472 +1224,519 @@ public class Renderer extends PeriodicTask {
 						
 						double[][][] vf = {null, null};
 						e.computeVectorField(vf, synchronized_vector_view);
-						double[][] vf_x = vf[0];
-						double[][] vf_y = vf[1];
+						vf_x = vf[0];
+						vf_y = vf[1];
 
 						if (synchronized_vector_display_mode == VectorMode.LINES) {
-							rand.setSeed(n_thread);
-							for (int i = lower(density_x); i < upper(density_x); i++) {
-								for (int j = 0; j < density_y; j++) {
-
-									//double x = (e.nx-1)*(i+0.5)/50;
-									//double y = (e.ny-1)*(j+0.5)/50;
-									double x = e.nx*(i+randomness*(rand.nextFloat()-0.5))/density_x;
-									double y = e.ny*(j+randomness*(rand.nextFloat()-0.5))/density_y;
-									for (int sign = -1; sign <= 1; sign += 2) {
-
-										double prevx = x;
-										double prevy = y;
-										double dx = 0;
-										double dy = 0;
-
-
-										int steps = 30;
-										for (int k = 0; k < steps; k++) {
-											dx = Utils.bilinearinterp(vf_x, prevx-0.5, prevy, e.nx, e.ny);
-											dy = Utils.bilinearinterp(vf_y, prevx, prevy-0.5, e.nx, e.ny);
-
-											double fieldmagnitude = Math.sqrt(dx*dx+dy*dy);
-											double alphaFG = bump(0.5*(1.0-k/(double)(steps-1)), 0.5)*Math.min(1, vectorscalingconstant*fieldmagnitude);
-
-											if (fieldmagnitude != 0) {
-												dx /= fieldmagnitude;
-												dy /= fieldmagnitude;
-											}
-
-											double nextx = prevx + dx*arrowlength*0.25*sign;
-											double nexty = prevy + dy*arrowlength*0.25*sign;
-
-											drawLine((int)((prevx+0.5)*scalefactor), (int)((prevy+0.5)*scalefactor), (int)((nextx+0.5)*scalefactor), (int)((nexty+0.5)*scalefactor), k == 0 && sign == 1,
-											1f, 1f, 1f, (float) alphaFG, 1f);
-
-											prevx = nextx;
-											prevy = nexty;
-										}
-									}
-								}
-
-							}
+							drawLines();
 						} else if (synchronized_vector_display_mode == VectorMode.ARROWS) {
-							rand.setSeed(n_thread);
-							
-							Vector ctr = new Vector(0,0);
-							Vector arrow = new Vector(0,0);
-							Vector tip1 = new Vector(0,0);
-							Vector tip2 = new Vector(0,0);
-							Vector body1 = new Vector(0,0);
-							Vector body2 = new Vector(0,0);
-							
-							for (int i = lower(density_x); i < upper(density_x); i++) {
-								for (int j = 0; j < density_y; j++) {
-
-									//double x = (e.nx-1)*(i+0.5)/50;
-									//double y = (e.ny-1)*(j+0.5)/50;
-									double x = e.nx*(i+randomness*(rand.nextFloat()-0.5))/density_x;
-									double y = e.ny*(j+randomness*(rand.nextFloat()-0.5))/density_y;
-									ctr.x = x+0.5;
-									ctr.y = y+0.5;
-
-									arrow.x = Utils.bilinearinterp(vf_x,x-0.5, y, e.nx, e.ny);
-									arrow.y = Utils.bilinearinterp(vf_y,x, y-0.5, e.nx, e.ny);
-
-									double fieldmagnitude = Math.max(0.1, 10*vectorscalingconstant*Math.sqrt(arrow.dot(arrow)));
-									arrow.normalize();
-									tip1.copy(arrow);
-									tip2.copy(arrow);
-									tip1.rotate(Math.PI*5.0/6.0);
-									tip2.rotate(Math.PI*7.0/6.0);
-
-									body1.copy(ctr);
-									body1.addmult(arrow, -0.5*arrowlength);
-									body2.copy(ctr);
-									body2.addmult(arrow, 0.5*arrowlength);
-									tip1.scalarmult(0.35*arrowlength);
-									tip1.add(body2);
-									tip2.scalarmult(0.35*arrowlength);
-									tip2.add(body2);
-									double alphaFG = (0.1*Math.sqrt(fieldmagnitude));
-									drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true,
-									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
-									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip1.x*scalefactor), (int)(tip1.y*scalefactor), false,
-									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
-									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip2.x*scalefactor), (int)(tip2.y*scalefactor), false,
-									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
-								}
-							}
+							drawArrowsBrightness();
 						} else if (synchronized_vector_display_mode == VectorMode.ARROWS_LEN) {
-							rand.setSeed(n_thread);
-							
-							Vector ctr = new Vector(0,0);
-							Vector arrow = new Vector(0,0);
-							Vector tip1 = new Vector(0,0);
-							Vector tip2 = new Vector(0,0);
-							Vector body1 = new Vector(0,0);
-							Vector body2 = new Vector(0,0);
-							
-							for (int i = lower(density_x); i < upper(density_x); i++) {
-								for (int j = 0; j < density_y; j++) {
-
-									//double x = (e.nx-1)*(i+0.5)/50;
-									//double y = (e.ny-1)*(j+0.5)/50;
-									double x = e.nx*(i+randomness*(rand.nextFloat()-0.5))/density_x;
-									double y = e.ny*(j+randomness*(rand.nextFloat()-0.5))/density_y;
-									ctr.x = x+0.5;
-									ctr.y = y+0.5;
-
-									arrow.x = Utils.bilinearinterp(vf_x,x-0.5, y, e.nx, e.ny);
-									arrow.y = Utils.bilinearinterp(vf_y,x, y-0.5, e.nx, e.ny);
-
-									double arrowlength_varying = 10*vectorscalingconstant*Math.sqrt(arrow.dot(arrow));
-									arrow.normalize();
-									tip1.copy(arrow);
-									tip2.copy(arrow);
-									tip1.rotate(Math.PI*5.0/6.0);
-									tip2.rotate(Math.PI*7.0/6.0);
-
-									body1.copy(ctr);
-									body1.addmult(arrow, -0.5*arrowlength_varying);
-									body2.copy(ctr);
-									body2.addmult(arrow, 0.5*arrowlength_varying);
-									tip1.scalarmult(0.35*arrowlength_varying);
-									tip1.add(body2);
-									tip2.scalarmult(0.35*arrowlength_varying);
-									tip2.add(body2);
-
-									double fieldmagnitude = Math.max(0.1, arrowlength_varying);
-									double alphaFG = (0.1*Math.sqrt(fieldmagnitude));
-									drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true,
-									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
-									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip1.x*scalefactor), (int)(tip1.y*scalefactor), false,
-									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
-									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip2.x*scalefactor), (int)(tip2.y*scalefactor), false,
-									(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
-								}
-							}
+							drawArrowsLength();
 						} else if (synchronized_vector_display_mode == VectorMode.DOTS) {
-							boolean paused = e.opts.gui_paused.isSelected();
-
-							int lower = lower(dots.size());
-							int upper = upper(dots.size());
-							for (int i = lower; i < upper; i++) {
-								Dot d = dots.get(i);
-								if (d.time <= 0 || d.x < 0 || d.y < 0 || d.x >= e.nx || d.y >= e.ny) {
-									d.x = e.nx*rand.nextDouble();
-									d.y = e.ny*rand.nextDouble();
-									d.lifespan = 100*(1+rand.nextDouble());
-									d.time = d.lifespan;
-									if (conductors_only && Utils.bilinearinterp(e.conducting, d.x, d.y, e.nx, e.ny) == 0) {
-										d.lifespan = 0;
-										d.time = 0;
-									}
-								}
-							}
-
-							setColorFloat(1, 1, 1);
-							int dot_offset = (scalefactor-1)/2;
-							for (int i = lower; i < upper; i++) {
-								Dot d = dots.get(i);
-								if (d.time > 0) {
-									double dx = 0;
-									double dy = 0;
-									int steps = 10;
-
-									if (!paused) {
-										for (int k = 0; k < steps; k++) {
-											dx = Utils.bilinearinterp(vf_x,d.x-0.5, d.y, e.nx, e.ny)*vectorscalingconstant/steps;
-											dy = Utils.bilinearinterp(vf_y,d.x, d.y-0.5, e.nx, e.ny)*vectorscalingconstant/steps;
-											double maxspeed = 0.5;
-											double factor = Math.min(1, maxspeed/Math.sqrt(dx*dx+dy*dy));
-											d.x += dx*factor;
-											d.y += dy*factor;
-										}
-
-										double p = d.time/d.lifespan;
-										d.brightness = Math.min(1, Math.max(0.1, 10*Math.sqrt(dx*dx+dy*dy)))*bump(p, 1/3.0);
-										d.time -= 1;
-									}
-
-									double alphaFG = d.brightness;
-									drawRectangle((int)((d.x+0.5)*scalefactor)-dot_offset, (int)((d.y+0.5)*scalefactor)-dot_offset, scalefactor, scalefactor,
-									1f, 1f, 1f, (float)alphaFG, 1f);
-								}
-							}
+							drawDots();
 						}
 					}
-					
 
 					if (synchronized_scalar_view != ScalarView.NONE && (synchronized_scalar_display_mode == ScalarMode.CONTOUR_COLORS || synchronized_scalar_display_mode == ScalarMode.CONTOUR)) {
 						graphics_mid_barrier.await();
-						double spacing = 0.2/scalingconstant;
-						double contourwidth = e.ds;
-
-						for (int i = lower(scalefactor*e.nx); i < upper(scalefactor*e.nx); i++) {
-							for (int j = 0; j < scalefactor*e.ny; j++) {
-								double u = Utils.bilinearinterp(scalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5, e.nx, e.ny)/spacing;
-								double v = Utils.bilinearinterp(gradscalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5, e.nx, e.ny)/spacing;
-								double f = ((((u%1)+1.5)%1)/Math.abs(v))/contourwidth;
-								if (f < 1) {
-									drawPixel(i, j, 1f, 1f, 1f, (float)(2*Math.min(f, 1-f)), 1f);
-								}
-							}
-						}
+						drawContours();
 					}
 					
-					
 					if (synchronized_show_carriers) {
-
 						if (synchronized_update_carriers) {
-							if (n_thread == 0 && carrier_diffusion_warning_timer > 0) {
-								carrier_diffusion_warning_timer--;
-							}
-							
-							double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_carrier_density.getValue()/20.0);
-
-							if (n_thread == 0) {
-								rho_n_dist.prepare(e.rho_n);
-								rho_p_dist.prepare(e.rho_p);
-								rho_G_dist.prepare(e.G);
-							}
-							
-							int i_low = lower(ccdots.size());
-							int i_high = upper(ccdots.size());
-
-							graphics_mid_barrier.await();
-
-							double A = e.ds*e.ds;
-							double N_G = rho_G_dist.getTotalAmount()*A*e.e_charge*C*delta_t;
-							double N_n = rho_n_dist.getTotalAmount()*A*C*delta_t/tau;
-							double N_p = rho_p_dist.getTotalAmount()*A*C*delta_t/tau;
-
-							double N_n_excess = Math.max(C-C_prev, 0)*rho_n_dist.getTotalAmount()*A;
-							double N_p_excess = Math.max(C-C_prev, 0)*rho_p_dist.getTotalAmount()*A;
-
-							double P_deficit = Math.max(-(C-C_prev)/C_prev, 0);
-
-							boolean show_gen_recomb = e.opts.menu_gen_recomb.isSelected();
-							
-							for (int i = i_low; i < i_high; i++) {
-								ChargeCarrierDot d = ccdots.get(i);
-								if (d == null) continue;
-								
-								d.time -= delta_t;
-								if (d.time < 0) {
-									ccdots.remove(i);
-									i--;
-								}
-								else {
-									double R_tmp = Utils.bilinearinterp(e.R, d.x, d.y, e.nx, e.ny)*e.e_charge;
-									if (d.type == DotType.HOLE) {
-										if (R_tmp > 0 && frand.next() < R_tmp/Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny)*delta_t) {
-											if (show_gen_recomb) {
-												ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
-											} else {
-												ccdots.remove(i);
-												i--;
-											}
-											continue;
-										}
-									} else if (d.type == DotType.ELECTRON) {
-										if (R_tmp > 0 && frand.next() < -R_tmp/Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny)*delta_t) {
-											if (show_gen_recomb) {
-												ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
-											} else {
-												ccdots.remove(i);
-												i--;
-											}
-											continue;
-										}
-									} else {
-										if (Utils.bilinearinterp(e.semiconducting, d.x, d.y, e.nx, e.ny) == 0) {
-											d.time -= 5*delta_t;
-										}
-									}
-
-									if (P_deficit > 0 && frand.next() < P_deficit) {
-										ccdots.remove(i);
-										i--;
-										continue;
-									}
-								}
-							}
-
-							graphics_mid_barrier.await();
-
-							rho_n_dist.generateSamples(N_n/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.ELECTRON, 0)); });
-							rho_p_dist.generateSamples(N_p/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.HOLE, 0)); });
-							rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
-								ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.ELECTRON, 0));
-								if (show_gen_recomb) ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
-							});
-							rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
-								ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, 0));
-								if (show_gen_recomb) ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
-							});
-							rho_n_dist.generateSamples(N_n_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.ELECTRON, 0)); });
-							rho_p_dist.generateSamples(N_p_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, 0)); });
-
-							C_prev = C;
+							updateCarriers();
 						}
-
 						graphics_mid_barrier.await();
-
-						boolean fast = e.opts.menu_hide_carriers_metal.isSelected();
-						boolean show_diffusion = e.opts.menu_carrier_diffusion.isSelected();
-						
-						int lower = lower(ccdots.size());
-						int upper = upper(ccdots.size());
-
-						int steps = fast? 2 : 10;
-						double dt_dot = delta_t/steps;
-
-						try {
-							double factor = Math.sqrt(24*dt_dot);
-							int dot_offset = (scalefactor-1)/2;
-							
-							for (int i = lower; i < upper; i++) {
-								ChargeCarrierDot d = ccdots.get(i);
-
-								if (d.time > 0) {
-
-									boolean dorender = !fast || Utils.bilinearinterp(e.semiconducting, d.x, d.y, e.nx, e.ny) > 0;
-
-									if (delta_t > 0) {
-										if (!show_diffusion) {
-											if (d.type == DotType.ELECTRON) {
-												for (int k = 0; k < steps; k++) {
-													double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny));
-													d.x += s*Utils.bilinearinterp(e.Jx_n, d.x-0.5, d.y, e.nx, e.ny);
-													d.y += s*Utils.bilinearinterp(e.Jy_n, d.x, d.y-0.5, e.nx, e.ny);
-												}
-											} else if (d.type == DotType.HOLE) {
-												for (int k = 0; k < steps; k++) {
-													double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny));
-													d.x += s*Utils.bilinearinterp(e.Jx_p, d.x-0.5, d.y, e.nx, e.ny);
-													d.y += s*Utils.bilinearinterp(e.Jy_p, d.x, d.y-0.5, e.nx, e.ny);
-												}
-											}
-										} else {
-											if (d.type == DotType.ELECTRON) {
-												double sqrt_D_n = Utils.bilinearinterp(e.sqrt_D_eff_n, d.x, d.y, e.nx, e.ny);
-												double s = dt_dot/e.ds;
-												double t = factor*sqrt_D_n/e.ds; //Random walk PDF obeys diffusion equation. Variance of uniform dist is 12L^2 and variance of heat kernel is 2Dt
-												for (int k = 0; k < steps; k++) {
-													double dx_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(e.vel_x_n, d.x-0.5, d.y, e.nx, e.ny);
-													double dy_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(e.vel_y_n, d.x, d.y-0.5, e.nx, e.ny);
-													if (e.conducting[(int)(d.x+dx_diff+0.5)][(int)(d.y+dy_diff+0.5)] == 1) {
-														d.x += dx_diff;
-														d.y += dy_diff;
-													}
-												}
-											} else if (d.type == DotType.HOLE) {
-												double sqrt_D_p = Utils.bilinearinterp(e.sqrt_D_eff_p, d.x, d.y, e.nx, e.ny);
-												double s = dt_dot/e.ds;
-												double t = factor*sqrt_D_p/e.ds;
-												
-												for (int k = 0; k < steps; k++) {
-													double dx_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(e.vel_x_p, d.x-0.5, d.y, e.nx, e.ny);
-													double dy_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(e.vel_y_p, d.x, d.y-0.5, e.nx, e.ny);
-													if (e.conducting[(int)(d.x+dx_diff+0.5)][(int)(d.y+dy_diff+0.5)] == 1) {
-														d.x += dx_diff;
-														d.y += dy_diff;
-													}
-												}
-											}
-										}
-
-										double p = d.time/d.lifespan;
-										d.brightness = 1.0*bump(p, 1/3.0);
-									}
-
-									double alphaFG = d.brightness;
-									if (dorender) {
-										if (d.type == DotType.ELECTRON)
-											drawRectangle((int)((d.x+0.5)*scalefactor)-dot_offset, (int)((d.y+0.5)*scalefactor)-dot_offset, scalefactor, scalefactor,
-											0.25f, 0.25f, 1f, (float)alphaFG, 1-(float)alphaFG, d.random_id);
-										else if (d.type == DotType.HOLE)
-											drawRectangle((int)((d.x+0.5)*scalefactor)-dot_offset, (int)((d.y+0.5)*scalefactor)-dot_offset, scalefactor, scalefactor,
-											1f, 0.25f, 0.25f, (float)alphaFG, 1-(float)alphaFG, d.random_id);
-										else if (d.type == DotType.GENERATION) {
-											drawRectangle((int)((d.x+0.5)*scalefactor)-dot_offset, (int)((d.y+0.5)*scalefactor)-dot_offset, scalefactor, scalefactor,
-											0f, 0f, 0f, (float)alphaFG, 1-(float)alphaFG, d.random_id);
-										} else if (d.type == DotType.RECOMBINATION) {
-											drawRectangle((int)((d.x+0.5)*scalefactor)-dot_offset, (int)((d.y+0.5)*scalefactor)-dot_offset, scalefactor, scalefactor,
-											1f, 1f, 1f, (float)alphaFG, 1-(float)alphaFG, d.random_id);
-										}
-									}
-
-								}
-							}
-						} catch (ArrayIndexOutOfBoundsException e) {
-							carrier_diffusion_warning_timer = 20;
-						}
+						drawCCdots();
 					}
 
 					graphics_mid_barrier.await();
-
 					if (n_thread == 0 && e.opts.menu_interface.isSelected() && e.opts.menu_probes.isSelected()) {
-
-						for (Probe p : e.probes) {
-							drawLine((int)(p.getXcenter()*scalefactor), (int)(p.getYcenter()*scalefactor), (int)(p.labelcoord.x*scalefactor), (int)(p.labelcoord.y*scalefactor), true,
-								1, 1, 1, 0.1f, 1f);
-						}
-					
-						if (synchronized_display_current_arrows) {
-
-							Vector ctr = new Vector(0,0);
-							Vector arrow = new Vector(0,0);
-							Vector tip1 = new Vector(0,0);
-							Vector tip2 = new Vector(0,0);
-							Vector body1 = new Vector(0,0);
-							Vector body2 = new Vector(0,0);
-
-							for (Probe p : e.probes) {
-								if (p instanceof LineProbe) {
-									LineProbe lp = ((LineProbe) p);
-									//double x = (e.nx-1)*(i+0.5)/50;
-									//double y = (e.ny-1)*(j+0.5)/50;
-									ctr.x = 0.5*(lp.x1 + lp.x2);
-									ctr.y = 0.5*(lp.y1 + lp.y2);
-									
-									double dx_perp = (lp.y2-lp.y1);
-									double dy_perp = -(lp.x2-lp.x1);
-									arrow.x = dx_perp;
-									arrow.y = dy_perp;
-
-
-									double arrowlength_varying = 20*(lp.value/(e.depth*e.ds))/lp.vectorname.getScalingConstant(e);
-									//System.out.println(arrowlength_varying);
-									arrow.normalize();
-									tip1.copy(arrow);
-									tip2.copy(arrow);
-									tip1.rotate(Math.PI*5.0/6.0);
-									tip2.rotate(Math.PI*7.0/6.0);
-
-									body1.copy(ctr);
-									body1.addmult(arrow, -0.5*arrowlength_varying);
-									body2.copy(ctr);
-									body2.addmult(arrow, 0.5*arrowlength_varying);
-									tip1.scalarmult(0.35*arrowlength_varying);
-									tip1.add(body2);
-									tip2.scalarmult(0.35*arrowlength_varying);
-									tip2.add(body2);
-
-									double alphaFG = 1;
-									drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true,
-											1, 0, 1, (float)alphaFG, 0f);
-									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip1.x*scalefactor), (int)(tip1.y*scalefactor), false,
-											1, 0, 1, (float)alphaFG, 0f);
-									drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip2.x*scalefactor), (int)(tip2.y*scalefactor), false,
-											1, 0, 1, (float)alphaFG, 0f);
-								}
-							}
-						}
+						drawProbes();
 					}
 
 					graphics_end_barrier.await();
 				}
 			} catch (InterruptedException | BrokenBarrierException e) {
 				e.printStackTrace();
+			}
+		}
+		
+
+
+		public void stampPixelData() {
+			e.t9.start();
+			int scansize = e.nx*scalefactor;
+			int lower = lower(e.nx*scalefactor);
+			int upper = upper(e.nx*scalefactor);
+			for (int x = lower; x < upper; x++) {
+				for (int y = 0; y < e.ny*scalefactor; y++) {
+					int i = x/scalefactor;
+					int j = y/scalefactor;
+					double scale = 1f/max(image_r[i][j], image_g[i][j], image_b[i][j], 1f);
+					int rgb = clamp((int)(256*image_r[i][j]*scale), 0, 255) << 16
+							| clamp((int)(256*image_g[i][j]*scale), 0, 255) << 8
+							| clamp((int)(256*image_b[i][j]*scale), 0, 255);
+					imgData[x + y*scansize] = rgb;
+				}
+			}
+			Arrays.fill(depth_buf, 0);
+			e.t9.stop();
+		}
+		
+		public void drawArrowsBrightness() {
+			rand.setSeed(n_thread);
+			
+			Vector ctr = new Vector(0,0);
+			Vector arrow = new Vector(0,0);
+			Vector tip1 = new Vector(0,0);
+			Vector tip2 = new Vector(0,0);
+			Vector body1 = new Vector(0,0);
+			Vector body2 = new Vector(0,0);
+			
+			for (int i = lower(density_x); i < upper(density_x); i++) {
+				for (int j = 0; j < density_y; j++) {
+
+					//double x = (e.nx-1)*(i+0.5)/50;
+					//double y = (e.ny-1)*(j+0.5)/50;
+					double x = e.nx*(i+randomness*(rand.nextFloat()-0.5))/density_x;
+					double y = e.ny*(j+randomness*(rand.nextFloat()-0.5))/density_y;
+					ctr.x = x+0.5;
+					ctr.y = y+0.5;
+
+					arrow.x = Utils.bilinearinterp(vf_x,x-0.5, y, e.nx, e.ny);
+					arrow.y = Utils.bilinearinterp(vf_y,x, y-0.5, e.nx, e.ny);
+
+					double fieldmagnitude = Math.max(0.1, 10*vectorscalingconstant*Math.sqrt(arrow.dot(arrow)));
+					arrow.normalize();
+					tip1.copy(arrow);
+					tip2.copy(arrow);
+					tip1.rotate(Math.PI*5.0/6.0);
+					tip2.rotate(Math.PI*7.0/6.0);
+
+					body1.copy(ctr);
+					body1.addmult(arrow, -0.5*arrowlength);
+					body2.copy(ctr);
+					body2.addmult(arrow, 0.5*arrowlength);
+					tip1.scalarmult(0.35*arrowlength);
+					tip1.add(body2);
+					tip2.scalarmult(0.35*arrowlength);
+					tip2.add(body2);
+					double alphaFG = (0.1*Math.sqrt(fieldmagnitude));
+					drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true,
+					(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+					drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip1.x*scalefactor), (int)(tip1.y*scalefactor), false,
+					(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+					drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip2.x*scalefactor), (int)(tip2.y*scalefactor), false,
+					(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+				}
+			}
+		}
+		
+		public void drawArrowsLength() {
+			rand.setSeed(n_thread);
+			
+			Vector ctr = new Vector(0,0);
+			Vector arrow = new Vector(0,0);
+			Vector tip1 = new Vector(0,0);
+			Vector tip2 = new Vector(0,0);
+			Vector body1 = new Vector(0,0);
+			Vector body2 = new Vector(0,0);
+			
+			for (int i = lower(density_x); i < upper(density_x); i++) {
+				for (int j = 0; j < density_y; j++) {
+
+					//double x = (e.nx-1)*(i+0.5)/50;
+					//double y = (e.ny-1)*(j+0.5)/50;
+					double x = e.nx*(i+randomness*(rand.nextFloat()-0.5))/density_x;
+					double y = e.ny*(j+randomness*(rand.nextFloat()-0.5))/density_y;
+					ctr.x = x+0.5;
+					ctr.y = y+0.5;
+
+					arrow.x = Utils.bilinearinterp(vf_x,x-0.5, y, e.nx, e.ny);
+					arrow.y = Utils.bilinearinterp(vf_y,x, y-0.5, e.nx, e.ny);
+
+					double arrowlength_varying = 10*vectorscalingconstant*Math.sqrt(arrow.dot(arrow));
+					arrow.normalize();
+					tip1.copy(arrow);
+					tip2.copy(arrow);
+					tip1.rotate(Math.PI*5.0/6.0);
+					tip2.rotate(Math.PI*7.0/6.0);
+
+					body1.copy(ctr);
+					body1.addmult(arrow, -0.5*arrowlength_varying);
+					body2.copy(ctr);
+					body2.addmult(arrow, 0.5*arrowlength_varying);
+					tip1.scalarmult(0.35*arrowlength_varying);
+					tip1.add(body2);
+					tip2.scalarmult(0.35*arrowlength_varying);
+					tip2.add(body2);
+
+					double fieldmagnitude = Math.max(0.1, arrowlength_varying);
+					double alphaFG = (0.1*Math.sqrt(fieldmagnitude));
+					drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true,
+					(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+					drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip1.x*scalefactor), (int)(tip1.y*scalefactor), false,
+					(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+					drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip2.x*scalefactor), (int)(tip2.y*scalefactor), false,
+					(float)fieldmagnitude, (float)fieldmagnitude, (float)fieldmagnitude, (float)alphaFG, 1f);
+				}
+			}
+		}
+		
+		public void drawLines() {
+			rand.setSeed(n_thread);
+			for (int i = lower(density_x); i < upper(density_x); i++) {
+				for (int j = 0; j < density_y; j++) {
+
+					//double x = (e.nx-1)*(i+0.5)/50;
+					//double y = (e.ny-1)*(j+0.5)/50;
+					double x = e.nx*(i+randomness*(rand.nextFloat()-0.5))/density_x;
+					double y = e.ny*(j+randomness*(rand.nextFloat()-0.5))/density_y;
+					for (int sign = -1; sign <= 1; sign += 2) {
+
+						double prevx = x;
+						double prevy = y;
+						double dx = 0;
+						double dy = 0;
+
+
+						int steps = 30;
+						for (int k = 0; k < steps; k++) {
+							dx = Utils.bilinearinterp(vf_x, prevx-0.5, prevy, e.nx, e.ny);
+							dy = Utils.bilinearinterp(vf_y, prevx, prevy-0.5, e.nx, e.ny);
+
+							double fieldmagnitude = Math.sqrt(dx*dx+dy*dy);
+							double alphaFG = bump(0.5*(1.0-k/(double)(steps-1)), 0.5)*Math.min(1, vectorscalingconstant*fieldmagnitude);
+
+							if (fieldmagnitude != 0) {
+								dx /= fieldmagnitude;
+								dy /= fieldmagnitude;
+							}
+
+							double nextx = prevx + dx*arrowlength*0.25*sign;
+							double nexty = prevy + dy*arrowlength*0.25*sign;
+
+							drawLine((int)((prevx+0.5)*scalefactor), (int)((prevy+0.5)*scalefactor), (int)((nextx+0.5)*scalefactor), (int)((nexty+0.5)*scalefactor), k == 0 && sign == 1,
+							1f, 1f, 1f, (float) alphaFG, 1f);
+
+							prevx = nextx;
+							prevy = nexty;
+						}
+					}
+				}
+
+			}
+		}
+
+		public void drawDots() {
+			boolean paused = e.opts.gui_paused.isSelected();
+
+			int lower = lower(dots.size());
+			int upper = upper(dots.size());
+			for (int i = lower; i < upper; i++) {
+				Dot d = dots.get(i);
+				if (d.time <= 0 || d.x < 0 || d.y < 0 || d.x >= e.nx || d.y >= e.ny) {
+					d.x = e.nx*rand.nextDouble();
+					d.y = e.ny*rand.nextDouble();
+					d.lifespan = 100*(1+rand.nextDouble());
+					d.time = d.lifespan;
+					if (conductors_only && Utils.bilinearinterp(e.conducting, d.x, d.y, e.nx, e.ny) == 0) {
+						d.lifespan = 0;
+						d.time = 0;
+					}
+				}
+			}
+
+			setColorFloat(1, 1, 1);
+			int dot_offset = (scalefactor-1)/2;
+			for (int i = lower; i < upper; i++) {
+				Dot d = dots.get(i);
+				if (d.time > 0) {
+					double dx = 0;
+					double dy = 0;
+					int steps = 10;
+
+					if (!paused) {
+						for (int k = 0; k < steps; k++) {
+							dx = Utils.bilinearinterp(vf_x,d.x-0.5, d.y, e.nx, e.ny)*vectorscalingconstant/steps;
+							dy = Utils.bilinearinterp(vf_y,d.x, d.y-0.5, e.nx, e.ny)*vectorscalingconstant/steps;
+							double maxspeed = 0.5;
+							double factor = Math.min(1, maxspeed/Math.sqrt(dx*dx+dy*dy));
+							d.x += dx*factor;
+							d.y += dy*factor;
+						}
+
+						double p = d.time/d.lifespan;
+						d.brightness = Math.min(1, Math.max(0.1, 10*Math.sqrt(dx*dx+dy*dy)))*bump(p, 1/3.0);
+						d.time -= 1;
+					}
+
+					double alphaFG = d.brightness;
+					drawRectangle((int)((d.x+0.5)*scalefactor)-dot_offset, (int)((d.y+0.5)*scalefactor)-dot_offset, scalefactor, scalefactor,
+					1f, 1f, 1f, (float)alphaFG, 1f);
+				}
+			}
+		}
+
+		public void drawContours() {
+			double spacing = 0.2/scalingconstant;
+			double contourwidth = e.ds;
+
+			for (int i = lower(scalefactor*e.nx); i < upper(scalefactor*e.nx); i++) {
+				for (int j = 0; j < scalefactor*e.ny; j++) {
+					double u = Utils.bilinearinterp(scalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5, e.nx, e.ny)/spacing;
+					double v = Utils.bilinearinterp(gradscalarfield, (double)i/scalefactor - 0.5, (double)j/scalefactor - 0.5, e.nx, e.ny)/spacing;
+					double f = ((((u%1)+1.5)%1)/Math.abs(v))/contourwidth;
+					if (f < 1) {
+						drawPixel(i, j, 1f, 1f, 1f, (float)(2*Math.min(f, 1-f)), 1f);
+					}
+				}
+			}
+		}
+		
+		public void updateCarriers() throws InterruptedException, BrokenBarrierException {
+			if (n_thread == 0 && carrier_diffusion_warning_timer > 0) {
+				carrier_diffusion_warning_timer--;
+			}
+			
+			double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_carrier_density.getValue()/20.0);
+
+			if (n_thread == 0) {
+				rho_n_dist.prepare(e.rho_n);
+				rho_p_dist.prepare(e.rho_p);
+				rho_G_dist.prepare(e.G);
+			}
+			
+			int i_low = lower(ccdots.size());
+			int i_high = upper(ccdots.size());
+
+			graphics_mid_barrier.await();
+
+			double A = e.ds*e.ds;
+			double N_G = rho_G_dist.getTotalAmount()*A*e.e_charge*C*delta_t;
+			double N_n = rho_n_dist.getTotalAmount()*A*C*delta_t/tau;
+			double N_p = rho_p_dist.getTotalAmount()*A*C*delta_t/tau;
+
+			double N_n_excess = Math.max(C-C_prev, 0)*rho_n_dist.getTotalAmount()*A;
+			double N_p_excess = Math.max(C-C_prev, 0)*rho_p_dist.getTotalAmount()*A;
+
+			double P_deficit = Math.max(-(C-C_prev)/C_prev, 0);
+
+			boolean show_gen_recomb = e.opts.menu_gen_recomb.isSelected();
+			
+			for (int i = i_low; i < i_high; i++) {
+				ChargeCarrierDot d = ccdots.get(i);
+				if (d == null) continue;
+				
+				d.time -= delta_t;
+				if (d.time < 0) {
+					ccdots.remove(i);
+					i--;
+				}
+				else {
+					double R_tmp = Utils.bilinearinterp(e.R, d.x, d.y, e.nx, e.ny)*e.e_charge;
+					if (d.type == DotType.HOLE) {
+						if (R_tmp > 0 && frand.next() < R_tmp/Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny)*delta_t) {
+							if (show_gen_recomb) {
+								ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
+							} else {
+								ccdots.remove(i);
+								i--;
+							}
+							continue;
+						}
+					} else if (d.type == DotType.ELECTRON) {
+						if (R_tmp > 0 && frand.next() < -R_tmp/Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny)*delta_t) {
+							if (show_gen_recomb) {
+								ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
+							} else {
+								ccdots.remove(i);
+								i--;
+							}
+							continue;
+						}
+					} else {
+						if (Utils.bilinearinterp(e.semiconducting, d.x, d.y, e.nx, e.ny) == 0) {
+							d.time -= 5*delta_t;
+						}
+					}
+
+					if (P_deficit > 0 && frand.next() < P_deficit) {
+						ccdots.remove(i);
+						i--;
+						continue;
+					}
+				}
+			}
+
+			graphics_mid_barrier.await();
+
+			rho_n_dist.generateSamples(N_n/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.ELECTRON, 0)); });
+			rho_p_dist.generateSamples(N_p/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.HOLE, 0)); });
+			rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
+				ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.ELECTRON, 0));
+				if (show_gen_recomb) ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
+			});
+			rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
+				ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, 0));
+				if (show_gen_recomb) ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
+			});
+			rho_n_dist.generateSamples(N_n_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.ELECTRON, 0)); });
+			rho_p_dist.generateSamples(N_p_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, 0)); });
+
+			C_prev = C;
+		}
+
+		public void drawCCdots(){
+			boolean fast = e.opts.menu_hide_carriers_metal.isSelected();
+			boolean show_diffusion = e.opts.menu_carrier_diffusion.isSelected();
+			
+			int lower = lower(ccdots.size());
+			int upper = upper(ccdots.size());
+
+			int steps = fast? 2 : 10;
+			double dt_dot = delta_t/steps;
+
+			try {
+				double factor = Math.sqrt(24*dt_dot);
+				int dot_offset = (scalefactor-1)/2;
+				
+				for (int i = lower; i < upper; i++) {
+					ChargeCarrierDot d = ccdots.get(i);
+
+					if (d.time > 0) {
+
+						boolean dorender = !fast || Utils.bilinearinterp(e.semiconducting, d.x, d.y, e.nx, e.ny) > 0;
+
+						if (delta_t > 0) {
+							if (!show_diffusion) {
+								if (d.type == DotType.ELECTRON) {
+									for (int k = 0; k < steps; k++) {
+										double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny));
+										d.x += s*Utils.bilinearinterp(e.Jx_n, d.x-0.5, d.y, e.nx, e.ny);
+										d.y += s*Utils.bilinearinterp(e.Jy_n, d.x, d.y-0.5, e.nx, e.ny);
+									}
+								} else if (d.type == DotType.HOLE) {
+									for (int k = 0; k < steps; k++) {
+										double s = dt_dot/(e.ds*Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny));
+										d.x += s*Utils.bilinearinterp(e.Jx_p, d.x-0.5, d.y, e.nx, e.ny);
+										d.y += s*Utils.bilinearinterp(e.Jy_p, d.x, d.y-0.5, e.nx, e.ny);
+									}
+								}
+							} else {
+								if (d.type == DotType.ELECTRON) {
+									double sqrt_D_n = Utils.bilinearinterp(e.sqrt_D_eff_n, d.x, d.y, e.nx, e.ny);
+									double s = dt_dot/e.ds;
+									double t = factor*sqrt_D_n/e.ds; //Random walk PDF obeys diffusion equation. Variance of uniform dist is 12L^2 and variance of heat kernel is 2Dt
+									for (int k = 0; k < steps; k++) {
+										double dx_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(e.vel_x_n, d.x-0.5, d.y, e.nx, e.ny);
+										double dy_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(e.vel_y_n, d.x, d.y-0.5, e.nx, e.ny);
+										if (e.conducting[(int)(d.x+dx_diff+0.5)][(int)(d.y+dy_diff+0.5)] == 1) {
+											d.x += dx_diff;
+											d.y += dy_diff;
+										}
+									}
+								} else if (d.type == DotType.HOLE) {
+									double sqrt_D_p = Utils.bilinearinterp(e.sqrt_D_eff_p, d.x, d.y, e.nx, e.ny);
+									double s = dt_dot/e.ds;
+									double t = factor*sqrt_D_p/e.ds;
+									
+									for (int k = 0; k < steps; k++) {
+										double dx_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(e.vel_x_p, d.x-0.5, d.y, e.nx, e.ny);
+										double dy_diff = t*(frand.next()-0.5) + s*Utils.bilinearinterp(e.vel_y_p, d.x, d.y-0.5, e.nx, e.ny);
+										if (e.conducting[(int)(d.x+dx_diff+0.5)][(int)(d.y+dy_diff+0.5)] == 1) {
+											d.x += dx_diff;
+											d.y += dy_diff;
+										}
+									}
+								}
+							}
+
+							double p = d.time/d.lifespan;
+							d.brightness = 1.0*bump(p, 1/3.0);
+						}
+
+						double alphaFG = d.brightness;
+						if (dorender) {
+							if (d.type == DotType.ELECTRON)
+								drawRectangle((int)((d.x+0.5)*scalefactor)-dot_offset, (int)((d.y+0.5)*scalefactor)-dot_offset, scalefactor, scalefactor,
+								0.25f, 0.25f, 1f, (float)alphaFG, 1-(float)alphaFG, d.random_id);
+							else if (d.type == DotType.HOLE)
+								drawRectangle((int)((d.x+0.5)*scalefactor)-dot_offset, (int)((d.y+0.5)*scalefactor)-dot_offset, scalefactor, scalefactor,
+								1f, 0.25f, 0.25f, (float)alphaFG, 1-(float)alphaFG, d.random_id);
+							else if (d.type == DotType.GENERATION) {
+								drawRectangle((int)((d.x+0.5)*scalefactor)-dot_offset, (int)((d.y+0.5)*scalefactor)-dot_offset, scalefactor, scalefactor,
+								0f, 0f, 0f, (float)alphaFG, 1-(float)alphaFG, d.random_id);
+							} else if (d.type == DotType.RECOMBINATION) {
+								drawRectangle((int)((d.x+0.5)*scalefactor)-dot_offset, (int)((d.y+0.5)*scalefactor)-dot_offset, scalefactor, scalefactor,
+								1f, 1f, 1f, (float)alphaFG, 1-(float)alphaFG, d.random_id);
+							}
+						}
+
+					}
+				}
+			} catch (ArrayIndexOutOfBoundsException e) {
+				carrier_diffusion_warning_timer = 20;
+			}
+		}
+
+		public void drawProbes() {
+			for (Probe p : e.probes) {
+				drawLine((int)(p.getXcenter()*scalefactor), (int)(p.getYcenter()*scalefactor), (int)(p.labelcoord.x*scalefactor), (int)(p.labelcoord.y*scalefactor), true,
+					1, 1, 1, 0.1f, 1f);
+			}
+		
+			if (synchronized_display_current_arrows) {
+
+				Vector ctr = new Vector(0,0);
+				Vector arrow = new Vector(0,0);
+				Vector tip1 = new Vector(0,0);
+				Vector tip2 = new Vector(0,0);
+				Vector body1 = new Vector(0,0);
+				Vector body2 = new Vector(0,0);
+
+				for (Probe p : e.probes) {
+					if (p instanceof LineProbe) {
+						LineProbe lp = ((LineProbe) p);
+						//double x = (e.nx-1)*(i+0.5)/50;
+						//double y = (e.ny-1)*(j+0.5)/50;
+						ctr.x = 0.5*(lp.x1 + lp.x2);
+						ctr.y = 0.5*(lp.y1 + lp.y2);
+						
+						double dx_perp = (lp.y2-lp.y1);
+						double dy_perp = -(lp.x2-lp.x1);
+						arrow.x = dx_perp;
+						arrow.y = dy_perp;
+
+
+						double arrowlength_varying = 20*(lp.value/(e.depth*e.ds))/lp.vectorname.getScalingConstant(e);
+						//System.out.println(arrowlength_varying);
+						arrow.normalize();
+						tip1.copy(arrow);
+						tip2.copy(arrow);
+						tip1.rotate(Math.PI*5.0/6.0);
+						tip2.rotate(Math.PI*7.0/6.0);
+
+						body1.copy(ctr);
+						body1.addmult(arrow, -0.5*arrowlength_varying);
+						body2.copy(ctr);
+						body2.addmult(arrow, 0.5*arrowlength_varying);
+						tip1.scalarmult(0.35*arrowlength_varying);
+						tip1.add(body2);
+						tip2.scalarmult(0.35*arrowlength_varying);
+						tip2.add(body2);
+
+						double alphaFG = 1;
+						drawLine((int)(body1.x*scalefactor), (int)(body1.y*scalefactor), (int)(body2.x*scalefactor), (int)(body2.y*scalefactor), true,
+								1, 0, 1, (float)alphaFG, 0f);
+						drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip1.x*scalefactor), (int)(tip1.y*scalefactor), false,
+								1, 0, 1, (float)alphaFG, 0f);
+						drawLine((int)(body2.x*scalefactor), (int)(body2.y*scalefactor), (int)(tip2.x*scalefactor), (int)(tip2.y*scalefactor), false,
+								1, 0, 1, (float)alphaFG, 0f);
+					}
+				}
 			}
 		}
 	}

@@ -125,6 +125,8 @@ public class Simulation extends PeriodicTask {
 	public long frame;
 	public int lastsimspeed = 0;
 	public int iteration_multiplier = 0;
+	public double targetframerate = 60;
+	public double frameduration = 1000/targetframerate;
 	
 	public void resetTime() {
 		time = 0;
@@ -502,7 +504,7 @@ public class Simulation extends PeriodicTask {
 	Timer t7 = new Timer("Poisson potential solver", 10, true);
 	Timer t6 = new Timer("Iterate simulation", 40, true);
 	Timer t8 = new Timer("Calc misc fields", 20, true);
-	Timer t9 = new Timer("Debug", 20, false);
+	Timer t9 = new Timer("Stamp pixels", 20, true);
 	Timer simFPStimer = new Timer("Simulation FPS", 10, true);
 
 	public Simulation() {
@@ -658,7 +660,7 @@ public class Simulation extends PeriodicTask {
 			SteamAPI.runCallbacks();
 		}
 		
-        SemiSim.instance.threadPool.schedule(this, nextDelay(renderer.frameduration), TimeUnit.MILLISECONDS);
+        SemiSim.instance.threadPool.schedule(this, nextDelay(frameduration), TimeUnit.MILLISECONDS);
 	}
 
 	TimerTask potentialSolver = new PeriodicTask() {
@@ -675,7 +677,7 @@ public class Simulation extends PeriodicTask {
 	        } finally {
 	            rwLock.readLock().unlock();
 	        }
-	        SemiSim.instance.threadPool.schedule(this, nextDelay(renderer.frameduration), TimeUnit.MILLISECONDS);
+	        SemiSim.instance.threadPool.schedule(this, nextDelay(frameduration), TimeUnit.MILLISECONDS);
 		}
 	};
 	
