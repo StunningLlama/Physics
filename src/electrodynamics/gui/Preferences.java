@@ -65,7 +65,7 @@ public class Preferences extends JFrame implements ActionListener {
 	private JCheckBox chkbox_matname;
 	private JComboBox<Theme> gui_lookfeel;
 	private JCheckBox chkbox_voltage;
-	private JSpinner spinner_fps_1;
+	private JSpinner spinner_fps_sim;
 
 	public Preferences(Simulation e) {
 		setResizable(false);
@@ -199,10 +199,10 @@ public class Preferences extends JFrame implements ActionListener {
 		lblTargetSimulationFps.setBounds(17, 133, 138, 16);
 		contentPane.add(lblTargetSimulationFps);
 		
-		spinner_fps_1 = new JSpinner();
-		spinner_fps_1.setModel(new SpinnerNumberModel(60, 1, 1000, 1));
-		spinner_fps_1.setBounds(167, 130, 109, 23);
-		contentPane.add(spinner_fps_1);
+		spinner_fps_sim = new JSpinner();
+		spinner_fps_sim.setModel(new SpinnerNumberModel(60, 1, 1000, 1));
+		spinner_fps_sim.setBounds(167, 130, 109, 23);
+		contentPane.add(spinner_fps_sim);
 		
 		pack();
 		
@@ -232,7 +232,7 @@ public class Preferences extends JFrame implements ActionListener {
 		chkbox_undo.setSelected(e.controls.undoredo.tracksettings);
 		spinner_undosize.setValue(e.controls.undoredo.history_size);
 		spinner_fps.setValue((int) e.renderer.targetframerate);
-		spinner_fps_1.setValue((int) e.targetframerate);
+		spinner_fps_sim.setValue((int) e.targetframerate);
 		chkbox_potential.setSelected(e.renderer.display_relative_voltage);
 		spinner_font.setValue(Text.fontsize);
 		gui_units.setSelectedItem(e.units);
@@ -249,7 +249,7 @@ public class Preferences extends JFrame implements ActionListener {
 		e.renderer.targetframerate = (double)((int) spinner_fps.getValue());
 		e.renderer.frameduration = 1000/e.renderer.targetframerate;
 
-		e.targetframerate = (double)((int) spinner_fps_1.getValue());
+		e.targetframerate = (double)((int) spinner_fps_sim.getValue());
 		e.frameduration = 1000/e.targetframerate;
 		
 		e.renderer.display_relative_voltage = chkbox_potential.isSelected();
@@ -278,7 +278,7 @@ public class Preferences extends JFrame implements ActionListener {
 		gui_units.setSelectedItem(Units.SI);
 		spinner_undosize.setValue(5);
 		spinner_fps.setValue(60);
-		spinner_fps_1.setValue(60);
+		spinner_fps_sim.setValue(60);
 		spinner_font.setValue(12);
 		gui_lookfeel.setSelectedItem(Theme.system);
 	}
@@ -319,7 +319,7 @@ public class Preferences extends JFrame implements ActionListener {
 						case "potential": chkbox_potential.setSelected(fstr.nextBoolean()); break;
 						case "units": gui_units.setSelectedItem(gson.fromJson(fstr, Units.class)); break;
 						case "fps": this.spinner_fps.setValue(fstr.nextInt()); break;
-						case "fps_sim": this.spinner_fps_1.setValue(fstr.nextInt()); break;
+						case "fps_sim": this.spinner_fps_sim.setValue(fstr.nextInt()); break;
 						case "fontsize": this.spinner_font.setValue(fstr.nextInt()); break;
 						case "undosize": this.spinner_undosize.setValue(fstr.nextInt()); break;
 						case "matname": this.chkbox_matname.setSelected(fstr.nextBoolean()); break;
@@ -359,7 +359,7 @@ public class Preferences extends JFrame implements ActionListener {
 				header.addProperty("potential", chkbox_potential.isSelected());
 				header.add("units", gson.toJsonTree((Units) gui_units.getSelectedItem()));
 				header.addProperty("fps", (int)spinner_fps.getValue());
-				header.addProperty("fps_sim", (int)spinner_fps_1.getValue());
+				header.addProperty("fps_sim", (int)spinner_fps_sim.getValue());
 				header.addProperty("fontsize", (int)spinner_font.getValue());
 				header.addProperty("undosize", (int)spinner_undosize.getValue());
 				header.addProperty("matname", chkbox_matname.isSelected());

@@ -80,6 +80,7 @@ public class Renderer extends PeriodicTask {
 	private boolean synchronized_show_carriers;
 	private boolean synchronized_display_current_arrows;
 	private boolean synchronized_update_carriers;
+	private boolean synchronized_draw_probes;
 	private VectorMode synchronized_vector_display_mode;
 	private ScalarMode synchronized_scalar_display_mode;
 	private ScalarView synchronized_scalar_view;
@@ -942,6 +943,7 @@ public class Renderer extends PeriodicTask {
 		synchronized_show_carriers = e.opts.gui_carriers.isSelected();
 		synchronized_display_current_arrows = e.opts.menu_probearrows.isSelected();
 		synchronized_update_carriers = !e.opts.gui_paused.isSelected() || delta_t > 0;
+		synchronized_draw_probes = e.opts.menu_interface.isSelected() && e.opts.menu_probes.isSelected();
 		synchronized_vector_display_mode = e.controls.vectormode.getOption();
 		synchronized_scalar_display_mode = e.controls.scalarmode.getOption();
 		synchronized_scalar_view = e.controls.scalarview.getOption();
@@ -1177,9 +1179,6 @@ public class Renderer extends PeriodicTask {
 		double vectorscalingconstant;
 		int density_x;
 		int density_y;
-		boolean conductors_only;
-
-		double randomness = 0;
 		
 		double[][] vf_x;
 		double[][] vf_y;
@@ -1209,18 +1208,11 @@ public class Renderer extends PeriodicTask {
 					if (synchronized_vector_display_mode != VectorMode.NONE && synchronized_vector_view != VectorView.NONE)
 					{
 						graphics_mid_barrier.await();
+						
 						arrowlength = 10.0/scalefactor;
 						vectorscalingconstant = 10*Math.pow(10.0, e.opts.gui_brightness_vec.getValue()/10.0)/e.controls.vectorview.getOption().getScalingConstant(e);
 						density_x = 25*scalefactor*e.nx/256;
 						density_y = 25*scalefactor*e.ny/256;
-						conductors_only = synchronized_vector_view.isConductorOnly();
-
-						randomness = 0;
-						if (synchronized_vector_display_mode == VectorMode.ARROWS || synchronized_vector_display_mode == VectorMode.ARROWS_LEN) {
-							randomness = 0.5;
-						} else if (synchronized_vector_display_mode == VectorMode.LINES) {
-							randomness = 0.75;
-						}
 						
 						double[][][] vf = {null, null};
 						e.computeVectorField(vf, synchronized_vector_view);
@@ -1251,22 +1243,23 @@ public class Renderer extends PeriodicTask {
 						drawCCdots();
 					}
 
-					graphics_mid_barrier.await();
-					if (n_thread == 0 && e.opts.menu_interface.isSelected() && e.opts.menu_probes.isSelected()) {
-						drawProbes();
+					if (synchronized_draw_probes) {
+						graphics_mid_barrier.await();
+						if (n_thread == 0) {
+							drawProbes();
+						}
 					}
 
 					graphics_end_barrier.await();
 				}
 			} catch (InterruptedException | BrokenBarrierException e) {
 				e.printStackTrace();
+				SemiSim.displayErrorMessage(e);
 			}
 		}
-		
-
 
 		public void stampPixelData() {
-			e.t9.start();
+			if (n_thread == 0) e.t9.start();
 			int scansize = e.nx*scalefactor;
 			int lower = lower(e.nx*scalefactor);
 			int upper = upper(e.nx*scalefactor);
@@ -1282,11 +1275,13 @@ public class Renderer extends PeriodicTask {
 				}
 			}
 			Arrays.fill(depth_buf, 0);
-			e.t9.stop();
+			if (n_thread == 0) e.t9.stop();
 		}
 		
 		public void drawArrowsBrightness() {
 			rand.setSeed(n_thread);
+			
+			double randomness = 0.5;
 			
 			Vector ctr = new Vector(0,0);
 			Vector arrow = new Vector(0,0);
@@ -1336,6 +1331,8 @@ public class Renderer extends PeriodicTask {
 		
 		public void drawArrowsLength() {
 			rand.setSeed(n_thread);
+
+			double randomness = 0.5;
 			
 			Vector ctr = new Vector(0,0);
 			Vector arrow = new Vector(0,0);
@@ -1387,6 +1384,8 @@ public class Renderer extends PeriodicTask {
 		
 		public void drawLines() {
 			rand.setSeed(n_thread);
+			double randomness = 0.75;
+			
 			for (int i = lower(density_x); i < upper(density_x); i++) {
 				for (int j = 0; j < density_y; j++) {
 
@@ -1432,6 +1431,7 @@ public class Renderer extends PeriodicTask {
 
 		public void drawDots() {
 			boolean paused = e.opts.gui_paused.isSelected();
+			boolean conductors_only = synchronized_vector_view.isConductorOnly();
 
 			int lower = lower(dots.size());
 			int upper = upper(dots.size());
@@ -1495,98 +1495,102 @@ public class Renderer extends PeriodicTask {
 				}
 			}
 		}
-		
+
 		public void updateCarriers() throws InterruptedException, BrokenBarrierException {
-			if (n_thread == 0 && carrier_diffusion_warning_timer > 0) {
-				carrier_diffusion_warning_timer--;
-			}
-			
-			double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_carrier_density.getValue()/20.0);
-
-			if (n_thread == 0) {
-				rho_n_dist.prepare(e.rho_n);
-				rho_p_dist.prepare(e.rho_p);
-				rho_G_dist.prepare(e.G);
-			}
-			
-			int i_low = lower(ccdots.size());
-			int i_high = upper(ccdots.size());
-
-			graphics_mid_barrier.await();
-
-			double A = e.ds*e.ds;
-			double N_G = rho_G_dist.getTotalAmount()*A*e.e_charge*C*delta_t;
-			double N_n = rho_n_dist.getTotalAmount()*A*C*delta_t/tau;
-			double N_p = rho_p_dist.getTotalAmount()*A*C*delta_t/tau;
-
-			double N_n_excess = Math.max(C-C_prev, 0)*rho_n_dist.getTotalAmount()*A;
-			double N_p_excess = Math.max(C-C_prev, 0)*rho_p_dist.getTotalAmount()*A;
-
-			double P_deficit = Math.max(-(C-C_prev)/C_prev, 0);
-
-			boolean show_gen_recomb = e.opts.menu_gen_recomb.isSelected();
-			
-			for (int i = i_low; i < i_high; i++) {
-				ChargeCarrierDot d = ccdots.get(i);
-				if (d == null) continue;
-				
-				d.time -= delta_t;
-				if (d.time < 0) {
-					ccdots.remove(i);
-					i--;
+			try {
+				if (n_thread == 0 && carrier_diffusion_warning_timer > 0) {
+					carrier_diffusion_warning_timer--;
 				}
-				else {
-					double R_tmp = Utils.bilinearinterp(e.R, d.x, d.y, e.nx, e.ny)*e.e_charge;
-					if (d.type == DotType.HOLE) {
-						if (R_tmp > 0 && frand.next() < R_tmp/Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny)*delta_t) {
-							if (show_gen_recomb) {
-								ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
-							} else {
-								ccdots.remove(i);
-								i--;
-							}
-							continue;
-						}
-					} else if (d.type == DotType.ELECTRON) {
-						if (R_tmp > 0 && frand.next() < -R_tmp/Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny)*delta_t) {
-							if (show_gen_recomb) {
-								ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
-							} else {
-								ccdots.remove(i);
-								i--;
-							}
-							continue;
-						}
-					} else {
-						if (Utils.bilinearinterp(e.semiconducting, d.x, d.y, e.nx, e.ny) == 0) {
-							d.time -= 5*delta_t;
-						}
-					}
 
-					if (P_deficit > 0 && frand.next() < P_deficit) {
+				double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_carrier_density.getValue()/20.0);
+
+				if (n_thread == 0) {
+					rho_n_dist.prepare(e.rho_n);
+					rho_p_dist.prepare(e.rho_p);
+					rho_G_dist.prepare(e.G);
+				}
+
+				int i_low = lower(ccdots.size());
+				int i_high = upper(ccdots.size());
+
+				graphics_mid_barrier.await();
+
+				double A = e.ds*e.ds;
+				double N_G = rho_G_dist.getTotalAmount()*A*e.e_charge*C*delta_t;
+				double N_n = rho_n_dist.getTotalAmount()*A*C*delta_t/tau;
+				double N_p = rho_p_dist.getTotalAmount()*A*C*delta_t/tau;
+
+				double N_n_excess = Math.max(C-C_prev, 0)*rho_n_dist.getTotalAmount()*A;
+				double N_p_excess = Math.max(C-C_prev, 0)*rho_p_dist.getTotalAmount()*A;
+
+				double P_deficit = Math.max(-(C-C_prev)/C_prev, 0);
+
+				boolean show_gen_recomb = e.opts.menu_gen_recomb.isSelected();
+
+				for (int i = i_low; i < i_high; i++) {
+					ChargeCarrierDot d = ccdots.get(i);
+					if (d == null) continue;
+
+					d.time -= delta_t;
+					if (d.time < 0) {
 						ccdots.remove(i);
 						i--;
-						continue;
+					}
+					else {
+						double R_tmp = Utils.bilinearinterp(e.R, d.x, d.y, e.nx, e.ny)*e.e_charge;
+						if (d.type == DotType.HOLE) {
+							if (R_tmp > 0 && frand.next() < R_tmp/Utils.bilinearinterp(e.rho_p, d.x, d.y, e.nx, e.ny)*delta_t) {
+								if (show_gen_recomb) {
+									ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
+								} else {
+									ccdots.remove(i);
+									i--;
+								}
+								continue;
+							}
+						} else if (d.type == DotType.ELECTRON) {
+							if (R_tmp > 0 && frand.next() < -R_tmp/Utils.bilinearinterp(e.rho_n, d.x, d.y, e.nx, e.ny)*delta_t) {
+								if (show_gen_recomb) {
+									ccdots.replace(i, new ChargeCarrierDot(d.x, d.y, tau_events, tau_events*0.5, DotType.RECOMBINATION, 1));
+								} else {
+									ccdots.remove(i);
+									i--;
+								}
+								continue;
+							}
+						} else {
+							if (Utils.bilinearinterp(e.semiconducting, d.x, d.y, e.nx, e.ny) == 0) {
+								d.time -= 5*delta_t;
+							}
+						}
+
+						if (P_deficit > 0 && frand.next() < P_deficit) {
+							ccdots.remove(i);
+							i--;
+							continue;
+						}
 					}
 				}
+
+				graphics_mid_barrier.await();
+
+				rho_n_dist.generateSamples(N_n/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.ELECTRON, 0)); });
+				rho_p_dist.generateSamples(N_p/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.HOLE, 0)); });
+				rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
+					ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.ELECTRON, 0));
+					if (show_gen_recomb) ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
+				});
+				rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
+					ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, 0));
+					if (show_gen_recomb) ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
+				});
+				rho_n_dist.generateSamples(N_n_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.ELECTRON, 0)); });
+				rho_p_dist.generateSamples(N_p_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, 0)); });
+
+				C_prev = C;
+			} catch (IndexOutOfBoundsException e) {
+				System.out.println("Charge carrier issue detected...");
 			}
-
-			graphics_mid_barrier.await();
-
-			rho_n_dist.generateSamples(N_n/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.ELECTRON, 0)); });
-			rho_p_dist.generateSamples(N_p/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.HOLE, 0)); });
-			rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
-				ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.ELECTRON, 0));
-				if (show_gen_recomb) ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
-			});
-			rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
-				ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, 0));
-				if (show_gen_recomb) ccdots.add(new ChargeCarrierDot(c.x, c.y, tau_events, tau_events*0.5, DotType.GENERATION, 1));
-			});
-			rho_n_dist.generateSamples(N_n_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.ELECTRON, 0)); });
-			rho_p_dist.generateSamples(N_p_excess/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau*frand.next(), DotType.HOLE, 0)); });
-
-			C_prev = C;
 		}
 
 		public void drawCCdots(){
