@@ -266,6 +266,15 @@ Notes: Cut/copy commands must be used after selecting a region. Flip command onl
 
 
 <h1>Advanced topics</h1>
+<h2>Performance/Benchmarking</h2>
+SemiSim requires a couple hundred MB of RAM at the default resolution. The amount of memory needed is proportional to the number of grid points, which is the square of the resolution. Resolutions greater than 512 require a huge amount of memory.
+<p>
+The speed of simulation depends slightly on the fraction of area filled with conductive material. I like to use the file "realistic BJT.semisim" as a benchmark since it covers the majority of the area with semiconductor. Running this setup on my M2 macbook pro, I get around 1100 steps/s.
+</p>
+<p>
+It's possible to slightly increase the simulation speed by decreasing "Target graphics FPS" in the preferences. This is more effective on slow computers.
+</p>
+
 <h2>Numerical stability</h2>
 Because the simulation is based on the finite difference method, care must be taken to ensure the simulation remains numerically stable. SemiSim automatically limits the maximum time step to maintain stability, but the user may adjust the simulation settings for optimal speed. In the simulation, let the width of a single pixel be \(\Delta s\), equal to the total width divided by the resolution. The simulation moves forward in time in discrete intervals \(\Delta t\). The following three conditions are required for stability:
 $$\begin{aligned}
@@ -302,15 +311,11 @@ $$
 $$
 where \(\mu_0\) is the mobility of electrons or holes in undoped semiconductor, \(n\) is the doping density, and \(n_c\) is the doping density at which mobility drops to \(1/2\) of its original value.
 <h2>Recombination</h2>
-The recombination rate is given by a sum of contributions from three processes: Radiative, Shockley-Read-Hall, and Auger recombiation. The mathematical expression for the net recombination rate is
+The recombination rate is given by a sum of contributions from three processes: Radiative, Shockley-Read-Hall, and Auger. The mathematical expression for the net recombination rate is
 $$
 r = (np - n_i^2) \left(k_\text{rad} + \frac{k_\text{SRH,n}\cdot k_\text{SRH,p}}{k_\text{SRH,n}(n+n_i)+k_\text{SRH,p}(p+n_i)} + k_\text{Aug,n}\cdot n + k_\text{Aug,p}\cdot p\right)
 $$
-<h2>Performance/Benchmarking</h2>
-SemiSim requires a couple hundred MB of RAM at the default resolution. The amount of memory needed is proportional to the number of grid points, which is the square of the resolution. Resolutions greater than 512 require a huge amount of memory.
-<p>
-The speed of simulation depends slightly on the fraction of area filled with conducuctive material. I like to use the file "realistic BJT.semisim" as a benchmark since it covers the majority of the area with semiconductor. Running this setup on my M2 macbook pro, I get around 1100 steps/s.
-</p>
+
 <h1>Miscellaneous questions and answers</h1>
 <h2>Why does this simulation exist?</h2>
 I created this simulator because I wanted to get a deeper understanding of how semiconductors work.

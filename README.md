@@ -1,3 +1,5 @@
+# Manual for SemiSim v2.2
+
 # Introduction
 
 Brandon's semiconductor simulator (SemiSim) is an educational tool made with the original purpose of helping its creator understand semiconductor devices. It is fully interactive, letting users draw circuits and create their own devices in a manner similar to painting software. There is a wide variety of different materials to choose from and many ways to visualize the electromagnetic phenomena associated with semiconductors. Users can either load one of the many premade simulations or create their own.
@@ -54,8 +56,7 @@ The main way to interact with circuits is through voltage sources and switches. 
 
 ![Contour lines](images/contour.png)
 
-**Arrows (brightness):** The direction and brightness of arrows corresponds to the direction and magnitude of the vector field.
-
+**Arrows (brightness):** The direction and brightness of arrows corresponds to the direction and magnitude of the vector field.  
 **Arrows (length):** The length of arrows corresponds to the magnitude of the vector field.
 
 ![Arrows](images/arrows.png)
@@ -135,7 +136,7 @@ This table includes keyboard commands that do not have corresponding menu option
 | R   | Record probe data (saves to probedata.txt) |
 | \[  | Previous tool |
 | \]  | Next tool |
-| F12  | Take screenshot |
+| F12 | Take screenshot |
 
 Notes: Cut/copy commands must be used after selecting a region. Flip command only works after paste.
 
@@ -173,6 +174,14 @@ Colors of all the materials.
 
 # Advanced topics
 
+## Performance/Benchmarking
+
+SemiSim requires a couple hundred MB of RAM at the default resolution. The amount of memory needed is proportional to the number of grid points, which is the square of the resolution. Resolutions greater than 512 require a huge amount of memory.
+
+The speed of simulation depends slightly on the fraction of area filled with conductive material. I like to use the file "realistic BJT.semisim" as a benchmark since it covers the majority of the area with semiconductor. Running this setup on my M2 macbook pro, I get around 1100 steps/s.
+
+It's possible to slightly increase the simulation speed by decreasing "Target graphics FPS" in the preferences. This is more effective on slow computers.
+
 ## Numerical stability
 
 Because the simulation is based on the finite difference method, care must be taken to ensure the simulation remains numerically stable. SemiSim automatically limits the maximum time step to maintain stability, but the user may adjust the simulation settings for optimal speed. In the simulation, let the width of a single pixel be \\(\\Delta s\\), equal to the total width divided by the resolution. The simulation moves forward in time in discrete intervals \\(\\Delta t\\). The following three conditions are required for stability: $$\\begin{aligned} \\sqrt{2} c \\frac{\\Delta t}{\\Delta s} < 1 \\qquad&\\text{(Wave equation)}\\\\ 4D \\frac{\\Delta t}{\\Delta s^2} < 1 \\qquad&\\text{(Diffusion equation)}\\\\ \\frac{\\sigma}{4\\epsilon} \\Delta t \\lesssim 1 \\qquad&\\text{(Charge relaxation)} \\end{aligned} $$ Here \\(c\\) is the speed of light in a medium, \\(D\\) is the diffusion constant, \\(\\sigma\\) the electrical conductivity, and \\(\\epsilon\\) the absolute permittivity. The conditions must be satisfied for every material in the simulation and the diffusion inequality must hold for both electrons and holes. The timestep \\(\\Delta t\\) is adjusted to satisfy all of these conditions. In practice, electrons usually have larger diffusion constants so we are free to ignore the holes. The charge relaxation inequality only matters for the most conductive material, which is conductive metal.
@@ -195,13 +204,7 @@ Charge carrier mobility in a semiconductor depends on the level of doping. The m
 
 ## Recombination
 
-The recombination rate is given by a sum of contributions from three processes: Radiative, Shockley-Read-Hall, and Auger recombiation. The mathematical expression for the net recombination rate is $$ r = (np - n\_i^2) \\left(k\_\\text{rad} + \\frac{k\_\\text{SRH,n}\\cdot k\_\\text{SRH,p}}{k\_\\text{SRH,n}(n+n\_i)+k\_\\text{SRH,p}(p+n\_i)} + k\_\\text{Aug,n}\\cdot n + k\_\\text{Aug,p}\\cdot p\\right) $$
-
-## Performance/Benchmarking
-
-SemiSim requires a couple hundred MB of RAM at the default resolution. The amount of memory needed is proportional to the number of grid points, which is the square of the resolution. Resolutions greater than 512 require a huge amount of memory.
-
-The speed of simulation depends slightly on the fraction of area filled with conducuctive material. I like to use the file "realistic BJT.semisim" as a benchmark since it covers the majority of the area with semiconductor. Running this setup on my M2 macbook pro, I get around 1100 steps/s.
+The recombination rate is given by a sum of contributions from three processes: Radiative, Shockley-Read-Hall, and Auger. The mathematical expression for the net recombination rate is $$ r = (np - n\_i^2) \\left(k\_\\text{rad} + \\frac{k\_\\text{SRH,n}\\cdot k\_\\text{SRH,p}}{k\_\\text{SRH,n}(n+n\_i)+k\_\\text{SRH,p}(p+n\_i)} + k\_\\text{Aug,n}\\cdot n + k\_\\text{Aug,p}\\cdot p\\right) $$
 
 # Miscellaneous questions and answers
 
@@ -228,14 +231,9 @@ According to Maxwell's equations, EM fields cannot propagate faster than the spe
 # Build Instructions
 
 Clone the repository using `bash git clone https://github.com/StunningLlama/SemiSim.git`  
-Note: Building requires Java 25 and Maven for dependency management. You may need to update your IDE.
-
-The JVM options
-```
--XX:-TieredCompilation
--XX:CompileThresholdScaling=0.25
-```
-are required for good performance.
+Note: Building requires Java 25 and Maven for dependency management. You may need to update your IDE.  
+  
+The JVM options `-XX:-TieredCompilation -XX:CompileThresholdScaling=0.25` are required for good performance.
 
 ## Eclipse
 

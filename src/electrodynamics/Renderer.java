@@ -1096,7 +1096,7 @@ public class Renderer extends PeriodicTask {
 		
 		if (e.opts.menu_time.isSelected()) {
 			drawString("Time: " + e.units.toString(e.time, Quantity.TIME), hoffset, voffset + line*vspacing, g); line++;
-			double pct = 100/(e.simFPStimer.getAverageTime()*e.renderer.targetframerate);
+			double pct = 100/(e.simFPStimer.getAverageTime()*e.targetframerate);
 			drawString("Steps/s: " + e.units.toString(e.opts.gui_simspeed_2.getValue()/e.simFPStimer.getAverageTime(), Quantity.DIMENSIONLESS) + " (" + String.format("%.0f", pct) + "%)", hoffset, voffset + line*vspacing, g); line++;
 
 			String sv_a = e.controls.scalarmode.getOption() != ScalarMode.NONE? (e.controls.scalarmode.getOption().shorthand + ": " + e.controls.scalarview.getOption().shorthand) : "";
