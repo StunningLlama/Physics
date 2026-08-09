@@ -1503,7 +1503,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				if (BuildFlags.steam_enabled) {
 					java.awt.Desktop.getDesktop().browse(new URI("https://store.steampowered.com/app/4864110/Brandons_Semiconductor_Simulator/"));
 				} else {
-					java.awt.Desktop.getDesktop().browse(new URI("https://github.com/StunningLlama/SemiSim/tree/SemiSim"));
+					java.awt.Desktop.getDesktop().browse(new URI("https://github.com/StunningLlama/SemiSim/"));
 				}
 			} catch (IOException | URISyntaxException ex) {
 				ex.printStackTrace();

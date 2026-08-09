@@ -549,7 +549,7 @@ public class Renderer extends PeriodicTask {
 				image_b[i][j] = 0;
 			}
 		}
-
+		
 		setalphaBG(0);
 		setalphaFG(1);
 
@@ -593,6 +593,9 @@ public class Renderer extends PeriodicTask {
 				}
 			}
 		}
+
+		setalphaBG(0);
+		setalphaFG(1);
 
 		if (e.controls.moving_selection) {
 			if (e.opts.menu_elem_colors.isSelected()) {
@@ -640,8 +643,8 @@ public class Renderer extends PeriodicTask {
 				break;
 			}
 
-			setalphaBG(1.0);
-			setalphaFG(1.0);
+			setalphaBG(1);
+			setalphaFG(1);
 			
 			e.computeScalarField(scalarfield, 0, 0, scalarview);
 			
@@ -876,6 +879,11 @@ public class Renderer extends PeriodicTask {
 		setalphaBG(1);
 		setalphaFG(1);
 		setColorFloat(0.7f, 0.7f, 0.7f);
+
+		/*drawPixelLine(0, 0, e.nx-1, 0);
+		drawPixelLine(e.nx-1, 0, e.nx-1, e.ny-1);
+		drawPixelLine(e.nx-1, e.ny-1, 0, e.ny-1);
+		drawPixelLine(0, e.ny-1, 0, 0);*/
 
 		if (Brush.drawLine(brush) && (e.controls.mouse_pressed_prev_left || e.controls.mouse_pressed_prev_right)) {
 			drawPixelLine(e.controls.mx_start, e.controls.my_start, e.controls.mx, e.controls.my);
@@ -2137,6 +2145,7 @@ public class Renderer extends PeriodicTask {
 		public int zoom_bound_y = 0;
 		public int offset_x = 0;
 		public int offset_y = 0;
+		Color bg;
 
 		Simulation e;
 
@@ -2144,11 +2153,18 @@ public class Renderer extends PeriodicTask {
 		public void paintComponent(Graphics real) {
 			draw((Graphics2D)real, getWidth(), getHeight());
 		}
+		
+		@Override
+		public void updateUI() {
+			super.updateUI();
+			Color c = this.getBackground();
+			bg = new Color(clamp((int)(0.95*c.getRed())-5, 0, 255), clamp((int)(0.95*c.getGreen())-5, 0, 255), clamp((int)(0.95*c.getBlue())-5, 0, 255));
+		}
 
 		public void draw(Graphics2D g, int width, int height) {
 			e.rwLock.readLock().lock();
 			try {
-				g.setBackground(Color.BLACK);
+				g.setBackground(bg);
 
 				if (g.getClipBounds() != null)
 					g.clearRect(0, 0, width, height);
@@ -2188,6 +2204,7 @@ public class Renderer extends PeriodicTask {
 		public RenderCanvas(Simulation w) {
 			e = w;
 			setPreferredSize(new Dimension(768, 768));
+			updateUI();
 		}
 	}
 }
