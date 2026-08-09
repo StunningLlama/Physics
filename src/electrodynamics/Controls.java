@@ -151,6 +151,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public boolean releasing_right = false;
 	
 	public boolean mouse_in = false;
+	public boolean mouse_in_bounds = false;
 	
 	public boolean moving_selection = false;
 	public boolean dragging_selection = false;
@@ -319,6 +320,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
 		mx_start = (int)Math.round(zoom_i1 + (mx_start_screen-e.canvas.offset_x - 1)*sf_x - 0.5);
 		my_start = (int)Math.round(zoom_j1 + (my_start_screen-e.canvas.offset_y - 1 + y_extra_offset)*sf_y - 0.5);
+		
+		mouse_in_bounds = (mx >= 0 && mx < e.nx && my >= 0 && my < e.ny);
 		
 		if (alt_down && (mouse_pressed_left || releasing_left || mouse_pressed_right || releasing_right))
 			snapToCardinals(mx, my);
@@ -502,7 +505,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		e.opts.menu_deselectall.setEnabled(!selectionempty);
 		
 		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
-		currentCursor = DEFAULT_CURSOR;
 		
 		if (pressing_left) {
 			e.canvas.requestFocus();
@@ -533,7 +535,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			e.opts.gui_brush_highlight.setVisible(true);
 			e.opts.gui_brushsize.setVisible(true);
 			e.opts.lblBrushSize.setVisible(true);
-			currentCursor = BLANK_CURSOR;
 		} else {
 			e.opts.gui_brush_1.setVisible(false);
 			e.opts.gui_brush_highlight.setVisible(false);
@@ -648,8 +649,13 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	}
 	
 	private void applyTool() {
+		currentCursor = DEFAULT_CURSOR;
+		
 		Brush brush = (Brush) e.opts.gui_brush.getSelectedItem();
 		BrushShape brushshape = (BrushShape) e.opts.gui_brush_1.getSelectedItem();
+
+		if (Brush.isBrushShapeImportant(brush))
+			currentCursor = BLANK_CURSOR;
 		
 		if (Keyboard.isKeyPressed(KeyEvent.VK_SHIFT) && !shift_down) {
 			shift_down = true;
@@ -713,7 +719,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					}
 				} else if (brush == Brush.FILL) {
 					currentCursor = this.CROSSHAIR_CURSOR;
-					if (pressing_left) {
+					if (pressing_left || pressing_right) {
 						GeneralMaterialType old_mat = new GeneralMaterialType(e.materials[mx][my]);
 						GeneralMaterialType new_mat = mat;
 						double new_angle = angle;
@@ -1248,10 +1254,15 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		if (!mouse_in)
 			currentCursor = DEFAULT_CURSOR;
 		
-		if (e.canvas.getCursor() != currentCursor) {
-			e.canvas.setCursor(currentCursor);
+		if (currentCursor == BLANK_CURSOR && !mouse_in_bounds)
+			currentCursor = DEFAULT_CURSOR;
+
+		final Cursor newCursor = currentCursor;
+
+		if (e.canvas.getCursor() != newCursor) {
+			e.canvas.setCursor(newCursor);
 		}
-		
+
 		SwingUtilities.invokeLater(() -> { //TODO
 			for (Plot p : e.plots) {
 				p.updatePlot(e);
@@ -2273,11 +2284,19 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		}
 		
 		public static boolean drawLine(Brush brush) {
-			return (brush == Brush.LINE || brush == Brush.BANDS || brush == Brush.SCALARPLOT || brush == Brush.CARRIERPLOT);
+			return (brush == Brush.LINE
+					|| brush == Brush.BANDS
+					|| brush == Brush.SCALARPLOT
+					|| brush == Brush.CARRIERPLOT);
 		}
 		
 		public static boolean disableContextMenu(Brush brush) {
-			return (brush == Brush.DRAW || brush == Brush.ERASE || brush == Brush.LINE || brush == Brush.REPLACE || brush == Brush.RECTANGLE);
+			return (brush == Brush.DRAW
+					|| brush == Brush.ERASE
+					|| brush == Brush.LINE
+					|| brush == Brush.REPLACE
+					|| brush == Brush.FILL
+					|| brush == Brush.RECTANGLE);
 		}
 	}
 	
