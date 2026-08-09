@@ -898,7 +898,8 @@ public class Renderer extends PeriodicTask {
 			drawPixelLine(e.controls.mx_start, e.controls.my_start, e.controls.mx, e.controls.my);
 		}
 
-		if (brush == Brush.ZOOM && e.controls.mouse_pressed_prev_left && !e.controls.shift_down) {
+		if ((brush == Brush.ZOOM && e.controls.mouse_pressed_prev_left
+			|| brush == Brush.RECTANGLE && (e.controls.mouse_pressed_prev_left || e.controls.mouse_pressed_prev_right))) {
 			int x1 = e.controls.mx_start;
 			int y1 = e.controls.my_start;
 			int x2 = e.controls.mx;
@@ -909,6 +910,12 @@ public class Renderer extends PeriodicTask {
 			drawPixelLine(x1, y2, x1, y1);
 		}
 
+		if (brush == Brush.RECTANGLE) {
+			drawPixelLine(e.controls.mx, e.controls.my, e.controls.mx+3, e.controls.my);
+			drawPixelLine(e.controls.mx, e.controls.my, e.controls.mx-3, e.controls.my);
+			drawPixelLine(e.controls.mx, e.controls.my, e.controls.mx, e.controls.my+3);
+			drawPixelLine(e.controls.mx, e.controls.my, e.controls.mx, e.controls.my-3);
+		}
 
 		if (e.opts.menu_interface.isSelected())
 		{

@@ -680,6 +680,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case ERASE:
 		case FILL:
 		case LIGHT:
+		case RECTANGLE:
 			boolean pick_material = alt_down && mx-mx_start == 0 && my-my_start == 0;
 			
 			if (releasing_middle || (pick_material && releasing_left)) {
@@ -691,23 +692,23 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			if (mouse_pressed_right || releasing_right || brush == Brush.ERASE)
 				mat = GeneralMaterialType.EMPTY;
 
+			GeneralMaterialType final_mat = mat;
+			double final_angle = angle;
+			BrushAction action = (i, j, in_bounds) -> {
+				if (in_bounds) {
+					if (final_mat.type == MaterialType.VACUUM) {
+						e.eraseMaterial(i, j);
+					} else if (e.materials[i][j].type == MaterialType.VACUUM ^ brush == Brush.REPLACE) {
+						e.eraseMaterial(i, j);
+						e.initializeMaterial(i, j, final_mat);
+						if (final_mat.type.hasEMF()) e.materials[i][j].emf_direction = final_angle;
+					}
+				}};
 			
 			if (!(mouse_pressed_middle || pick_material)) {
 				if (brush == Brush.LINE) {
 					if (releasing_left || releasing_right) {
-						GeneralMaterialType final_mat = mat;
-						double final_angle = angle;
-						applyBrush(mx_start, my_start, mx, my, brushshape, brushsize, (i, j, in_bounds) -> {
-							if (in_bounds) {
-								if (final_mat.type == MaterialType.VACUUM) {
-									e.eraseMaterial(i, j);
-								} else if (e.materials[i][j].type == MaterialType.VACUUM ^ brush == Brush.REPLACE) {
-									e.eraseMaterial(i, j);
-									e.initializeMaterial(i, j, final_mat);
-									if (final_mat.type.hasEMF()) e.materials[i][j].emf_direction = final_angle;
-								}
-							}}
-						);
+						applyBrush(mx_start, my_start, mx, my, brushshape, brushsize, action);
 						flagChanges(true);
 					}
 				} else if (brush == Brush.FILL) {
@@ -733,7 +734,22 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 							flagChanges(true);
 						}
 					}
-				} else if (brush == Brush.LIGHT) {
+				} else if (brush == Brush.RECTANGLE) {
+					currentCursor = this.BLANK_CURSOR;
+					if (releasing_left || releasing_right) {
+						int i1 = Math.min(mx_start, mx);
+						int j1 = Math.min(my_start, my);
+						int i2 = Math.max(mx_start, mx);
+						int j2 = Math.max(my_start, my);
+						
+						for (int i = i1; i <= i2; i++) {
+							for (int j = j1; j <= j2; j++) {
+								action.perform(i, j, true);
+							}
+						}
+					}
+				}
+				else if (brush == Brush.LIGHT) {
 					if (mouse_pressed_left) {
 						applyBrush(mxp, myp, mx, my, brushshape, brushsize, (i, j, in_bounds) -> e.L[i][j] = in_bounds? flashlight_strength : 0);
 					} else if (releasing_left) {
@@ -749,19 +765,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 				}
 				else {
 					if (mouse_pressed_left || mouse_pressed_right) {
-						GeneralMaterialType final_mat = mat;
-						double final_angle = angle;
-						applyBrush(mxp, myp, mx, my, brushshape, brushsize,  (i, j, in_bounds) -> {
-							if (in_bounds) {
-								if (final_mat.type == MaterialType.VACUUM) {
-									e.eraseMaterial(i, j);
-								} else if (e.materials[i][j].type == MaterialType.VACUUM ^ brush == Brush.REPLACE) {
-									e.eraseMaterial(i, j);
-									e.initializeMaterial(i, j, final_mat);
-									if (final_mat.type.hasEMF()) e.materials[i][j].emf_direction = final_angle;
-								}
-							}
-						});
+						applyBrush(mxp, myp, mx, my, brushshape, brushsize, action);
 					} else if (releasing_left || releasing_right) {
 						flagChanges(true);
 					}
@@ -2219,6 +2223,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		DRAW("Draw"),
 		REPLACE("Replace"),
 		LINE("Line"),
+		RECTANGLE("Rectangle"),
 		FILL("Fill"),
 		ERASE("Eraser"),
 		SELECT("Select and Move"),
@@ -2255,7 +2260,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					|| brush == Brush.LINE
 					|| brush == Brush.REPLACE
 					|| brush == Brush.ERASE
-					|| brush == Brush.FILL);
+					|| brush == Brush.FILL
+					|| brush == Brush.RECTANGLE);
 		}
 	
 		public static boolean isBrushShapeImportant(Brush brush) {
@@ -2271,7 +2277,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		}
 		
 		public static boolean disableContextMenu(Brush brush) {
-			return (brush == Brush.DRAW || brush == Brush.ERASE || brush == Brush.LINE || brush == Brush.REPLACE);
+			return (brush == Brush.DRAW || brush == Brush.ERASE || brush == Brush.LINE || brush == Brush.REPLACE || brush == Brush.RECTANGLE);
 		}
 	}
 	

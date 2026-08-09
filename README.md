@@ -54,7 +54,9 @@ The main way to interact with circuits is through voltage sources and switches. 
 
 ![Contour lines](images/contour.png)
 
-**Arrows:** The direction and brightness of arrows corresponds to the direction and magnitude of the vector field.
+**Arrows (brightness):** The direction and brightness of arrows corresponds to the direction and magnitude of the vector field.
+
+**Arrows (length):** The length of arrows corresponds to the magnitude of the vector field.
 
 ![Arrows](images/arrows.png)
 
@@ -89,11 +91,13 @@ The main way to interact with circuits is through voltage sources and switches. 
 | --- | --- |
 | Interact | Allows user to control voltage sources and turn switches on and off by clicking. |
 | Flashlight | Shines a light on the region under the cursor, creating pairs of electrons and holes. |
-| Zoom and Pan | Click and drag to zoom into a region. Click to zoom out. Hold shift (or middle mouse) to pan. |
+| Zoom | Click and drag to zoom into a rectangular region. Click to fully zoom out. |
+| Pan | Hold mouse to pan the view. Scroll to zoom in or out. |
 | Draw | Adds material to the field. |
 | Replace | Similar to the draw tool, but overwrites occupied areas. |
 | Line | Draws a line of material. |
 | Fill | Fills a region with a certain material, similar to the bucket tool. |
+| Rectangle | Draws a rectangle. |
 | Eraser | Erases material. |
 | Select and Move | Makes a rectangular selection which can be dragged around and moved. |
 | Flood select | Selects a contiguous region, similar to the bucket tool. |

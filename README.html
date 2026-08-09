@@ -119,7 +119,7 @@ td:first-child, th:first-child {
           src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js">
   </script>
 
-
+<h1 style="text-align: center;">Manual for SemiSim v2.2</h1>
 <h1>Introduction</h1>
 Brandon's semiconductor simulator (SemiSim) is an educational tool made with the original purpose of helping its creator understand semiconductor devices.
 It is fully interactive, letting users draw circuits and create their own devices in a manner similar to painting software.
@@ -166,7 +166,7 @@ The main way to interact with circuits is through voltage sources and switches. 
 <h2>View options</h2>
   <p><strong>Colors:</strong> The value of a field is mapped to a color. <figure><img src="images/colors.png" alt="Colors"></figure></p>
   <p><strong>Contour:</strong> Contour lines indicate a region on which the scalar field has a constant value.  <figure><img src="images/contour.png" alt="Contour lines"></figure></p>
-  <p><strong>Arrows:</strong> The direction and brightness of arrows corresponds to the direction and magnitude of the vector field. <figure><img src="images/arrows.png" alt="Arrows"></figure></p>
+  <p><strong>Arrows (brightness):</strong> The direction and brightness of arrows corresponds to the direction and magnitude of the vector field. <br><strong>Arrows (length):</strong> The length of arrows corresponds to the magnitude of the vector field. <figure><img src="images/arrows.png" alt="Arrows"></figure></p>
   <p><strong>Lines:</strong> 
 The brightness and density of lines indicates the magnitude of the field. <figure><img src="images/lines.png" alt="Field lines"></figure></p>
   <p><strong>Dots:</strong> The velocity of the dots is proportional to the value of the vector field. <figure><img src="images/dots.png" alt="Dots"></figure></p>
@@ -189,11 +189,13 @@ The brightness and density of lines indicates the magnitude of the field. <figur
 <table>
     <tr><td>Interact</td><td>Allows user to control voltage sources and turn switches on and off by clicking.</td></tr>
     <tr><td>Flashlight</td><td>Shines a light on the region under the cursor, creating pairs of electrons and holes.</td></tr>
-    <tr><td>Zoom and Pan</td><td>Click and drag to zoom into a region. Click to zoom out. Hold shift (or middle mouse) to pan.</td></tr>
+    <tr><td>Zoom</td><td>Click and drag to zoom into a rectangular region. Click to fully zoom out.</td></tr>
+	<tr><td>Pan</td><td>Hold mouse to pan the view. Scroll to zoom in or out.</td></tr>
     <tr><td>Draw</td><td>Adds material to the field.</td></tr>
     <tr><td>Replace</td><td>Similar to the draw tool, but overwrites occupied areas.</td></tr>
     <tr><td>Line <br><small></small></td><td>Draws a line of material.</td></tr>
     <tr><td>Fill</td><td>Fills a region with a certain material, similar to the bucket tool.</td></tr>
+	<tr><td>Rectangle</td><td>Draws a rectangle.</td></tr>
     <tr><td>Eraser</td><td>Erases material.</td></tr>
     <tr><td>Select and Move</td><td>Makes a rectangular selection which can be dragged around and moved.</td></tr>
     <tr><td>Flood select</td><td>Selects a contiguous region, similar to the bucket tool.</td></tr>
