@@ -1,4 +1,4 @@
-# Manual for SemiSim v2.2
+# Manual for SemiSim v2.2.1
 
 # Introduction
 

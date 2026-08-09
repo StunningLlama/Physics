@@ -939,7 +939,7 @@ public class Renderer extends PeriodicTask {
 		setalphaFG(0.8);
 		setColorFloat(1.0f, 1.0f, 1.0f);
 		
-		if (e.controls.texting) {
+		if (e.controls.texting && (System.currentTimeMillis() % 1000) < 500) {
 			drawPixelLine(e.controls.text_x, e.controls.text_y, e.controls.text_x, e.controls.text_y+7);
 		}
 	}
