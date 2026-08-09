@@ -19,6 +19,8 @@ public class IconButton extends JButton {
 	BufferedImage icon;
 	ImageIcon normal;
 	ImageIcon highlighted;
+	Color fc;
+	Color bc;
 
 	public IconButton(BufferedImage icon, int size) {
 		super();
@@ -35,8 +37,8 @@ public class IconButton extends JButton {
 	public void updateUI() {
 		super.updateUI();
 
-		Color fc = this.getForeground();
-		Color bc = this.getBackground();
+		fc = this.getForeground();
+		bc = this.getBackground();
 
 		if (icon != null) {
 			normal = makeIcon(fc, Color.BLACK, true);
@@ -46,10 +48,14 @@ public class IconButton extends JButton {
 	}
 
 	public void setHighlighted(boolean value) {
-		if (value)
+		if (value) {
 			setIcon(highlighted);
-		else
+			this.setBackground(fc);
+		}
+		else {
 			setIcon(normal);
+			this.setBackground(bc);
+		}
 	}
 	
 	private ImageIcon makeIcon(Color fc, Color bc, boolean applyAlpha) {

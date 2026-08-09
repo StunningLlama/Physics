@@ -875,6 +875,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 		addToolButton(Brush.LINE, 25);
 		addToolButton(Brush.FILL, 25);
 		addToolButton(Brush.RECTANGLE, 25);
+		addToolButton(Brush.TEXT, 25);
 		addToolButton(Brush.SELECT, 25);
 		addToolButton(Brush.ZOOM, 25);
 		addToolButton(Brush.PAN, 25);
