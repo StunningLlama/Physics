@@ -31,10 +31,6 @@ public class Ruler extends LineProbe {
 		r.setalphaFG(0.3);
 		r.setColorFloat(1.0f, 0.8f, 0.5f);
 		r.drawPixelLine(x1, y1, x2, y2);
-		
-		r.setalphaFG(0.1);
-		r.setColorFloat(1.0f, 1.0f, 1.0f);
-		r.drawPixelLine((x1 + x2)/2, (y1+y2)/2, labelcoord.x, labelcoord.y);
 	}
 
 	@Override
