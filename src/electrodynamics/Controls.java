@@ -51,6 +51,7 @@ import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
+import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -64,7 +65,6 @@ import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
-
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
@@ -218,6 +218,18 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	
 	public int plotinterval = 10;
 
+	
+	/* UI stuff */
+	
+    JFrame mat_list;
+	public SimpleSwingBrowser browser;
+	private BrowserAction browseraction = new BrowserAction();
+	public UndoRedo undoredo = new UndoRedo(4);
+	public Probe.LabelCoord labelcoord = null;
+	public Path plotpath = null;
+	public String keys_html = "";
+    boolean shift_draw_override = false;
+    
 	private Cursor HAND_CURSOR = new Cursor(Cursor.HAND_CURSOR);
 	private Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
 	private Cursor CROSSHAIR_CURSOR = new Cursor(Cursor.CROSSHAIR_CURSOR);
@@ -234,13 +246,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	public MenuCheckList<VectorMode, CustJRadioButtonMenuItem> vectormode = new MenuCheckList<VectorMode, CustJRadioButtonMenuItem>();
 	//public JCheckBoxMenuItem carriers = new JCheckBoxMenuItem("Show charge carriers");
 	
-	public UndoRedo undoredo = new UndoRedo(4);
+    ScalarMode prev_scalar_mode = ScalarMode.NONE;
+    VectorMode prev_vector_mode = VectorMode.NONE;
 	
-	public Probe.LabelCoord labelcoord = null;
-	
-	public Path plotpath = null;
-	
-	public String keys_html = "";
 	
 	public Controls(Simulation e) {
 		this.e = e;
@@ -249,7 +257,16 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		System.out.println(keys_html);
+
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(event -> {
+            synchronized (Keyboard.class) {
+                if (event.getKeyCode() == KeyEvent.VK_BACK_QUOTE && event.getID() == KeyEvent.KEY_RELEASED) {
+                	if (mat_list != null)
+                		mat_list.setVisible(false);
+                }
+            	return false;
+            }
+        });
 	}
 
 	void setResolution() {
@@ -1636,6 +1653,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case "menu_about":
 			JOptionPane.showMessageDialog(e.opts, SemiSim.about, "About", JOptionPane.INFORMATION_MESSAGE);
 			break;
+		case "menu_help3":
+			openQuickRef();
+			break;
 		case "menu_report":
 			if (BuildFlags.steam_enabled) {
 				showLinkBox("<div style='width: 300px;'>Please contact Brandon at brandon@brandonli.net or create a discussion on <a href=\"https://steamcommunity.com/app/4864110/discussions/\">steam</a>.</div>", "Report a bug");
@@ -1696,9 +1716,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		if (ev.getActionCommand() == Brush.class.getName())
 			e.opts.gui_brush.setSelectedItem(brushes.getOption());
 	}
-	
-	public SimpleSwingBrowser browser;
-	private BrowserAction browseraction = new BrowserAction();
 	
 	public class BrowserAction {
 		public void load(String name) {
@@ -1800,10 +1817,6 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 			this.my = my_start + yc[imin];
 		}
 	}
-    
-    boolean shift_draw_override = false;
-    ScalarMode prev_scalar_mode = ScalarMode.NONE;
-    VectorMode prev_vector_mode = VectorMode.NONE;
     
     private Action key_dbg = new AbstractAction(null) {
 		@Override
@@ -2035,11 +2048,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	addKeyBind(contentPane, KeyEvent.VK_F1, 0, new AbstractAction(null) {
     		@Override
             public void actionPerformed(ActionEvent ev) {
-    			HtmlBox box = new HtmlBox();
-    			box.textPane.setText(keys_html.replace("\n", ""));
-    			box.textPane.setCaretPosition(0);
-    			box.setTitle("Quick reference");
-    			box.setVisible(true);
+    			openQuickRef();
             }
         });
     	addKeyBind(contentPane, KeyEvent.VK_F12, 0, new AbstractAction(null) {
@@ -2069,20 +2078,31 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	        scrollPane.setPreferredSize(new Dimension(400, 400));
 
     	        tmplist.setSelectedValue(arr[ind], true);
-
-    	        int result = JOptionPane.showConfirmDialog(
-    	                null,
-    	                scrollPane,
-    	                "Select material",
-    	                JOptionPane.OK_CANCEL_OPTION,
-    	                JOptionPane.PLAIN_MESSAGE
-    	        );
-
-    	        if (result == JOptionPane.OK_OPTION) {
+    	        
+    	        tmplist.addListSelectionListener(ev1 -> {
     	        	e.opts.gui_material.setSelectedItem(tmplist.getSelectedValue());
+    	        });
+    	        
+    	        if (mat_list == null) {
+    	        	mat_list = new JFrame();
+    	        	mat_list.setTitle("Select material");
     	        }
+    	        
+    	        mat_list.getContentPane().removeAll();
+    	        mat_list.getContentPane().add(scrollPane);
+    	        mat_list.pack();
+	        	mat_list.setLocationRelativeTo(null);
+    	        mat_list.setVisible(true);
             }
         });
+    }
+    
+    public void openQuickRef() {
+    	HtmlBox box = new HtmlBox();
+		box.textPane.setText(keys_html.replace("\n", ""));
+		box.textPane.setCaretPosition(0);
+		box.setTitle("Quick reference");
+		box.setVisible(true);
     }
 
     public void takeScreenshot() {

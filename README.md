@@ -120,23 +120,24 @@ The main way to interact with circuits is through voltage sources and switches. 
 
 ## Extra keyboard/mouse controls
 
-This table includes keyboard commands that do not have corresponding menu options.
+This table includes keyboard commands that do not have corresponding menu options. For all commands, see [keybinds.html](keybinds.html).
 
 |     |     |
 | --- | --- |
+| F1  | Open quick reference |
 | F   | Advance frame |
 | Q   | Change brush shape |
-| Mouse wheel | Change brush size |
-| Shift | Draw line |
-| Shift + Alt or Option | Draw straight or diagonal lines |
-| Left mouse | Draw material |
-| Right mouse | Erase material |
-| Alt or Option | Pick material |
-| Middle mouse | Pick material |
 | R   | Record probe data (saves to probedata.txt) |
 | \[  | Previous tool |
 | \]  | Next tool |
+| Hold ~ | Open material selector |
 | F12 | Take screenshot |
+| Left mouse | Draw material |
+| Right mouse | Erase material |
+| Middle mouse | Pick material |
+| Mouse wheel | Change brush size |
+| Hold Shift | Draw line |
+| Hold Alt | Draw vertical, horizontal, and diagonal lines |
 
 Notes: Cut/copy commands must be used after selecting a region. Flip command only works after paste.
 

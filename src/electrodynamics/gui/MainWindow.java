@@ -112,6 +112,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 	public JMenuItem menu_open;
 	public JMenuItem menu_saveas;
 	public JMenuItem menu_about;
+	public JMenuItem menu_help3;
 	public JMenuItem menu_help;
 	public JMenuItem menu_cut;
 	public JMenuItem menu_copy;
@@ -375,6 +376,10 @@ public class MainWindow extends JFrame implements ComponentListener {
 
 		menu_about = new JMenuItem("About...");
 		menu_help2.add(menu_about);
+
+		menu_help3 = new JMenuItem("Quick reference...");
+		menu_help2.add(menu_help3);
+		
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(0, 5, 5, 5));
 		contentPane.setLayout(new BorderLayout(0, 0));
@@ -708,6 +713,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 		menu_saveas.addActionListener(e.controls);
 		menu_save.addActionListener(e.controls);
 		menu_about.addActionListener(e.controls);
+		menu_help3.addActionListener(e.controls);
 		menu_help.addActionListener(e.controls);
 		menu_undo.addActionListener(e.controls);
 		menu_redo.addActionListener(e.controls);
@@ -743,6 +749,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 		menu_saveas				.setActionCommand("menu_saveas");
 		menu_save				.setActionCommand("menu_save");
 		menu_about				.setActionCommand("menu_about");
+		menu_help3				.setActionCommand("menu_help3");
 		menu_help				.setActionCommand("menu_help");
 		menu_undo				.setActionCommand("menu_undo");
 		menu_redo				.setActionCommand("menu_redo");
