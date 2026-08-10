@@ -38,6 +38,7 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -72,6 +73,7 @@ import electrodynamics.SemiSim.OS;
 import electrodynamics.Simulation.BoundaryCondition;
 import electrodynamics.gui.CustJMenuItem;
 import electrodynamics.gui.CustJRadioButtonMenuItem;
+import electrodynamics.gui.HtmlBox;
 import electrodynamics.gui.LinkBox;
 import electrodynamics.gui.MenuCheckList;
 import electrodynamics.gui.SimpleSwingBrowser;
@@ -238,8 +240,16 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 	
 	public Path plotpath = null;
 	
+	public String keys_html = "";
+	
 	public Controls(Simulation e) {
 		this.e = e;
+		try {
+			keys_html = new String(Files.readAllBytes(SemiSim.getRootFile("keybinds.html").toPath()));
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		System.out.println(keys_html);
 	}
 
 	void setResolution() {
@@ -687,9 +697,8 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 		case FILL:
 		case LIGHT:
 		case RECTANGLE:
-			boolean pick_material = alt_down && mx-mx_start == 0 && my-my_start == 0;
 			
-			if (releasing_middle || (pick_material && releasing_left)) {
+			if (releasing_middle) {
 				e.opts.gui_material.setSelectedItem(new GeneralMaterialType(e.materials[mx][my]));
 			}
 			
@@ -711,7 +720,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 					}
 				}};
 			
-			if (!(mouse_pressed_middle || pick_material)) {
+			if (!(mouse_pressed_middle)) {
 				if (brush == Brush.LINE) {
 					if (releasing_left || releasing_right) {
 						applyBrush(mx_start, my_start, mx, my, brushshape, brushsize, action);
@@ -2023,6 +2032,16 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     				e.opts.gui_brush.setSelectedIndex(e.opts.gui_brush.getSelectedIndex()+1);
     		}
     	});
+    	addKeyBind(contentPane, KeyEvent.VK_F1, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+    			HtmlBox box = new HtmlBox();
+    			box.textPane.setText(keys_html.replace("\n", ""));
+    			box.textPane.setCaretPosition(0);
+    			box.setTitle("Quick reference");
+    			box.setVisible(true);
+            }
+        });
     	addKeyBind(contentPane, KeyEvent.VK_F12, 0, new AbstractAction(null) {
     		@Override
             public void actionPerformed(ActionEvent ev) {
@@ -2033,6 +2052,35 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     		@Override
             public void actionPerformed(ActionEvent ev) {
         		makeThumbnail();
+            }
+        });
+    	addKeyBind(contentPane, KeyEvent.VK_BACK_QUOTE, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+    			GeneralMaterialType[] arr = e.materialmanager.makelist();
+    			
+    			int ind = Arrays.asList(arr).indexOf(e.opts.gui_material.getSelectedItem());
+
+    	        JList<GeneralMaterialType> tmplist = new JList<>(arr);
+
+    	        tmplist.setVisibleRowCount(5);
+
+    	        JScrollPane scrollPane = new JScrollPane(tmplist);
+    	        scrollPane.setPreferredSize(new Dimension(400, 400));
+
+    	        tmplist.setSelectedValue(arr[ind], true);
+
+    	        int result = JOptionPane.showConfirmDialog(
+    	                null,
+    	                scrollPane,
+    	                "Select material",
+    	                JOptionPane.OK_CANCEL_OPTION,
+    	                JOptionPane.PLAIN_MESSAGE
+    	        );
+
+    	        if (result == JOptionPane.OK_OPTION) {
+    	        	e.opts.gui_material.setSelectedItem(tmplist.getSelectedValue());
+    	        }
             }
         });
     }

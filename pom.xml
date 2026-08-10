@@ -105,6 +105,7 @@
 					<include>LICENSE.txt</include>
 					<include>README.html</include>
 					<include>examples.html</include>
+					<include>keybinds.html</include>
 				</includes>
 			</resource>
 		</resources>

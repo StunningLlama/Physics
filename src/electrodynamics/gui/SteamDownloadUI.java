@@ -36,16 +36,6 @@ public class SteamDownloadUI extends JFrame implements ActionListener, ListSelec
 	private static final long serialVersionUID = 1L;
 	Simulation e;
 	private JPanel contentPane;
-	public JTextField width;
-	public JTextField resolution;
-	public JTextField depth;
-	public JTextField ni_metal;
-	public JTextField W_metal;
-	public JTextField E_b_metal;
-	public JTextField W_metal_high;
-	public JTextField W_metal_low;
-	public JTextField recomb_rate_metal;
-	public JTextField T;
 	
 	public JList<String> list;
 	public List<SteamUGCDetails> details;
