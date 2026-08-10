@@ -65,6 +65,8 @@ import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
+import javax.swing.border.EmptyBorder;
+
 import electrodynamics.Renderer.ScalarMode;
 import electrodynamics.Renderer.ScalarView;
 import electrodynamics.Renderer.VectorMode;
@@ -2076,6 +2078,9 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
 
     	        JScrollPane scrollPane = new JScrollPane(tmplist);
     	        scrollPane.setPreferredSize(new Dimension(400, 400));
+    	        JPanel panel = new JPanel();
+    	        panel.setBorder(new EmptyBorder(5, 5, 5, 5));
+    	        panel.add(scrollPane);
 
     	        tmplist.setSelectedValue(arr[ind], true);
     	        
@@ -2089,7 +2094,7 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
     	        }
     	        
     	        mat_list.getContentPane().removeAll();
-    	        mat_list.getContentPane().add(scrollPane);
+    	        mat_list.getContentPane().add(panel);
     	        mat_list.pack();
 	        	mat_list.setLocationRelativeTo(null);
     	        mat_list.setVisible(true);
