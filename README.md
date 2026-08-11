@@ -127,6 +127,7 @@ This table includes keyboard commands that do not have corresponding menu option
 | F1  | Open quick reference |
 | F   | Advance frame |
 | Q   | Change brush shape |
+| X   | Toggle crosshairs |
 | R   | Record probe data (saves to probedata.txt) |
 | \[  | Previous tool |
 | \]  | Next tool |
@@ -137,7 +138,7 @@ This table includes keyboard commands that do not have corresponding menu option
 | Middle mouse | Pick material |
 | Mouse wheel | Change brush size |
 | Hold Shift | Draw line |
-| Hold Alt | Draw vertical, horizontal, and diagonal lines |
+| Hold Alt/Option | Draw vertical, horizontal, and diagonal lines |
 
 Notes: Cut/copy commands must be used after selecting a region. Flip command only works after paste.
 

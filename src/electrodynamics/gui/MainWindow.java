@@ -378,6 +378,7 @@ public class MainWindow extends JFrame implements ComponentListener {
 		menu_help2.add(menu_about);
 
 		menu_help3 = new JMenuItem("Quick reference...");
+		menu_help3.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0));
 		menu_help2.add(menu_help3);
 		
 		contentPane = new JPanel();

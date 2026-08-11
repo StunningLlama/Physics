@@ -1985,6 +1985,12 @@ public class Controls implements ActionListener, MouseListener, MouseMotionListe
         		e.opts.menu_text_bg.setSelected(!e.opts.menu_text_bg.isSelected());
             }
         });
+    	addKeyBind(contentPane, KeyEvent.VK_X, 0, new AbstractAction(null) {
+    		@Override
+            public void actionPerformed(ActionEvent ev) {
+        		e.renderer.drawCrosshairGuides = !e.renderer.drawCrosshairGuides;
+            }
+        });
     	addKeyBind(contentPane, KeyEvent.VK_R, 0, new AbstractAction(null) {
     		@Override
             public void actionPerformed(ActionEvent ev) {
