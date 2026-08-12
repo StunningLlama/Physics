@@ -1,6 +1,4 @@
-// Copyright (c) Brandon Li 2026
-// This file is part of Brandon's Semiconductor Simulator which is released under GNU GPL v3.0.
-// See LICENSE.txt for full license details.
+// Source: https://stackoverflow.com/questions/8348063/clickable-links-in-joptionpane
 
 package electrodynamics.gui;
 

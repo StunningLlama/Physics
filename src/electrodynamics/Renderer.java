@@ -90,7 +90,7 @@ public class Renderer extends PeriodicTask {
 	private float scalar_offset;
 	public boolean display_relative_voltage = false;
 	public boolean disp_mat_name = false;
-	public boolean drawCrosshairGuides = true;
+	public boolean drawCrosshairGuides = false;
 	public String achievement_name = "";
 	public int achievement_timer = 0;
 	public String screenshot_name = "";
@@ -1556,36 +1556,36 @@ public class Renderer extends PeriodicTask {
 		}
 
 		private void updateCarriers() throws InterruptedException, BrokenBarrierException {
+			if (n_thread == 0 && carrier_diffusion_warning_timer > 0) {
+				carrier_diffusion_warning_timer--;
+			}
+
+			double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_carrier_density.getValue()/20.0);
+
+			if (n_thread == 0) {
+				rho_n_dist.prepare(e.rho_n);
+				rho_p_dist.prepare(e.rho_p);
+				rho_G_dist.prepare(e.G);
+			}
+
+			graphics_mid_barrier.await();
+
+			int i_low = lower(ccdots.size());
+			int i_high = upper(ccdots.size());
+
+			double A = e.ds*e.ds;
+			double N_G = rho_G_dist.getTotalAmount()*A*e.e_charge*C*delta_t;
+			double N_n = rho_n_dist.getTotalAmount()*A*C*delta_t/tau;
+			double N_p = rho_p_dist.getTotalAmount()*A*C*delta_t/tau;
+
+			double N_n_excess = Math.max(C-C_prev, 0)*rho_n_dist.getTotalAmount()*A;
+			double N_p_excess = Math.max(C-C_prev, 0)*rho_p_dist.getTotalAmount()*A;
+
+			double P_deficit = Math.max(-(C-C_prev)/C_prev, 0);
+
+			boolean show_gen_recomb = e.opts.menu_gen_recomb.isSelected();
+
 			try {
-				if (n_thread == 0 && carrier_diffusion_warning_timer > 0) {
-					carrier_diffusion_warning_timer--;
-				}
-
-				double C = cc_default_dot_density*Math.pow(10.0, e.opts.gui_carrier_density.getValue()/20.0);
-
-				if (n_thread == 0) {
-					rho_n_dist.prepare(e.rho_n);
-					rho_p_dist.prepare(e.rho_p);
-					rho_G_dist.prepare(e.G);
-				}
-
-				int i_low = lower(ccdots.size());
-				int i_high = upper(ccdots.size());
-
-				graphics_mid_barrier.await();
-
-				double A = e.ds*e.ds;
-				double N_G = rho_G_dist.getTotalAmount()*A*e.e_charge*C*delta_t;
-				double N_n = rho_n_dist.getTotalAmount()*A*C*delta_t/tau;
-				double N_p = rho_p_dist.getTotalAmount()*A*C*delta_t/tau;
-
-				double N_n_excess = Math.max(C-C_prev, 0)*rho_n_dist.getTotalAmount()*A;
-				double N_p_excess = Math.max(C-C_prev, 0)*rho_p_dist.getTotalAmount()*A;
-
-				double P_deficit = Math.max(-(C-C_prev)/C_prev, 0);
-
-				boolean show_gen_recomb = e.opts.menu_gen_recomb.isSelected();
-
 				for (int i = i_low; i < i_high; i++) {
 					ChargeCarrierDot d = ccdots.get(i);
 					if (d == null) continue;
@@ -1630,9 +1630,13 @@ public class Renderer extends PeriodicTask {
 						}
 					}
 				}
+			} catch (IndexOutOfBoundsException e) {
+				System.out.println("Charge carrier issue detected...");
+			}
+			
+			graphics_mid_barrier.await();
 
-				graphics_mid_barrier.await();
-
+			try {
 				rho_n_dist.generateSamples(N_n/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.ELECTRON, 0)); });
 				rho_p_dist.generateSamples(N_p/n_threads, (c) -> { ccdots.add(new ChargeCarrierDot(c.x, c.y, tau, tau, DotType.HOLE, 0)); });
 				rho_G_dist.generateSamples(N_G/n_threads, (c) -> {
